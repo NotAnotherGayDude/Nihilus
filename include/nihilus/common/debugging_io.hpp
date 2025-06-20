@@ -60,7 +60,6 @@ namespace nihilus {
 		GGML_OP_RMS_NORM,
 		GGML_OP_RMS_NORM_BACK,
 		GGML_OP_GROUP_NORM,
-		GGML_OP_L2_NORM,
 
 		GGML_OP_MUL_MAT,
 		GGML_OP_MUL_MAT_ID,
@@ -87,12 +86,11 @@ namespace nihilus {
 		GGML_OP_CONV_TRANSPOSE_1D,
 		GGML_OP_IM2COL,
 		GGML_OP_IM2COL_BACK,
-		GGML_OP_CONV_2D_DW,
 		GGML_OP_CONV_TRANSPOSE_2D,
 		GGML_OP_POOL_1D,
 		GGML_OP_POOL_2D,
 		GGML_OP_POOL_2D_BACK,
-		GGML_OP_UPSCALE,
+		GGML_OP_UPSCALE,// nearest interpolate
 		GGML_OP_PAD,
 		GGML_OP_PAD_REFLECT_1D,
 		GGML_OP_ARANGE,
@@ -110,15 +108,19 @@ namespace nihilus {
 		GGML_OP_ADD_REL_POS,
 		GGML_OP_RWKV_WKV6,
 		GGML_OP_GATED_LINEAR_ATTN,
-		GGML_OP_RWKV_WKV7,
 
 		GGML_OP_UNARY,
+
+		GGML_OP_MAP_UNARY,
+		GGML_OP_MAP_BINARY,
+
+		GGML_OP_MAP_CUSTOM1_F32,
+		GGML_OP_MAP_CUSTOM2_F32,
+		GGML_OP_MAP_CUSTOM3_F32,
 
 		GGML_OP_MAP_CUSTOM1,
 		GGML_OP_MAP_CUSTOM2,
 		GGML_OP_MAP_CUSTOM3,
-
-		GGML_OP_CUSTOM,
 
 		GGML_OP_CROSS_ENTROPY_LOSS,
 		GGML_OP_CROSS_ENTROPY_LOSS_BACK,
@@ -211,7 +213,6 @@ namespace nihilus {
 			case GGML_OP_NORM:// Layer norm - could potentially map to rms_norm
 			case GGML_OP_RMS_NORM_BACK:// RMS norm backward - not implemented
 			case GGML_OP_GROUP_NORM:// Group normalization - not implemented
-			case GGML_OP_L2_NORM:// L2 normalization - not implemented
 			case GGML_OP_OUT_PROD:// Outer product - not implemented
 			case GGML_OP_SCALE:// Scaling - could potentially map to mul
 			case GGML_OP_SET:// Set values - not implemented
@@ -225,7 +226,6 @@ namespace nihilus {
 			case GGML_OP_CONV_TRANSPOSE_1D:// 1D transposed convolution - not implemented
 			case GGML_OP_IM2COL:// Image to column - not implemented
 			case GGML_OP_IM2COL_BACK:// Image to column backward - not implemented
-			case GGML_OP_CONV_2D_DW:// 2D depthwise convolution - not implemented
 			case GGML_OP_CONV_TRANSPOSE_2D:// 2D transposed convolution - not implemented
 			case GGML_OP_POOL_1D:// 1D pooling - not implemented
 			case GGML_OP_POOL_2D:// 2D pooling - not implemented
@@ -247,12 +247,10 @@ namespace nihilus {
 			case GGML_OP_ADD_REL_POS:// Add relative position - not implemented
 			case GGML_OP_RWKV_WKV6:// RWKV WKV6 - not implemented
 			case GGML_OP_GATED_LINEAR_ATTN:// Gated linear attention - not implemented
-			case GGML_OP_RWKV_WKV7:// RWKV WKV7 - not implemented
 			case GGML_OP_UNARY:// Unary operation - not implemented
 			case GGML_OP_MAP_CUSTOM1:// Custom operation 1 - not implemented
 			case GGML_OP_MAP_CUSTOM2:// Custom operation 2 - not implemented
 			case GGML_OP_MAP_CUSTOM3:// Custom operation 3 - not implemented
-			case GGML_OP_CUSTOM:// Custom operation - not implemented
 			case GGML_OP_CROSS_ENTROPY_LOSS:// Cross entropy loss - not implemented
 			case GGML_OP_CROSS_ENTROPY_LOSS_BACK:// Cross entropy loss backward - not implemented
 			case GGML_OP_OPT_STEP_ADAMW:// AdamW optimizer step - not implemented
@@ -271,10 +269,10 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE intermediary_tensor() noexcept = default;
 		NIHILUS_FORCE_INLINE intermediary_tensor(const intermediary_ggml_tensor& other) {
 			dims = other.dims;
-			data	   = other.data;
-			name	   = other.name;
-			type	   = other.type;
-			op		   = convert_ggml_op_to_nihilus_kernel(other.op);
+			data = other.data;
+			name = other.name;
+			type = other.type;
+			op	 = convert_ggml_op_to_nihilus_kernel(other.op);
 		}
 
 		template<core_traits_type tensor_type> NIHILUS_FORCE_INLINE intermediary_tensor(const tensor_type& other, const std::string& name_new, size_t current_block) {
@@ -293,8 +291,8 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE bool operator==(const intermediary_tensor& other) const {
 			if (op != other.op) {
 				std::cout << "Incorret op-types:, For Tensor: " << name << std::endl;
-				std::cout << "LHS OP: " << ( int32_t )op << std::endl;
-				std::cout << "RHS OP: " << ( int32_t )other.op << std::endl;
+				std::cout << "LHS OP: " << kernel_names[op] << std::endl;
+				std::cout << "RHS OP: " << kernel_names[other.op] << std::endl;
 			}
 			if (type != other.type) {
 				std::cout << "Incorret Types:, For Tensor: " << name << std::endl;
@@ -307,7 +305,7 @@ namespace nihilus {
 				std::cout << "LHS Dims: " << dims << std::endl;
 				std::cout << "RHS Dims: " << other.dims << std::endl;
 			}
-			
+
 			return data == other.data;
 		}
 	};
@@ -355,7 +353,7 @@ namespace nihilus {
 namespace jsonifier {
 	template<> struct core<nihilus::intermediary_ggml_tensor> {
 		using value_type				 = nihilus::intermediary_ggml_tensor;
-		static constexpr auto parseValue = createValue<&value_type::dims, &value_type::name, &value_type::op, &value_type::type>();
+		static constexpr auto parseValue = createValue<&value_type::dims, &value_type::name, &value_type::op, &value_type::type, &value_type::data>();
 	};
 }
 
@@ -427,8 +425,7 @@ namespace nihilus {
 		file_loader<false> file_loader{ path };
 		std::string new_string{};
 		jsonifier::jsonifier_core parser{};
-		parser.parseJson<jsonifier::parse_options{ .minified = false }>(return_values_ggml, file_loader.operator const std::string&());
-		parser.serializeJson<jsonifier::serialize_options{}>(return_values_ggml, new_string);
+		parser.parseJson<jsonifier::parse_options{ .minified = true }>(return_values_ggml, file_loader.operator const std::string&());
 		for (auto& [key, value]: return_values_ggml) {
 			return_values[key] = value;
 			std::cout << key << std::endl;
@@ -445,23 +442,18 @@ namespace nihilus {
 		inline static std::map<std::string, intermediary_tensor> nodes{ get_tensors("C:/users/chris/source/repos/ft-tl/Node_Data.json") };
 		template<core_traits_type tensor_type> static bool compare_tensor_data(const tensor_type& tensor, size_t current_block) {
 			std::string tensor_name{ convert_op_to_string(tensor.type, current_block) };
-			bool was_it_found{ true };
 			if (leafs.contains(tensor_name)) {
 				intermediary_tensor tensor_new{ tensor, tensor_name, current_block };
+				std::cout << "Found an op of name: " << tensor_name << std::endl;
 				return tensor_new == leafs[tensor_name];
-			} else {
-				was_it_found = false;
 			}
 			if (nodes.contains(tensor_name)) {
 				intermediary_tensor tensor_new{ tensor, tensor_name, current_block };
+				std::cout << "Found an op of name: " << tensor_name << std::endl;
 				return tensor_new == nodes[tensor_name];
-			} else {
-				was_it_found = false;
 			}
-			if (!was_it_found) {
-				std::cout << "Failed to find an op of name: " << tensor_name << ", OF TYPE: " << ( int32_t )tensor.type << std::endl;
-			}
-			return was_it_found;
+			std::cout << "Failed to find an op of name: " << tensor_name << ", OF TYPE: " << ( int32_t )tensor.type << std::endl;
+			return false;
 		}
 	};
 

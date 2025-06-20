@@ -71,7 +71,7 @@ jobs:
     
     - name: Configure CMake
       run: |
-        cmake -S . -B ./Build -DCMAKE_BUILD_TYPE=Release -DLLAMA_CURL=OFF -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=TRUE -DCMAKE_INSTALL_RPATH="@loader_path/../lib" -DNIHILUS_VS_LLAMA=TRUE -DGGML_METAL=OFF -DLLAMA_BRANCH="main"
+        cmake -S . -B ./Build -DCMAKE_BUILD_TYPE=Release -DLLAMA_CURL=OFF -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=TRUE -DCMAKE_INSTALL_RPATH="@loader_path/../lib" -DNIHILUS_VS_LLAMA=TRUE -DGGML_METAL=OFF
     
     - name: Build Project
       run: |
@@ -88,12 +88,12 @@ jobs:
     - name: Download Model (Linux/macOS)
       if: runner.os != 'Windows'
       run: |
-        wget -O installed-to/Meta-Llama-3.1-8B-Instruct-Q8_0.gguf https://huggingface.co/bartowski/Meta-Llama-3.1-8B-Instruct-GGUF/resolve/main/Meta-Llama-3.1-8B-Instruct-Q8_0.gguf
+        wget -O installed-to/Meta-Llama-3.1-8B-Instruct-Q8_0.gguf https://huggingface.co/bartowski/Llama-3.2-3B-Instruct-GGUF/resolve/main/Llama-3.2-3B-Instruct-Q8_0.gguf
     
     - name: Download Model (Windows)
       if: runner.os == 'Windows'
       run: |
-        Invoke-WebRequest -Uri "https://huggingface.co/bartowski/Meta-Llama-3.1-8B-Instruct-GGUF/resolve/main/Meta-Llama-3.1-8B-Instruct-Q8_0.gguf" -OutFile "installed-to/Meta-Llama-3.1-8B-Instruct-Q8_0.gguf"
+        Invoke-WebRequest -Uri "https://huggingface.co/bartowski/Llama-3.2-3B-Instruct-GGUF/resolve/main/Llama-3.2-3B-Instruct-Q8_0.gguf" -OutFile "installed-to/Meta-Llama-3.1-8B-Instruct-Q8_0.gguf"
     
     - name: Set Library Path and Run Model (macOS)
       if: runner.os == 'macOS'
@@ -108,7 +108,7 @@ jobs:
         if grep -q "A question that has puzzled philosophers, theolog" llm_output_macos.txt; then
           echo "✅ VALIDATION PASSED: Expected text found in output"
         else
-          echo "❌ VALIDATION FAILED: Expected text 'A question that has puzzled philosophers and theolog' not found in output"
+          echo "❌ VALIDATION FAILED: Expected text '- The question that has puzzled philosophers,' not found in output"
           echo "=== ACTUAL OUTPUT FOR DEBUGGING ==="
           echo "Full output:"
           cat llm_output_macos.txt
@@ -133,10 +133,10 @@ jobs:
         cat llm_output_linux.txt
         echo "=== END OUTPUT ==="
         echo "=== VALIDATION CHECK ==="
-        if grep -q "A question that has puzzled philosophers and theolog" llm_output_linux.txt; then
+        if grep -q "- The question that has puzzled philosophers," llm_output_linux.txt; then
           echo "✅ VALIDATION PASSED: Expected text found in output"
         else
-          echo "❌ VALIDATION FAILED: Expected text 'A question that has puzzled philosophers and theolog' not found in output"
+          echo "❌ VALIDATION FAILED: Expected text '- The question that has puzzled philosophers,' not found in output"
           echo "=== ACTUAL OUTPUT FOR DEBUGGING ==="
           echo "Full output:"
           cat llm_output_linux.txt
@@ -162,7 +162,7 @@ jobs:
         if (Select-String -Pattern "A question that has puzzled philosophers, theolog" -Path llm_output_windows.txt -Quiet) {
           Write-Host "✅ VALIDATION PASSED: Expected text found in output"
         } else {
-          Write-Host "❌ VALIDATION FAILED: Expected text 'A question that has puzzled philosophers and theolog' not found in output"
+          Write-Host "❌ VALIDATION FAILED: Expected text '- The question that has puzzled philosophers,' not found in output"
           Write-Host "=== ACTUAL OUTPUT FOR DEBUGGING ==="
           Write-Host "Full output:"
           Get-Content llm_output_windows.txt
@@ -177,19 +177,3 @@ jobs:
           if ($philosopherLines) { $philosopherLines } else { Write-Host "No lines containing 'philosopher' found" }
           exit 1
         }
-
-    - name: Copy Install Directory to Workspace
-      if: success() || failure()
-      shell: bash
-      run: |
-        if [ -d "../Install" ]; then
-          cp -r ../Install ./Install-Backup
-        fi
-
-    - name: Upload Nihilus Binaries
-      if: success() || failure()
-      uses: actions/upload-artifact@v4
-      with:
-        name: "nihilus-binaries-${{ matrix.name }}"
-        path: "Install-Backup/"
-        retention-days: 30

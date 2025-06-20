@@ -280,6 +280,8 @@ namespace nihilus {
 				} else {
 					core.data = ptr;
 				}
+			} else {
+				tensor_debugger::compare_tensor_data(core, 0);
 			}
 		}
 	};
