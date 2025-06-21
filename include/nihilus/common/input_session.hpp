@@ -21,6 +21,7 @@ RealTimeChris (Chris M.)
 #pragma once
 
 #include <nihilus/common/tokenizer.hpp>
+#include <nihilus/cpu/thread_pool.hpp>
 #include <nihilus/common/config.hpp>
 #include <iterator>
 
@@ -53,7 +54,7 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE bool process_input() {
 			this->tokenize(input, model_ptr->template get_core<model_type::op_type_type::inp_tokens>().data);
 			model_ptr->execute_model(exec_params);
-			std::cout << "FOR " << exec_params.thread_count << " THREADS, WITH " << nanosecond_count << " NANOSECONDS OF SPINLOCK PER KERNEL, "
+			std::cout << "FOR " << exec_params.thread_count << " THREADS, WITH " << spinlock_time << " NANOSECONDS OF SPINLOCK PER KERNEL, "
 					  << "NIHILUS AVERAGE COMPUTE TIME, OVER: " << std::setw(50 - std::size("NIHILUS AVERAGE COMPUTE TIME, OVER: ")) << stop_watch_val_nihilus.get_count()
 					  << " TOKENS: " << stop_watch_val_nihilus.get_average() << std::endl;
 			return false;

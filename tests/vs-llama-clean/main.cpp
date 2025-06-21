@@ -74,12 +74,10 @@ static void sigint_handler(int signo) {
 }
 #endif
 
-template<auto enum_val, template<nihilus::model_config config, auto op_type> typename core_type> struct iterator_constructor {};
-
 int main(int argc, char** argv) {
 	try {
 		std::string return_value{};
-		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 2, 1, true, "Token">::runBenchmark<"llama.cpp", "cyan">([&] {
+		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 2, 1,  true, "Token">::runBenchmark<"llama.cpp", "cyan">([&] {
 			return_value.clear();
 			size_t token_count{};
 			common_params params;
@@ -585,7 +583,7 @@ int main(int argc, char** argv) {
 		static constexpr auto model_config = nihilus::generate_model_config(nihilus::llama_model_generation::v3, nihilus::llama_model_size::llama_8B,
 			nihilus::kernel_type_profile::q8_gqa, nihilus::model_arch::llama, false);
 		auto cli_args_final				   = nihilus::harbinger<model_config>::parse_cli_arguments(argc, argv);
-		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 2, 1, true, "Token">::runBenchmark<"nihilus", "cyan">([&] {
+		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 2, 1,  true, "Token">::runBenchmark<"nihilus", "cyan">([&] {
 			nihilus::model<model_config> model_graph_data{ cli_args_final };
 			nihilus::input_session_config session_config{ std::cin, 1024 };
 			nihilus::input_session input_session{ session_config, model_graph_data };
@@ -597,7 +595,7 @@ int main(int argc, char** argv) {
 			return input_session.exec_params.token_count - 1;
 		});
 		std::cout << return_value << std::endl;
-		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 2, 1, true, "Token">::printResults();
+		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 2, 1,  true, "Token">::printResults();
 	} catch (const std::exception& error) {
 		std::cout << "Error: " << error.what() << std::endl;
 	}

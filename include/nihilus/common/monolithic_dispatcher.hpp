@@ -19,6 +19,7 @@ RealTimeChris (Chris M.)
 */
 
 #pragma once
+
 #include <nihilus/common/kernel_traits.hpp>
 #include <nihilus/common/common.hpp>
 #include <nihilus/common/core_traits.hpp>

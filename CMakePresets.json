@@ -74,7 +74,8 @@
         "LLAMA_CURL": "Off",
         "NIHILUS_VS_LLAMA_BENCHMARK": true
       }
-    },    {
+    },
+    {
       "name": "x64-release-benchmark",
       "displayName": "x64 Release",
       "inherits": "x64-debug",
@@ -82,6 +83,30 @@
         "CMAKE_BUILD_TYPE": "Release",
         "LLAMA_CURL": "Off",
         "NIHILUS_VS_LLAMA_BENCHMARK": true
+      }
+    },
+    {
+      "name": "x64-debug-clean",
+      "displayName": "x64 Debug",
+      "inherits": "windows-base",
+      "architecture": {
+        "value": "x64",
+        "strategy": "external"
+      },
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "LLAMA_CURL": "Off",
+        "NIHILUS_VS_LLAMA": true
+      }
+    },
+    {
+      "name": "x64-release-clean",
+      "displayName": "x64 Release",
+      "inherits": "x64-debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "LLAMA_CURL": "Off",
+        "NIHILUS_VS_LLAMA": true
       }
     },
     {

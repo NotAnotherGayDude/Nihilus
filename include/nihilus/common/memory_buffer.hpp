@@ -75,7 +75,7 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE void* claim_memory(uint64_t amount_to_claim) noexcept {
 			static constexpr uint64_t alignment = cpu_alignment;
 
-			uint64_t aligned_amount = round_up_to_multiple(amount_to_claim, alignment);
+			uint64_t aligned_amount = round_up_to_multiple<alignment>(amount_to_claim);
 
 			if (current_offset + aligned_amount > size_val) {
 				if constexpr (config.exceptions) {

@@ -22,6 +22,8 @@ RealTimeChris (Chris M.)
 
 #include <nihilus/common/input_session.hpp>
 #include <nihilus/common/model.hpp>
+#include <nihilus/common/model_parser.hpp>
+#include <nihilus/common/common.hpp>
 #include <cstdint>
 
 namespace nihilus {

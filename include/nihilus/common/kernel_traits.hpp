@@ -140,8 +140,8 @@ namespace nihilus {
 		static constexpr auto dims02					 = core_type::input_type01::dims;
 		static constexpr auto strides01					 = core_type::strides;
 		static constexpr auto strides02					 = core_type::input_type01::strides;
-		static constexpr uint64_t total_elements		 = dims01[0] * dims01[1] * dims01[2] * dims01[3];
-		static constexpr uint64_t input01_total_elements = dims02[0] * dims02[1] * dims02[2] * dims02[3];
+		static constexpr uint64_t total_elements		 = dims01[tag<0>{}] * dims01[tag<1>{}] * dims01[tag<2>{}] * dims01[tag<3>{}];
+		static constexpr uint64_t input01_total_elements = dims02[tag<0>{}] * dims02[tag<1>{}] * dims02[tag<2>{}] * dims02[tag<3>{}];
 		static_assert(static_assert_printer<( std::is_same_v<output_type, typename core_type::output_type> ),
 			kernel_trait_static_assert_errors::Sorry_but_these_output_types_are_not_the_same, kernel_base, core_type, output_type, input_type01>::impl);
 		static_assert(static_assert_printer<( std::is_same_v<input_type01, typename core_type::input_type01::output_type> ),
@@ -159,9 +159,9 @@ namespace nihilus {
 		static constexpr auto strides01					 = core_type::strides;
 		static constexpr auto strides02					 = core_type::input_type01::strides;
 		static constexpr auto strides03					 = core_type::input_type02::strides;
-		static constexpr uint64_t total_elements		 = dims01[0] * dims01[1] * dims01[2] * dims01[3];
-		static constexpr uint64_t input01_total_elements = dims02[0] * dims02[1] * dims02[2] * dims02[3];
-		static constexpr uint64_t input02_total_elements = dims03[0] * dims03[1] * dims03[2] * dims03[3];
+		static constexpr uint64_t total_elements		 = dims01[tag<0>{}] * dims01[tag<1>{}] * dims01[tag<2>{}] * dims01[tag<3>{}];
+		static constexpr uint64_t input01_total_elements = dims02[tag<0>{}] * dims02[tag<1>{}] * dims02[tag<2>{}] * dims02[tag<3>{}];
+		static constexpr uint64_t input02_total_elements = dims03[tag<0>{}] * dims03[tag<1>{}] * dims03[tag<2>{}] * dims03[tag<3>{}];
 		static_assert(static_assert_printer<( std::is_same_v<output_type, typename core_type::output_type> ),
 			kernel_trait_static_assert_errors::Sorry_but_these_output_types_are_not_the_same, kernel_base, core_type, output_type, input_type01, input_type02>::impl);
 		static_assert(static_assert_printer<( std::is_same_v<input_type01, typename core_type::input_type01::output_type> ),
@@ -185,10 +185,10 @@ namespace nihilus {
 		static constexpr auto strides02					 = core_type::input_type01::strides;
 		static constexpr auto strides03					 = core_type::input_type02::strides;
 		static constexpr auto strides04					 = core_type::input_type03::strides;
-		static constexpr uint64_t total_elements		 = dims01[0] * dims01[1] * dims01[2] * dims01[3];
-		static constexpr uint64_t input01_total_elements = dims02[0] * dims02[1] * dims02[2] * dims02[3];
-		static constexpr uint64_t input02_total_elements = dims03[0] * dims03[1] * dims03[2] * dims03[3];
-		static constexpr uint64_t input03_total_elements = dims04[0] * dims04[1] * dims04[2] * dims04[3];
+		static constexpr uint64_t total_elements		 = dims01[tag<0>{}] * dims01[tag<1>{}] * dims01[tag<2>{}] * dims01[tag<3>{}];
+		static constexpr uint64_t input01_total_elements = dims02[tag<0>{}] * dims02[tag<1>{}] * dims02[tag<2>{}] * dims02[tag<3>{}];
+		static constexpr uint64_t input02_total_elements = dims03[tag<0>{}] * dims03[tag<1>{}] * dims03[tag<2>{}] * dims03[tag<3>{}];
+		static constexpr uint64_t input03_total_elements = dims04[tag<0>{}] * dims04[tag<1>{}] * dims04[tag<2>{}] * dims04[tag<3>{}];
 		static_assert(static_assert_printer<( std::is_same_v<output_type, typename core_type::output_type> ),
 			kernel_trait_static_assert_errors::Sorry_but_these_output_types_are_not_the_same, kernel_base, core_type, output_type, input_type01, input_type02>::impl);
 		static_assert(static_assert_printer<( std::is_same_v<input_type01, typename core_type::input_type01::output_type> ),
@@ -213,19 +213,19 @@ namespace nihilus {
 		using input01	= base_type::input01;
 		using input02	= base_type::input02;
 		using output	= base_type::output;
-		static_assert(static_assert_printer<(input01::dims[0] == input02::dims[0]), kernel_trait_static_assert_errors::MUL_Input_dimensions_0_must_match, kernel_traits, output,
+		static_assert(static_assert_printer<(input01::dims[tag<0>{}] == input02::dims[tag<0>{}]), kernel_trait_static_assert_errors::MUL_Input_dimensions_0_must_match, kernel_traits, output,
 			input01, input02>::impl);
-		static_assert(static_assert_printer<(input01::dims[0] == output::dims[0]), kernel_trait_static_assert_errors::MUL_Output_dimensions_0_must_match_inputs, kernel_traits,
+		static_assert(static_assert_printer<(input01::dims[tag<0>{}] == output::dims[tag<0>{}]), kernel_trait_static_assert_errors::MUL_Output_dimensions_0_must_match_inputs, kernel_traits,
 			output, input01, input02>::impl);
-		static_assert(static_assert_printer<(input02::dims[1] == 1 || input01::dims[1] == input02::dims[1]),
+		static_assert(static_assert_printer<(input02::dims[tag<1>{}] == 1 || input01::dims[tag<1>{}] == input02::dims[tag<1>{}]),
 			kernel_trait_static_assert_errors::MUL_Broadcasting_requires_input02_1_equals_1_or_matching_dimensions_1, kernel_traits, output, input01, input02>::impl);
-		static_assert(static_assert_printer<(output::dims[1] == input01::dims[1]), kernel_trait_static_assert_errors::MUL_Output_dimensions_1_must_match_input01, kernel_traits,
+		static_assert(static_assert_printer<(output::dims[tag<1>{}] == input01::dims[tag<1>{}]), kernel_trait_static_assert_errors::MUL_Output_dimensions_1_must_match_input01, kernel_traits,
 			output, input01, input02>::impl);
-		static_assert(static_assert_printer<(input01::dims[2] == input02::dims[2]), kernel_trait_static_assert_errors::MUL_Batch_dimensions_2_must_match, kernel_traits, output,
+		static_assert(static_assert_printer<(input01::dims[tag<2>{}] == input02::dims[tag<2>{}]), kernel_trait_static_assert_errors::MUL_Batch_dimensions_2_must_match, kernel_traits, output,
 			input01, input02>::impl);
-		static_assert(static_assert_printer<(input01::dims[3] == input02::dims[3]), kernel_trait_static_assert_errors::MUL_Batch_dimensions_3_must_match, kernel_traits, output,
+		static_assert(static_assert_printer<(input01::dims[tag<3>{}] == input02::dims[tag<3>{}]), kernel_trait_static_assert_errors::MUL_Batch_dimensions_3_must_match, kernel_traits, output,
 			input01, input02>::impl);
-		static constexpr bool is_broadcasting = (input02::dims[1] == 1 && input01::dims[1] > 1);
+		static constexpr bool is_broadcasting = (input02::dims[tag<1>{}] == 1 && input01::dims[tag<1>{}] > 1);
 		static_assert(static_assert_printer<(base_type::total_elements == base_type::input01_total_elements),
 			kernel_trait_static_assert_errors::MUL_Total_element_count_must_match_between_inputs, kernel_traits, output, input01, input02>::impl);
 		static_assert(static_assert_printer < (base_type::total_elements == base_type::input02_total_elements) || is_broadcasting,
@@ -239,13 +239,13 @@ namespace nihilus {
 			kernel_base<op_type, kernel_type::rms_norm, core_type, typename core_type::output_type, typename core_type::input_type01::output_type>;
 		using input01 = base_type::input01;
 		using output  = base_type::output;
-		static_assert(static_assert_printer<(output::dims[0] == input01::dims[0]), kernel_trait_static_assert_errors::RMS_NORM_Output_dimensions_0_must_match_input_dimensions,
+		static_assert(static_assert_printer<(output::dims[tag<0>{}] == input01::dims[std::integral_constant<uint64_t, 0>{}]),
+			kernel_trait_static_assert_errors::RMS_NORM_Output_dimensions_0_must_match_input_dimensions, kernel_traits, output, input01>::impl);
+		static_assert(static_assert_printer<(output::dims[tag<1>{}] == input01::dims[tag<1>{}]), kernel_trait_static_assert_errors::RMS_NORM_Output_dimensions_1_must_match_input_dimensions,
 			kernel_traits, output, input01>::impl);
-		static_assert(static_assert_printer<(output::dims[1] == input01::dims[1]), kernel_trait_static_assert_errors::RMS_NORM_Output_dimensions_1_must_match_input_dimensions,
+		static_assert(static_assert_printer<(output::dims[tag<2>{}] == input01::dims[tag<2>{}]), kernel_trait_static_assert_errors::RMS_NORM_Output_dimensions_2_must_match_input_dimensions,
 			kernel_traits, output, input01>::impl);
-		static_assert(static_assert_printer<(output::dims[2] == input01::dims[2]), kernel_trait_static_assert_errors::RMS_NORM_Output_dimensions_2_must_match_input_dimensions,
-			kernel_traits, output, input01>::impl);
-		static_assert(static_assert_printer<(output::dims[3] == input01::dims[3]), kernel_trait_static_assert_errors::RMS_NORM_Output_dimensions_3_must_match_input_dimensions,
+		static_assert(static_assert_printer<(output::dims[tag<3>{}] == input01::dims[tag<3>{}]), kernel_trait_static_assert_errors::RMS_NORM_Output_dimensions_3_must_match_input_dimensions,
 			kernel_traits, output, input01>::impl);
 		static_assert(static_assert_printer<is_valid_activation_type<typename core_type::input_type01::output_type>,
 			kernel_trait_static_assert_errors::RMS_NORM_Input_type_must_be_valid_activation_type, kernel_traits, output, input01>::impl);
@@ -261,13 +261,13 @@ namespace nihilus {
 		using base_type = kernel_base<op_type, kernel_type::silu, core_type, typename core_type::output_type, typename core_type::input_type01::output_type>;
 		using input01	= base_type::input01;
 		using output	= base_type::output;
-		static_assert(static_assert_printer<(output::dims[0] == input01::dims[0]), kernel_trait_static_assert_errors::SILU_Output_dimensions_0_must_match_input_dimensions,
+		static_assert(static_assert_printer<(output::dims[tag<0>{}] == input01::dims[tag<0>{}]), kernel_trait_static_assert_errors::SILU_Output_dimensions_0_must_match_input_dimensions,
 			kernel_traits, output, input01>::impl);
-		static_assert(static_assert_printer<(output::dims[1] == input01::dims[1]), kernel_trait_static_assert_errors::SILU_Output_dimensions_1_must_match_input_dimensions,
+		static_assert(static_assert_printer<(output::dims[tag<1>{}] == input01::dims[tag<1>{}]), kernel_trait_static_assert_errors::SILU_Output_dimensions_1_must_match_input_dimensions,
 			kernel_traits, output, input01>::impl);
-		static_assert(static_assert_printer<(output::dims[2] == input01::dims[2]), kernel_trait_static_assert_errors::SILU_Output_dimensions_2_must_match_input_dimensions,
+		static_assert(static_assert_printer<(output::dims[tag<2>{}] == input01::dims[tag<2>{}]), kernel_trait_static_assert_errors::SILU_Output_dimensions_2_must_match_input_dimensions,
 			kernel_traits, output, input01>::impl);
-		static_assert(static_assert_printer<(output::dims[3] == input01::dims[3]), kernel_trait_static_assert_errors::SILU_Output_dimensions_3_must_match_input_dimensions,
+		static_assert(static_assert_printer<(output::dims[tag<3>{}] == input01::dims[tag<3>{}]), kernel_trait_static_assert_errors::SILU_Output_dimensions_3_must_match_input_dimensions,
 			kernel_traits, output, input01>::impl);
 		static_assert(static_assert_printer<is_valid_activation_type<typename core_type::input_type01::output_type>,
 			kernel_trait_static_assert_errors::SILU_Input_type_must_be_valid_activation_type, kernel_traits, output, input01>::impl);
@@ -284,15 +284,15 @@ namespace nihilus {
 		using input01	= base_type::input01;
 		using input02	= base_type::input02;
 		using output	= base_type::output;
-		static_assert(static_assert_printer<(input01::dims[0] == output::dims[0]), kernel_trait_static_assert_errors::SOFTMAX_Output_dimensions_0_must_match_input01, kernel_traits,
+		static_assert(static_assert_printer<(input01::dims[tag<0>{}] == output::dims[tag<0>{}]), kernel_trait_static_assert_errors::SOFTMAX_Output_dimensions_0_must_match_input01, kernel_traits,
 			output, input01, input02>::impl);
-		static_assert(static_assert_printer<(input01::dims[1] == output::dims[1]), kernel_trait_static_assert_errors::SOFTMAX_Output_dimensions_1_must_match_input01, kernel_traits,
+		static_assert(static_assert_printer<(input01::dims[tag<1>{}] == output::dims[tag<1>{}]), kernel_trait_static_assert_errors::SOFTMAX_Output_dimensions_1_must_match_input01, kernel_traits,
 			output, input01, input02>::impl);
-		static_assert(static_assert_printer<(input01::dims[2] == output::dims[2]), kernel_trait_static_assert_errors::SOFTMAX_Output_dimensions_2_must_match_input01, kernel_traits,
+		static_assert(static_assert_printer<(input01::dims[tag<2>{}] == output::dims[tag<2>{}]), kernel_trait_static_assert_errors::SOFTMAX_Output_dimensions_2_must_match_input01, kernel_traits,
 			output, input01, input02>::impl);
-		static_assert(static_assert_printer<(input01::dims[3] == output::dims[3]), kernel_trait_static_assert_errors::SOFTMAX_Output_dimensions_3_must_match_input01, kernel_traits,
+		static_assert(static_assert_printer<(input01::dims[tag<3>{}] == output::dims[tag<3>{}]), kernel_trait_static_assert_errors::SOFTMAX_Output_dimensions_3_must_match_input01, kernel_traits,
 			output, input01, input02>::impl);
-		static_assert(static_assert_printer<(input02::dims[0] == input01::dims[0]), kernel_trait_static_assert_errors::SOFTMAX_Mask_dimensions_0_must_match_scores, kernel_traits,
+		static_assert(static_assert_printer<(input02::dims[tag<0>{}] == input01::dims[tag<0>{}]), kernel_trait_static_assert_errors::SOFTMAX_Mask_dimensions_0_must_match_scores, kernel_traits,
 			output, input01, input02>::impl);
 	};
 
@@ -378,17 +378,17 @@ namespace nihilus {
 		using input01	= base_type::input01;
 		using input02	= base_type::input02;
 		using output	= base_type::output;
-		static_assert(static_assert_printer<(input01::dims[0] == input02::dims[0]), kernel_trait_static_assert_errors::MUL_MAT_Weight_rows_must_match_input_vector_size,
+		static_assert(static_assert_printer<(input01::dims[tag<0>{}] == input02::dims[tag<0>{}]), kernel_trait_static_assert_errors::MUL_MAT_Weight_rows_must_match_input_vector_size,
 			kernel_traits, output, input01, input02>::impl);
-		static_assert(static_assert_printer<(output::dims[0] == input01::dims[1]), kernel_trait_static_assert_errors::MUL_MAT_Output_size_must_match_weight_columns, kernel_traits,
+		static_assert(static_assert_printer<(output::dims[tag<0>{}] == input01::dims[tag<1>{}]), kernel_trait_static_assert_errors::MUL_MAT_Output_size_must_match_weight_columns, kernel_traits,
 			output, input01, input02>::impl);
-		static_assert(static_assert_printer<(input01::dims[2] == input02::dims[2] || (input01::dims[2] * (input02::dims[2] / input01::dims[2]) == input02::dims[2])),
+		static_assert(static_assert_printer<(input01::dims[tag<2>{}] == input02::dims[tag<2>{}] || (input01::dims[tag<2>{}] * (input02::dims[tag<2>{}] / input01::dims[tag<2>{}]) == input02::dims[tag<2>{}])),
 			kernel_trait_static_assert_errors::MUL_MAT_Batch_dimension_2_must_match_or_support_GQA_broadcasting, kernel_traits, output, input01, input02>::impl);
-		static_assert(static_assert_printer<(output::dims[2] == input02::dims[2]), kernel_trait_static_assert_errors::MUL_MAT_Output_head_count_must_match_attention_head_count,
+		static_assert(static_assert_printer<(output::dims[tag<2>{}] == input02::dims[tag<2>{}]), kernel_trait_static_assert_errors::MUL_MAT_Output_head_count_must_match_attention_head_count,
 			kernel_traits, output, input01, input02>::impl);
-		static_assert(static_assert_printer<(input01::dims[3] == input02::dims[3]), kernel_trait_static_assert_errors::MUL_MAT_Batch_dimension_3_must_match, kernel_traits, output,
+		static_assert(static_assert_printer<(input01::dims[tag<3>{}] == input02::dims[tag<3>{}]), kernel_trait_static_assert_errors::MUL_MAT_Batch_dimension_3_must_match, kernel_traits, output,
 			input01, input02>::impl);
-		static_assert(static_assert_printer<(output::dims[3] == input02::dims[3]),
+		static_assert(static_assert_printer<(output::dims[tag<3>{}] == input02::dims[tag<3>{}]),
 			kernel_trait_static_assert_errors::MUL_MAT_Output_batch_dimension_3_must_match_attention_dimensions, kernel_traits, output, input01, input02>::impl);
 		static_assert(static_assert_printer<is_valid_tensor_type<typename core_type::input_type01::output_type>,
 			kernel_trait_static_assert_errors::MUL_MAT_Input1_type_must_be_valid_tensor_type, kernel_traits, output, input01, input02>::impl);
@@ -396,11 +396,11 @@ namespace nihilus {
 			kernel_trait_static_assert_errors::MUL_MAT_Input2_type_must_be_valid_tensor_type, kernel_traits, output, input01, input02>::impl);
 		static_assert(static_assert_printer<is_valid_tensor_type<typename core_type::output_type>, kernel_trait_static_assert_errors::MUL_MAT_Output_type_must_be_valid_tensor_type,
 			kernel_traits, output, input01, input02>::impl);
-		static constexpr uint64_t M						   = input01::dims[0];
-		static constexpr uint64_t K						   = input01::dims[1];
-		static constexpr uint64_t N						   = input02::dims[1];
-		static constexpr uint64_t batch_size			   = input01::dims[2] * input01::dims[3];
-		static constexpr uint64_t expected_output_elements = M * (input02::dims[1] == 1 ? 1 : N) * batch_size;
+		static constexpr uint64_t M						   = input01::dims[tag<0>{}];
+		static constexpr uint64_t K						   = input01::dims[tag<1>{}];
+		static constexpr uint64_t N						   = input02::dims[tag<1>{}];
+		static constexpr uint64_t batch_size			   = input01::dims[tag<2>{}] * input01::dims[tag<3>{}];
+		static constexpr uint64_t expected_output_elements = M * (input02::dims[tag<1>{}] == 1 ? 1 : N) * batch_size;
 	};
 
 	template<auto op_type, double_input core_type> struct kernel_traits<op_type, kernel_type::get_rows, core_type,
@@ -412,19 +412,19 @@ namespace nihilus {
 		using input01	= base_type::input01;
 		using input02	= base_type::input02;
 		using output	= base_type::output;
-		static_assert(static_assert_printer<(output::dims[0] == input01::dims[0]), kernel_trait_static_assert_errors::GET_ROWS_Output_rows_must_match_number_of_indices,
+		static_assert(static_assert_printer<(output::dims[tag<0>{}] == input01::dims[tag<0>{}]), kernel_trait_static_assert_errors::GET_ROWS_Output_rows_must_match_number_of_indices,
 			kernel_traits, output, input01, input02>::impl);
-		static_assert(static_assert_printer<(output::dims[1] == input02::dims[0]), kernel_trait_static_assert_errors::GET_ROWS_Output_sequence_length_must_match_input_token_count,
+		static_assert(static_assert_printer<(output::dims[tag<1>{}] == input02::dims[tag<0>{}]), kernel_trait_static_assert_errors::GET_ROWS_Output_sequence_length_must_match_input_token_count,
 			kernel_traits, output, input01, input02>::impl);
 		static_assert(
-			static_assert_printer<(output::dims[2] == 1), kernel_trait_static_assert_errors::GET_ROWS_Output_dimension_2_must_be_1, kernel_traits, output, input01, input02>::impl);
+			static_assert_printer<(output::dims[tag<2>{}] == 1), kernel_trait_static_assert_errors::GET_ROWS_Output_dimension_2_must_be_1, kernel_traits, output, input01, input02>::impl);
 		static_assert(
-			static_assert_printer<(output::dims[3] == 1), kernel_trait_static_assert_errors::GET_ROWS_Output_dimension_3_must_be_1, kernel_traits, output, input01, input02>::impl);
-		static_assert(static_assert_printer<(input02::dims[1] == 1), kernel_trait_static_assert_errors::GET_ROWS_Index_tensor_dimension_1_must_be_1, kernel_traits, output, input01,
+			static_assert_printer<(output::dims[tag<3>{}] == 1), kernel_trait_static_assert_errors::GET_ROWS_Output_dimension_3_must_be_1, kernel_traits, output, input01, input02>::impl);
+		static_assert(static_assert_printer<(input02::dims[tag<1>{}] == 1), kernel_trait_static_assert_errors::GET_ROWS_Index_tensor_dimension_1_must_be_1, kernel_traits, output, input01,
 			input02>::impl);
-		static_assert(static_assert_printer<(input02::dims[2] == 1), kernel_trait_static_assert_errors::GET_ROWS_Index_tensor_dimension_2_must_be_1, kernel_traits, output, input01,
+		static_assert(static_assert_printer<(input02::dims[tag<2>{}] == 1), kernel_trait_static_assert_errors::GET_ROWS_Index_tensor_dimension_2_must_be_1, kernel_traits, output, input01,
 			input02>::impl);
-		static_assert(static_assert_printer<(input02::dims[3] == 1), kernel_trait_static_assert_errors::GET_ROWS_Index_tensor_dimension_3_must_be_1, kernel_traits, output, input01,
+		static_assert(static_assert_printer<(input02::dims[tag<3>{}] == 1), kernel_trait_static_assert_errors::GET_ROWS_Index_tensor_dimension_3_must_be_1, kernel_traits, output, input01,
 			input02>::impl);
 		static_assert(static_assert_printer<is_valid_tensor_type<typename core_type::input_type01::output_type>,
 			kernel_trait_static_assert_errors::GET_ROWS_Embedding_matrix_type_must_be_valid_tensor_type, kernel_traits, output, input01, input02>::impl);
@@ -432,9 +432,9 @@ namespace nihilus {
 			kernel_trait_static_assert_errors::GET_ROWS_Index_type_must_be_integer_type, kernel_traits, output, input01, input02>::impl);
 		static_assert(static_assert_printer<is_valid_tensor_type<typename core_type::output_type>,
 			kernel_trait_static_assert_errors::GET_ROWS_Output_type_must_be_valid_tensor_type, kernel_traits, output, input01, input02>::impl);
-		static constexpr uint64_t vocab_size	  = input01::dims[0];
-		static constexpr uint64_t embedding_dim	  = input01::dims[1];
-		static constexpr uint64_t sequence_length = input02::dims[0];
+		static constexpr uint64_t vocab_size	  = input01::dims[tag<0>{}];
+		static constexpr uint64_t embedding_dim	  = input01::dims[tag<1>{}];
+		static constexpr uint64_t sequence_length = input02::dims[tag<0>{}];
 	};
 
 	template<auto op_type, triple_input core_type>
@@ -448,27 +448,27 @@ namespace nihilus {
 		using input02	= base_type::input02;
 		using input03	= base_type::input03;
 		using output	= base_type::output;
-		static_assert(static_assert_printer<(output::dims[0] == input01::dims[0]), kernel_trait_static_assert_errors::ROPE_Output_dimensions_must_match_input_tensor, kernel_traits,
+		static_assert(static_assert_printer<(output::dims[tag<0>{}] == input01::dims[tag<0>{}]), kernel_trait_static_assert_errors::ROPE_Output_dimensions_must_match_input_tensor, kernel_traits,
 			output, input01, input02, input03>::impl);
-		static_assert(static_assert_printer<(output::dims[1] == input01::dims[1]), kernel_trait_static_assert_errors::ROPE_Sequence_length_must_match, kernel_traits, output,
+		static_assert(static_assert_printer<(output::dims[tag<1>{}] == input01::dims[tag<1>{}]), kernel_trait_static_assert_errors::ROPE_Sequence_length_must_match, kernel_traits, output,
 			input01, input02, input03>::impl);
-		static_assert(static_assert_printer<(output::dims[2] == input01::dims[2]), kernel_trait_static_assert_errors::ROPE_Number_of_heads_must_match, kernel_traits, output,
+		static_assert(static_assert_printer<(output::dims[tag<2>{}] == input01::dims[tag<2>{}]), kernel_trait_static_assert_errors::ROPE_Number_of_heads_must_match, kernel_traits, output,
 			input01, input02, input03>::impl);
-		static_assert(static_assert_printer<(output::dims[3] == input01::dims[3]), kernel_trait_static_assert_errors::ROPE_Batch_dimension_must_match, kernel_traits, output,
+		static_assert(static_assert_printer<(output::dims[tag<3>{}] == input01::dims[tag<3>{}]), kernel_trait_static_assert_errors::ROPE_Batch_dimension_must_match, kernel_traits, output,
 			input01, input02, input03>::impl);
-		static_assert(static_assert_printer<(input02::dims[0] == input01::dims[1]), kernel_trait_static_assert_errors::ROPE_Position_count_must_match_sequence_length,
+		static_assert(static_assert_printer<(input02::dims[tag<0>{}] == input01::dims[tag<1>{}]), kernel_trait_static_assert_errors::ROPE_Position_count_must_match_sequence_length,
 			kernel_traits, output, input01, input02, input03>::impl);
-		static_assert(static_assert_printer<(input02::dims[1] == 1 && input02::dims[2] == 1 && input02::dims[3] == 1),
+		static_assert(static_assert_printer<(input02::dims[tag<1>{}] == 1 && input02::dims[tag<2>{}] == 1 && input02::dims[tag<3>{}] == 1),
 			kernel_trait_static_assert_errors::ROPE_Position_indices_must_be_1D, kernel_traits, output, input01, input02, input03>::impl);
-		static_assert(static_assert_printer<(input03::dims[0] == input01::dims[0] / 2), kernel_trait_static_assert_errors::ROPE_Frequency_count_must_be_head_dim_div_2,
+		static_assert(static_assert_printer<(input03::dims[tag<0>{}] == input01::dims[tag<0>{}] / 2), kernel_trait_static_assert_errors::ROPE_Frequency_count_must_be_head_dim_div_2,
 			kernel_traits, output, input01, input02, input03>::impl);
-		static_assert(static_assert_printer<(input03::dims[1] == 1 && input03::dims[2] == 1 && input03::dims[3] == 1),
+		static_assert(static_assert_printer<(input03::dims[tag<1>{}] == 1 && input03::dims[tag<2>{}] == 1 && input03::dims[tag<3>{}] == 1),
 			kernel_trait_static_assert_errors::ROPE_Frequencies_must_be_1D, kernel_traits, output, input01, input02, input03>::impl);
-		static_assert(static_assert_printer<(input01::dims[0] % 2 == 0), kernel_trait_static_assert_errors::ROPE_Head_dimension_must_be_even, kernel_traits, output, input01,
+		static_assert(static_assert_printer<(input01::dims[tag<0>{}] % 2 == 0), kernel_trait_static_assert_errors::ROPE_Head_dimension_must_be_even, kernel_traits, output, input01,
 			input02, input03>::impl);
-		static constexpr uint64_t head_dim		  = input01::dims[0];
-		static constexpr uint64_t sequence_length = input01::dims[1];
-		static constexpr uint64_t num_heads		  = input01::dims[2];
+		static constexpr uint64_t head_dim		  = input01::dims[tag<0>{}];
+		static constexpr uint64_t sequence_length = input01::dims[tag<1>{}];
+		static constexpr uint64_t num_heads		  = input01::dims[tag<2>{}];
 	};
 
 	template<auto op_type, double_input core_type> struct kernel_traits<op_type, kernel_type::add, core_type,
@@ -480,21 +480,21 @@ namespace nihilus {
 		using input01	= base_type::input01;
 		using input02	= base_type::input02;
 		using output	= base_type::output;
-		static_assert(static_assert_printer<(input01::dims[0] == input02::dims[0]), kernel_trait_static_assert_errors::ADD_Input_dimensions_0_must_match, kernel_traits, output,
+		static_assert(static_assert_printer<(input01::dims[tag<0>{}] == input02::dims[tag<0>{}]), kernel_trait_static_assert_errors::ADD_Input_dimensions_0_must_match, kernel_traits, output,
 			input01, input02>::impl);
-		static_assert(static_assert_printer<(input01::dims[1] == input02::dims[1]), kernel_trait_static_assert_errors::ADD_Input_dimensions_1_must_match, kernel_traits, output,
+		static_assert(static_assert_printer<(input01::dims[tag<1>{}] == input02::dims[tag<1>{}]), kernel_trait_static_assert_errors::ADD_Input_dimensions_1_must_match, kernel_traits, output,
 			input01, input02>::impl);
-		static_assert(static_assert_printer<(input01::dims[2] == input02::dims[2]), kernel_trait_static_assert_errors::ADD_Input_dimensions_2_must_match, kernel_traits, output,
+		static_assert(static_assert_printer<(input01::dims[tag<2>{}] == input02::dims[tag<2>{}]), kernel_trait_static_assert_errors::ADD_Input_dimensions_2_must_match, kernel_traits, output,
 			input01, input02>::impl);
-		static_assert(static_assert_printer<(input01::dims[3] == input02::dims[3]), kernel_trait_static_assert_errors::ADD_Input_dimensions_3_must_match, kernel_traits, output,
+		static_assert(static_assert_printer<(input01::dims[tag<3>{}] == input02::dims[tag<3>{}]), kernel_trait_static_assert_errors::ADD_Input_dimensions_3_must_match, kernel_traits, output,
 			input01, input02>::impl);
-		static_assert(static_assert_printer<(output::dims[0] == input01::dims[0]), kernel_trait_static_assert_errors::ADD_Output_dimensions_0_must_match_input_dimensions,
+		static_assert(static_assert_printer<(output::dims[tag<0>{}] == input01::dims[tag<0>{}]), kernel_trait_static_assert_errors::ADD_Output_dimensions_0_must_match_input_dimensions,
 			kernel_traits, output, input01, input02>::impl);
-		static_assert(static_assert_printer<(output::dims[1] == input01::dims[1]), kernel_trait_static_assert_errors::ADD_Output_dimensions_1_must_match_input_dimensions,
+		static_assert(static_assert_printer<(output::dims[tag<1>{}] == input01::dims[tag<1>{}]), kernel_trait_static_assert_errors::ADD_Output_dimensions_1_must_match_input_dimensions,
 			kernel_traits, output, input01, input02>::impl);
-		static_assert(static_assert_printer<(output::dims[2] == input01::dims[2]), kernel_trait_static_assert_errors::ADD_Output_dimensions_2_must_match_input_dimensions,
+		static_assert(static_assert_printer<(output::dims[tag<2>{}] == input01::dims[tag<2>{}]), kernel_trait_static_assert_errors::ADD_Output_dimensions_2_must_match_input_dimensions,
 			kernel_traits, output, input01, input02>::impl);
-		static_assert(static_assert_printer<(output::dims[3] == input01::dims[3]), kernel_trait_static_assert_errors::ADD_Output_dimensions_3_must_match_input_dimensions,
+		static_assert(static_assert_printer<(output::dims[tag<3>{}] == input01::dims[tag<3>{}]), kernel_trait_static_assert_errors::ADD_Output_dimensions_3_must_match_input_dimensions,
 			kernel_traits, output, input01, input02>::impl);
 		static_assert(static_assert_printer<is_valid_tensor_type<typename core_type::input_type01::output_type>,
 			kernel_trait_static_assert_errors::ADD_Input1_type_must_be_valid_tensor_type, kernel_traits, output, input01, input02>::impl);
@@ -513,21 +513,21 @@ namespace nihilus {
 		using input01	= base_type::input01;
 		using input02	= base_type::input02;
 		using output	= base_type::output;
-		static_assert(static_assert_printer<(input01::dims[0] == input02::dims[0]), kernel_trait_static_assert_errors::SUB_Input_dimensions_0_must_match, kernel_traits, output,
+		static_assert(static_assert_printer<(input01::dims[tag<0>{}] == input02::dims[tag<0>{}]), kernel_trait_static_assert_errors::SUB_Input_dimensions_0_must_match, kernel_traits, output,
 			input01, input02>::impl);
-		static_assert(static_assert_printer<(input01::dims[1] == input02::dims[1]), kernel_trait_static_assert_errors::SUB_Input_dimensions_1_must_match, kernel_traits, output,
+		static_assert(static_assert_printer<(input01::dims[tag<1>{}] == input02::dims[tag<1>{}]), kernel_trait_static_assert_errors::SUB_Input_dimensions_1_must_match, kernel_traits, output,
 			input01, input02>::impl);
-		static_assert(static_assert_printer<(input01::dims[2] == input02::dims[2]), kernel_trait_static_assert_errors::SUB_Input_dimensions_2_must_match, kernel_traits, output,
+		static_assert(static_assert_printer<(input01::dims[tag<2>{}] == input02::dims[tag<2>{}]), kernel_trait_static_assert_errors::SUB_Input_dimensions_2_must_match, kernel_traits, output,
 			input01, input02>::impl);
-		static_assert(static_assert_printer<(input01::dims[3] == input02::dims[3]), kernel_trait_static_assert_errors::SUB_Input_dimensions_3_must_match, kernel_traits, output,
+		static_assert(static_assert_printer<(input01::dims[tag<3>{}] == input02::dims[tag<3>{}]), kernel_trait_static_assert_errors::SUB_Input_dimensions_3_must_match, kernel_traits, output,
 			input01, input02>::impl);
-		static_assert(static_assert_printer<(output::dims[0] == input01::dims[0]), kernel_trait_static_assert_errors::SUB_Output_dimensions_0_must_match_input_dimensions,
+		static_assert(static_assert_printer<(output::dims[tag<0>{}] == input01::dims[tag<0>{}]), kernel_trait_static_assert_errors::SUB_Output_dimensions_0_must_match_input_dimensions,
 			kernel_traits, output, input01, input02>::impl);
-		static_assert(static_assert_printer<(output::dims[1] == input01::dims[1]), kernel_trait_static_assert_errors::SUB_Output_dimensions_1_must_match_input_dimensions,
+		static_assert(static_assert_printer<(output::dims[tag<1>{}] == input01::dims[tag<1>{}]), kernel_trait_static_assert_errors::SUB_Output_dimensions_1_must_match_input_dimensions,
 			kernel_traits, output, input01, input02>::impl);
-		static_assert(static_assert_printer<(output::dims[2] == input01::dims[2]), kernel_trait_static_assert_errors::SUB_Output_dimensions_2_must_match_input_dimensions,
+		static_assert(static_assert_printer<(output::dims[tag<2>{}] == input01::dims[tag<2>{}]), kernel_trait_static_assert_errors::SUB_Output_dimensions_2_must_match_input_dimensions,
 			kernel_traits, output, input01, input02>::impl);
-		static_assert(static_assert_printer<(output::dims[3] == input01::dims[3]), kernel_trait_static_assert_errors::SUB_Output_dimensions_3_must_match_input_dimensions,
+		static_assert(static_assert_printer<(output::dims[tag<3>{}] == input01::dims[tag<3>{}]), kernel_trait_static_assert_errors::SUB_Output_dimensions_3_must_match_input_dimensions,
 			kernel_traits, output, input01, input02>::impl);
 		static_assert(static_assert_printer<is_valid_tensor_type<typename core_type::input_type01::output_type>,
 			kernel_trait_static_assert_errors::SUB_Input1_type_must_be_valid_tensor_type, kernel_traits, output, input01, input02>::impl);
@@ -547,8 +547,8 @@ namespace nihilus {
 			kernel_trait_static_assert_errors::COPY_Source_type_must_be_valid_tensor_type, kernel_traits, input01>::impl);
 		static_assert(static_assert_printer<is_valid_tensor_type<typename core_type::output_type>,
 			kernel_trait_static_assert_errors::COPY_Destination_type_must_be_valid_tensor_type, kernel_traits, input01>::impl);
-		static constexpr uint64_t source_elements = output::dims[0] * output::dims[1] * output::dims[2] * output::dims[3];
-		static constexpr uint64_t dest_elements	  = input01::dims[0] * input01::dims[1] * input01::dims[2] * input01::dims[3];
+		static constexpr uint64_t source_elements = output::dims[tag<0>{}] * output::dims[tag<1>{}] * output::dims[tag<2>{}] * output::dims[tag<3>{}];
+		static constexpr uint64_t dest_elements	  = input01::dims[tag<0>{}] * input01::dims[tag<1>{}] * input01::dims[tag<2>{}] * input01::dims[tag<3>{}];
 		static_assert(static_assert_printer<(source_elements == dest_elements), kernel_trait_static_assert_errors::COPY_Source_and_destination_must_have_same_total_element_count,
 			kernel_traits, input01>::impl);
 	};

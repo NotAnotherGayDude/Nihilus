@@ -35,7 +35,7 @@ include(FetchContent)
 FetchContent_Declare(
   llama.cpp
   GIT_REPOSITORY https://github.com/notanothergaydude/llama.cpp.git
-  GIT_TAG "dev"
+  GIT_TAG "master"
   GIT_SHALLOW TRUE
 )
 FetchContent_MakeAvailable(llama.cpp)

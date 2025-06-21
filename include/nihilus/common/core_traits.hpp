@@ -30,7 +30,9 @@ RealTimeChris (Chris model_traits_type.)
 namespace nihilus {
 
 	enum class alloc_type : uint8_t {
+		no_alloc,
 		single_alloc,
+		single_max_alloc,
 		per_block_alloc,
 	};
 
@@ -55,10 +57,6 @@ namespace nihilus {
 
 	template<model_config config> struct model;
 
-	template<model_config config> struct model_traits_provider {
-		using model_type = model<config>;
-	};
-
 	template<model_config config> struct core_traits<config, llama_op_types::token_embd_weight> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
@@ -68,6 +66,7 @@ namespace nihilus {
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::weight_type;
 		static constexpr uint64_t depth{ 0 };
+		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> dims{ { model_traits_type::embedding_dim, model_traits_type::vocab_size, 1, 1 } };
 		static constexpr array<size_t, 4> strides{ type_traits<output_type>::impl(dims) };
 		static constexpr uint64_t total_required_bytes{ 0 };
@@ -88,9 +87,10 @@ namespace nihilus {
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::input_token_type;
 		static constexpr uint64_t depth{ 0 };
-		static constexpr array<uint64_t, 4> dims{ { 1, 1, 1, 1 } };
+		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
+		static constexpr array<uint64_t, 4> dims{ { model_traits_type::max_sequence_length, 1, 1, 1 } };
 		static constexpr array<size_t, 4> strides{ type_traits<output_type>::impl(dims) };
-		static constexpr uint64_t total_required_bytes{ round_up_to_multiple(type_traits<output_type>::total_byte_size(dims), 64ull) };
+		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(type_traits<output_type>::total_byte_size(dims)) };
 		static constexpr layer_op_type layer_type{ layer_op_type::none };
 		static constexpr kernel_type krn_type{ kernel_type::none };
 		static constexpr llama_op_types type{ llama_op_types::inp_tokens };
@@ -108,9 +108,10 @@ namespace nihilus {
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::position_type;
 		static constexpr uint64_t depth{ 0 };
+		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> dims{ { model_traits_type::max_sequence_length, 1, 1, 1 } };
 		static constexpr array<size_t, 4> strides{ type_traits<output_type>::impl(dims) };
-		static constexpr uint64_t total_required_bytes{ round_up_to_multiple(type_traits<output_type>::total_byte_size(dims), 64ull) };
+		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(type_traits<output_type>::total_byte_size(dims)) };
 		static constexpr layer_op_type layer_type{ layer_op_type::none };
 		static constexpr kernel_type krn_type{ kernel_type::none };
 		static constexpr llama_op_types type{ llama_op_types::inp_pos };
@@ -128,9 +129,10 @@ namespace nihilus {
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::output_token_type;
 		static constexpr uint64_t depth{ 0 };
+		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> dims{ { model_traits_type::max_sequence_length, 1, 1, 1 } };
 		static constexpr array<size_t, 4> strides{ type_traits<output_type>::impl(dims) };
-		static constexpr uint64_t total_required_bytes{ round_up_to_multiple(type_traits<output_type>::total_byte_size(dims), 64ull) };
+		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(type_traits<output_type>::total_byte_size(dims)) };
 		static constexpr layer_op_type layer_type{ layer_op_type::none };
 		static constexpr kernel_type krn_type{ kernel_type::none };
 		static constexpr llama_op_types type{ llama_op_types::inp_out_ids };
@@ -148,6 +150,7 @@ namespace nihilus {
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::rope_freqs_weight_type;
 		static constexpr uint64_t depth{ 0 };
+		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> dims{ { model_traits_type::rope_dimension_count / 2, 1, 1, 1 } };
 		static constexpr array<size_t, 4> strides{ type_traits<output_type>::impl(dims) };
 		static constexpr uint64_t total_required_bytes{ 0 };
@@ -168,6 +171,7 @@ namespace nihilus {
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::weight_type;
 		static constexpr uint64_t depth{ 0 };
+		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> dims{ { model_traits_type::embedding_dim, model_traits_type::vocab_size, 1, 1 } };
 		static constexpr array<size_t, 4> strides{ type_traits<output_type>::impl(dims) };
 		static constexpr uint64_t total_required_bytes{ 0 };
@@ -188,6 +192,7 @@ namespace nihilus {
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::output_norm_weight_type;
 		static constexpr uint64_t depth{ 0 };
+		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> dims{ { model_traits_type::embedding_dim, 1, 1, 1 } };
 		static constexpr array<size_t, 4> strides{ type_traits<output_type>::impl(dims) };
 		static constexpr uint64_t total_required_bytes{ 0 };
@@ -208,6 +213,7 @@ namespace nihilus {
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::attn_q_weight_type;
 		static constexpr uint64_t depth{ 0 };
+		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> dims{ { model_traits_type::embedding_dim, model_traits_type::embedding_dim, 1, 1 } };
 		static constexpr array<size_t, 4> strides{ type_traits<output_type>::impl(dims) };
 		static constexpr uint64_t total_required_bytes{ 0 };
@@ -228,6 +234,7 @@ namespace nihilus {
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::attn_k_weight_type;
 		static constexpr uint64_t depth{ 0 };
+		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> dims{ { model_traits_type::embedding_dim, (model_traits_type::head_dim * model_traits_type::head_count_kv), 1, 1 } };
 		static constexpr array<size_t, 4> strides{ type_traits<output_type>::impl(dims) };
 		static constexpr uint64_t total_required_bytes{ 0 };
@@ -248,6 +255,7 @@ namespace nihilus {
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::attn_v_weight_type;
 		static constexpr uint64_t depth{ 0 };
+		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> dims{ { model_traits_type::embedding_dim, (model_traits_type::head_dim * model_traits_type::head_count_kv), 1, 1 } };
 		static constexpr array<size_t, 4> strides{ type_traits<output_type>::impl(dims) };
 		static constexpr uint64_t total_required_bytes{ 0 };
@@ -268,6 +276,7 @@ namespace nihilus {
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::attn_output_weight_type;
 		static constexpr uint64_t depth{ 0 };
+		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> dims{ { model_traits_type::embedding_dim, model_traits_type::embedding_dim, 1, 1 } };
 		static constexpr array<size_t, 4> strides{ type_traits<output_type>::impl(dims) };
 		static constexpr uint64_t total_required_bytes{ 0 };
@@ -288,6 +297,7 @@ namespace nihilus {
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::attn_norm_weight_type;
 		static constexpr uint64_t depth{ 0 };
+		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> dims{ { model_traits_type::embedding_dim, 1, 1, 1 } };
 		static constexpr array<size_t, 4> strides{ type_traits<output_type>::impl(dims) };
 		static constexpr uint64_t total_required_bytes{ 0 };
@@ -308,6 +318,7 @@ namespace nihilus {
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::ffn_gate_weight_type;
 		static constexpr uint64_t depth{ 0 };
+		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> dims{ { model_traits_type::embedding_dim, model_traits_type::feed_forward_length, 1, 1 } };
 		static constexpr array<size_t, 4> strides{ type_traits<output_type>::impl(dims) };
 		static constexpr uint64_t total_required_bytes{ 0 };
@@ -328,6 +339,7 @@ namespace nihilus {
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::ffn_up_weight_type;
 		static constexpr uint64_t depth{ 0 };
+		static constexpr alloc_type alc_type{ alloc_type::per_block_alloc };
 		static constexpr array<uint64_t, 4> dims{ { model_traits_type::embedding_dim, model_traits_type::feed_forward_length, 1, 1 } };
 		static constexpr array<size_t, 4> strides{ type_traits<output_type>::impl(dims) };
 		static constexpr uint64_t total_required_bytes{ 0 };
@@ -348,10 +360,11 @@ namespace nihilus {
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::ffn_down_weight_type;
 		static constexpr uint64_t depth{ 0 };
+		static constexpr alloc_type alc_type{ alloc_type::per_block_alloc };
 		static constexpr array<uint64_t, 4> dims{ { model_traits_type::feed_forward_length, model_traits_type::embedding_dim, 1, 1 } };
 		static constexpr array<size_t, 4> strides{ type_traits<output_type>::impl(dims) };
 		static constexpr uint64_t total_required_bytes{ 0 };
-		static constexpr layer_op_type layer_type{ layer_op_type::none };
+		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::none };
 		static constexpr llama_op_types type{ llama_op_types::ffn_down_weight };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
@@ -368,10 +381,11 @@ namespace nihilus {
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::ffn_norm_weight_type;
 		static constexpr uint64_t depth{ 0 };
+		static constexpr alloc_type alc_type{ alloc_type::per_block_alloc };
 		static constexpr array<uint64_t, 4> dims{ { model_traits_type::embedding_dim, 1, 1, 1 } };
 		static constexpr array<size_t, 4> strides{ type_traits<output_type>::impl(dims) };
 		static constexpr uint64_t total_required_bytes{ 0 };
-		static constexpr layer_op_type layer_type{ layer_op_type::none };
+		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::none };
 		static constexpr llama_op_types type{ llama_op_types::ffn_norm_weight };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
@@ -388,10 +402,11 @@ namespace nihilus {
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::kv_cache_type;
 		static constexpr uint64_t depth{ 0 };
-		static constexpr array<uint64_t, 4> dims{ { model_traits_type::head_count_kv * model_traits_type::head_dim * model_traits_type::embedding_dim, 1, 1, 1 } };
+		static constexpr alloc_type alc_type{ alloc_type::per_block_alloc };
+		static constexpr array<uint64_t, 4> dims{ { model_traits_type::head_count_kv * model_traits_type::head_dim, model_traits_type::embedding_dim, 1, 1 } };
 		static constexpr array<size_t, 4> strides{ type_traits<output_type>::impl(dims) };
-		static constexpr uint64_t total_required_bytes{ round_up_to_multiple(type_traits<output_type>::total_byte_size(dims), 64ull) };
-		static constexpr layer_op_type layer_type{ layer_op_type::none };
+		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(type_traits<output_type>::total_byte_size(dims)) };
+		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::none };
 		static constexpr llama_op_types type{ llama_op_types::cache_k };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
@@ -408,10 +423,11 @@ namespace nihilus {
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::kv_cache_type;
 		static constexpr uint64_t depth{ 0 };
-		static constexpr array<uint64_t, 4> dims{ { model_traits_type::head_count_kv * model_traits_type::head_dim * model_traits_type::embedding_dim, 1, 1, 1 } };
+		static constexpr alloc_type alc_type{ alloc_type::per_block_alloc };
+		static constexpr array<uint64_t, 4> dims{ { model_traits_type::head_count_kv * model_traits_type::head_dim, model_traits_type::embedding_dim, 1, 1 } };
 		static constexpr array<size_t, 4> strides{ type_traits<output_type>::impl(dims) };
-		static constexpr uint64_t total_required_bytes{ round_up_to_multiple(type_traits<output_type>::total_byte_size(dims), 64ull) };
-		static constexpr layer_op_type layer_type{ layer_op_type::none };
+		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(type_traits<output_type>::total_byte_size(dims)) };
+		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::none };
 		static constexpr llama_op_types type{ llama_op_types::cache_v };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
@@ -428,9 +444,10 @@ namespace nihilus {
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::kq_mask_type;
 		static constexpr uint64_t depth{ 0 };
+		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> dims{ { model_traits_type::max_sequence_length, model_traits_type::max_sequence_length, 1, 1 } };
 		static constexpr array<size_t, 4> strides{ type_traits<output_type>::impl(dims) };
-		static constexpr uint64_t total_required_bytes{ round_up_to_multiple(type_traits<output_type>::total_byte_size(dims), 64ull) };
+		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(type_traits<output_type>::total_byte_size(dims)) };
 		static constexpr layer_op_type layer_type{ layer_op_type::none };
 		static constexpr kernel_type krn_type{ kernel_type::none };
 		static constexpr llama_op_types type{ llama_op_types::kq_mask };
@@ -453,10 +470,11 @@ namespace nihilus {
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::embedding_type;
 		static constexpr uint64_t depth{ std::max(input_type01::depth, input_type02::depth) + 1 };
 		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_type01::output_type, typename input_type02::output_type>::required };
-		static constexpr array<uint64_t, 4> dims{ { model_traits_type::embedding_dim, 1, 1, 1 } };
+		static constexpr alloc_type alc_type{ alloc_type::single_max_alloc };
+		static constexpr mutable_constexpr_array<1> dims{ { model_traits_type::embedding_dim, model_traits_type::max_sequence_length, 1, 1 } };
 		static constexpr array<size_t, 4> strides{ type_traits<output_type>::impl(dims) };
-		static constexpr uint64_t total_required_bytes{ round_up_to_multiple(
-			type_traits<output_type>::total_byte_size(dims) + (dequantization ? type_traits<output_type>::total_byte_size(dims) : 0), 64ull) };
+		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(
+			type_traits<output_type>::total_byte_size(dims) + (dequantization ? type_traits<output_type>::total_byte_size(dims) : 0)) };
 		static constexpr layer_op_type layer_type{ layer_op_type::global_input };
 		static constexpr kernel_type krn_type{ kernel_type::get_rows };
 		static constexpr llama_op_types type{ llama_op_types::inp_embd };
@@ -478,10 +496,11 @@ namespace nihilus {
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::norm_output_type;
 		static constexpr uint64_t depth{ input_type01::depth + 1 };
 		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_type01::output_type, output_type>::required };
-		static constexpr array<uint64_t, 4> dims{ { model_traits_type::embedding_dim, 1, 1, 1 } };
+		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
+		static constexpr array<uint64_t, 4> dims{ { model_traits_type::embedding_dim, model_traits_type::max_sequence_length, 1, 1 } };
 		static constexpr array<size_t, 4> strides{ type_traits<output_type>::impl(dims) };
-		static constexpr uint64_t total_required_bytes{ round_up_to_multiple(
-			type_traits<output_type>::total_byte_size(dims) + (dequantization ? type_traits<output_type>::total_byte_size(dims) : 0), 64ull) };
+		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(
+			type_traits<output_type>::total_byte_size(dims) + (dequantization ? type_traits<output_type>::total_byte_size(dims) : 0)) };
 		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::rms_norm };
 		static constexpr llama_op_types type{ llama_op_types::norm };
@@ -504,10 +523,11 @@ namespace nihilus {
 		using transform_type													 = output_transform<input_type01::krn_type, input_type02::krn_type>;
 		static constexpr uint64_t depth{ std::max(input_type01::depth, input_type02::depth) + 1 };
 		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_type01::output_type, typename input_type02::output_type>::required };
-		static constexpr array<uint64_t, 4> dims{ { model_traits_type::embedding_dim, 1, 1, 1 } };
+		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
+		static constexpr array<uint64_t, 4> dims{ { model_traits_type::embedding_dim, model_traits_type::max_sequence_length, 1, 1 } };
 		static constexpr array<size_t, 4> strides{ type_traits<output_type>::impl(dims) };
-		static constexpr uint64_t total_required_bytes{ round_up_to_multiple(
-			type_traits<output_type>::total_byte_size(dims) + (dequantization ? type_traits<output_type>::total_byte_size(dims) : 0), 64ull) };
+		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(
+			type_traits<output_type>::total_byte_size(dims) + (dequantization ? type_traits<output_type>::total_byte_size(dims) : 0)) };
 		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::mul };
 		static constexpr llama_op_types type{ llama_op_types::attn_norm };
@@ -530,11 +550,12 @@ namespace nihilus {
 		using input_type02														 = core_traits<config, llama_op_types::attn_norm>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::query_type;
 		static constexpr uint64_t depth{ std::max(input_type01::depth, input_type02::depth) + 1 };
+		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_type01::output_type, typename input_type02::output_type>::required };
 		static constexpr array<uint64_t, 4> dims{ { model_traits_type::head_count * model_traits_type::head_dim, model_traits_type::max_sequence_length, 1, 1 } };
 		static constexpr array<size_t, 4> strides{ type_traits<output_type>::impl(dims) };
-		static constexpr uint64_t total_required_bytes{ round_up_to_multiple(
-			type_traits<output_type>::total_byte_size(dims) + (dequantization ? type_traits<output_type>::total_byte_size(dims) : 0), 64ull) };
+		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(
+			type_traits<output_type>::total_byte_size(dims) + (dequantization ? type_traits<output_type>::total_byte_size(dims) : 0)) };
 		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::mul_mat };
 		static constexpr llama_op_types type{ llama_op_types::qcur };
@@ -557,9 +578,10 @@ namespace nihilus {
 		using input_type01														 = core_traits<config, llama_op_types::qcur>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::query_type;
 		static constexpr uint64_t depth{ input_type01::depth + 1 };
+		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> dims{ { model_traits_type::head_dim, model_traits_type::max_sequence_length, model_traits_type::head_count, 1 } };
 		static constexpr array<size_t, 4> strides{ type_traits<output_type>::impl(dims) };
-		static constexpr uint64_t total_required_bytes{ round_up_to_multiple(type_traits<output_type>::total_byte_size(dims), 64ull) };
+		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(type_traits<output_type>::total_byte_size(dims)) };
 		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::reshape };
 		static constexpr llama_op_types type{ llama_op_types::qcur_reshaped };
@@ -583,10 +605,11 @@ namespace nihilus {
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::query_type;
 		static constexpr uint64_t depth{ std::max(input_type01::depth, input_type02::depth) + 1 };
 		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_type01::output_type, typename input_type02::output_type>::required };
+		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> dims{ { model_traits_type::head_dim, model_traits_type::max_sequence_length, model_traits_type::head_count, 1 } };
 		static constexpr array<size_t, 4> strides{ type_traits<output_type>::impl(dims) };
-		static constexpr uint64_t total_required_bytes{ round_up_to_multiple(
-			type_traits<output_type>::total_byte_size(dims) + (dequantization ? type_traits<output_type>::total_byte_size(dims) : 0), 64ull) };
+		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(
+			type_traits<output_type>::total_byte_size(dims) + (dequantization ? type_traits<output_type>::total_byte_size(dims) : 0)) };
 		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::rope };
 		static constexpr llama_op_types type{ llama_op_types::qcur_rope };
@@ -609,11 +632,12 @@ namespace nihilus {
 		using input_type02														 = core_traits<config, llama_op_types::attn_norm>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::key_type;
 		static constexpr uint64_t depth{ std::max(input_type01::depth, input_type02::depth) + 1 };
+		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_type01::output_type, typename input_type02::output_type>::required };
 		static constexpr array<uint64_t, 4> dims{ { model_traits_type::head_count_kv * model_traits_type::head_dim, model_traits_type::max_sequence_length, 1, 1 } };
 		static constexpr array<size_t, 4> strides{ type_traits<output_type>::impl(dims) };
-		static constexpr uint64_t total_required_bytes{ round_up_to_multiple(
-			type_traits<output_type>::total_byte_size(dims) + (dequantization ? type_traits<output_type>::total_byte_size(dims) : 0), 64ull) };
+		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(
+			type_traits<output_type>::total_byte_size(dims) + (dequantization ? type_traits<output_type>::total_byte_size(dims) : 0)) };
 		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::mul_mat };
 		static constexpr llama_op_types type{ llama_op_types::kcur };
@@ -636,9 +660,10 @@ namespace nihilus {
 		using input_type01														 = core_traits<config, llama_op_types::kcur>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::key_type;
 		static constexpr uint64_t depth{ input_type01::depth + 1 };
+		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> dims{ { model_traits_type::head_dim, model_traits_type::max_sequence_length, model_traits_type::head_count_kv, 1 } };
 		static constexpr array<size_t, 4> strides{ type_traits<output_type>::impl(dims) };
-		static constexpr uint64_t total_required_bytes{ round_up_to_multiple(type_traits<output_type>::total_byte_size(dims), 64ull) };
+		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(type_traits<output_type>::total_byte_size(dims)) };
 		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::reshape };
 		static constexpr llama_op_types type{ llama_op_types::kcur_reshaped };
@@ -662,10 +687,11 @@ namespace nihilus {
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::key_type;
 		static constexpr uint64_t depth{ std::max(std::max(input_type01::depth, input_type02::depth), input_type03::depth) + 1 };
 		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_type01::output_type, typename input_type02::output_type>::required };
+		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> dims{ { model_traits_type::head_dim, model_traits_type::max_sequence_length, model_traits_type::head_count_kv, 1 } };
 		static constexpr array<size_t, 4> strides{ type_traits<output_type>::impl(dims) };
-		static constexpr uint64_t total_required_bytes{ round_up_to_multiple(
-			type_traits<output_type>::total_byte_size(dims) + (dequantization ? type_traits<output_type>::total_byte_size(dims) : 0), 64ull) };
+		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(
+			type_traits<output_type>::total_byte_size(dims) + (dequantization ? type_traits<output_type>::total_byte_size(dims) : 0)) };
 		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::rope };
 		static constexpr llama_op_types type{ llama_op_types::kcur_rope };
@@ -688,11 +714,12 @@ namespace nihilus {
 		using input_type02														 = core_traits<config, llama_op_types::attn_norm>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::value_type;
 		static constexpr uint64_t depth{ std::max(input_type01::depth, input_type02::depth) + 1 };
+		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_type01::output_type, typename input_type02::output_type>::required };
 		static constexpr array<uint64_t, 4> dims{ { (model_traits_type::head_dim * model_traits_type::head_count_kv), model_traits_type::max_sequence_length, 1, 1 } };
 		static constexpr array<size_t, 4> strides{ type_traits<output_type>::impl(dims) };
-		static constexpr uint64_t total_required_bytes{ round_up_to_multiple(
-			type_traits<output_type>::total_byte_size(dims) + (dequantization ? type_traits<output_type>::total_byte_size(dims) : 0), 64ull) };
+		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(
+			type_traits<output_type>::total_byte_size(dims) + (dequantization ? type_traits<output_type>::total_byte_size(dims) : 0)) };
 		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::mul_mat };
 		static constexpr llama_op_types type{ llama_op_types::vcur };
@@ -715,6 +742,7 @@ namespace nihilus {
 		using input_type01														 = core_traits<config, llama_op_types::cache_k>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::kv_cache_type;
 		static constexpr uint64_t depth{ input_type01::depth + 1 };
+		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> dims{ { model_traits_type::head_count_kv * model_traits_type::head_dim, model_traits_type::max_sequence_length, 1, 1 } };
 		static constexpr array<size_t, 4> strides{ type_traits<output_type>::impl(dims) };
 		static constexpr uint64_t total_required_bytes{ 0 };
@@ -738,6 +766,7 @@ namespace nihilus {
 		using input_type01														 = core_traits<config, llama_op_types::kcur_rope>;
 		using output_type														 = typename core_traits<config, llama_op_types::k_cache_view>::output_type;
 		static constexpr uint64_t depth{ input_type01::depth + 1 };
+		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> dims{ { model_traits_type::head_count_kv * model_traits_type::head_dim, model_traits_type::max_sequence_length, 1, 1 } };
 		static constexpr array<size_t, 4> strides{ type_traits<output_type>::impl(dims) };
 		static constexpr uint64_t total_required_bytes{ 0 };
@@ -761,9 +790,10 @@ namespace nihilus {
 		using input_type01														 = core_traits<config, llama_op_types::vcur>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::value_type;
 		static constexpr uint64_t depth{ input_type01::depth + 1 };
+		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> dims{ { model_traits_type::max_sequence_length, (model_traits_type::head_dim * model_traits_type::head_count_kv), 1, 1 } };
 		static constexpr array<size_t, 4> strides{ type_traits<output_type>::impl(dims) };
-		static constexpr uint64_t total_required_bytes{ round_up_to_multiple(type_traits<output_type>::total_byte_size(dims), 64ull) };
+		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(type_traits<output_type>::total_byte_size(dims)) };
 		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::transpose };
 		static constexpr llama_op_types type{ llama_op_types::vcur_transposed };
@@ -784,6 +814,7 @@ namespace nihilus {
 		using input_type01														 = core_traits<config, llama_op_types::cache_v>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::kv_cache_type;
 		static constexpr uint64_t depth{ input_type01::depth + 1 };
+		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> dims{ { model_traits_type::max_sequence_length, (model_traits_type::head_count_kv * model_traits_type::head_dim), 1, 1 } };
 		static constexpr array<size_t, 4> strides{ type_traits<output_type>::impl(dims) };
 		static constexpr uint64_t total_required_bytes{ 0 };
@@ -807,6 +838,7 @@ namespace nihilus {
 		using input_type01														 = core_traits<config, llama_op_types::vcur_transposed>;
 		using output_type														 = typename core_traits<config, llama_op_types::v_cache_view>::output_type;
 		static constexpr uint64_t depth{ input_type01::depth + 1 };
+		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> dims{ { model_traits_type::max_sequence_length, (model_traits_type::head_count_kv * model_traits_type::head_dim), 1, 1 } };
 		static constexpr array<size_t, 4> strides{ type_traits<output_type>::impl(dims) };
 		static constexpr uint64_t total_required_bytes{ 0 };
@@ -830,6 +862,7 @@ namespace nihilus {
 		using input_type01														 = core_traits<config, llama_op_types::cache_v>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::scale_type;
 		static constexpr uint64_t depth{ input_type01::depth + 1 };
+		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> dims{ { model_traits_type::max_sequence_length, model_traits_type::head_dim, model_traits_type::head_count_kv, 1 } };
 		static constexpr array<size_t, 4> strides{ type_traits<output_type>::impl(dims) };
 		static constexpr uint64_t total_required_bytes{ 0 };
@@ -853,6 +886,7 @@ namespace nihilus {
 		using input_type01														 = core_traits<config, llama_op_types::cache_k>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::scale_type;
 		static constexpr uint64_t depth{ input_type01::depth + 1 };
+		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> dims{ { model_traits_type::head_dim, model_traits_type::max_sequence_length, model_traits_type::head_count_kv, 1 } };
 		static constexpr array<size_t, 4> strides{ type_traits<output_type>::impl(dims) };
 		static constexpr uint64_t total_required_bytes{ 0 };
@@ -876,6 +910,7 @@ namespace nihilus {
 		using input_type01														 = core_traits<config, llama_op_types::qcur_rope>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::query_type;
 		static constexpr uint64_t depth{ input_type01::depth + 1 };
+		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> dims{ { model_traits_type::head_dim, model_traits_type::max_sequence_length, model_traits_type::head_count, 1 } };
 		static constexpr array<size_t, 4> strides{ type_traits<output_type>::impl(dims) };
 		static constexpr uint64_t total_required_bytes{ 0 };
@@ -901,11 +936,12 @@ namespace nihilus {
 		using input_type02														 = core_traits<config, llama_op_types::q>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::attention_score_type;
 		static constexpr uint64_t depth{ std::max(input_type01::depth, input_type02::depth) + 1 };
+		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_type01::output_type, typename input_type02::output_type>::required };
 		static constexpr array<uint64_t, 4> dims{ { model_traits_type::max_sequence_length, 1, model_traits_type::head_count, 1 } };
 		static constexpr array<size_t, 4> strides{ type_traits<output_type>::impl(dims) };
-		static constexpr uint64_t total_required_bytes{ round_up_to_multiple(
-			type_traits<output_type>::total_byte_size(dims) + (dequantization ? type_traits<output_type>::total_byte_size(dims) : 0), 64ull) };
+		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(
+			type_traits<output_type>::total_byte_size(dims) + (dequantization ? type_traits<output_type>::total_byte_size(dims) : 0)) };
 		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::mul_mat };
 		static constexpr llama_op_types type{ llama_op_types::kq };
@@ -931,10 +967,11 @@ namespace nihilus {
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::softmax_type;
 		static constexpr uint64_t depth{ std::max(input_type01::depth, input_type02::depth) + 1 };
 		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_type01::output_type, typename input_type02::output_type>::required };
+		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> dims{ { model_traits_type::max_sequence_length, 1, model_traits_type::head_count, 1 } };
 		static constexpr array<size_t, 4> strides{ type_traits<output_type>::impl(dims) };
-		static constexpr uint64_t total_required_bytes{ round_up_to_multiple(
-			type_traits<output_type>::total_byte_size(dims) + (dequantization ? type_traits<output_type>::total_byte_size(dims) : 0), 64ull) };
+		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(
+			type_traits<output_type>::total_byte_size(dims) + (dequantization ? type_traits<output_type>::total_byte_size(dims) : 0)) };
 		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::softmax };
 		static constexpr llama_op_types type{ llama_op_types::kq_soft_max };
@@ -959,11 +996,12 @@ namespace nihilus {
 		using input_type02														 = core_traits<config, llama_op_types::kq_soft_max>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::value_type;
 		static constexpr uint64_t depth{ std::max(input_type01::depth, input_type02::depth) + 1 };
+		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_type01::output_type, typename input_type02::output_type>::required };
 		static constexpr array<uint64_t, 4> dims{ { model_traits_type::head_dim, 1, model_traits_type::head_count, 1 } };
 		static constexpr array<size_t, 4> strides{ type_traits<output_type>::impl(dims) };
-		static constexpr uint64_t total_required_bytes{ round_up_to_multiple(
-			type_traits<output_type>::total_byte_size(dims) + (dequantization ? type_traits<output_type>::total_byte_size(dims) : 0), 64ull) };
+		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(
+			type_traits<output_type>::total_byte_size(dims) + (dequantization ? type_traits<output_type>::total_byte_size(dims) : 0)) };
 		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::mul_mat };
 		static constexpr llama_op_types type{ llama_op_types::kqv };
@@ -986,6 +1024,7 @@ namespace nihilus {
 		using input_type01														 = core_traits<config, llama_op_types::kqv>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::value_type;
 		static constexpr uint64_t depth{ input_type01::depth + 1 };
+		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> dims{ { model_traits_type::head_dim, model_traits_type::head_count, 1, 1 } };
 		static constexpr array<size_t, 4> strides{ type_traits<output_type>::impl(dims) };
 		static constexpr uint64_t total_required_bytes{ 0 };
@@ -1009,6 +1048,7 @@ namespace nihilus {
 		using input_type01														 = core_traits<config, llama_op_types::kqv_merged>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::value_type;
 		static constexpr uint64_t depth{ input_type01::depth + 1 };
+		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> dims{ { model_traits_type::embedding_dim, 1, 1, 1 } };
 		static constexpr array<size_t, 4> strides{ type_traits<output_type>::impl(dims) };
 		static constexpr uint64_t total_required_bytes{ 0 };
@@ -1034,11 +1074,12 @@ namespace nihilus {
 		using input_type02														 = core_traits<config, llama_op_types::kqv_merged_cont>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::hidden_type;
 		static constexpr uint64_t depth{ std::max(input_type01::depth, input_type02::depth) + 1 };
+		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_type01::output_type, typename input_type02::output_type>::required };
 		static constexpr array<uint64_t, 4> dims{ { model_traits_type::embedding_dim, model_traits_type::max_sequence_length, 1, 1 } };
 		static constexpr array<size_t, 4> strides{ type_traits<output_type>::impl(dims) };
-		static constexpr uint64_t total_required_bytes{ round_up_to_multiple(
-			type_traits<output_type>::total_byte_size(dims) + (dequantization ? type_traits<output_type>::total_byte_size(dims) : 0), 64ull) };
+		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(
+			type_traits<output_type>::total_byte_size(dims) + (dequantization ? type_traits<output_type>::total_byte_size(dims) : 0)) };
 		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::mul_mat };
 		static constexpr llama_op_types type{ llama_op_types::kqv_out };
@@ -1062,11 +1103,12 @@ namespace nihilus {
 		using input_type02														 = core_traits<config, llama_op_types::l_out>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::residual_type;
 		static constexpr uint64_t depth{ input_type01::depth + 1 };
+		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_type01::output_type, typename input_type02::output_type>::required };
 		static constexpr array<uint64_t, 4> dims{ { model_traits_type::embedding_dim, model_traits_type::max_sequence_length, 1, 1 } };
 		static constexpr array<size_t, 4> strides{ type_traits<output_type>::impl(dims) };
-		static constexpr uint64_t total_required_bytes{ round_up_to_multiple(
-			type_traits<output_type>::total_byte_size(dims) + (dequantization ? type_traits<output_type>::total_byte_size(dims) : 0), 64ull) };
+		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(
+			type_traits<output_type>::total_byte_size(dims) + (dequantization ? type_traits<output_type>::total_byte_size(dims) : 0)) };
 		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::add };
 		static constexpr llama_op_types type{ llama_op_types::ffn_inp };
@@ -1088,10 +1130,11 @@ namespace nihilus {
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::residual_type;
 		static constexpr uint64_t depth{ input_type01::depth + 1 };
 		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_type01::output_type, output_type>::required };
+		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> dims{ { model_traits_type::embedding_dim, model_traits_type::max_sequence_length, 1, 1 } };
 		static constexpr array<size_t, 4> strides{ type_traits<output_type>::impl(dims) };
-		static constexpr uint64_t total_required_bytes{ round_up_to_multiple(
-			type_traits<output_type>::total_byte_size(dims) + (dequantization ? type_traits<output_type>::total_byte_size(dims) : 0), 64ull) };
+		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(
+			type_traits<output_type>::total_byte_size(dims) + (dequantization ? type_traits<output_type>::total_byte_size(dims) : 0)) };
 		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::rms_norm };
 		static constexpr llama_op_types type{ llama_op_types::norm_out };
@@ -1114,10 +1157,11 @@ namespace nihilus {
 		using transform_type													 = output_transform<input_type01::krn_type, input_type02::krn_type>;
 		static constexpr uint64_t depth{ std::max(input_type01::depth, input_type02::depth) + 1 };
 		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_type01::output_type, typename input_type02::output_type>::required };
+		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> dims{ { model_traits_type::embedding_dim, model_traits_type::max_sequence_length, 1, 1 } };
 		static constexpr array<size_t, 4> strides{ type_traits<output_type>::impl(dims) };
-		static constexpr uint64_t total_required_bytes{ round_up_to_multiple(
-			type_traits<output_type>::total_byte_size(dims) + (dequantization ? type_traits<output_type>::total_byte_size(dims) : 0), 64ull) };
+		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(
+			type_traits<output_type>::total_byte_size(dims) + (dequantization ? type_traits<output_type>::total_byte_size(dims) : 0)) };
 		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::mul };
 		static constexpr llama_op_types type{ llama_op_types::ffn_norm };
@@ -1140,11 +1184,12 @@ namespace nihilus {
 		using input_type02														 = core_traits<config, llama_op_types::ffn_norm>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::ffn_intermediate_type;
 		static constexpr uint64_t depth{ std::max(input_type01::depth, input_type02::depth) + 1 };
+		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_type01::output_type, typename input_type02::output_type>::required };
 		static constexpr array<uint64_t, 4> dims{ { model_traits_type::feed_forward_length, model_traits_type::max_sequence_length, 1, 1 } };
 		static constexpr array<size_t, 4> strides{ type_traits<output_type>::impl(dims) };
-		static constexpr uint64_t total_required_bytes{ round_up_to_multiple(
-			type_traits<output_type>::total_byte_size(dims) + (dequantization ? type_traits<output_type>::total_byte_size(dims) : 0), 64ull) };
+		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(
+			type_traits<output_type>::total_byte_size(dims) + (dequantization ? type_traits<output_type>::total_byte_size(dims) : 0)) };
 		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::mul_mat };
 		static constexpr llama_op_types type{ llama_op_types::ffn_gate };
@@ -1168,10 +1213,11 @@ namespace nihilus {
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::ffn_intermediate_type;
 		static constexpr uint64_t depth{ input_type01::depth + 1 };
 		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_type01::output_type, output_type>::required };
+		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> dims{ { model_traits_type::feed_forward_length, model_traits_type::max_sequence_length, 1, 1 } };
 		static constexpr array<size_t, 4> strides{ type_traits<output_type>::impl(dims) };
-		static constexpr uint64_t total_required_bytes{ round_up_to_multiple(
-			type_traits<output_type>::total_byte_size(dims) + (dequantization ? type_traits<output_type>::total_byte_size(dims) : 0), 64ull) };
+		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(
+			type_traits<output_type>::total_byte_size(dims) + (dequantization ? type_traits<output_type>::total_byte_size(dims) : 0)) };
 		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::silu };
 		static constexpr llama_op_types type{ llama_op_types::ffn_silu };
@@ -1194,11 +1240,12 @@ namespace nihilus {
 		using input_type02														 = core_traits<config, llama_op_types::ffn_norm>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::ffn_intermediate_type;
 		static constexpr uint64_t depth{ std::max(input_type01::depth, input_type02::depth) + 1 };
+		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_type01::output_type, typename input_type02::output_type>::required };
 		static constexpr array<uint64_t, 4> dims{ { model_traits_type::feed_forward_length, model_traits_type::max_sequence_length, 1, 1 } };
 		static constexpr array<size_t, 4> strides{ type_traits<output_type>::impl(dims) };
-		static constexpr uint64_t total_required_bytes{ round_up_to_multiple(
-			type_traits<output_type>::total_byte_size(dims) + (dequantization ? type_traits<output_type>::total_byte_size(dims) : 0), 64ull) };
+		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(
+			type_traits<output_type>::total_byte_size(dims) + (dequantization ? type_traits<output_type>::total_byte_size(dims) : 0)) };
 		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::mul_mat };
 		static constexpr llama_op_types type{ llama_op_types::ffn_up };
@@ -1223,10 +1270,11 @@ namespace nihilus {
 		using transform_type													 = output_transform<input_type01::krn_type, input_type02::krn_type>;
 		static constexpr uint64_t depth{ std::max(input_type01::depth, input_type02::depth) + 1 };
 		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_type01::output_type, typename input_type02::output_type>::required };
+		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> dims{ { model_traits_type::feed_forward_length, model_traits_type::max_sequence_length, 1, 1 } };
 		static constexpr array<size_t, 4> strides{ type_traits<output_type>::impl(dims) };
-		static constexpr uint64_t total_required_bytes{ round_up_to_multiple(
-			type_traits<output_type>::total_byte_size(dims) + (dequantization ? type_traits<output_type>::total_byte_size(dims) : 0), 64ull) };
+		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(
+			type_traits<output_type>::total_byte_size(dims) + (dequantization ? type_traits<output_type>::total_byte_size(dims) : 0)) };
 		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::mul };
 		static constexpr llama_op_types type{ llama_op_types::ffn_gate_par };
@@ -1249,11 +1297,12 @@ namespace nihilus {
 		using input_type02														 = core_traits<config, llama_op_types::ffn_gate_par>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::hidden_type;
 		static constexpr uint64_t depth{ std::max(input_type01::depth, input_type02::depth) + 1 };
+		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_type01::output_type, typename input_type02::output_type>::required };
 		static constexpr array<uint64_t, 4> dims{ { model_traits_type::embedding_dim, model_traits_type::max_sequence_length, 1, 1 } };
 		static constexpr array<size_t, 4> strides{ type_traits<output_type>::impl(dims) };
-		static constexpr uint64_t total_required_bytes{ round_up_to_multiple(
-			type_traits<output_type>::total_byte_size(dims) + (dequantization ? type_traits<output_type>::total_byte_size(dims) : 0), 64ull) };
+		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(
+			type_traits<output_type>::total_byte_size(dims) + (dequantization ? type_traits<output_type>::total_byte_size(dims) : 0)) };
 		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::mul_mat };
 		static constexpr llama_op_types type{ llama_op_types::ffn_out };
@@ -1278,10 +1327,11 @@ namespace nihilus {
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::residual_type;
 		static constexpr uint64_t depth{ std::max(input_type01::depth, input_type02::depth) + 1 };
 		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_type01::output_type, typename input_type02::output_type>::required };
+		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> dims{ { model_traits_type::embedding_dim, model_traits_type::max_sequence_length, 1, 1 } };
 		static constexpr array<size_t, 4> strides{ type_traits<output_type>::impl(dims) };
-		static constexpr uint64_t total_required_bytes{ round_up_to_multiple(
-			type_traits<output_type>::total_byte_size(dims) + (dequantization ? type_traits<output_type>::total_byte_size(dims) : 0), 64ull) };
+		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(
+			type_traits<output_type>::total_byte_size(dims) + (dequantization ? type_traits<output_type>::total_byte_size(dims) : 0)) };
 		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::add };
 		static constexpr llama_op_types type{ llama_op_types::l_out };
@@ -1304,10 +1354,11 @@ namespace nihilus {
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::residual_type;
 		static constexpr uint64_t depth{ std::max(input_type01::depth, input_type02::depth) + 1 };
 		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_type01::output_type, typename input_type02::output_type>::required };
+		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> dims{ { model_traits_type::embedding_dim, model_traits_type::max_sequence_length, 1, 1 } };
 		static constexpr array<size_t, 4> strides{ type_traits<output_type>::impl(dims) };
-		static constexpr uint64_t total_required_bytes{ round_up_to_multiple(
-			type_traits<output_type>::total_byte_size(dims) + (dequantization ? type_traits<output_type>::total_byte_size(dims) : 0), 64ull) };
+		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(
+			type_traits<output_type>::total_byte_size(dims) + (dequantization ? type_traits<output_type>::total_byte_size(dims) : 0)) };
 		static constexpr layer_op_type layer_type{ layer_op_type::global_output };
 		static constexpr kernel_type krn_type{ kernel_type::get_rows };
 		static constexpr llama_op_types type{ llama_op_types::attn_residual };
@@ -1330,10 +1381,11 @@ namespace nihilus {
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::residual_type;
 		static constexpr uint64_t depth{ std::max(input_type01::depth, input_type02::depth) + 1 };
 		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_type01::output_type, typename input_type02::output_type>::required };
+		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> dims{ { model_traits_type::embedding_dim, model_traits_type::max_sequence_length, 1, 1 } };
 		static constexpr array<size_t, 4> strides{ type_traits<output_type>::impl(dims) };
-		static constexpr uint64_t total_required_bytes{ round_up_to_multiple(
-			type_traits<output_type>::total_byte_size(dims) + (dequantization ? type_traits<output_type>::total_byte_size(dims) : 0), 64ull) };
+		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(
+			type_traits<output_type>::total_byte_size(dims) + (dequantization ? type_traits<output_type>::total_byte_size(dims) : 0)) };
 		static constexpr layer_op_type layer_type{ layer_op_type::global_output };
 		static constexpr kernel_type krn_type{ kernel_type::get_rows };
 		static constexpr llama_op_types type{ llama_op_types::prev_residual };
@@ -1355,10 +1407,11 @@ namespace nihilus {
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::norm_output_type;
 		static constexpr uint64_t depth{ input_type01::depth + 1 };
 		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_type01::output_type, output_type>::required };
+		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> dims{ { model_traits_type::embedding_dim, model_traits_type::max_sequence_length, 1, 1 } };
 		static constexpr array<size_t, 4> strides{ type_traits<output_type>::impl(dims) };
-		static constexpr uint64_t total_required_bytes{ round_up_to_multiple(
-			type_traits<output_type>::total_byte_size(dims) + (dequantization ? type_traits<output_type>::total_byte_size(dims) : 0), 64ull) };
+		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(
+			type_traits<output_type>::total_byte_size(dims) + (dequantization ? type_traits<output_type>::total_byte_size(dims) : 0)) };
 		static constexpr layer_op_type layer_type{ layer_op_type::global_output };
 		static constexpr kernel_type krn_type{ kernel_type::rms_norm };
 		static constexpr llama_op_types type{ llama_op_types::final_norm };
@@ -1381,10 +1434,11 @@ namespace nihilus {
 		using transform_type													 = output_transform<input_type01::krn_type, input_type02::krn_type>;
 		static constexpr uint64_t depth{ std::max(input_type01::depth, input_type02::depth) + 1 };
 		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_type01::output_type, typename input_type02::output_type>::required };
+		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> dims{ { model_traits_type::embedding_dim, model_traits_type::max_sequence_length, 1, 1 } };
 		static constexpr array<size_t, 4> strides{ type_traits<output_type>::impl(dims) };
-		static constexpr uint64_t total_required_bytes{ round_up_to_multiple(
-			type_traits<output_type>::total_byte_size(dims) + (dequantization ? type_traits<output_type>::total_byte_size(dims) : 0), 64ull) };
+		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(
+			type_traits<output_type>::total_byte_size(dims) + (dequantization ? type_traits<output_type>::total_byte_size(dims) : 0)) };
 		static constexpr layer_op_type layer_type{ layer_op_type::global_output };
 		static constexpr kernel_type krn_type{ kernel_type::mul };
 		static constexpr llama_op_types type{ llama_op_types::result_norm };
@@ -1406,11 +1460,12 @@ namespace nihilus {
 		using input_type02														 = core_traits<config, llama_op_types::result_norm>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::logit_type;
 		static constexpr uint64_t depth{ std::max(input_type01::depth, input_type02::depth) + 1 };
+		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_type01::output_type, typename input_type02::output_type>::required };
 		static constexpr array<uint64_t, 4> dims{ { model_traits_type::vocab_size, model_traits_type::max_sequence_length, 1, 1 } };
 		static constexpr array<size_t, 4> strides{ type_traits<output_type>::impl(dims) };
-		static constexpr uint64_t total_required_bytes{ round_up_to_multiple(
-			type_traits<output_type>::total_byte_size(dims) + (dequantization ? type_traits<output_type>::total_byte_size(dims) : 0), 64ull) };
+		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(
+			type_traits<output_type>::total_byte_size(dims) + (dequantization ? type_traits<output_type>::total_byte_size(dims) : 0)) };
 		static constexpr layer_op_type layer_type{ layer_op_type::global_output };
 		static constexpr kernel_type krn_type{ kernel_type::mul_mat };
 		static constexpr llama_op_types type{ llama_op_types::result_output };
@@ -1424,9 +1479,9 @@ namespace nihilus {
 	template<model_config config, auto krn_type, uint64_t index> struct get_adjacent_value;
 
 	template<model_config config, auto krn_type, uint64_t index> struct get_adjacent_value {
-		using derived_type				 = core_traits<config, krn_type>;
-		using model_traits_provider_type = model_traits_provider<config>;
-		using derived_derived_type		 = typename model_traits_provider_type::model_type;
+		using derived_type		   = core_traits<config, krn_type>;
+		using model_traits_type	   = model_traits<config.arch, config.model_size, config.model_generation>;
+		using derived_derived_type = model<config>;
 		NIHILUS_FORCE_INLINE static auto& impl(derived_type& core) {
 			if constexpr (index == 0) {
 				using input_type01 = typename derived_type::input_type01;

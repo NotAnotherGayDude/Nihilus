@@ -146,13 +146,11 @@ namespace nihilus {
 
 	NIHILUS_FORCE_INLINE void spinlock_nanoseconds(uint64_t nanoseconds) {
 #if defined(NIHILUS_PLATFORM_WINDOWS)
-		LARGE_INTEGER frequency, start, current;
-		QueryPerformanceFrequency(&frequency);
-		QueryPerformanceCounter(&start);
-		uint64_t target_ticks = start.QuadPart + (frequency.QuadPart * nanoseconds) / 1000000000ULL;
+		auto start = std::chrono::high_resolution_clock::now();
+		auto end   = std::chrono::high_resolution_clock::now();
 		do {
-			QueryPerformanceCounter(&current);
-		} while (current.QuadPart < static_cast<int64_t>(target_ticks));
+			end = std::chrono::high_resolution_clock::now();
+		} while ((end - start).count() < nanoseconds);
 #else
 		// Linux/Unix implementation
 		auto start	= std::chrono::high_resolution_clock::now();
@@ -162,18 +160,16 @@ namespace nihilus {
 #endif
 	}
 
-	#include <random>
-	std::mt19937 rng_engine(std::chrono::high_resolution_clock::now().time_since_epoch().count());
-	std::uniform_int_distribution<int> dist(100, 2000);
-
 	template<model_config config> struct collect_required_bytes {
 		using op_type_type		= op_type_type_t<config>;
 		using model_traits_type = model_traits<config.arch, config.model_size, config.model_generation>;
 		template<typename core_traits_type> static constexpr uint64_t get_multiplier() {
-			if constexpr (core_traits_type::layer_type == layer_op_type::per_block) {
+			if constexpr (core_traits_type::alc_type == alloc_type::per_block_alloc) {
 				return model_traits_type::block_count;
-			} else {
+			} else if constexpr (core_traits_type::alc_type == alloc_type::single_alloc) {
 				return 1;
+			} else {
+				return 0;
 			}
 		}
 
@@ -181,7 +177,7 @@ namespace nihilus {
 			if constexpr (static_cast<uint64_t>(current_index) < static_cast<uint64_t>(op_type_type::count)) {
 				using core_traits_type = core_traits<config, current_index>;
 				using output_type	   = core_traits_type::output_type;
-				current_size += round_up_to_multiple(core_traits_type::total_required_bytes * get_multiplier<core_traits_type>(), cpu_alignment);
+				current_size += round_up_to_multiple<cpu_alignment>(core_traits_type::total_required_bytes * get_multiplier<core_traits_type>());
 				return impl<static_cast<op_type_type>(static_cast<uint64_t>(current_index) + 1)>(current_size);
 			}
 			return current_size;
@@ -238,7 +234,9 @@ namespace nihilus {
 		}
 	};
 
-	std::unordered_map<llama_op_types, size_t> depths{};
+	inline std::atomic_size_t depths_global{};
+	inline std::atomic_size_t depths{};
+	inline std::atomic_size_t count{};
 
 	template<typename base_type_new> struct execution_planner_constexpr {
 		NIHILUS_FORCE_INLINE execution_planner_constexpr() noexcept												 = default;
@@ -250,11 +248,16 @@ namespace nihilus {
 		using base_type																							 = base_type_new;
 		using op_type_type																						 = base_type_new::model_traits_type::op_type_type;
 		NIHILUS_FORCE_INLINE constexpr static void impl(uint64_t& count_new, layer_op_type op_type) {
-			count_new += base_type::layer_type == op_type;
+			if ((base_type::layer_type == op_type && base_type::krn_type != kernel_type::permute && base_type::krn_type != kernel_type::reshape &&
+					base_type::krn_type != kernel_type::transpose && base_type::krn_type != kernel_type::view) &&
+				base_type::krn_type != kernel_type::none) {
+				count_new += base_type::layer_type == op_type;
+			}
 		}
 		template<uint64_t size> NIHILUS_FORCE_INLINE constexpr static void impl(array<op_type_type, size>& value, layer_op_type op_type, uint64_t& current_index) {
-			if (base_type::layer_type == op_type && base_type::krn_type != kernel_type::permute && base_type::krn_type != kernel_type::reshape &&
-				base_type::krn_type != kernel_type::transpose && base_type::krn_type != kernel_type::view) {
+			if ((base_type::layer_type == op_type && base_type::krn_type != kernel_type::permute && base_type::krn_type != kernel_type::reshape &&
+					base_type::krn_type != kernel_type::transpose && base_type::krn_type != kernel_type::view) &&
+				base_type::krn_type != kernel_type::none) {
 				value[current_index] = base_type::type;
 				++current_index;
 			}
@@ -271,17 +274,50 @@ namespace nihilus {
 		template<typename memory_buffer_type> NIHILUS_FORCE_INLINE static void impl(base_type& core, memory_buffer_type& memory_buffer) {
 			if constexpr (base_type::total_required_bytes > 0) {
 				output_type* ptr = static_cast<output_type*>(memory_buffer.claim_memory(core.total_required_bytes));
-				//tensor_debugger::compare_tensor_data(core, 0);
 				if constexpr (array_type<decltype(core.data)>) {
 					for (uint64_t x = 0; x < base_type::model_traits_type::block_count; ++x) {
-						//tensor_debugger::compare_tensor_data(core, x);
 						core.data[x] = ptr;
 					}
 				} else {
 					core.data = ptr;
 				}
+			}
+		}
+	};
+
+	template<typename base_type> struct tensor_debugger_impl {
+		NIHILUS_FORCE_INLINE tensor_debugger_impl() noexcept									   = default;
+		NIHILUS_FORCE_INLINE tensor_debugger_impl& operator=(const tensor_debugger_impl&) noexcept = delete;
+		NIHILUS_FORCE_INLINE tensor_debugger_impl(const tensor_debugger_impl&) noexcept			   = delete;
+		NIHILUS_FORCE_INLINE tensor_debugger_impl& operator=(tensor_debugger_impl&&) noexcept	   = delete;
+		NIHILUS_FORCE_INLINE tensor_debugger_impl(tensor_debugger_impl&&) noexcept				   = delete;
+		using output_type																		   = base_type::output_type;
+		NIHILUS_FORCE_INLINE static void impl(base_type& core) {
+			if constexpr (array_type<decltype(core.data)>) {
+				for (uint64_t x = 0; x < base_type::model_traits_type::block_count; ++x) {
+					tensor_debugger::compare_tensor_data(core, x);
+				}
 			} else {
-				//tensor_debugger::compare_tensor_data(core, 0);
+				tensor_debugger::compare_tensor_data(core, 0);
+			}
+		}
+	};
+
+	template<typename base_type> struct update_runtime_dims {
+		NIHILUS_FORCE_INLINE update_runtime_dims() noexcept										   = default;
+		NIHILUS_FORCE_INLINE update_runtime_dims& operator=(const update_runtime_dims&) noexcept   = delete;
+		NIHILUS_FORCE_INLINE update_runtime_dims(const update_runtime_dims&) noexcept			   = delete;
+		NIHILUS_FORCE_INLINE update_runtime_dims& operator=(update_runtime_dims&&) noexcept		   = delete;
+		NIHILUS_FORCE_INLINE update_runtime_dims(update_runtime_dims&&) noexcept				   = delete;
+		using output_type																		   = base_type::output_type;
+		NIHILUS_FORCE_INLINE static void impl(base_type& core, size_t new_seq_length) {
+			//if constexpr (base_type::)
+			if constexpr (array_type<decltype(core.data)>) {
+				for (uint64_t x = 0; x < base_type::model_traits_type::block_count; ++x) {
+					tensor_debugger::compare_tensor_data(core, x);
+				}
+			} else {
+				tensor_debugger::compare_tensor_data(core, 0);
 			}
 		}
 	};
@@ -295,10 +331,8 @@ namespace nihilus {
 		using output_type																 = base_type_new::output_type;
 		using base_type																	 = base_type_new;
 		NIHILUS_FORCE_INLINE void thread_impl(uint64_t thread_index, uint64_t thread_count) {
-			if constexpr (active_thread<base_type>) {
-				kernel_dispatcher<config, device_type::cpu, base_type>::impl(*this, thread_index, thread_count);
-				//spinlock_nanoseconds(500);
-			}
+			kernel_dispatcher<config, device_type::cpu, base_type>::impl(*this, thread_index, thread_count);
+			spinlock_nanoseconds(spinlock_time / thread_count);
 		}
 		NIHILUS_FORCE_INLINE void thread_impl_main() {};
 	};
@@ -312,15 +346,15 @@ namespace nihilus {
 		using output_type																 = base_type_new::output_type;
 		using base_type																	 = base_type_new;
 		NIHILUS_FORCE_INLINE void thread_impl(uint64_t thread_index, uint64_t thread_count, uint64_t current_index = 0) {
-			//this->sync_flag_start[current_index].arrive_and_wait(thread_index);
+			this->sync_flag_start[current_index].arrive_and_wait(thread_index);
 			kernel_dispatcher<config, device_type::cpu, base_type>::impl(*this, thread_index, thread_count);
-			//spinlock_nanoseconds(500);
-			//this->sync_flag_end[current_index].arrive_and_wait(thread_index);
+			spinlock_nanoseconds(spinlock_time / thread_count);
+			this->sync_flag_end[current_index].arrive_and_wait(thread_index);
 		}
 
 		NIHILUS_FORCE_INLINE void thread_impl_main(uint64_t current_index = 0) {
-			//this->sync_flag_start[current_index].main_wait();
-			//this->sync_flag_end[current_index].main_wait();
+			this->sync_flag_start[current_index].main_wait();
+			this->sync_flag_end[current_index].main_wait();
 		}
 	};
 
@@ -456,19 +490,12 @@ namespace nihilus {
 			thread_latch.init(thread_count_new);
 			for (uint64_t x = 0; x < thread_count_new; ++x) {
 				threads[x] = std::thread{ [&, x] {
-					if (x < (thread_count_new % 3) == 0) {
-						thread_function_impl<true>(x);
-					} else {
-						thread_function_impl<false>(x);
-					}
+					thread_function_impl<false>(x);
 				} };
 			}
 		}
 
 		template<bool raise_priority> NIHILUS_FORCE_INLINE void thread_function_impl(uint64_t thread_index) {
-			if (thread_index % 2 == 0) {
-				//pin_thread_to_core(thread_index % 2);
-			}
 			while (!stop.load(std::memory_order_acquire)) {
 				thread_latch.worker_wait(thread_index);
 				if (!stop.load(std::memory_order_acquire)) {
@@ -479,6 +506,7 @@ namespace nihilus {
 		}
 
 		NIHILUS_FORCE_INLINE void execute_tasks() {
+			depths.store(0, std::memory_order_release);
 			thread_latch.count_down();
 			threading_strategy<config, derived_type>::template impl_main<thread_function>();
 			thread_latch.main_wait();

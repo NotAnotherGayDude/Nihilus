@@ -19,11 +19,28 @@ RealTimeChris (Chris M.)
 */
 
 #pragma once
-
 #include <nihilus/common/type_traits.hpp>
 #include <nihilus/common/model_graph_data.hpp>
 #include <nihilus/common/debugging_io.hpp>
 #include <nihilus/common/model_traits.hpp>
+
+#if defined(NIHILUS_PLATFORM_WINDOWS)
+	#include <io.h>
+	#ifndef PATH_MAX
+		#define PATH_MAX MAX_PATH
+	#endif
+#else
+	#include <sys/mman.h>
+	#include <sys/stat.h>
+	#include <fcntl.h>
+	#include <unistd.h>
+	#if defined(NIHIULUS_PLATFORM_LINUX)
+		#include <sys/resource.h>
+	#endif
+	#if defined(NIHIULUS_PLATFORM_MACOS)
+		#include <TargetConditionals.h>
+	#endif
+#endif
 #include <unordered_set>
 #include <variant>
 #include <fstream>
@@ -50,26 +67,8 @@ namespace nihilus {
 		GGUF_METADATA_VALUE_TYPE_UNSET	 = 13,
 	};
 
-#if defined(NIHILUS_PLATFORM_WINDOWS)
-	#include <io.h>
-	#ifndef PATH_MAX
-		#define PATH_MAX MAX_PATH
-	#endif
-#else
-	#include <sys/mman.h>
-	#include <sys/stat.h>
-	#include <fcntl.h>
-	#include <unistd.h>
-	#if defined(NIHIULUS_PLATFORM_LINUX)
-		#include <sys/resource.h>
-	#endif
-	#if defined(NIHIULUS_PLATFORM_MACOS)
-		#include <TargetConditionals.h>
-	#endif
-#endif
-
 #ifdef NIHILUS_PLATFORM_WINDOWS
-	NIHILUS_FORCE_INLINE std::string format_win_error(DWORD error_code) {
+	static std::string format_win_error(DWORD error_code) {
 		LPSTR buffer = nullptr;
 		DWORD size	 = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, error_code,
 			  MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), reinterpret_cast<LPSTR>(&buffer), 0, nullptr);
@@ -93,13 +92,8 @@ namespace nihilus {
 	  public:
 		NIHILUS_FORCE_INLINE explicit memory_mapped_file() noexcept = default;
 
-		NIHILUS_FORCE_INLINE void init(std::string_view file_path_new, std::size_t prefetch_bytes = 0, bool numa_aware = false) {
-			file_path_ = file_path_new;
-			map_file(file_path_, prefetch_bytes, numa_aware);
-		}
-
-		NIHILUS_FORCE_INLINE void deinit() {
-			unmap_file();
+		NIHILUS_FORCE_INLINE explicit memory_mapped_file(std::string_view file_path, std::size_t prefetch_bytes = 0, bool numa_aware = false) : file_path_(file_path) {
+			map_file(file_path, prefetch_bytes, numa_aware);
 		}
 
 		NIHILUS_FORCE_INLINE ~memory_mapped_file() {
@@ -190,7 +184,7 @@ namespace nihilus {
 #endif
 		}
 
-	  protected:
+	  private:
 		std::string_view file_path_;
 		void* mapped_data_	   = nullptr;
 		std::size_t file_size_ = 0;
@@ -210,13 +204,13 @@ namespace nihilus {
 			file_handle_ = CreateFileA(file_path_str.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
 
 			if (file_handle_ == INVALID_HANDLE_VALUE) {
-				throw std::runtime_error("Failed to open file: " + format_win_error(GetLastError()));
+				throw std::runtime_error(std::string{ "Failed to open file: " } + format_win_error(GetLastError()));
 			}
 
 			LARGE_INTEGER file_size;
 			if (!GetFileSizeEx(file_handle_, &file_size)) {
 				CloseHandle(file_handle_);
-				throw std::runtime_error("Failed to get file size: " + format_win_error(GetLastError()));
+				throw std::runtime_error(std::string{ "Failed to get file size: " } + format_win_error(GetLastError()));
 			}
 
 			file_size_ = static_cast<std::size_t>(file_size.QuadPart);
@@ -230,7 +224,7 @@ namespace nihilus {
 
 			if (mapping_handle_ == nullptr) {
 				CloseHandle(file_handle_);
-				throw std::runtime_error("Failed to create file mapping: " + format_win_error(GetLastError()));
+				throw std::runtime_error(std::string{ "Failed to create file mapping: " } + format_win_error(GetLastError()));
 			}
 
 			mapped_data_ = MapViewOfFile(mapping_handle_, FILE_MAP_READ, 0, 0, 0);
@@ -372,14 +366,12 @@ namespace nihilus {
 			( void )first;
 			( void )last;
 #else
-			if (!mapped_data_) {
+			if (!mapped_data_)
 				return;
-			}
 
 			long page_size = sysconf(_SC_PAGESIZE);
-			if (page_size <= 0) {
+			if (page_size <= 0)
 				return;
-			}
 
 			std::size_t page_size_t = static_cast<std::size_t>(page_size);
 
@@ -390,9 +382,8 @@ namespace nihilus {
 
 			last = last & ~(page_size_t - 1);
 
-			if (last <= first) {
+			if (last <= first)
 				return;
-			}
 
 			void* unmap_addr	   = static_cast<char*>(mapped_data_) + first;
 			std::size_t unmap_size = last - first;
@@ -400,6 +391,7 @@ namespace nihilus {
 			if (munmap(unmap_addr, unmap_size) != 0) {
 				return;
 			}
+
 			std::vector<std::pair<std::size_t, std::size_t>> new_fragments;
 			for (const auto& frag: mapped_fragments_) {
 				if (frag.first < first && frag.second > last) {
@@ -441,39 +433,6 @@ namespace nihilus {
 
 		NIHILUS_FORCE_INLINE stream_iterator(memory_mapped_file* s) : file(s), length{ file->size() } {};
 
-		NIHILUS_FORCE_INLINE std::uint64_t get_length(FILE* file) noexcept {
-			if (!file) [[unlikely]] {
-				return 0;
-			}
-
-#ifdef NIHILUS_PLATFORM_WINDOWS
-			int fd = _fileno(file);
-			if (fd == -1) [[unlikely]] {
-				return 0;
-			}
-
-			struct __stat64 file_stat;
-			if (_fstat64(fd, &file_stat) != 0) [[unlikely]] {
-				return 0;
-			}
-
-			return static_cast<std::uint64_t>(file_stat.st_size);
-
-#else
-			int fd = fileno(file);
-			if (fd == -1) [[unlikely]] {
-				return 0;
-			}
-
-			struct stat file_stat;
-			if (fstat(fd, &file_stat) != 0) [[unlikely]] {
-				return 0;
-			}
-
-			return static_cast<std::uint64_t>(file_stat.st_size);
-#endif
-		}
-
 		template<typename value_type> NIHILUS_FORCE_INLINE value_type read() {
 			value_type dst{};
 			std::memcpy(&dst, static_cast<uint8_t*>(file->data()) + current_index, sizeof(value_type));
@@ -487,9 +446,13 @@ namespace nihilus {
 			return true;
 		}
 
-		NIHILUS_FORCE_INLINE bool map_pointer(void* dst, const size_t size) {
-			*reinterpret_cast<void**>(dst) = reinterpret_cast<uint8_t*>(file->data()) + current_index;
-			current_index += size;
+		NIHILUS_FORCE_INLINE bool read_bytes_to_pointer(void* dst, const size_t size, size_t offset) {
+			std::memcpy(dst, static_cast<uint8_t*>(file->data()) + offset, size);
+			return true;
+		}
+
+		NIHILUS_FORCE_INLINE bool map_pointer(void* dst, const size_t offset) {
+			*reinterpret_cast<void**>(dst) = reinterpret_cast<uint8_t*>(file->data()) + offset;
 			return true;
 		}
 
@@ -521,8 +484,8 @@ namespace nihilus {
 			*this = other;
 		};
 		gguf_metadata_value_t(const gguf_metadata_value_variant& other) noexcept;
-		~gguf_metadata_value_t();
 		gguf_metadata_value_variant value{};
+		~gguf_metadata_value_t();
 	};
 
 	struct gguf_array_t {
@@ -723,14 +686,14 @@ namespace nihilus {
 	};
 
 	struct gguf_header_t {
-		std::map<std::string_view, gguf_metadata_kv_t> metadata_kv{};
+		std::map<std::string, gguf_metadata_kv_t> metadata_kv{};
 		uint64_t metadata_kv_count{};
 		uint64_t tensor_count{};
 		uint32_t version{};
 		uint32_t magic{};
 	};
 
-	template<typename value_type> NIHILUS_FORCE_INLINE void gather_scalar(std::string_view key, value_type& out, const std::map<std::string_view, gguf_metadata_kv_t>& metadata_kv) {
+	template<typename value_type> NIHILUS_FORCE_INLINE void gather_scalar(const std::string& key, value_type& out, const std::map<std::string, gguf_metadata_kv_t>& metadata_kv) {
 		auto it = metadata_kv.find(key);
 		if (it == metadata_kv.end())
 			return;
@@ -741,7 +704,7 @@ namespace nihilus {
 	};
 
 	template<typename value_type>
-	NIHILUS_FORCE_INLINE void gather_array(std::string_view key, std::vector<value_type>& out, const std::map<std::string_view, gguf_metadata_kv_t>& metadata_kv) {
+	NIHILUS_FORCE_INLINE void gather_array(const std::string& key, std::vector<value_type>& out, const std::map<std::string, gguf_metadata_kv_t>& metadata_kv) {
 		auto it = metadata_kv.find(key);
 		if (it == metadata_kv.end())
 			return;
@@ -772,7 +735,7 @@ namespace nihilus {
 	}
 
 	template<> struct value_reader<construction_parameters<model_arch::llama>, model_arch::llama> {
-		NIHILUS_FORCE_INLINE static construction_parameters<model_arch::llama> gather_value(const std::map<std::string_view, gguf_metadata_kv_t>& metadata_kv) {
+		NIHILUS_FORCE_INLINE static construction_parameters<model_arch::llama> gather_value(const std::map<std::string, gguf_metadata_kv_t>& metadata_kv) {
 			construction_parameters<model_arch::llama> value{};
 			std::string architecture{};
 			if (metadata_kv.contains("general.architecture")) {
@@ -803,7 +766,7 @@ namespace nihilus {
 	};
 
 	template<> struct value_reader<tokenizer_parameters<model_arch::llama>, model_arch::llama> {
-		NIHILUS_FORCE_INLINE static tokenizer_parameters<model_arch::llama> gather_value(const std::map<std::string_view, gguf_metadata_kv_t>& metadata_kv) {
+		NIHILUS_FORCE_INLINE static tokenizer_parameters<model_arch::llama> gather_value(const std::map<std::string, gguf_metadata_kv_t>& metadata_kv) {
 			tokenizer_parameters<model_arch::llama> value{};
 			gather_scalar("tokenizer.ggml.bos_token_id", value.bos_token_id, metadata_kv);
 			gather_scalar("tokenizer.ggml.eos_token_id", value.eos_token_id, metadata_kv);
@@ -842,9 +805,9 @@ namespace nihilus {
 		}
 	};
 
-	template<model_arch arch> struct string_to_tensor_name;
+	template<model_arch arch> struct string_to_op_type;
 
-	template<> struct string_to_tensor_name<model_arch::llama> {
+	template<> struct string_to_op_type<model_arch::llama> {
 		NIHILUS_FORCE_INLINE static llama_op_types impl(std::string_view input) noexcept {
 			if (input == "token_embd.weight")
 				return llama_op_types::token_embd_weight;
@@ -868,7 +831,7 @@ namespace nihilus {
 					if (suffix == "attn_q.weight")
 						return llama_op_types::attn_q_weight;
 					if (suffix == "attn_norm.weight")
-						return llama_op_types::attn_norm;
+						return llama_op_types::attn_norm_weight;
 					if (suffix == "attn_k.weight")
 						return llama_op_types::attn_k_weight;
 					if (suffix == "attn_v.weight")
@@ -914,8 +877,8 @@ namespace nihilus {
 	};
 
 	NIHILUS_FORCE_INLINE bool operator<(const core_base_creation_data& lhs, const core_base_creation_data& rhs) noexcept {
-		std::string_view lhs_name{ lhs.name };
-		std::string_view rhs_name{ rhs.name };
+		const std::string& lhs_name{ lhs.name };
+		const std::string& rhs_name{ rhs.name };
 		if (lhs_name.find_first_of("1234567890") != std::string::npos && rhs_name.find_first_of("1234567890") != std::string::npos) {
 			uint64_t lhs_offset{ lhs_name.find_first_of("1234567890") };
 			uint64_t rhs_offset{ rhs_name.find_first_of("1234567890") };
@@ -988,16 +951,24 @@ namespace nihilus {
 		using op_type_type		= typename decltype(config)::op_type_type;
 		static_assert((std::endian::native == std::endian::little), "Sorry, but big-endian is not yet supported by the library");
 
-		NIHILUS_FORCE_INLINE static model_graph_data<config> parse_model(std::string_view path, array<array<void*, model_traits_type::block_count>, op_type_type::count>& data,
-			memory_mapped_file& model_data) {
-			stream_iterator ptr{ &model_data };
+		NIHILUS_FORCE_INLINE static model_graph_data<config> parse_model(array<array<void*, model_traits_type::block_count>, op_type_type::count>& data,
+			memory_mapped_file* memory_file) {
 			model_graph_data<config> return_value{};
 			gguf_file_t gguf_file{};
+			stream_iterator ptr{ memory_file };
+			std::map<std::string, intermediary_tensor> tensors{};
 			gguf_file.header = value_reader<gguf_header_t>::gather_value(ptr);
 			for (uint64_t x = 0; x < gguf_file.header.tensor_count; ++x) {
 				gguf_file.tensor_infos.emplace_back(value_reader<core_base_creation_data>::gather_value(ptr));
+				tensors[gguf_file.tensor_infos.back().name].dims.resize(4);
+				for (size_t x = 0; x < 4; ++x) {
+					tensors[gguf_file.tensor_infos.back().name].dims[x] = gguf_file.tensor_infos.back().dimensions[x];
+				}
+				tensors[gguf_file.tensor_infos.back().name].data.resize(128);
+				tensors[gguf_file.tensor_infos.back().name].name = gguf_file.tensor_infos.back().name;
+				tensors[gguf_file.tensor_infos.back().name].type = gguf_file.tensor_infos.back().type;
 			}
-
+			intermediary_tensor tensor{};
 			uint64_t total_tensor_bytes = 0;
 			uint64_t max_tensor_end		= 0;
 			for (const auto& tensor: gguf_file.tensor_infos) {
@@ -1007,16 +978,18 @@ namespace nihilus {
 				max_tensor_end		= std::max(max_tensor_end, tensor_end);
 			}
 
-			uint64_t tensor_data_start = 0;
+			uint64_t tensor_data_start = ptr.file->size() - max_tensor_end;
 			uint64_t alignment{ 32 };
 			gather_scalar("alignment", alignment, gguf_file.header.metadata_kv);
 			return_value.cparams		  = value_reader<construction_parameters<model_arch::llama>, model_arch::llama>::gather_value(gguf_file.header.metadata_kv);
 			return_value.tokenizer_params = value_reader<tokenizer_parameters<model_arch::llama>, model_arch::llama>::gather_value(gguf_file.header.metadata_kv);
 			sort_tensor_infos(gguf_file.tensor_infos);
-			for (uint64_t x = 0; x < gguf_file.tensor_infos.size(); ++x) {
-				ptr.map_pointer(data[string_to_tensor_name<model_arch::llama>::impl(gguf_file.tensor_infos[x].name)][extract_layer_number(gguf_file.tensor_infos[x].name)],
-					gguf_file.tensor_infos[x].core_total_byte_size());
-			}
+			for (uint64_t x = 0; x < gguf_file.header.tensor_count; ++x) {
+				uint64_t absolute_offset = tensor_data_start + gguf_file.tensor_infos[x].offset;
+				ptr.map_pointer(data[string_to_op_type<model_arch::llama>::impl(gguf_file.tensor_infos[x].name)][extract_layer_number(gguf_file.tensor_infos[x].name)],
+					absolute_offset);
+				//tensor_debugger::compare_tensor_data(tensors[gguf_file.tensor_infos[x].name]);
+			};
 			return return_value;
 		}
 	};
@@ -1027,9 +1000,9 @@ namespace nihilus {
 		using model_traits_type = model_traits<config.arch, config.model_size, config.model_generation>;
 		using op_type_type		= typename decltype(config)::op_type_type;
 
-		NIHILUS_FORCE_INLINE static model_graph_data<config> parse_model(std::string_view path, array<array<void*, model_traits_type::block_count>, op_type_type::count>& data,
-			memory_mapped_file& model_data) {
-			return model_parser_impl<config, config.arch, config.format>::parse_model(path, data, model_data);
+		NIHILUS_FORCE_INLINE static model_graph_data<config> parse_model(array<array<void*, model_traits_type::block_count>, op_type_type::count>& data,
+			memory_mapped_file* memory_file) {
+			return model_parser_impl<config, config.arch, config.format>::parse_model(data, memory_file);
 		}
 	};
 }

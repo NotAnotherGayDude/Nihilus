@@ -21,20 +21,28 @@ RealTimeChris (Chris M.)
 #pragma once
 
 #include <nihilus/common/iterator.hpp>
-#include <nihilus/common/concepts.hpp>
 #include <nihilus/common/config.hpp>
 #include <algorithm>
 #include <stdexcept>
 
 namespace nihilus {
 
+	template<typename value_type>
+	concept is_integral_constant = requires() {
+		typename std::remove_cvref_t<value_type>::value_type;
+		{ std::remove_cvref_t<value_type>::value } -> std::same_as<typename std::remove_cvref_t<value_type>::value_type>;
+	};
+
 	template<typename value_type01, typename value_type02> struct is_indexable {
-		static constexpr bool indexable{ std::is_same_v<value_type01, value_type02> || std::integral<value_type01> };
+		static constexpr bool indexable{ std::is_same_v<value_type01, value_type02> || std::integral<value_type01> || is_integral_constant<value_type01> ||
+			is_integral_constant<value_type02> };
 	};
 
 	enum class array_static_assert_errors {
 		invalid_index_type,
-	};
+	};	
+
+	template<uint64_t index> using tag = std::integral_constant<uint64_t, index>;
 
 	template<typename value_type_new, auto size_new> struct array {
 	  public:
@@ -167,6 +175,14 @@ namespace nihilus {
 			static_assert(static_assert_printer<is_indexable<index_type, decltype(size_new)>::indexable, array_static_assert_errors::invalid_index_type, index_type>::impl,
 				"Sorry, but please index into this array using the correct enum type!");
 			return data_val[static_cast<uint64_t>(position)];
+		}
+
+		template<size_t index> NIHILUS_FORCE_INLINE constexpr uint64_t& operator[](tag<index> index_new) {
+			return data_val[index_new];
+		}
+
+		template<size_t index> NIHILUS_FORCE_INLINE constexpr uint64_t operator[](tag<index> index_new) const {
+			return data_val[index_new];
 		}
 
 		NIHILUS_FORCE_INLINE constexpr reference front() noexcept {
@@ -335,7 +351,7 @@ namespace nihilus {
 			return true;
 		}
 
-	  protected:
+	  private:
 		std::conditional_t<std::disjunction_v<std::is_default_constructible<value_type>, std::is_default_constructible<value_type>>, value_type, empty_array_element> data_val[1]{};
 	};
 }

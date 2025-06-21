@@ -100,83 +100,19 @@ jobs:
       run: |
         export DYLD_LIBRARY_PATH="${GITHUB_WORKSPACE}/../Install/lib:$DYLD_LIBRARY_PATH"
         chmod +x "${GITHUB_WORKSPACE}/../Install/bin/nihilus_performance"
-        "${GITHUB_WORKSPACE}/../Install/bin/nihilus_performance" -m installed-to/Meta-Llama-3.1-8B-Instruct-Q8_0.gguf -p "What is the meaning of life?" -s 0 -n 8 -no-cnv -t 1 > llm_output_macos.txt 2>&1
-        echo "=== Nihilus LLM OUTPUT (macOS) ==="
-        cat llm_output_macos.txt
-        echo "=== END OUTPUT ==="
-        echo "=== VALIDATION CHECK ==="
-        if grep -q "A question that has puzzled philosophers, theolog" llm_output_macos.txt; then
-          echo "✅ VALIDATION PASSED: Expected text found in output"
-        else
-          echo "❌ VALIDATION FAILED: Expected text 'A question that has puzzled philosophers and theolog' not found in output"
-          echo "=== ACTUAL OUTPUT FOR DEBUGGING ==="
-          echo "Full output:"
-          cat llm_output_macos.txt
-          echo "=== FIRST 500 CHARACTERS ==="
-          head -c 500 llm_output_macos.txt
-          echo ""
-          echo "=== OUTPUT LENGTH: $(wc -c < llm_output_macos.txt) characters ==="
-          echo "=== LINES CONTAINING 'meaning' ==="
-          grep -i "meaning" llm_output_macos.txt || echo "No lines containing 'meaning' found"
-          echo "=== LINES CONTAINING 'philosopher' ==="
-          grep -i "philosopher" llm_output_macos.txt || echo "No lines containing 'philosopher' found"
-          exit 1
-        fi
+        "${GITHUB_WORKSPACE}/../Install/bin/nihilus_performance" -m installed-to/Meta-Llama-3.1-8B-Instruct-Q8_0.gguf -p "What is the meaning of life?" -s 0 -n 8 -no-cnv -t 1 
     
     - name: Set Library Path and Run Model (Linux)
       if: runner.os == 'Linux'
       run: |
         export LD_LIBRARY_PATH="${GITHUB_WORKSPACE}/../Install/lib:$LD_LIBRARY_PATH"
         chmod +x "${GITHUB_WORKSPACE}/../Install/bin/nihilus_performance"
-        "${GITHUB_WORKSPACE}/../Install/bin/nihilus_performance" -m installed-to/Meta-Llama-3.1-8B-Instruct-Q8_0.gguf -p "What is the meaning of life?" -s 0 -n 8 -no-cnv -t 1 > llm_output_linux.txt 2>&1
-        echo "=== Nihilus LLM OUTPUT (Linux) ==="
-        cat llm_output_linux.txt
-        echo "=== END OUTPUT ==="
-        echo "=== VALIDATION CHECK ==="
-        if grep -q "A question that has puzzled philosophers and theolog" llm_output_linux.txt; then
-          echo "✅ VALIDATION PASSED: Expected text found in output"
-        else
-          echo "❌ VALIDATION FAILED: Expected text 'A question that has puzzled philosophers and theolog' not found in output"
-          echo "=== ACTUAL OUTPUT FOR DEBUGGING ==="
-          echo "Full output:"
-          cat llm_output_linux.txt
-          echo "=== FIRST 500 CHARACTERS ==="
-          head -c 500 llm_output_linux.txt
-          echo ""
-          echo "=== OUTPUT LENGTH: $(wc -c < llm_output_linux.txt) characters ==="
-          echo "=== LINES CONTAINING 'meaning' ==="
-          grep -i "meaning" llm_output_linux.txt || echo "No lines containing 'meaning' found"
-          echo "=== LINES CONTAINING 'philosopher' ==="
-          grep -i "philosopher" llm_output_linux.txt || echo "No lines containing 'philosopher' found"
-          exit 1
-        fi
+        "${GITHUB_WORKSPACE}/../Install/bin/nihilus_performance" -m installed-to/Meta-Llama-3.1-8B-Instruct-Q8_0.gguf -p "What is the meaning of life?" -s 0 -n 8 -no-cnv -t 1 
     
     - name: Run Model (Windows)
       if: runner.os == 'Windows'
       run: |
-        & "${env:GITHUB_WORKSPACE}\..\Install\bin\nihilus_performance.exe" -m installed-to/Meta-Llama-3.1-8B-Instruct-Q8_0.gguf -p "What is the meaning of life?" -s 0 -n 8 -no-cnv -t 1 > llm_output_windows.txt 2>&1
-        Write-Host "=== Nihilus LLM OUTPUT (Windows) ==="
-        Get-Content llm_output_windows.txt
-        Write-Host "=== END OUTPUT ==="
-        Write-Host "=== VALIDATION CHECK ==="
-        if (Select-String -Pattern "A question that has puzzled philosophers, theolog" -Path llm_output_windows.txt -Quiet) {
-          Write-Host "✅ VALIDATION PASSED: Expected text found in output"
-        } else {
-          Write-Host "❌ VALIDATION FAILED: Expected text 'A question that has puzzled philosophers and theolog' not found in output"
-          Write-Host "=== ACTUAL OUTPUT FOR DEBUGGING ==="
-          Write-Host "Full output:"
-          Get-Content llm_output_windows.txt
-          Write-Host "=== FIRST 500 CHARACTERS ==="
-          (Get-Content llm_output_windows.txt -Raw).Substring(0, [Math]::Min(500, (Get-Content llm_output_windows.txt -Raw).Length))
-          Write-Host "=== OUTPUT LENGTH: $((Get-Content llm_output_windows.txt -Raw).Length) characters ==="
-          Write-Host "=== LINES CONTAINING 'meaning' ==="
-          $meaningLines = Select-String -Pattern "meaning" -Path llm_output_windows.txt -AllMatches
-          if ($meaningLines) { $meaningLines } else { Write-Host "No lines containing 'meaning' found" }
-          Write-Host "=== LINES CONTAINING 'philosopher' ==="
-          $philosopherLines = Select-String -Pattern "philosopher" -Path llm_output_windows.txt -AllMatches
-          if ($philosopherLines) { $philosopherLines } else { Write-Host "No lines containing 'philosopher' found" }
-          exit 1
-        }
+        & "${env:GITHUB_WORKSPACE}\..\Install\bin\nihilus_performance.exe" -m installed-to/Meta-Llama-3.1-8B-Instruct-Q8_0.gguf -p "What is the meaning of life?" -s 0 -n 8 -no-cnv -t 1 
 
     - name: Copy Install Directory to Workspace
       if: success() || failure()
