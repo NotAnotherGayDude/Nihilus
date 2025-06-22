@@ -24,7 +24,7 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-	static constexpr uint64_t Q_SIZE{ 32 };
+	inline static constexpr uint64_t Q_SIZE{ 32 };
 
 	using half	   = int16_t;
 	using half2	   = int32_t;

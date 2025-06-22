@@ -1,4 +1,4 @@
-int LLAMA_BUILD_NUMBER = 26;
-char const *LLAMA_COMMIT = "fb69005";
+int LLAMA_BUILD_NUMBER = 28;
+char const *LLAMA_COMMIT = "046fe1a";
 char const *LLAMA_COMPILER = " ";
 char const *LLAMA_BUILD_TARGET = "Windows AMD64";

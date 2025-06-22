@@ -22,7 +22,6 @@ RealTimeChris (Chris M.)
 
 #include <nihilus/cpu/simd/avx_2.hpp>
 #include <nihilus/cpu/simd/avx_512.hpp>
-
 #include <nihilus/cpu/simd/arm_neon.hpp>
 #include <nihilus/cpu/simd/arm_sve2.hpp>
 

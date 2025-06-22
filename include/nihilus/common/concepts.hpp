@@ -89,6 +89,12 @@ namespace nihilus {
 	concept core_traits_type = requires(std::remove_cvref_t<value_type>) {
 		typename value_type::output_type;
 		value_type::data;
+	};
+
+	template<typename value_type>
+	concept core_traits_type_new = requires(std::remove_cvref_t<value_type>) {
+		typename value_type::output_type;
+		value_type::data;
 		value_type::dims;
 	};
 

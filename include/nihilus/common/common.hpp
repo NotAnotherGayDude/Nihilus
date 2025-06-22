@@ -130,12 +130,12 @@ namespace nihilus {
 		}
 	}
 
-	template<size_t modifiable_index> struct mutable_constexpr_array;
+	template<size_t modifiable_index, size_t const_value> struct mutable_constexpr_array;
 
-	template<> struct mutable_constexpr_array<0> {
+	template<size_t const_value> struct mutable_constexpr_array<0, const_value> {
 		NIHILUS_FORCE_INLINE constexpr mutable_constexpr_array() noexcept = default;
 
-		NIHILUS_FORCE_INLINE constexpr mutable_constexpr_array(const std::initializer_list<uint64_t>& dims_new) noexcept {
+		NIHILUS_FORCE_INLINE constexpr mutable_constexpr_array(const std::initializer_list<uint64_t>&dims_new) noexcept {
 			for (size_t x = 0; x < 3; ++x) {
 				dims[x] = dims_new.begin()[x];
 			}
@@ -175,41 +175,31 @@ namespace nihilus {
 		uint64_t dims[3]{};
 	};
 
-	template<> struct mutable_constexpr_array<1> {
-		using index_type												  = uint64_t;
+	template<size_t const_value> struct mutable_constexpr_array<1, const_value> {
+		using index_type = uint64_t;
 		NIHILUS_FORCE_INLINE constexpr mutable_constexpr_array() noexcept = default;
 
 		NIHILUS_FORCE_INLINE constexpr mutable_constexpr_array(const std::initializer_list<uint64_t>& dims_new) noexcept {
-			dim0	= dims_new.begin()[0];
-			dim1	= dims_new.begin()[1];
+			dim0 = dims_new.begin()[0];
+			dim1 = dims_new.begin()[1];
 			dims[0] = dims_new.begin()[2];
-			dims[1] = dims_new.begin()[3];
+			dims[1] = dims_new.begin()[2];
 		}
 
 		NIHILUS_FORCE_INLINE constexpr operator array<uint64_t, 4>() const {
 			array<uint64_t, 4> return_values{};
 			return_values[0] = dim0;
-			return_values[1] = dim1;
+			if (std::is_constant_evaluated()) {
+				return_values[1] = dim1_const;
+			} else {
+				return_values[1] = dim1;
+			}
 			return_values[2] = dims[0];
 			return_values[3] = dims[1];
 			return return_values;
 		}
 
-		NIHILUS_FORCE_INLINE constexpr mutable_constexpr_array(const uint64_t (&dims_new)[4]) noexcept {
-			for (size_t x = 0; x < 3; ++x) {
-				dims[x] = dims_new[x];
-			}
-		}
-
 		template<size_t index> NIHILUS_FORCE_INLINE constexpr uint64_t& operator[](tag<index> index_new) {
-			if constexpr (index_new == 0) {
-				return dim0;
-			} else {
-				return dims[index - 1];
-			}
-		}
-
-		template<size_t index> NIHILUS_FORCE_INLINE constexpr uint64_t operator[](tag<index> index_new) const {
 			if constexpr (index_new == 0) {
 				return dim0;
 			} else if constexpr (index_new == 1) {
@@ -219,7 +209,18 @@ namespace nihilus {
 			}
 		}
 
+		template<size_t index> NIHILUS_FORCE_INLINE constexpr uint64_t operator[](tag<index> index_new) const {
+			if constexpr (index_new == 0) {
+				return dim0;
+			} else if constexpr(index_new==1){
+				return dim1;
+			} else {
+				return dims[index - 2];
+			}
+		}
+
 		uint64_t dim0{};
+		static constexpr uint64_t dim1_const{ const_value };
 		mutable uint64_t dim1{};
 		uint64_t dims[2]{};
 	};
@@ -285,12 +286,10 @@ namespace nihilus {
 
 		NIHILUS_FORCE_INLINE void arrive_and_wait(size_t thread_index) {
 			global_counter.fetch_sub(1, std::memory_order_acq_rel);
-			if (global_counter.load(std::memory_order_acquire) == 1) {
-				global_counter.notify_one();
-			} else {
-				while (!finish_flags[thread_index].test()) {
-					nihilus_pause();
-				}
+			global_counter.notify_one();
+
+			while (!finish_flags[thread_index].test()) {
+				nihilus_pause();
 			}
 			finish_flags[thread_index].clear();
 		}
@@ -303,12 +302,17 @@ namespace nihilus {
 		}
 
 		NIHILUS_FORCE_INLINE void main_wait() {
-			global_counter.wait(thread_count);
+			int64_t current_value = global_counter.load(std::memory_order_acquire);
+			while (current_value > 0) {
+				current_value = global_counter.load(std::memory_order_acquire);
+				nihilus_pause();
+			}
+
+			global_counter.store(static_cast<int64_t>(thread_count), std::memory_order_release);
 			for (size_t x = 0; x < thread_count; ++x) {
 				finish_flags[x].test_and_set();
 				finish_flags[x].notify_one();
 			}
-			global_counter.store(static_cast<int64_t>(thread_count), std::memory_order_release);
 		}
 	};
 

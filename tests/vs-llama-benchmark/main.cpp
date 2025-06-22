@@ -75,9 +75,41 @@ static void sigint_handler(int signo) {
 }
 #endif
 
+// Core entities (data + traits):
+struct tensor_entity_1 { /* data + compile-time info */
+};
+struct tensor_entity_2 { /* data + compile-time info */
+};
+
+// Behaviors inherit FROM the entities:
+template<typename entity_type> struct memory_behavior : public entity_type {
+	static constexpr size_t dim{};
+	void impl() {
+		// Can access entity_type's data directly!
+		//this->data = allocate_memory(entity_type::memory_requirements);
+	}
+};
+
+template<typename entity_type> struct threading_behavior : public entity_type {
+	void impl() {
+		// Can access entity_type's sync primitives!
+		//this->sync_flags.init(entity_type::thread_count);
+	}
+};
+
+template<typename...bases>
+struct core_bases : public bases... {
+	// Self-cast to any behavior:
+	template<template<typename> typename behavior_type> void apply_behavior() {
+		(static_cast<behavior_type<bases>*>(static_cast<bases*>(this))->impl(), ...);
+	}
+};
+
 template<auto enum_val, template<nihilus::model_config config, auto op_type> typename core_type> struct iterator_constructor {};
 
 int main(int argc, char** argv) {
+	core_bases<memory_behavior<tensor_entity_1>, memory_behavior<tensor_entity_2>> test_cores{};
+	test_cores.apply_behavior<memory_behavior>();
 	try {
 		std::string return_value{};
 		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 2, 1, true, "Token">::runBenchmark<"llama.cpp", "cyan">([&] {
@@ -313,7 +345,7 @@ int main(int argc, char** argv) {
 
 					const llama_token id = common_sampler_sample(smpl, ctx, -1);
 
-					common_sampler_accept(smpl, id, /* accept_grammar= */ true);
+					common_sampler_accept(smpl, id, true);
 
 					// LOG_DBG("last: %s\n", string_from(ctx, smpl->prev.to_vector()).c_str());
 
@@ -334,7 +366,7 @@ int main(int argc, char** argv) {
 
 						// push the prompt in the sampling context in order to apply repetition penalties later
 						// for the prompt, we don't apply grammar rules
-						common_sampler_accept(smpl, embd_inp[n_consumed], /* accept_grammar= */ false);
+						common_sampler_accept(smpl, embd_inp[n_consumed],false);
 
 						++n_consumed;
 						if (( int )embd.size() >= params.n_batch) {
@@ -590,9 +622,9 @@ int main(int argc, char** argv) {
 		static constexpr auto model_config = nihilus::generate_model_config(nihilus::llama_model_generation::v3, nihilus::llama_model_size::llama_8B,
 			nihilus::kernel_type_profile::q8_gqa, nihilus::model_arch::llama, false);
 		//invocable<model_config>.impl();
-		auto cli_args_final				   = nihilus::harbinger<model_config>::parse_cli_arguments(argc, argv);
+		auto cli_args_final = nihilus::harbinger<model_config>::parse_cli_arguments(argc, argv);
+		nihilus::model<model_config> model_graph_data{ cli_args_final };
 		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 2, 1, true, "Token">::runBenchmark<"nihilus", "cyan">([&] {
-			nihilus::model<model_config> model_graph_data{ cli_args_final };
 			nihilus::input_session_config session_config{ std::cin, 1024 };
 			nihilus::input_session input_session{ session_config, model_graph_data };
 			input_session.exec_params.token_count  = cli_args_final.n_tokens;

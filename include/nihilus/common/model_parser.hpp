@@ -939,7 +939,7 @@ namespace nihilus {
 		gguf_header_t header{};
 	};
 
-	NIHILUS_FORCE_INLINE uint64_t align_offset(uint64_t offset, uint64_t alignment = 0) {
+	NIHILUS_FORCE_INLINE uint64_t align_offset(uint64_t offset, uint64_t alignment = 1) {
 		alignment = alignment == 0 ? 1 : alignment;
 		return offset + (alignment - (offset % alignment)) % alignment;
 	}
@@ -960,12 +960,11 @@ namespace nihilus {
 			for (uint64_t x = 0; x < gguf_file.header.tensor_count; ++x) {
 				gguf_file.tensor_infos.emplace_back(value_reader<core_base_creation_data>::gather_value(ptr));
 			}
-
 			uint64_t max_tensor_end		= 0;
 			for (const auto& tensor: gguf_file.tensor_infos) {
 				uint64_t tensor_size = tensor.core_total_byte_size();
-				uint64_t tensor_end	 = tensor.offset + tensor_size;
-				max_tensor_end		 = std::max(max_tensor_end, tensor_end);
+				uint64_t tensor_end = tensor.offset + tensor_size;
+				max_tensor_end		= std::max(max_tensor_end, tensor_end);
 			}
 
 			uint64_t tensor_data_start = ptr.file->size() - max_tensor_end;
