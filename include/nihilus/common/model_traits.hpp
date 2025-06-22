@@ -45,6 +45,8 @@ namespace nihilus {
 		static constexpr uint64_t kv_cache_layers	   = 16;
 		static constexpr uint64_t intermediate_size	   = 8192;
 		static constexpr uint64_t max_sequence_length  = 2048;
+		static constexpr uint64_t n_embd_head_kv	   = embedding_dim / head_count;
+		static constexpr uint64_t n_embd_kv_gqa		   = n_embd_head_kv * head_count_kv;
 	};
 
 	template<> struct model_traits<model_arch::llama, llama_model_size::llama_3B, llama_model_generation::v1_v2> {
@@ -64,6 +66,8 @@ namespace nihilus {
 		static constexpr uint64_t kv_cache_layers	   = 28;
 		static constexpr uint64_t intermediate_size	   = 8192;
 		static constexpr uint64_t max_sequence_length  = 2048;
+		static constexpr uint64_t n_embd_head_kv	   = embedding_dim / head_count;
+		static constexpr uint64_t n_embd_kv_gqa		   = n_embd_head_kv * head_count_kv;
 	};
 
 	template<> struct model_traits<model_arch::llama, llama_model_size::llama_7B, llama_model_generation::v1_v2> {
@@ -83,6 +87,8 @@ namespace nihilus {
 		static constexpr uint64_t kv_cache_layers	   = 32;
 		static constexpr uint64_t intermediate_size	   = 11008;
 		static constexpr uint64_t max_sequence_length  = 2048;
+		static constexpr uint64_t n_embd_head_kv	   = embedding_dim / head_count;
+		static constexpr uint64_t n_embd_kv_gqa		   = n_embd_head_kv * head_count_kv;
 	};
 
 	template<> struct model_traits<model_arch::llama, llama_model_size::llama_8B, llama_model_generation::v1_v2> {
@@ -102,6 +108,8 @@ namespace nihilus {
 		static constexpr uint64_t kv_cache_layers	   = 32;
 		static constexpr uint64_t intermediate_size	   = 11008;
 		static constexpr uint64_t max_sequence_length  = 2048;
+		static constexpr uint64_t n_embd_head_kv	   = embedding_dim / head_count;
+		static constexpr uint64_t n_embd_kv_gqa		   = n_embd_head_kv * head_count_kv;
 	};
 
 	template<> struct model_traits<model_arch::llama, llama_model_size::llama_11B, llama_model_generation::v1_v2> {
@@ -121,6 +129,8 @@ namespace nihilus {
 		static constexpr uint64_t kv_cache_layers	   = 32;
 		static constexpr uint64_t intermediate_size	   = 11008;
 		static constexpr uint64_t max_sequence_length  = 2048;
+		static constexpr uint64_t n_embd_head_kv	   = embedding_dim / head_count;
+		static constexpr uint64_t n_embd_kv_gqa		   = n_embd_head_kv * head_count_kv;
 	};
 
 	template<> struct model_traits<model_arch::llama, llama_model_size::llama_13B, llama_model_generation::v1_v2> {
@@ -140,6 +150,8 @@ namespace nihilus {
 		static constexpr uint64_t kv_cache_layers	   = 40;
 		static constexpr uint64_t intermediate_size	   = 13824;
 		static constexpr uint64_t max_sequence_length  = 2048;
+		static constexpr uint64_t n_embd_head_kv	   = embedding_dim / head_count;
+		static constexpr uint64_t n_embd_kv_gqa		   = n_embd_head_kv * head_count_kv;
 	};
 
 	template<> struct model_traits<model_arch::llama, llama_model_size::llama_70B, llama_model_generation::v1_v2> {
@@ -159,6 +171,8 @@ namespace nihilus {
 		static constexpr uint64_t kv_cache_layers	   = 80;
 		static constexpr uint64_t intermediate_size	   = 28672;
 		static constexpr uint64_t max_sequence_length  = 2048;
+		static constexpr uint64_t n_embd_head_kv	   = embedding_dim / head_count;
+		static constexpr uint64_t n_embd_kv_gqa		   = n_embd_head_kv * head_count_kv;
 	};
 
 	template<> struct model_traits<model_arch::llama, llama_model_size::llama_90B, llama_model_generation::v1_v2> {
@@ -178,6 +192,8 @@ namespace nihilus {
 		static constexpr uint64_t kv_cache_layers	   = 80;
 		static constexpr uint64_t intermediate_size	   = 28672;
 		static constexpr uint64_t max_sequence_length  = 2048;
+		static constexpr uint64_t n_embd_head_kv	   = embedding_dim / head_count;
+		static constexpr uint64_t n_embd_kv_gqa		   = n_embd_head_kv * head_count_kv;
 	};
 
 	template<> struct model_traits<model_arch::llama, llama_model_size::llama_405B, llama_model_generation::v1_v2> {
@@ -197,6 +213,8 @@ namespace nihilus {
 		static constexpr uint64_t kv_cache_layers	   = 126;
 		static constexpr uint64_t intermediate_size	   = 53248;
 		static constexpr uint64_t max_sequence_length  = 2048;
+		static constexpr uint64_t n_embd_head_kv	   = embedding_dim / head_count;
+		static constexpr uint64_t n_embd_kv_gqa		   = n_embd_head_kv * head_count_kv;
 	};
 
 	template<> struct model_traits<model_arch::llama, llama_model_size::llama_1B, llama_model_generation::v3> {
@@ -216,6 +234,8 @@ namespace nihilus {
 		static constexpr uint64_t kv_cache_layers	   = 16;
 		static constexpr uint64_t intermediate_size	   = 8192;
 		static constexpr uint64_t max_sequence_length  = 8192;
+		static constexpr uint64_t n_embd_head_kv	   = embedding_dim / head_count;
+		static constexpr uint64_t n_embd_kv_gqa		   = n_embd_head_kv * head_count_kv;
 	};
 
 	template<> struct model_traits<model_arch::llama, llama_model_size::llama_3B, llama_model_generation::v3> {
@@ -235,6 +255,8 @@ namespace nihilus {
 		static constexpr uint64_t kv_cache_layers	   = 28;
 		static constexpr uint64_t intermediate_size	   = 8192;
 		static constexpr uint64_t max_sequence_length  = 8192;
+		static constexpr uint64_t n_embd_head_kv	   = embedding_dim / head_count;
+		static constexpr uint64_t n_embd_kv_gqa		   = n_embd_head_kv * head_count_kv;
 	};
 
 	template<> struct model_traits<model_arch::llama, llama_model_size::llama_7B, llama_model_generation::v3> {
@@ -254,6 +276,8 @@ namespace nihilus {
 		static constexpr uint64_t kv_cache_layers	   = 32;
 		static constexpr uint64_t intermediate_size	   = 11008;
 		static constexpr uint64_t max_sequence_length  = 8192;
+		static constexpr uint64_t n_embd_head_kv	   = embedding_dim / head_count;
+		static constexpr uint64_t n_embd_kv_gqa		   = n_embd_head_kv * head_count_kv;
 	};
 
 	template<> struct model_traits<model_arch::llama, llama_model_size::llama_8B, llama_model_generation::v3> {
@@ -273,6 +297,8 @@ namespace nihilus {
 		static constexpr uint64_t kv_cache_layers	   = 32;
 		static constexpr uint64_t intermediate_size	   = 14336;
 		static constexpr uint64_t max_sequence_length  = 8192;
+		static constexpr uint64_t n_embd_head_kv	   = embedding_dim / head_count;
+		static constexpr uint64_t n_embd_kv_gqa		   = n_embd_head_kv * head_count_kv;
 	};
 
 	template<> struct model_traits<model_arch::llama, llama_model_size::llama_11B, llama_model_generation::v3> {
@@ -292,6 +318,8 @@ namespace nihilus {
 		static constexpr uint64_t kv_cache_layers	   = 32;
 		static constexpr uint64_t intermediate_size	   = 14336;
 		static constexpr uint64_t max_sequence_length  = 8192;
+		static constexpr uint64_t n_embd_head_kv	   = embedding_dim / head_count;
+		static constexpr uint64_t n_embd_kv_gqa		   = n_embd_head_kv * head_count_kv;
 	};
 
 	template<> struct model_traits<model_arch::llama, llama_model_size::llama_13B, llama_model_generation::v3> {
@@ -311,6 +339,8 @@ namespace nihilus {
 		static constexpr uint64_t kv_cache_layers	   = 40;
 		static constexpr uint64_t intermediate_size	   = 13824;
 		static constexpr uint64_t max_sequence_length  = 8192;
+		static constexpr uint64_t n_embd_head_kv	   = embedding_dim / head_count;
+		static constexpr uint64_t n_embd_kv_gqa		   = n_embd_head_kv * head_count_kv;
 	};
 
 	template<> struct model_traits<model_arch::llama, llama_model_size::llama_70B, llama_model_generation::v3> {
@@ -330,6 +360,8 @@ namespace nihilus {
 		static constexpr uint64_t kv_cache_layers	   = 80;
 		static constexpr uint64_t intermediate_size	   = 28672;
 		static constexpr uint64_t max_sequence_length  = 8192;
+		static constexpr uint64_t n_embd_head_kv	   = embedding_dim / head_count;
+		static constexpr uint64_t n_embd_kv_gqa		   = n_embd_head_kv * head_count_kv;
 	};
 
 	template<> struct model_traits<model_arch::llama, llama_model_size::llama_90B, llama_model_generation::v3> {
@@ -349,6 +381,8 @@ namespace nihilus {
 		static constexpr uint64_t kv_cache_layers	   = 80;
 		static constexpr uint64_t intermediate_size	   = 28672;
 		static constexpr uint64_t max_sequence_length  = 8192;
+		static constexpr uint64_t n_embd_head_kv	   = embedding_dim / head_count;
+		static constexpr uint64_t n_embd_kv_gqa		   = n_embd_head_kv * head_count_kv;
 	};
 
 	template<> struct model_traits<model_arch::llama, llama_model_size::llama_405B, llama_model_generation::v3> {
@@ -368,6 +402,8 @@ namespace nihilus {
 		static constexpr uint64_t kv_cache_layers	   = 126;
 		static constexpr uint64_t intermediate_size	   = 53248;
 		static constexpr uint64_t max_sequence_length  = 8192;
+		static constexpr uint64_t n_embd_head_kv	   = embedding_dim / head_count;
+		static constexpr uint64_t n_embd_kv_gqa		   = n_embd_head_kv * head_count_kv;
 	};
 
 }

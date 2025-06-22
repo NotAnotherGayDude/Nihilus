@@ -60,7 +60,7 @@ namespace nihilus {
 
 		NIHILUS_FORCE_INLINE static cli_params parse_cli_arguments(uint32_t argc, char** argv) {
 			std::vector<std::string> cli_args{};
-			for (size_t x = 0; x < argc; ++x) {
+			for (uint64_t x = 0; x < argc; ++x) {
 				cli_args.emplace_back(argv[x]);
 			}
 			return parse_cli_arguments(cli_args);

@@ -177,11 +177,11 @@ namespace nihilus {
 			return data_val[static_cast<uint64_t>(position)];
 		}
 
-		template<size_t index> NIHILUS_FORCE_INLINE constexpr uint64_t& operator[](tag<index> index_new) {
+		template<uint64_t index> NIHILUS_FORCE_INLINE constexpr uint64_t& operator[](tag<index> index_new) {
 			return data_val[index_new];
 		}
 
-		template<size_t index> NIHILUS_FORCE_INLINE constexpr uint64_t operator[](tag<index> index_new) const {
+		template<uint64_t index> NIHILUS_FORCE_INLINE constexpr uint64_t operator[](tag<index> index_new) const {
 			return data_val[index_new];
 		}
 

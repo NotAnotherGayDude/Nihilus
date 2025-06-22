@@ -68,7 +68,7 @@ namespace nihilus {
 			return { { dim00, dim01, dim02, dim03 } };
 		}
 
-		template<size_t index> NIHILUS_FORCE_INLINE uint64_t operator[](nihilus::tag<index>) const {
+		template<uint64_t index> NIHILUS_FORCE_INLINE uint64_t operator[](nihilus::tag<index>) const {
 			if constexpr (index == 0) {
 				return static_cast<const derived_type*>(this)->dim00;
 			} else if constexpr (index == 1) {
@@ -104,7 +104,7 @@ namespace nihilus {
 			return { { dim00, dim01, dim02, dim03 } };
 		}
 
-		template<size_t index> NIHILUS_FORCE_INLINE uint64_t operator[](nihilus::tag<index>) const {
+		template<uint64_t index> NIHILUS_FORCE_INLINE uint64_t operator[](nihilus::tag<index>) const {
 			if constexpr (index == 0) {
 				return static_cast<const derived_type*>(this)->dim00;
 			} else if constexpr (index == 1) {
@@ -144,7 +144,7 @@ namespace nihilus {
 			return { { dim00, dim01, dim02, dim03 } };
 		}
 
-		template<size_t index> NIHILUS_FORCE_INLINE uint64_t operator[](nihilus::tag<index>) const {
+		template<uint64_t index> NIHILUS_FORCE_INLINE uint64_t operator[](nihilus::tag<index>) const {
 			if constexpr (index == 0) {
 				return static_cast<const derived_type*>(this)->dim00;
 			} else if constexpr (index == 1) {
@@ -542,8 +542,7 @@ namespace nihilus {
 	};
 
 	template<model_config config> struct core_traits<config, llama_op_types::cache_k>
-		: core_trait_dims<core_traits<config, llama_op_types::cache_k>, model_traits_type<config>::head_count_kv * model_traits_type<config>::head_dim,
-			  model_traits_type<config>::max_sequence_length, 1, 1, 1> {
+		: core_trait_dims<core_traits<config, llama_op_types::cache_k>, model_traits_type<config>::n_embd_kv_gqa, model_traits_type<config>::embedding_dim, 1, 1> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
@@ -551,8 +550,7 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::kv_cache_type;
-		using core_traits_dims_type = core_trait_dims<core_traits<config, llama_op_types::cache_k>, model_traits_type::head_count_kv * model_traits_type::head_dim,
-			model_traits_type::max_sequence_length, 1, 1, 1>;
+		using core_traits_dims_type = core_trait_dims<core_traits<config, llama_op_types::cache_k>, model_traits_type::n_embd_kv_gqa, model_traits_type::embedding_dim, 1, 1>;
 		static constexpr uint64_t depth{ 0 };
 		static constexpr alloc_type alc_type{ alloc_type::per_block_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
@@ -561,14 +559,12 @@ namespace nihilus {
 		static constexpr kernel_type krn_type{ kernel_type::none };
 		static constexpr llama_op_types type{ llama_op_types::cache_k };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		uint64_t dim01{ model_traits_type::max_sequence_length };
 		array<output_type*, model_traits_type::block_count> data{};
 		int32_t value{};
 	};
 
 	template<model_config config> struct core_traits<config, llama_op_types::cache_v>
-		: core_trait_dims<core_traits<config, llama_op_types::cache_v>, model_traits_type<config>::head_count_kv * model_traits_type<config>::head_dim,
-			  model_traits_type<config>::max_sequence_length, 1, 1, 1> {
+		: core_trait_dims<core_traits<config, llama_op_types::cache_v>, model_traits_type<config>::n_embd_kv_gqa, model_traits_type<config>::embedding_dim, 1, 1> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
@@ -576,8 +572,7 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::kv_cache_type;
-		using core_traits_dims_type = core_trait_dims<core_traits<config, llama_op_types::cache_v>, model_traits_type::head_count_kv * model_traits_type::head_dim,
-			model_traits_type::max_sequence_length, 1, 1, 1>;
+		using core_traits_dims_type = core_trait_dims<core_traits<config, llama_op_types::cache_k>, model_traits_type::n_embd_kv_gqa, model_traits_type::embedding_dim, 1, 1>;
 		static constexpr uint64_t depth{ 0 };
 		static constexpr alloc_type alc_type{ alloc_type::per_block_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
@@ -586,7 +581,6 @@ namespace nihilus {
 		static constexpr kernel_type krn_type{ kernel_type::none };
 		static constexpr llama_op_types type{ llama_op_types::cache_v };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		uint64_t dim01{ model_traits_type::max_sequence_length };
 		array<output_type*, model_traits_type::block_count> data{};
 		int32_t value{};
 	};
@@ -814,7 +808,7 @@ namespace nihilus {
 		using input_type01														 = core_traits<config, llama_op_types::attn_k_weight>;
 		using input_type02														 = core_traits<config, llama_op_types::attn_norm>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::key_type;
-		using core_traits_dims_type = core_trait_dims<core_traits<config, llama_op_types::kcur>, model_traits_type::head_count_kv * model_traits_type::head_dim,
+		using core_traits_dims_type = core_trait_dims<core_traits<config, llama_op_types::kcur>, model_traits_type::n_embd_kv_gqa,
 			model_traits_type::max_sequence_length, 1, 1, 1>;
 		static constexpr uint64_t depth{ std::max(input_type01::depth, input_type02::depth) + 1 };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
@@ -940,7 +934,7 @@ namespace nihilus {
 		using this_type															 = core_traits<config, llama_op_types::k_cache_view>;
 		using input_type01														 = core_traits<config, llama_op_types::cache_k>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::kv_cache_type;
-		using core_traits_dims_type = core_trait_dims<core_traits<config, llama_op_types::k_cache_view>, model_traits_type::head_count_kv * model_traits_type::head_dim,
+		using core_traits_dims_type = core_trait_dims<core_traits<config, llama_op_types::k_cache_view>, model_traits_type::n_embd_kv_gqa,
 			model_traits_type::max_sequence_length, 1, 1, 1>;
 		static constexpr uint64_t depth{ input_type01::depth + 1 };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
@@ -968,7 +962,7 @@ namespace nihilus {
 		using this_type															 = core_traits<config, llama_op_types::k_cache_view_copy>;
 		using input_type01														 = core_traits<config, llama_op_types::kcur_rope>;
 		using output_type														 = typename core_traits<config, llama_op_types::k_cache_view>::output_type;
-		using core_traits_dims_type = core_trait_dims<core_traits<config, llama_op_types::k_cache_view_copy>, model_traits_type::head_count_kv * model_traits_type::head_dim,
+		using core_traits_dims_type = core_trait_dims<core_traits<config, llama_op_types::k_cache_view_copy>, model_traits_type::n_embd_kv_gqa,
 			model_traits_type::max_sequence_length, 1, 1, 1>;
 		static constexpr uint64_t depth{ input_type01::depth + 1 };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
@@ -1025,7 +1019,7 @@ namespace nihilus {
 		using input_type01														 = core_traits<config, llama_op_types::cache_v>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::kv_cache_type;
 		using core_traits_dims_type = core_trait_dims<core_traits<config, llama_op_types::v_cache_view>, model_traits_type::max_sequence_length,
-			model_traits_type::head_count_kv * model_traits_type::head_dim, 1, 1, 0>;
+			model_traits_type::n_embd_kv_gqa, 1, 1, 0>;
 		static constexpr uint64_t depth{ input_type01::depth + 1 };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
@@ -1053,7 +1047,7 @@ namespace nihilus {
 		using input_type01														 = core_traits<config, llama_op_types::vcur_transposed>;
 		using output_type														 = typename core_traits<config, llama_op_types::v_cache_view>::output_type;
 		using core_traits_dims_type = core_trait_dims<core_traits<config, llama_op_types::v_cache_view_copy>, model_traits_type::max_sequence_length,
-			model_traits_type::head_count_kv * model_traits_type::head_dim, 1, 1, 0>;
+			model_traits_type::n_embd_kv_gqa, 1, 1, 0>;
 		static constexpr uint64_t depth{ input_type01::depth + 1 };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };

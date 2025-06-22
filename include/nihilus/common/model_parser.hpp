@@ -92,7 +92,7 @@ namespace nihilus {
 	  public:
 		NIHILUS_FORCE_INLINE explicit memory_mapped_file() noexcept = default;
 
-		NIHILUS_FORCE_INLINE explicit memory_mapped_file(std::string_view file_path, std::size_t prefetch_bytes = 0, bool numa_aware = false) : file_path_(file_path) {
+		NIHILUS_FORCE_INLINE explicit memory_mapped_file(std::string_view file_path, uint64_t prefetch_bytes = 0, bool numa_aware = false) : file_path_(file_path) {
 			map_file(file_path, prefetch_bytes, numa_aware);
 		}
 
@@ -156,7 +156,7 @@ namespace nihilus {
 			return mapped_data_;
 		}
 
-		NIHILUS_FORCE_INLINE std::size_t size() const noexcept {
+		NIHILUS_FORCE_INLINE uint64_t size() const noexcept {
 			return file_size_;
 		}
 
@@ -168,7 +168,7 @@ namespace nihilus {
 			return file_path_;
 		}
 
-		NIHILUS_FORCE_INLINE void unmap_fragment(std::size_t first_byte, std::size_t last_byte) {
+		NIHILUS_FORCE_INLINE void unmap_fragment(uint64_t first_byte, uint64_t last_byte) {
 			unmap_fragment_impl(first_byte, last_byte);
 		}
 
@@ -187,17 +187,17 @@ namespace nihilus {
 	  private:
 		std::string_view file_path_;
 		void* mapped_data_	   = nullptr;
-		std::size_t file_size_ = 0;
+		uint64_t file_size_ = 0;
 
 #ifdef NIHILUS_PLATFORM_WINDOWS
 		HANDLE file_handle_	   = INVALID_HANDLE_VALUE;
 		HANDLE mapping_handle_ = nullptr;
 #else
 		int file_descriptor_ = -1;
-		std::vector<std::pair<std::size_t, std::size_t>> mapped_fragments_;
+		std::vector<std::pair<uint64_t, uint64_t>> mapped_fragments_;
 #endif
 
-		NIHILUS_FORCE_INLINE void map_file(std::string_view file_path, std::size_t prefetch_bytes, bool numa_aware) {
+		NIHILUS_FORCE_INLINE void map_file(std::string_view file_path, uint64_t prefetch_bytes, bool numa_aware) {
 #ifdef NIHILUS_PLATFORM_WINDOWS
 			std::string file_path_str(file_path);
 
@@ -213,7 +213,7 @@ namespace nihilus {
 				throw std::runtime_error(std::string{ "Failed to get file size: " } + format_win_error(GetLastError()));
 			}
 
-			file_size_ = static_cast<std::size_t>(file_size.QuadPart);
+			file_size_ = static_cast<uint64_t>(file_size.QuadPart);
 
 			if (file_size_ == 0) {
 				CloseHandle(file_handle_);
@@ -275,7 +275,7 @@ namespace nihilus {
 				throw std::runtime_error("Failed to get file statistics: " + std::string(std::strerror(errno)));
 			}
 
-			file_size_ = static_cast<std::size_t>(file_stat.st_size);
+			file_size_ = static_cast<uint64_t>(file_stat.st_size);
 
 			if (file_size_ == 0) {
 				close(file_descriptor_);
@@ -296,7 +296,7 @@ namespace nihilus {
 			}
 	#endif
 
-			std::size_t aligned_size = ((file_size_ + cpu_alignment - 1) / cpu_alignment) * cpu_alignment;
+			uint64_t aligned_size = ((file_size_ + cpu_alignment - 1) / cpu_alignment) * cpu_alignment;
 
 			mapped_data_ = mmap(nullptr, aligned_size, PROT_READ, flags, file_descriptor_, 0);
 
@@ -315,7 +315,7 @@ namespace nihilus {
 			mapped_fragments_.emplace_back(0, file_size_);
 
 			if (prefetch_bytes > 0) {
-				std::size_t prefetch_size = std::min(file_size_, prefetch_bytes);
+				uint64_t prefetch_size = std::min(file_size_, prefetch_bytes);
 				if (posix_madvise(mapped_data_, prefetch_size, POSIX_MADV_WILLNEED) != 0) {
 				}
 			}
@@ -361,7 +361,7 @@ namespace nihilus {
 			file_size_ = 0;
 		}
 
-		NIHILUS_FORCE_INLINE void unmap_fragment_impl(std::size_t first, std::size_t last) {
+		NIHILUS_FORCE_INLINE void unmap_fragment_impl(uint64_t first, uint64_t last) {
 #ifdef NIHILUS_PLATFORM_WINDOWS
 			( void )first;
 			( void )last;
@@ -373,9 +373,9 @@ namespace nihilus {
 			if (page_size <= 0)
 				return;
 
-			std::size_t page_size_t = static_cast<std::size_t>(page_size);
+			uint64_t page_size_t = static_cast<uint64_t>(page_size);
 
-			std::size_t offset_in_page = first & (page_size_t - 1);
+			uint64_t offset_in_page = first & (page_size_t - 1);
 			if (offset_in_page != 0) {
 				first += page_size_t - offset_in_page;
 			}
@@ -386,13 +386,13 @@ namespace nihilus {
 				return;
 
 			void* unmap_addr	   = static_cast<char*>(mapped_data_) + first;
-			std::size_t unmap_size = last - first;
+			uint64_t unmap_size = last - first;
 
 			if (munmap(unmap_addr, unmap_size) != 0) {
 				return;
 			}
 
-			std::vector<std::pair<std::size_t, std::size_t>> new_fragments;
+			std::vector<std::pair<uint64_t, uint64_t>> new_fragments;
 			for (const auto& frag: mapped_fragments_) {
 				if (frag.first < first && frag.second > last) {
 					new_fragments.emplace_back(frag.first, first);
@@ -440,23 +440,23 @@ namespace nihilus {
 			return dst;
 		}
 
-		NIHILUS_FORCE_INLINE bool read_bytes_to_pointer(void* dst, const size_t size) {
+		NIHILUS_FORCE_INLINE bool read_bytes_to_pointer(void* dst, const uint64_t size) {
 			std::memcpy(dst, static_cast<uint8_t*>(file->data()) + current_index, size);
 			current_index += size;
 			return true;
 		}
 
-		NIHILUS_FORCE_INLINE bool read_bytes_to_pointer(void* dst, const size_t size, size_t offset) {
+		NIHILUS_FORCE_INLINE bool read_bytes_to_pointer(void* dst, const uint64_t size, uint64_t offset) {
 			std::memcpy(dst, static_cast<uint8_t*>(file->data()) + offset, size);
 			return true;
 		}
 
-		NIHILUS_FORCE_INLINE bool map_pointer(void* dst, const size_t offset) {
+		NIHILUS_FORCE_INLINE bool map_pointer(void* dst, const uint64_t offset) {
 			*reinterpret_cast<void**>(dst) = reinterpret_cast<uint8_t*>(file->data()) + offset;
 			return true;
 		}
 
-		template<typename value_type = uint8_t> NIHILUS_FORCE_INLINE bool has_bytes(size_t size = sizeof(value_type)) const {
+		template<typename value_type = uint8_t> NIHILUS_FORCE_INLINE bool has_bytes(uint64_t size = sizeof(value_type)) const {
 			return (current_index + size <= length);
 		}
 	};

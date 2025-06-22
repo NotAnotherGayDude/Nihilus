@@ -45,8 +45,8 @@ namespace nihilus {
 	};
 
 	template<typename derived_type> struct get_strides {
-		NIHILUS_FORCE_INLINE constexpr static array<size_t, 4> impl(const array<uint64_t, 4>& dims) {
-			array<size_t, 4> return_values{}; 
+		NIHILUS_FORCE_INLINE constexpr static array<uint64_t, 4> impl(const array<uint64_t, 4>& dims) {
+			array<uint64_t, 4> return_values{}; 
 			return_values[0] = derived_type::type_size;
 			return_values[1] = return_values[0] * (dims[0] / derived_type::block_size);
 			for (int i = 2; i < 4; i++) {

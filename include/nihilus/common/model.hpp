@@ -78,7 +78,7 @@ namespace nihilus {
 		}
 
 		NIHILUS_FORCE_INLINE void execute_model(execution_parameters& params) {
-			for (size_t x = 0; x < params.token_count + 1; ++x) {
+			for (uint64_t x = 0; x < params.token_count + 1; ++x) {
 				stop_watch_val_nihilus.reset();
 				this->execute_tasks();
 				stop_watch_val_nihilus.add_time();

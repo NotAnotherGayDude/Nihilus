@@ -139,22 +139,22 @@ RealTimeChris (Chris M.)
 
 #if NIHILUS_CPU_INSTRUCTIONS & NIHILUS_AVX2_BIT
 	#define NIHILUS_AVX2
-static constexpr size_t cpu_arch_index{ 1 };
-static constexpr size_t cpu_alignment{ 32 };
+static constexpr uint64_t cpu_arch_index{ 1 };
+static constexpr uint64_t cpu_alignment{ 32 };
 #elif NIHILUS_CPU_INSTRUCTIONS & NIHILUS_AVX512_BIT
 	#define NIHILUS_AVX512
-static constexpr size_t cpu_arch_index{ 2 };
-static constexpr size_t cpu_alignment{ 64 };
+static constexpr uint64_t cpu_arch_index{ 2 };
+static constexpr uint64_t cpu_alignment{ 64 };
 #elif NIHILUS_CPU_INSTRUCTIONS & NIHILUS_NEON_BIT
 	#define NIHILUS_NEON
-static constexpr size_t cpu_arch_index{ 1 };
-static constexpr size_t cpu_alignment{ 16 };
+static constexpr uint64_t cpu_arch_index{ 1 };
+static constexpr uint64_t cpu_alignment{ 16 };
 #elif NIHILUS_CPU_INSTRUCTIONS & NIHILUS_SVE2_BIT
 	#define NIHILUS_SVE2
-static constexpr size_t cpu_arch_index{ 2 };
-static constexpr size_t cpu_alignment{ 64 };
+static constexpr uint64_t cpu_arch_index{ 2 };
+static constexpr uint64_t cpu_alignment{ 64 };
 #else
-static constexpr size_t cpu_arch_index{ 0 };
-static constexpr size_t cpu_alignment{ 16 };
+static constexpr uint64_t cpu_arch_index{ 0 };
+static constexpr uint64_t cpu_alignment{ 16 };
 #endif
 ")

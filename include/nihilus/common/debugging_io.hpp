@@ -264,7 +264,7 @@ namespace nihilus {
 
 	template<typename value_type> std::ostream& operator<<(std::ostream& os, const std::vector<value_type>& tensor) {
 		os << "[";
-		for (size_t x = 0; x < tensor.size(); ++x) {
+		for (uint64_t x = 0; x < tensor.size(); ++x) {
 			os << +tensor[x];
 			if (x < tensor.size() - 1) {
 				os << ",";
@@ -289,14 +289,12 @@ namespace nihilus {
 			op	 = convert_ggml_op_to_nihilus_kernel(other.op);
 		}
 
-		template<core_traits_type tensor_type> NIHILUS_FORCE_INLINE intermediary_tensor(const tensor_type& other, const std::string& name_new, size_t current_block) {
+		template<core_traits_type tensor_type> NIHILUS_FORCE_INLINE intermediary_tensor(const tensor_type& other, const std::string& name_new, uint64_t current_block) {
 			using output_type = typename tensor_type::output_type;
-			if constexpr (!core_traits_type<tensor_type>) {
-				dims[0] = other[tag<0>{}];
-				dims[1] = other[tag<1>{}];
-				dims[2] = other[tag<2>{}];
-				dims[3] = other[tag<3>{}];
-			}
+			dims[0]			  = other[0];
+			dims[1]			  = other[1];
+			dims[2]			  = other[2];
+			dims[3]			  = other[3];
 			data.resize(128);
 			if constexpr (array_type<decltype(other.data)>) {
 				if (other.data[current_block]) {
@@ -379,7 +377,7 @@ namespace jsonifier {
 
 namespace nihilus {
 
-	NIHILUS_FORCE_INLINE std::string convert_op_to_string(llama_op_types type, size_t current_block) {
+	NIHILUS_FORCE_INLINE std::string convert_op_to_string(llama_op_types type, uint64_t current_block) {
 		std::string block{ std::to_string(current_block) };
 		switch (type) {
 			case llama_op_types::inp_embd: {
@@ -459,7 +457,7 @@ namespace nihilus {
 	struct tensor_debugger {
 		inline static std::map<std::string, intermediary_tensor> leafs{ get_tensors("C:/users/chris/source/repos/ft-tl/Leaf_Data.json") };
 		inline static std::map<std::string, intermediary_tensor> nodes{ get_tensors("C:/users/chris/source/repos/ft-tl/Node_Data.json") };
-		template<core_traits_type tensor_type> static bool compare_tensor_data(const tensor_type& tensor, size_t current_block) {
+		template<core_traits_type tensor_type> static bool compare_tensor_data(const tensor_type& tensor, uint64_t current_block) {
 			std::string tensor_name{ convert_op_to_string(tensor.type, current_block) };
 			if (leafs.contains(tensor_name)) {
 				intermediary_tensor tensor_new{ tensor, tensor_name, current_block };

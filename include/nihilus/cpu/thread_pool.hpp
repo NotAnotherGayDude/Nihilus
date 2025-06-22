@@ -196,11 +196,11 @@ namespace nihilus {
 		using op_type_type																	 = typename model_traits_type::op_type_type;
 		NIHILUS_FORCE_INLINE static void impl(base_type& core, uint64_t, array<array<void*, model_traits_type::block_count>, op_type_type::count>& data) {
 			if constexpr (array_type<decltype(core.data)>) {
-				for (size_t x = 0; x < model_traits_type::block_count; ++x) {
+				for (uint64_t x = 0; x < model_traits_type::block_count; ++x) {
 					data[base_type::type][x] = reinterpret_cast<void*>(&core.data[x]);
 				}
 			} else {
-				for (size_t x = 0; x < model_traits_type::block_count; ++x) {
+				for (uint64_t x = 0; x < model_traits_type::block_count; ++x) {
 					data[base_type::type][x] = reinterpret_cast<void*>(&core.data);
 				}
 			}
@@ -219,11 +219,11 @@ namespace nihilus {
 		using op_type_type																	 = typename model_traits_type::op_type_type;
 		NIHILUS_FORCE_INLINE static void impl(base_type& core, uint64_t thread_count, array<array<void*, model_traits_type::block_count>, op_type_type::count>& data) {
 			if constexpr (array_type<decltype(core.data)>) {
-				for (size_t x = 0; x < model_traits_type::block_count; ++x) {
+				for (uint64_t x = 0; x < model_traits_type::block_count; ++x) {
 					data[base_type::type][x] = reinterpret_cast<void*>(&core.data[x]);
 				}
 			} else {
-				for (size_t x = 0; x < model_traits_type::block_count; ++x) {
+				for (uint64_t x = 0; x < model_traits_type::block_count; ++x) {
 					data[base_type::type][x] = reinterpret_cast<void*>(&core.data);
 				}
 			}
@@ -310,7 +310,7 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE update_runtime_dims& operator=(update_runtime_dims&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE update_runtime_dims(update_runtime_dims&&) noexcept				 = delete;
 		using output_type																		 = base_type::output_type;
-		NIHILUS_FORCE_INLINE static void impl(base_type& core, size_t new_seq_length) {
+		NIHILUS_FORCE_INLINE static void impl(base_type& core, uint64_t new_seq_length) {
 			//if constexpr (base_type::)
 			if constexpr (array_type<decltype(core.data)>) {
 				for (uint64_t x = 0; x < base_type::model_traits_type::block_count; ++x) {
