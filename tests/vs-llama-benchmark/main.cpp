@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 
+#include <../src/spinlock_time.hpp>
 #include <BnchSwt/BenchmarkSuite.hpp>
 #include <../src/llama-context.h>
 #include <nihilus/index.hpp>
@@ -578,12 +579,17 @@ int main(int argc, char** argv) {
 
 			llama_backend_free();
 
+
+			std::cout << "FOR " << params.n_threads_http << " THREADS, WITH " << spinlock_time << " NANOSECONDS OF SPINLOCK PER KERNEL, "
+					  << "LLAMA.CPP/GGML AVERAGE COMPUTE TIME, OVER: " << std::setw(50 - std::size("LLAMA.CPP/GGML AVERAGE COMPUTE TIME, OVER: "))
+					  << ctx->stop_watch_val.get_count() << " TOKENS: " << ctx->stop_watch_val.get_average() << std::endl;
 			ggml_threadpool_free_fn(threadpool);
 			ggml_threadpool_free_fn(threadpool_batch);
 			return static_cast<int32_t>(token_count - 2);
 		});
 		static constexpr auto model_config = nihilus::generate_model_config(nihilus::llama_model_generation::v3, nihilus::llama_model_size::llama_8B,
 			nihilus::kernel_type_profile::q8_gqa, nihilus::model_arch::llama, false);
+		//invocable<model_config>.impl();
 		auto cli_args_final				   = nihilus::harbinger<model_config>::parse_cli_arguments(argc, argv);
 		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 2, 1, true, "Token">::runBenchmark<"nihilus", "cyan">([&] {
 			nihilus::model<model_config> model_graph_data{ cli_args_final };

@@ -3,7 +3,7 @@
 #pragma once
 
 #include "llama-cpp.h"
-
+#include <../src/spinlock_time.hpp>
 #include <set>
 #include <string>
 #include <string_view>
@@ -219,6 +219,7 @@ enum common_reasoning_format {
 };
 
 struct common_params {
+	test::stop_watch<> stop_watch_val{ 0 };
     int32_t n_predict             =    -1; // new tokens to predict
     int32_t n_ctx                 =  4096; // context size
     int32_t n_batch               =  2048; // logical batch size for prompt processing (must be >=32 to use BLAS)

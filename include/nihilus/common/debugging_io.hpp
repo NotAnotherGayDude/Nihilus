@@ -461,11 +461,11 @@ namespace nihilus {
 			std::string tensor_name{ convert_op_to_string(tensor.type, current_block) };
 			if (leafs.contains(tensor_name)) {
 				intermediary_tensor tensor_new{ tensor, tensor_name, current_block };
-				std::cout << "Found an op of name: " << tensor_name << ", OF TYPE: " << ( int32_t )tensor.type << std::endl;
+				//std::cout << "Found an op of name: " << tensor_name << ", OF TYPE: " << ( int32_t )tensor.type << std::endl;
 				return tensor_new == leafs[tensor_name];
 			} else if (nodes.contains(tensor_name)) {
 				intermediary_tensor tensor_new{ tensor, tensor_name, current_block };
-				std::cout << "Found an op of name: " << tensor_name << ", OF TYPE: " << ( int32_t )tensor.type << std::endl;
+				//std::cout << "Found an op of name: " << tensor_name << ", OF TYPE: " << ( int32_t )tensor.type << std::endl;
 				return tensor_new == nodes[tensor_name];
 			} else {
 				return false;
@@ -476,11 +476,11 @@ namespace nihilus {
 			std::string tensor_name{ tensor.name };
 			if (leafs.contains(tensor_name)) {
 				intermediary_tensor tensor_new{ tensor };
-				std::cout << "Found an op of name: " << tensor_name << ", OF TYPE: " << ( int32_t )tensor.type << std::endl;
+				//std::cout << "Found an op of name: " << tensor_name << ", OF TYPE: " << ( int32_t )tensor.type << std::endl;
 				return tensor_new == leafs[tensor_name];
 			} else if (nodes.contains(tensor_name)) {
 				intermediary_tensor tensor_new{ tensor };
-				std::cout << "Found an op of name: " << tensor_name << ", OF TYPE: " << ( int32_t )tensor.type << std::endl;
+				//std::cout << "Found an op of name: " << tensor_name << ", OF TYPE: " << ( int32_t )tensor.type << std::endl;
 				return tensor_new == nodes[tensor_name];
 			} else {
 				return false;

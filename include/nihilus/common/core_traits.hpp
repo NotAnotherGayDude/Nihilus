@@ -1496,40 +1496,63 @@ namespace nihilus {
 		}
 	};
 
-	template<typename... bases> struct core_bases : bases... {
-		NIHILUS_FORCE_INLINE core_bases() noexcept					  = default;
-		NIHILUS_FORCE_INLINE core_bases& operator=(core_bases&&)	  = delete;
-		NIHILUS_FORCE_INLINE core_bases(core_bases&&)				  = delete;
-		NIHILUS_FORCE_INLINE core_bases& operator=(const core_bases&) = delete;
-		NIHILUS_FORCE_INLINE core_bases(const core_bases&)			  = delete;
-
-		template<template<typename> typename mixin_type, typename op_entity_type, typename... arg_types> NIHILUS_FORCE_INLINE void impl_internal(arg_types&&... args) {
-			return mixin_type<op_entity_type>::impl(*static_cast<op_entity_type*>(this), std::forward<arg_types>(args)...);
-		}
-
-		template<template<typename> typename mixin_type, typename... arg_types> NIHILUS_FORCE_INLINE void impl(arg_types&&... args) {
-			(impl_internal<mixin_type, bases>(std::forward<arg_types>(args)...), ...);
-		}
+	template<typename... bases> struct constexpr_core_bases : bases... {
+		NIHILUS_FORCE_INLINE constexpr_core_bases() noexcept							  = default;
+		NIHILUS_FORCE_INLINE constexpr_core_bases& operator=(constexpr_core_bases&&)	  = delete;
+		NIHILUS_FORCE_INLINE constexpr_core_bases(constexpr_core_bases&&)				  = delete;
+		NIHILUS_FORCE_INLINE constexpr_core_bases& operator=(const constexpr_core_bases&) = delete;
+		NIHILUS_FORCE_INLINE constexpr_core_bases(const constexpr_core_bases&)			  = delete;
 
 		template<template<typename> typename mixin_type, typename op_entity_type, typename... arg_types>
-		NIHILUS_FORCE_INLINE static constexpr void impl_internal_constexpr(arg_types&&... args) {
+		NIHILUS_FORCE_INLINE static constexpr void impl_internal(arg_types&&... args) {
 			return mixin_type<op_entity_type>::impl(std::forward<arg_types>(args)...);
 		}
 
-		template<template<typename> typename mixin_type, typename... arg_types> NIHILUS_FORCE_INLINE static constexpr void impl_constexpr(arg_types&&... args) {
-			(impl_internal_constexpr<mixin_type, bases>(args...), ...);
+		template<template<typename> typename mixin_type, typename... arg_types> NIHILUS_FORCE_INLINE static constexpr void impl(arg_types&&... args) {
+			(impl_internal<mixin_type, bases>(args...), ...);
 		}
 	};
 
-	template<model_config config, typename index_sequence> struct get_core_traits_base;
+	template<model_config config, typename index_sequence> struct get_constexpr_core_bases;
 
 	template<model_config config> using op_type_type_t = typename model_traits<config.arch, config.model_size, config.model_generation>::op_type_type;
 
-	template<model_config config, uint64_t... index> struct get_core_traits_base<config, std::index_sequence<index...>> {
-		using type = core_bases<core_traits<config, static_cast<op_type_type_t<config>>(index)>...>;
+	template<model_config config, uint64_t... index> struct get_constexpr_core_bases<config, std::index_sequence<index...>> {
+		using type = constexpr_core_bases<core_traits<config, static_cast<op_type_type_t<config>>(index)>...>;
 	};
 
-	template<model_config config> using get_core_traits_config_base_t =
-		typename get_core_traits_base<config, std::make_index_sequence<static_cast<uint64_t>(op_type_type_t<config>::count)>>::type;
+	template<model_config config> using get_constexpr_core_bases_t =
+		typename get_constexpr_core_bases<config, std::make_index_sequence<static_cast<uint64_t>(op_type_type_t<config>::count)>>::type;
+
+	template<typename... bases> struct runtime_core_bases : bases... {
+		NIHILUS_FORCE_INLINE runtime_core_bases() noexcept							  = default;
+		NIHILUS_FORCE_INLINE runtime_core_bases& operator=(runtime_core_bases&&)	  = delete;
+		NIHILUS_FORCE_INLINE runtime_core_bases(runtime_core_bases&&)				  = delete;
+		NIHILUS_FORCE_INLINE runtime_core_bases& operator=(const runtime_core_bases&) = delete;
+		NIHILUS_FORCE_INLINE runtime_core_bases(const runtime_core_bases&)			  = delete;
+
+		template<template<typename> typename mixin_type, typename op_entity_type, typename... arg_types> NIHILUS_FORCE_INLINE void impl_internal(arg_types&&... args) {
+			return mixin_type<op_entity_type>::impl(std::forward<arg_types>(args)...);
+		}
+
+		template<template<typename> typename mixin_type, typename... arg_types> NIHILUS_FORCE_INLINE void impl(arg_types&&... args) {
+			(impl_internal<mixin_type, bases>(args...), ...);
+		}
+	};
+
+	template<model_config config, typename constexpr_holder_type, typename index_sequence> struct get_runtime_core_bases;
+
+	template<model_config config> using op_type_type_t = typename model_traits<config.arch, config.model_size, config.model_generation>::op_type_type;
+
+	template<model_config config, typename constexpr_holder_type, uint64_t... index> struct get_runtime_core_bases<config, constexpr_holder_type, std::index_sequence<index...>> {
+		using type = runtime_core_bases<core_traits<config, constexpr_holder_type::active_types[index]>...>;
+	};
+
+	template<model_config config, typename derived_type> struct get_runtime_core_bases_t {
+		template<typename constexpr_holder_type, typename... arg_types> NIHILUS_FORCE_INLINE void impl(arg_types&... args) {
+			using type = get_runtime_core_bases<config, constexpr_holder_type, std::make_index_sequence<static_cast<uint64_t>(op_type_type_t<config>::count)>>::type;
+			static_cast<type*>(static_cast<derived_type*>(this))->impl(args);
+		}
+	};
 
 }

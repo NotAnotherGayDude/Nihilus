@@ -25,6 +25,7 @@ RealTimeChris (Chris M.)
 #include <nihilus/common/model_parser.hpp>
 #include <nihilus/cpu/thread_pool.hpp>
 #include <nihilus/common/h_params.hpp>
+#include <nihilus/common/memory.hpp>
 #include <nihilus/common/tuple.hpp>
 
 namespace nihilus {
@@ -39,17 +40,22 @@ namespace nihilus {
 	static constexpr impl_indices indices_new{};
 
 	template<model_config config> struct model : public model_base<decltype(config.model_size), decltype(config.model_generation)>,
-												 public get_core_traits_config_base_t<config>,
+												 public get_constexpr_core_bases_t<config>,
 												 public thread_pool<config, model<config>>,
+												 public memory_strategy<config, model<config>>,
 												 public hyper_parameters<config.arch> {
-		using core_bases_config_type		  = get_core_traits_config_base_t<config>;
+		using constexpr_core_bases_config_type		  = get_constexpr_core_bases_t<config>;
+		using runtime_core_bases_config_type		  = get_runtime_core_bases_t<config, model>;
 		using model_traits_type				  = model_traits<config.arch, config.model_size, config.model_generation>;
 		using op_type_type					  = model_traits_type::op_type_type;
 		using kernel_type_profile_traits_type = kernel_type_profile_traits<config.kernel_profile>;
 		using base_type						  = model_base<decltype(config.model_size), decltype(config.model_generation)>;
 		template<typename model_type> friend struct input_session;
-		inline static constexpr impl_indices indices{ indices_new };
-		static constexpr uint64_t total_required_bytes{ collect_required_bytes<config>::impl() };
+		static constexpr impl_indices indices{ indices_new };
+		static constexpr uint64_t total_required_bytes{ [] {
+			uint64_t return_value{};
+			return return_value;
+		} () };
 		NIHILUS_FORCE_INLINE model()						  = default;
 		NIHILUS_FORCE_INLINE model& operator=(model&&)	  = delete;
 		NIHILUS_FORCE_INLINE model(model&&)				  = delete;
@@ -63,10 +69,10 @@ namespace nihilus {
 			memory.init(total_required_bytes);
 			weight_memory = memory_mapped_file{ params.model_file };
 			array<array<void*, model_traits_type::block_count>, op_type_type::count> data{};
-			core_bases_config_type::template impl<memory_mapper>(memory);
-			core_bases_config_type::template impl<execution_planner>(params.thread_count, data);
+			memory_strategy<config, model>::template impl<memory_planner>(memory);
+			runtime_core_bases_config_type::template impl<execution_planner>(params.thread_count, data);
 			model_graph_data<config> model_construction_data = model_parser<config>::parse_model(data, &weight_memory);
-			core_bases_config_type::template impl<tensor_debugger_impl>();
+			//constexpr_core_bases_config_type::template impl<tensor_debugger_impl>();
 		}
 
 		NIHILUS_FORCE_INLINE void deinit(cli_params params) {

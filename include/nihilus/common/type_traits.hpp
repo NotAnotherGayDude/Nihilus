@@ -39,14 +39,14 @@ namespace nihilus {
 	template<typename derived_type> struct total_bytes_size {
 		NIHILUS_FORCE_INLINE constexpr static uint64_t total_byte_size(const array<uint64_t, 4>& dims) {
 			uint64_t total_elements = dims[0] * dims[1] * dims[2] * dims[3];
-			uint64_t num_blocks	  = (total_elements + derived_type::block_size - 1) / derived_type::block_size;
+			uint64_t num_blocks		= (total_elements + derived_type::block_size - 1) / derived_type::block_size;
 			return num_blocks * derived_type::type_size;
 		}
 	};
 
 	template<typename derived_type> struct get_strides {
 		NIHILUS_FORCE_INLINE constexpr static array<size_t, 4> impl(const array<uint64_t, 4>& dims) {
-			array<size_t, 4> return_values{}; 
+			array<size_t, 4> return_values{};
 			return_values[0] = derived_type::type_size;
 			return_values[1] = return_values[0] * (dims[0] / derived_type::block_size);
 			for (int i = 2; i < 4; i++) {
@@ -72,84 +72,84 @@ namespace nihilus {
 		: public total_bytes_size<type_traits<int8_t>>, public get_strides<type_traits<int8_t>>, public get_dynamic_type_traits<type_traits<int8_t>> {
 		using value_type = int8_t;
 		using quant_type = int8_t;
-		inline static constexpr data_type type{ data_type::i8 };
-		inline static constexpr uint64_t type_size{ sizeof(int8_t) };
-		inline static constexpr bool is_quantized{ false };
-		inline static constexpr uint64_t block_size{ 1 };
-		inline static constexpr uint64_t n_rows{ 1 };
+		static constexpr data_type type{ data_type::i8 };
+		static constexpr uint64_t type_size{ sizeof(int8_t) };
+		static constexpr bool is_quantized{ false };
+		static constexpr uint64_t block_size{ 1 };
+		static constexpr uint64_t n_rows{ 1 };
 	};
 
 	template<> struct type_traits<int32_t>
 		: public total_bytes_size<type_traits<int32_t>>, public get_strides<type_traits<int32_t>>, public get_dynamic_type_traits<type_traits<int32_t>> {
 		using value_type = int32_t;
 		using quant_type = int32_t;
-		inline static constexpr data_type type{ data_type::i32 };
-		inline static constexpr uint64_t type_size{ sizeof(int32_t) };
-		inline static constexpr bool is_quantized{ false };
-		inline static constexpr uint64_t block_size{ 1 };
-		inline static constexpr uint64_t n_rows{ 1 };
+		static constexpr data_type type{ data_type::i32 };
+		static constexpr uint64_t type_size{ sizeof(int32_t) };
+		static constexpr bool is_quantized{ false };
+		static constexpr uint64_t block_size{ 1 };
+		static constexpr uint64_t n_rows{ 1 };
 	};
 
 	template<> struct type_traits<int64_t>
 		: public total_bytes_size<type_traits<int64_t>>, public get_strides<type_traits<int64_t>>, public get_dynamic_type_traits<type_traits<int64_t>> {
 		using value_type = int64_t;
 		using quant_type = int64_t;
-		inline static constexpr data_type type{ data_type::i64 };
-		inline static constexpr uint64_t type_size{ sizeof(int64_t) };
-		inline static constexpr bool is_quantized{ false };
-		inline static constexpr uint64_t block_size{ 1 };
-		inline static constexpr uint64_t n_rows{ 1 };
+		static constexpr data_type type{ data_type::i64 };
+		static constexpr uint64_t type_size{ sizeof(int64_t) };
+		static constexpr bool is_quantized{ false };
+		static constexpr uint64_t block_size{ 1 };
+		static constexpr uint64_t n_rows{ 1 };
 	};
 
-	template<> struct type_traits<float>
-		: public total_bytes_size<type_traits<float>>, public get_strides<type_traits<float>>, public get_dynamic_type_traits<type_traits<float>> {
+	template<> struct type_traits<float> : public total_bytes_size<type_traits<float>>, public get_strides<type_traits<float>>, public get_dynamic_type_traits<type_traits<float>> {
 		using value_type = float;
 		using quant_type = float;
-		inline static constexpr data_type type{ data_type::f32 };
-		inline static constexpr uint64_t type_size{ sizeof(float) };
-		inline static constexpr bool is_quantized{ false };
-		inline static constexpr uint64_t block_size{ 1 };
-		inline static constexpr uint64_t n_rows{ 1 };
+		static constexpr data_type type{ data_type::f32 };
+		static constexpr uint64_t type_size{ sizeof(float) };
+		static constexpr bool is_quantized{ false };
+		static constexpr uint64_t block_size{ 1 };
+		static constexpr uint64_t n_rows{ 1 };
 	};
 
-	template<> struct type_traits<double> : public total_bytes_size<type_traits<double>>, public get_strides<type_traits<double>>, public get_dynamic_type_traits<type_traits<double>> {
+	template<> struct type_traits<double>
+		: public total_bytes_size<type_traits<double>>, public get_strides<type_traits<double>>, public get_dynamic_type_traits<type_traits<double>> {
 		using value_type = double;
 		using quant_type = double;
-		inline static constexpr data_type type{ data_type::f32 };
-		inline static constexpr uint64_t type_size{ sizeof(double) };
-		inline static constexpr bool is_quantized{ false };
-		inline static constexpr uint64_t block_size{ 1 };
-		inline static constexpr uint64_t n_rows{ 1 };
+		static constexpr data_type type{ data_type::f32 };
+		static constexpr uint64_t type_size{ sizeof(double) };
+		static constexpr bool is_quantized{ false };
+		static constexpr uint64_t block_size{ 1 };
+		static constexpr uint64_t n_rows{ 1 };
 	};
 
 	template<> struct type_traits<int16_t>
 		: public total_bytes_size<type_traits<int16_t>>, public get_strides<type_traits<int16_t>>, public get_dynamic_type_traits<type_traits<int16_t>> {
 		using value_type = fp16_t;
 		using quant_type = fp16_t;
-		inline static constexpr data_type type{ data_type::f16 };
-		inline static constexpr uint64_t type_size{ sizeof(fp16_t) };
-		inline static constexpr bool is_quantized{ false };
-		inline static constexpr uint64_t block_size{ 1 };
-		inline static constexpr uint64_t n_rows{ 1 };
+		static constexpr data_type type{ data_type::f16 };
+		static constexpr uint64_t type_size{ sizeof(fp16_t) };
+		static constexpr bool is_quantized{ false };
+		static constexpr uint64_t block_size{ 1 };
+		static constexpr uint64_t n_rows{ 1 };
 	};
 
 	template<> struct type_traits<block_q8_0<half>>
 		: public total_bytes_size<type_traits<block_q8_0<half>>>, public get_strides<type_traits<block_q8_0<half>>>, public get_dynamic_type_traits<type_traits<block_q8_0<half>>> {
 		using value_type = block_q8_0<half>;
 		using quant_type = block_q8_0<half>;
-		inline static constexpr data_type type{ data_type::q8_0 };
-		inline static constexpr uint64_t type_size{ sizeof(block_q8_0<half>) };
-		inline static constexpr bool is_quantized{ true };
-		inline static constexpr uint64_t block_size{ Q_SIZE };
-		inline static constexpr uint64_t n_rows{ 1 };
+		static constexpr data_type type{ data_type::q8_0 };
+		static constexpr uint64_t type_size{ sizeof(block_q8_0<half>) };
+		static constexpr bool is_quantized{ true };
+		static constexpr uint64_t block_size{ Q_SIZE };
+		static constexpr uint64_t n_rows{ 1 };
 	};
 
 	template<> struct type_traits<void> : public total_bytes_size<type_traits<void>>, public get_strides<type_traits<void>> {
-		inline static constexpr data_type type{ data_type::count };
-		inline static constexpr uint64_t type_size{ 0 };
-		inline static constexpr bool is_quantized{ true };
-		inline static constexpr uint64_t block_size{ 0 };
-		inline static constexpr uint64_t n_rows{ 0 };
+		static constexpr data_type type{ data_type::count };
+		static constexpr uint64_t type_size{ 0 };
+		static constexpr bool is_quantized{ false };
+		static constexpr uint64_t block_size{ 0 };
+		static constexpr uint64_t n_rows{ 0 };
 	};
 
 	NIHILUS_FORCE_INLINE type_traits_dynamic get_type_traits(data_type type) {

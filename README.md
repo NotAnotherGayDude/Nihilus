@@ -47,7 +47,7 @@ Nihilus is:
 ## ⚙️ How It Works
 
 - Each op is defined via a `core_traits<config, op>` template
-- The model aggregates these into a `core_bases<>` inheritance chain
+- The model aggregates these into a `constexpr_core_bases<>` inheritance chain
 - A `thread_pool<>` invokes execution over:
   - `global_input` ops
   - `per_block` ops (with sync only where necessary)

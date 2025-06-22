@@ -939,7 +939,7 @@ namespace nihilus {
 		gguf_header_t header{};
 	};
 
-	NIHILUS_FORCE_INLINE uint64_t align_offset(uint64_t offset, uint64_t alignment = 1) {
+	NIHILUS_FORCE_INLINE uint64_t align_offset(uint64_t offset, uint64_t alignment = 0) {
 		alignment = alignment == 0 ? 1 : alignment;
 		return offset + (alignment - (offset % alignment)) % alignment;
 	}
@@ -956,26 +956,16 @@ namespace nihilus {
 			model_graph_data<config> return_value{};
 			gguf_file_t gguf_file{};
 			stream_iterator ptr{ memory_file };
-			std::map<std::string, intermediary_tensor> tensors{};
 			gguf_file.header = value_reader<gguf_header_t>::gather_value(ptr);
 			for (uint64_t x = 0; x < gguf_file.header.tensor_count; ++x) {
 				gguf_file.tensor_infos.emplace_back(value_reader<core_base_creation_data>::gather_value(ptr));
-				tensors[gguf_file.tensor_infos.back().name].dims.resize(4);
-				for (size_t x = 0; x < 4; ++x) {
-					tensors[gguf_file.tensor_infos.back().name].dims[x] = gguf_file.tensor_infos.back().dimensions[x];
-				}
-				tensors[gguf_file.tensor_infos.back().name].data.resize(128);
-				tensors[gguf_file.tensor_infos.back().name].name = gguf_file.tensor_infos.back().name;
-				tensors[gguf_file.tensor_infos.back().name].type = gguf_file.tensor_infos.back().type;
 			}
-			intermediary_tensor tensor{};
-			uint64_t total_tensor_bytes = 0;
+
 			uint64_t max_tensor_end		= 0;
 			for (const auto& tensor: gguf_file.tensor_infos) {
 				uint64_t tensor_size = tensor.core_total_byte_size();
-				total_tensor_bytes += tensor_size;
-				uint64_t tensor_end = tensor.offset + tensor_size;
-				max_tensor_end		= std::max(max_tensor_end, tensor_end);
+				uint64_t tensor_end	 = tensor.offset + tensor_size;
+				max_tensor_end		 = std::max(max_tensor_end, tensor_end);
 			}
 
 			uint64_t tensor_data_start = ptr.file->size() - max_tensor_end;
@@ -988,7 +978,6 @@ namespace nihilus {
 				uint64_t absolute_offset = tensor_data_start + gguf_file.tensor_infos[x].offset;
 				ptr.map_pointer(data[string_to_op_type<model_arch::llama>::impl(gguf_file.tensor_infos[x].name)][extract_layer_number(gguf_file.tensor_infos[x].name)],
 					absolute_offset);
-				//tensor_debugger::compare_tensor_data(tensors[gguf_file.tensor_infos[x].name]);
 			};
 			return return_value;
 		}
