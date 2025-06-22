@@ -25,6 +25,7 @@ RealTimeChris (Chris model_traits_type.)
 #include <nihilus/common/model_traits.hpp>
 #include <nihilus/common/common.hpp>
 #include <nihilus/common/array.hpp>
+#include <nihilus/common/tuple.hpp>
 #include <latch>
 
 namespace nihilus {
@@ -46,13 +47,129 @@ namespace nihilus {
 		static constexpr bool required{ !std::is_same_v<type01, type02> };
 	};
 
-	template<model_config config, llama_op_types op_type> struct core_traits;
+	template<model_config config, auto op_type> struct core_traits;
+
+	template<typename op_type_type> struct core_traits_dynamic {
+		op_type_type type{};
+		uint64_t depth{};
+	};
+
+	template<model_config config, typename op_type_type, op_type_type current_index = static_cast<op_type_type>(0)>
+	constexpr uint64_t count_active_ops(uint64_t current_max_depth = 0) {
+		if constexpr (static_cast<uint64_t>(current_index) < static_cast<uint64_t>(op_type_type::count)) {
+			constexpr uint64_t current_index_new = static_cast<uint64_t>(current_index);
+			current_max_depth += core_traits<config, current_index>::krn_type != kernel_type::none ? 1 : 0;
+			return count_active_ops<config, op_type_type, static_cast<op_type_type>(current_index_new + 1)>(current_max_depth);
+		} else {
+			return current_max_depth;
+		}
+	}
+
+	template<model_config config, typename op_type_type, uint64_t size, op_type_type current_index = static_cast<op_type_type>(0)>
+	constexpr auto generate_core_traits_dynamic_array(array<core_traits_dynamic<op_type_type>, size> values, uint64_t current_index_newer = 0) {
+		constexpr uint64_t current_index_new = static_cast<uint64_t>(current_index);
+		if constexpr (current_index_new < static_cast<uint64_t>(op_type_type::count)) {
+			if constexpr (core_traits<config, current_index>::krn_type != kernel_type::none) {
+				core_traits_dynamic<op_type_type> return_values{};
+				return_values.depth			= core_traits<config, current_index>::depth;
+				return_values.type			= core_traits<config, current_index>::type;
+				values[current_index_newer] = return_values;
+				++current_index_newer;
+			}
+			return generate_core_traits_dynamic_array<config, op_type_type, size, static_cast<op_type_type>(current_index_new + 1)>(values, current_index_newer);
+		} else {
+			return values;
+		}
+	}
+
+	template<model_config config, typename op_type_type> constexpr auto generate_core_traits_dynamic_array() {
+		constexpr uint64_t active_op_count{ count_active_ops<config, op_type_type>() };
+		array<core_traits_dynamic<op_type_type>, active_op_count> return_values{};
+		return generate_core_traits_dynamic_array<config, op_type_type>(return_values);
+	}
+
+	template<typename op_type_type, uint64_t depth_count, uint64_t array_size>
+	constexpr auto count_ops_per_depth(const nihilus::array<core_traits_dynamic<op_type_type>, array_size>& traits_array) {
+		if constexpr (array_size == 0) {
+			return 0;
+		}
+		array<uint64_t, depth_count> return_values{};
+
+		for (uint64_t i = 0; i < array_size; ++i) {
+			++return_values[traits_array[i].depth - 1];
+		}
+		return return_values;
+	}
+
+	template<typename op_type_type, uint64_t array_size> constexpr uint64_t count_unique_depths(const nihilus::array<core_traits_dynamic<op_type_type>, array_size>& traits_array) {
+		if constexpr (array_size == 0) {
+			return 0;
+		}
+		uint64_t max_depth{};
+
+		for (uint64_t i = 0; i < array_size; ++i) {
+			max_depth = traits_array[i].depth > max_depth ? traits_array[i].depth : max_depth;
+		}
+		return max_depth;
+	}
+
+	template<typename op_type_type, size_t depth_count, uint64_t array_size>
+	constexpr uint64_t count_max_ops_per_depth(const nihilus::array<core_traits_dynamic<op_type_type>, array_size>& traits_array) {
+		if constexpr (array_size == 0) {
+			return 0;
+		}
+		array<uint64_t, depth_count> array{};
+		for (uint64_t i = 0; i < array_size; ++i) {
+			++array[traits_array[i].depth - 1];
+		}
+		uint64_t max_depth_count{};
+
+		for (uint64_t i = 0; i < depth_count; ++i) {
+			max_depth_count = array[i] > max_depth_count ? array[i] : max_depth_count;
+		}
+		return max_depth_count;
+	}
+
+	template<model_config config, typename op_type_type, uint64_t max_ops_per_depth, uint64_t depth_count, size_t array_size>
+	constexpr auto construct_thread_strategy(const nihilus::array<core_traits_dynamic<op_type_type>, array_size>& traits_array) {
+		array<array<op_type_type, max_ops_per_depth>, depth_count> result{};
+		array<uint64_t, depth_count> counters{};
+
+		for (uint64_t d = 0; d < depth_count; ++d) {
+			counters[d] = 0;
+			for (uint64_t op = 0; op < max_ops_per_depth; ++op) {
+				result[d][op] = op_type_type::count;
+			}
+		}
+
+		for (uint64_t i = 0; i < traits_array.size(); ++i) {
+			uint64_t depth_index = traits_array[i].depth - 1;
+
+			if (depth_index < depth_count && counters[depth_index] < max_ops_per_depth) {
+				result[depth_index][counters[depth_index]] = traits_array[i].type;
+				++counters[depth_index];
+			}
+		}
+
+		return result;
+	}
+
+	template<model_config config, typename op_type_type> struct thread_strategy {
+		static constexpr auto dynamic_core_traits_array{ generate_core_traits_dynamic_array<config, op_type_type>() };
+		static constexpr uint64_t active_op_count{ count_active_ops<config, op_type_type>() };
+		static constexpr uint64_t unique_depth_count{ count_unique_depths<op_type_type>(dynamic_core_traits_array) };
+		static constexpr auto actual_ops_per_depth{ count_ops_per_depth<op_type_type, unique_depth_count>(dynamic_core_traits_array) };
+		static constexpr auto max_ops_per_depth{ count_max_ops_per_depth<op_type_type, unique_depth_count>(dynamic_core_traits_array) };
+		inline static auto final_ops{ construct_thread_strategy<config, op_type_type, max_ops_per_depth, unique_depth_count>(dynamic_core_traits_array) };
+	};
 
 	template<kernel_type kernel_type01, kernel_type kernel_type02> struct output_transform {};
 
 	template<> struct output_transform<kernel_type::silu, kernel_type::mul_mat> {
 		template<typename value_type> NIHILUS_FORCE_INLINE static void impl(value_type*, uint64_t) {};
 	};
+
+	template<model_config config, auto op_type> struct depth_tracker {};
 
 	template<typename derived_type, uint64_t... indices> struct core_trait_dims;
 
@@ -67,27 +184,15 @@ namespace nihilus {
 			return { { dim00, dim01, dim02, dim03 } };
 		}
 
-		template<uint64_t index> NIHILUS_FORCE_INLINE uint64_t operator[](tag<index>) const {
+		template<size_t index> NIHILUS_FORCE_INLINE uint64_t& operator[](tag<index>) const {
 			if constexpr (index == 0) {
-				return static_cast<const derived_type*>(this)->dim00;
+				return dim00;
 			} else if constexpr (index == 1) {
-				return static_cast<const derived_type*>(this)->dim01;
+				return dim01;
 			} else if constexpr (index == 2) {
-				return static_cast<const derived_type*>(this)->dim02;
+				return dim02;
 			} else {
-				return static_cast<const derived_type*>(this)->dim03;
-			}
-		}
-
-		NIHILUS_FORCE_INLINE uint64_t operator[](uint64_t index) const {
-			if (index == 0) {
-				return static_cast<const derived_type*>(this)->dim00;
-			} else if (index == 1) {
-				return static_cast<const derived_type*>(this)->dim01;
-			} else if (index == 2) {
-				return static_cast<const derived_type*>(this)->dim02;
-			} else {
-				return static_cast<const derived_type*>(this)->dim03;
+				return dim03;
 			}
 		}
 	};
@@ -101,30 +206,6 @@ namespace nihilus {
 
 		NIHILUS_FORCE_INLINE static constexpr array<uint64_t, 4> get_array() {
 			return { { dim00, dim01, dim02, dim03 } };
-		}
-
-		template<uint64_t index> NIHILUS_FORCE_INLINE uint64_t operator[](tag<index>) const {
-			if constexpr (index == 0) {
-				return static_cast<const derived_type*>(this)->dim00;
-			} else if constexpr (index == 1) {
-				return static_cast<const derived_type*>(this)->dim01;
-			} else if constexpr (index == 2) {
-				return static_cast<const derived_type*>(this)->dim02;
-			} else {
-				return static_cast<const derived_type*>(this)->dim03;
-			}
-		}
-
-		NIHILUS_FORCE_INLINE uint64_t operator[](uint64_t index) const {
-			if (index == 0) {
-				return static_cast<const derived_type*>(this)->dim00;
-			} else if (index == 1) {
-				return static_cast<const derived_type*>(this)->dim01;
-			} else if (index == 2) {
-				return static_cast<const derived_type*>(this)->dim02;
-			} else {
-				return static_cast<const derived_type*>(this)->dim03;
-			}
 		}
 
 		NIHILUS_FORCE_INLINE uint64_t& operator[](uint64_t index) {
@@ -141,30 +222,6 @@ namespace nihilus {
 
 		NIHILUS_FORCE_INLINE static constexpr array<uint64_t, 4> get_array() {
 			return { { dim00, dim01, dim02, dim03 } };
-		}
-
-		template<uint64_t index> NIHILUS_FORCE_INLINE uint64_t operator[](tag<index>) const {
-			if constexpr (index == 0) {
-				return static_cast<const derived_type*>(this)->dim00;
-			} else if constexpr (index == 1) {
-				return static_cast<const derived_type*>(this)->dim01;
-			} else if constexpr (index == 2) {
-				return static_cast<const derived_type*>(this)->dim02;
-			} else {
-				return static_cast<const derived_type*>(this)->dim03;
-			}
-		}
-
-		NIHILUS_FORCE_INLINE uint64_t operator[](uint64_t index) const {
-			if (index == 0) {
-				return static_cast<const derived_type*>(this)->dim00;
-			} else if (index == 1) {
-				return static_cast<const derived_type*>(this)->dim01;
-			} else if (index == 2) {
-				return static_cast<const derived_type*>(this)->dim02;
-			} else {
-				return static_cast<const derived_type*>(this)->dim03;
-			}
 		}
 
 		NIHILUS_FORCE_INLINE uint64_t& operator[](uint64_t index) {
@@ -617,7 +674,6 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using this_type															 = core_traits<config, llama_op_types::inp_embd>;
 		using input_type01														 = core_traits<config, llama_op_types::token_embd_weight>;
 		using input_type02														 = core_traits<config, llama_op_types::inp_tokens>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::embedding_type;
@@ -626,7 +682,7 @@ namespace nihilus {
 		static constexpr uint64_t depth{ std::max(input_type01::depth, input_type02::depth) + 1 };
 		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_type01::output_type, typename input_type02::output_type>::required };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
-		static constexpr array<uint64_t, 4> strides{ { type_traits<output_type>::impl(core_traits_dims_type::get_array()) } };
+		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
 			(dequantization ? type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) : 0)) };
 		static constexpr layer_op_type layer_type{ layer_op_type::global_input };
@@ -647,7 +703,6 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using this_type															 = core_traits<config, llama_op_types::norm>;
 		using input_type01														 = core_traits<config, llama_op_types::inp_embd>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::norm_output_type;
 		using core_traits_dims_type = core_trait_dims<core_traits<config, llama_op_types::norm>, model_traits_type::embedding_dim, model_traits_type::max_sequence_length, 1, 1, 1>;
@@ -674,7 +729,6 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using this_type															 = core_traits<config, llama_op_types::attn_norm>;
 		using input_type01														 = core_traits<config, llama_op_types::norm>;
 		using input_type02														 = core_traits<config, llama_op_types::attn_norm_weight>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::norm_output_type;
@@ -707,7 +761,6 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using this_type															 = core_traits<config, llama_op_types::qcur>;
 		using input_type01														 = core_traits<config, llama_op_types::attn_q_weight>;
 		using input_type02														 = core_traits<config, llama_op_types::attn_norm>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::query_type;
@@ -740,7 +793,6 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using this_type															 = core_traits<config, llama_op_types::qcur_reshaped>;
 		using input_type01														 = core_traits<config, llama_op_types::qcur>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::query_type;
 		using core_traits_dims_type = core_trait_dims<core_traits<config, llama_op_types::qcur_reshaped>, model_traits_type::head_dim, model_traits_type::max_sequence_length,
@@ -768,7 +820,6 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using this_type															 = core_traits<config, llama_op_types::qcur_rope>;
 		using input_type01														 = core_traits<config, llama_op_types::qcur_reshaped>;
 		using input_type02														 = core_traits<config, llama_op_types::inp_pos>;
 		using input_type03														 = core_traits<config, llama_op_types::rope_freqs_weight>;
@@ -801,7 +852,6 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using this_type															 = core_traits<config, llama_op_types::kcur>;
 		using input_type01														 = core_traits<config, llama_op_types::attn_k_weight>;
 		using input_type02														 = core_traits<config, llama_op_types::attn_norm>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::key_type;
@@ -833,7 +883,6 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using this_type															 = core_traits<config, llama_op_types::kcur_reshaped>;
 		using input_type01														 = core_traits<config, llama_op_types::kcur>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::key_type;
 		using core_traits_dims_type = core_trait_dims<core_traits<config, llama_op_types::kcur_reshaped>, model_traits_type::head_dim, model_traits_type::max_sequence_length,
@@ -861,7 +910,6 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using this_type															 = core_traits<config, llama_op_types::kcur_rope>;
 		using input_type01														 = core_traits<config, llama_op_types::kcur_reshaped>;
 		using input_type02														 = core_traits<config, llama_op_types::inp_pos>;
 		using input_type03														 = core_traits<config, llama_op_types::rope_freqs_weight>;
@@ -894,7 +942,6 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using this_type															 = core_traits<config, llama_op_types::vcur>;
 		using input_type01														 = core_traits<config, llama_op_types::attn_v_weight>;
 		using input_type02														 = core_traits<config, llama_op_types::attn_norm>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::value_type;
@@ -927,7 +974,6 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using this_type															 = core_traits<config, llama_op_types::k_cache_view>;
 		using input_type01														 = core_traits<config, llama_op_types::cache_k>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::kv_cache_type;
 		using core_traits_dims_type =
@@ -955,7 +1001,6 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using this_type															 = core_traits<config, llama_op_types::k_cache_view_copy>;
 		using input_type01														 = core_traits<config, llama_op_types::kcur_rope>;
 		using output_type														 = typename core_traits<config, llama_op_types::k_cache_view>::output_type;
 		using core_traits_dims_type =
@@ -983,7 +1028,6 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using this_type															 = core_traits<config, llama_op_types::vcur_transposed>;
 		using input_type01														 = core_traits<config, llama_op_types::vcur>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::value_type;
 		using core_traits_dims_type = core_trait_dims<core_traits<config, llama_op_types::vcur_transposed>, model_traits_type::max_sequence_length,
@@ -1011,7 +1055,6 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using this_type															 = core_traits<config, llama_op_types::v_cache_view>;
 		using input_type01														 = core_traits<config, llama_op_types::cache_v>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::kv_cache_type;
 		using core_traits_dims_type =
@@ -1039,7 +1082,6 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using this_type															 = core_traits<config, llama_op_types::v_cache_view_copy>;
 		using input_type01														 = core_traits<config, llama_op_types::vcur_transposed>;
 		using output_type														 = typename core_traits<config, llama_op_types::v_cache_view>::output_type;
 		using core_traits_dims_type =
@@ -1067,7 +1109,6 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using this_type															 = core_traits<config, llama_op_types::v>;
 		using input_type01														 = core_traits<config, llama_op_types::cache_v>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::scale_type;
 		using core_traits_dims_type =
@@ -1095,7 +1136,6 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using this_type															 = core_traits<config, llama_op_types::k>;
 		using input_type01														 = core_traits<config, llama_op_types::cache_k>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::scale_type;
 		using core_traits_dims_type =
@@ -1122,7 +1162,6 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using this_type															 = core_traits<config, llama_op_types::q>;
 		using input_type01														 = core_traits<config, llama_op_types::qcur_rope>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::query_type;
 		using core_traits_dims_type =
@@ -1150,7 +1189,6 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using this_type															 = core_traits<config, llama_op_types::kq>;
 		using input_type01														 = core_traits<config, llama_op_types::k>;
 		using input_type02														 = core_traits<config, llama_op_types::q>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::attention_score_type;
@@ -1182,7 +1220,6 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using this_type															 = core_traits<config, llama_op_types::kq_soft_max>;
 		using input_type01														 = core_traits<config, llama_op_types::kq>;
 		using input_type02														 = core_traits<config, llama_op_types::kq_mask>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::softmax_type;
@@ -1215,7 +1252,6 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using this_type															 = core_traits<config, llama_op_types::kqv>;
 		using input_type01														 = core_traits<config, llama_op_types::v>;
 		using input_type02														 = core_traits<config, llama_op_types::kq_soft_max>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::value_type;
@@ -1245,7 +1281,6 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using this_type															 = core_traits<config, llama_op_types::kqv_merged>;
 		using input_type01														 = core_traits<config, llama_op_types::kqv>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::value_type;
 		using core_traits_dims_type = core_trait_dims<core_traits<config, llama_op_types::kqv_merged>, model_traits_type::head_dim, model_traits_type::head_count, 1, 1>;
@@ -1270,7 +1305,6 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using this_type															 = core_traits<config, llama_op_types::kqv_merged_cont>;
 		using input_type01														 = core_traits<config, llama_op_types::kqv_merged>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::value_type;
 		using core_traits_dims_type = core_trait_dims<core_traits<config, llama_op_types::kqv_merged_cont>, model_traits_type::embedding_dim, 1, 1, 1>;
@@ -1296,7 +1330,6 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using this_type															 = core_traits<config, llama_op_types::kqv_out>;
 		using input_type01														 = core_traits<config, llama_op_types::attn_output_weight>;
 		using input_type02														 = core_traits<config, llama_op_types::kqv_merged_cont>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::hidden_type;
@@ -1328,7 +1361,6 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using this_type															 = core_traits<config, llama_op_types::ffn_inp>;
 		using input_type01														 = core_traits<config, llama_op_types::kqv_out>;
 		using input_type02														 = core_traits<config, llama_op_types::l_out>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::residual_type;
@@ -1358,7 +1390,6 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using this_type															 = core_traits<config, llama_op_types::norm_out>;
 		using input_type01														 = core_traits<config, llama_op_types::ffn_inp>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::residual_type;
 		using core_traits_dims_type =
@@ -1386,7 +1417,6 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using this_type															 = core_traits<config, llama_op_types::ffn_norm>;
 		using input_type01														 = core_traits<config, llama_op_types::norm_out>;
 		using input_type02														 = core_traits<config, llama_op_types::ffn_norm_weight>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::residual_type;
@@ -1418,7 +1448,6 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using this_type															 = core_traits<config, llama_op_types::ffn_gate>;
 		using input_type01														 = core_traits<config, llama_op_types::ffn_gate_weight>;
 		using input_type02														 = core_traits<config, llama_op_types::ffn_norm>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::ffn_intermediate_type;
@@ -1450,7 +1479,6 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using this_type															 = core_traits<config, llama_op_types::ffn_silu>;
 		using input_type01														 = core_traits<config, llama_op_types::ffn_gate>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::ffn_intermediate_type;
 		using core_traits_dims_type =
@@ -1480,7 +1508,6 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using this_type															 = core_traits<config, llama_op_types::ffn_up>;
 		using input_type01														 = core_traits<config, llama_op_types::ffn_up_weight>;
 		using input_type02														 = core_traits<config, llama_op_types::ffn_norm>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::ffn_intermediate_type;
@@ -1512,7 +1539,6 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using this_type															 = core_traits<config, llama_op_types::ffn_gate_par>;
 		using input_type01														 = core_traits<config, llama_op_types::ffn_silu>;
 		using input_type02														 = core_traits<config, llama_op_types::ffn_up>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::ffn_intermediate_type;
@@ -1544,7 +1570,6 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using this_type															 = core_traits<config, llama_op_types::ffn_out>;
 		using input_type01														 = core_traits<config, llama_op_types::ffn_down_weight>;
 		using input_type02														 = core_traits<config, llama_op_types::ffn_gate_par>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::hidden_type;
@@ -1576,7 +1601,6 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using this_type															 = core_traits<config, llama_op_types::l_out>;
 		using input_type01														 = core_traits<config, llama_op_types::ffn_out>;
 		using input_type02														 = core_traits<config, llama_op_types::ffn_inp>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::residual_type;
@@ -1606,7 +1630,6 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using this_type															 = core_traits<config, llama_op_types::attn_residual>;
 		using input_type01														 = core_traits<config, llama_op_types::kqv_out>;
 		using input_type02														 = core_traits<config, llama_op_types::inp_out_ids>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::residual_type;
@@ -1636,7 +1659,6 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using this_type															 = core_traits<config, llama_op_types::prev_residual>;
 		using input_type01														 = core_traits<config, llama_op_types::l_out>;
 		using input_type02														 = core_traits<config, llama_op_types::inp_out_ids>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::residual_type;
@@ -1666,7 +1688,6 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using this_type															 = core_traits<config, llama_op_types::final_norm>;
 		using input_type01														 = core_traits<config, llama_op_types::l_out>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::norm_output_type;
 		using core_traits_dims_type =
@@ -1694,7 +1715,6 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using this_type															 = core_traits<config, llama_op_types::result_norm>;
 		using input_type01														 = core_traits<config, llama_op_types::final_norm>;
 		using input_type02														 = core_traits<config, llama_op_types::output_norm_weight>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::norm_output_type;
@@ -1725,7 +1745,6 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using this_type															 = core_traits<config, llama_op_types::result_output>;
 		using input_type01														 = core_traits<config, llama_op_types::output_weight>;
 		using input_type02														 = core_traits<config, llama_op_types::result_norm>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::logit_type;
@@ -1748,6 +1767,36 @@ namespace nihilus {
 		int32_t value{};
 	};
 
+	/*
+
+	template<typename op_type_type, uint64_t depth_count, uint64_t maxIndex, uint64_t currentIndex = 0>
+	constexpr auto collectTupleRefsImpl(array<array<tuple_reference<op_type_type>, maxIndex>, depth_count>& tupleRefs) {
+		if constexpr (currentIndex < maxIndex) {
+			tupleRefs[currentIndex].oldIndex = currentIndex;
+			return collectTupleRefsImpl<maxIndex, currentIndex + 1>(tuple, tupleRefs);
+		}
+		return tupleRefs;
+	}
+
+	template<model_config config, typename op_type_type> constexpr auto collectTupleRefs() {
+		constexpr auto depth_count = count_depths<config, op_type_type>;
+		array<tuple_reference, depth_count> tupleRefs{};
+		return collectTupleRefsImpl<tupleSize>(tuple, tupleRefs);
+	}
+
+	template<typename value_type> inline constexpr auto tupleRefs{ collectTupleRefs(jsonifier::concepts::coreV<value_type>) };
+	template<typename value_type> inline constexpr auto sortedTupleReferencesByLength{ sortTupleRefsByLength(tupleRefs<value_type>) };
+	template<typename value_type> inline constexpr auto tupleReferencesByLength{ consolidateTupleRefs(sortedTupleReferencesByLength<value_type>) };
+
+	template<typename value_type, uint64_t... indices> constexpr auto createNewTupleImpl(std::index_sequence<indices...>) noexcept {
+		return makeTuple(get<sortedTupleReferencesByLength<value_type>[indices].oldIndex>(jsonifier::concepts::coreV<value_type>)...);
+	}
+
+	template<typename value_type> constexpr auto createNewTuple() noexcept {
+		constexpr auto& tupleRefs = sortedTupleReferencesByLength<value_type>;
+		return createNewTupleImpl<value_type>(std::make_index_sequence<tupleRefs.size()>{});
+	}
+	*/
 	template<model_config config, auto krn_type, uint64_t index> struct get_adjacent_value;
 
 	template<model_config config, auto krn_type, uint64_t index> struct get_adjacent_value {
@@ -1783,9 +1832,17 @@ namespace nihilus {
 			(impl_internal<mixin_type, bases>(std::forward<arg_types>(args)...), ...);
 		}
 
+		template<template<typename> typename mixin_type, typename op_entity_type> NIHILUS_FORCE_INLINE void impl_internal(size_t thread_index, size_t thread_count) {
+			return mixin_type<op_entity_type>::impl(*static_cast<op_entity_type*>(this), thread_index, thread_count);
+		}
+
+		template<template<typename> typename mixin_type> NIHILUS_FORCE_INLINE void impl(size_t thread_index, size_t thread_count) {
+			(impl_internal<mixin_type, bases>(thread_index, thread_count), ...);
+		}
+
 		template<template<typename> typename mixin_type, typename op_entity_type, typename... arg_types>
 		NIHILUS_FORCE_INLINE static constexpr void impl_internal_constexpr(arg_types&&... args) {
-			return mixin_type<op_entity_type>::impl(std::forward<arg_types>(args)...);
+			return mixin_type<op_entity_type>::impl_constexpr(std::forward<arg_types>(args)...);
 		}
 
 		template<template<typename> typename mixin_type, typename... arg_types> NIHILUS_FORCE_INLINE static constexpr void impl_constexpr(arg_types&&... args) {
@@ -1793,26 +1850,35 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename index_sequence> struct get_constexpr_core_bases_base;
+	template<model_config config, typename index_sequence> struct get_core_bases_base;
 
 	template<model_config config> using op_type_type_t = typename model_traits<config.arch, config.model_size, config.model_generation>::op_type_type;
 
-	template<model_config config, uint64_t... index> struct get_constexpr_core_bases_base<config, std::index_sequence<index...>> {
+	template<model_config config, uint64_t... index> struct get_core_bases_base<config, std::index_sequence<index...>> {
 		using type = core_bases<core_traits<config, static_cast<op_type_type_t<config>>(index)>...>;
 	};
 
-	template<model_config config> using get_constexpr_core_bases_config_base_t =
-		typename get_constexpr_core_bases_base<config, std::make_index_sequence<static_cast<uint64_t>(op_type_type_t<config>::count)>>::type;
+	template<model_config config> using get_core_bases_config_base_t =
+		typename get_core_bases_base<config, std::make_index_sequence<static_cast<uint64_t>(op_type_type_t<config>::count)>>::type;
 
-	template<model_config config, typename enum_holder_type, typename index_sequence> struct get_runtime_core_bases_base;
+	template<model_config config, typename thread_strategy_type, size_t current_depth, typename index_sequence> struct get_depth_level_core_bases_base;
 
-	template<model_config config> using op_type_type_t = typename model_traits<config.arch, config.model_size, config.model_generation>::op_type_type;
-
-	template<model_config config, typename enum_holder_type, uint64_t... index> struct get_runtime_core_bases_base<config, enum_holder_type, std::index_sequence<index...>> {
-		using type = core_bases<core_traits<config, enum_holder_type::active_traits[index]>...>;
+	template<model_config config, typename thread_strategy_type, size_t current_depth, uint64_t... index>
+	struct get_depth_level_core_bases_base<config, thread_strategy_type, current_depth, std::index_sequence<index...>> {
+		using type = core_bases<core_traits<config, thread_strategy_type::final_ops[current_depth][index]>...>;
 	};
 
-	template<model_config config, typename enum_holder_type> using get_runtime_core_bases_config_base_t =
-		typename get_runtime_core_bases_base<config, enum_holder_type, std::make_index_sequence<static_cast<uint64_t>(op_type_type_t<config>::count)>>::type;
+	template<model_config config, typename thread_strategy_type, size_t current_depth> using get_depth_level_core_bases_config_base_t =
+		typename get_depth_level_core_bases_base<config, thread_strategy_type, current_depth,
+			std::make_index_sequence<thread_strategy_type::actual_ops_per_depth[current_depth]>>::type;
 
+	template<model_config config, typename thread_strategy_type, typename index_sequence> struct get_depth_level_thread_strategy_core_bases_base;
+
+	template<model_config config, typename thread_strategy_type, uint64_t... index>
+	struct get_depth_level_thread_strategy_core_bases_base<config, thread_strategy_type, std::index_sequence<index...>> {
+		using type = core_bases<get_depth_level_core_bases_config_base_t<config, thread_strategy_type, index>...>;
+	};
+
+	template<model_config config, typename thread_strategy_type> using get_depth_level_thread_strategy_core_bases_config_base_t =
+		typename get_depth_level_thread_strategy_core_bases_base<config, thread_strategy_type, std::make_index_sequence<thread_strategy_type::unique_depth_count>>::type;
 }

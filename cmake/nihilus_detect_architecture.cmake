@@ -155,6 +155,6 @@ static constexpr uint64_t cpu_arch_index{ 2 };
 static constexpr uint64_t cpu_alignment{ 64 };
 #else
 static constexpr uint64_t cpu_arch_index{ 0 };
-static constexpr uint64_t cpu_alignment{ 16 };
+static constexpr uint64_t cpu_alignment{ 8 };
 #endif
 ")

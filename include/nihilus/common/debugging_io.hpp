@@ -291,10 +291,10 @@ namespace nihilus {
 
 		template<core_traits_type tensor_type> NIHILUS_FORCE_INLINE intermediary_tensor(const tensor_type& other, const std::string& name_new, uint64_t current_block) {
 			using output_type = typename tensor_type::output_type;
-			dims[0]			  = other[0];
-			dims[1]			  = other[1];
-			dims[2]			  = other[2];
-			dims[3]			  = other[3];
+			dims[0]			  = other.get_array()[0];
+			dims[1]			  = other.get_array()[1];
+			dims[2]			  = other.get_array()[2];
+			dims[3]			  = other.get_array()[3];
 			data.resize(128);
 			if constexpr (array_type<decltype(other.data)>) {
 				if (other.data[current_block]) {

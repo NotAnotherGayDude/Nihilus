@@ -160,7 +160,34 @@ namespace nihilus {
 #endif
 	}
 
-	template<typename base_type_new> struct execution_planner {
+	template<typename base_type_new> struct execution_planner_base {
+		NIHILUS_FORCE_INLINE execution_planner_base() noexcept										   = default;
+		NIHILUS_FORCE_INLINE execution_planner_base& operator=(const execution_planner_base&) noexcept = delete;
+		NIHILUS_FORCE_INLINE execution_planner_base(const execution_planner_base&) noexcept			   = delete;
+		NIHILUS_FORCE_INLINE execution_planner_base& operator=(execution_planner_base&&) noexcept	   = delete;
+		NIHILUS_FORCE_INLINE execution_planner_base(execution_planner_base&&) noexcept				   = delete;
+		using output_type																			   = base_type_new::output_type;
+		using base_type																				   = base_type_new;
+		using model_traits_type																		   = typename base_type::model_traits_type;
+		using op_type_type																			   = typename model_traits_type::op_type_type;
+		NIHILUS_FORCE_INLINE constexpr static void impl_constexpr(uint64_t& count_new, layer_op_type op_type) {
+			if ((base_type::layer_type == op_type && base_type::krn_type != kernel_type::permute && base_type::krn_type != kernel_type::reshape &&
+					base_type::krn_type != kernel_type::transpose && base_type::krn_type != kernel_type::view) &&
+				base_type::krn_type != kernel_type::none) {
+				count_new += base_type::layer_type == op_type;
+			}
+		}
+		template<uint64_t size> NIHILUS_FORCE_INLINE constexpr static void impl_constexpr(array<op_type_type, size>& value, layer_op_type op_type, uint64_t& current_index) {
+			if ((base_type::layer_type == op_type && base_type::krn_type != kernel_type::permute && base_type::krn_type != kernel_type::reshape &&
+					base_type::krn_type != kernel_type::transpose && base_type::krn_type != kernel_type::view) &&
+				base_type::krn_type != kernel_type::none) {
+				value[current_index] = base_type::type;
+				++current_index;
+			}
+		}
+	};
+
+	template<typename base_type_new> struct execution_planner : public execution_planner_base<base_type_new> {
 		NIHILUS_FORCE_INLINE execution_planner() noexcept									 = default;
 		NIHILUS_FORCE_INLINE execution_planner& operator=(const execution_planner&) noexcept = delete;
 		NIHILUS_FORCE_INLINE execution_planner(const execution_planner&) noexcept			 = delete;
@@ -183,7 +210,7 @@ namespace nihilus {
 		}
 	};
 
-	template<blocking base_type_new> struct execution_planner<base_type_new> {
+	template<blocking base_type_new> struct execution_planner<base_type_new> : public execution_planner_base<base_type_new> {
 		NIHILUS_FORCE_INLINE execution_planner() noexcept									 = default;
 		NIHILUS_FORCE_INLINE execution_planner& operator=(const execution_planner&) noexcept = delete;
 		NIHILUS_FORCE_INLINE execution_planner(const execution_planner&) noexcept			 = delete;
@@ -214,32 +241,6 @@ namespace nihilus {
 	inline std::atomic_size_t depths{};
 	inline std::atomic_size_t count{};
 
-	template<typename base_type_new> struct execution_planner_constexpr {
-		NIHILUS_FORCE_INLINE execution_planner_constexpr() noexcept												 = default;
-		NIHILUS_FORCE_INLINE execution_planner_constexpr& operator=(const execution_planner_constexpr&) noexcept = delete;
-		NIHILUS_FORCE_INLINE execution_planner_constexpr(const execution_planner_constexpr&) noexcept			 = delete;
-		NIHILUS_FORCE_INLINE execution_planner_constexpr& operator=(execution_planner_constexpr&&) noexcept		 = delete;
-		NIHILUS_FORCE_INLINE execution_planner_constexpr(execution_planner_constexpr&&) noexcept				 = delete;
-		using output_type																						 = base_type_new::output_type;
-		using base_type																							 = base_type_new;
-		using op_type_type																						 = base_type_new::model_traits_type::op_type_type;
-		NIHILUS_FORCE_INLINE constexpr static void impl(uint64_t& count_new, layer_op_type op_type) {
-			if ((base_type::layer_type == op_type && base_type::krn_type != kernel_type::permute && base_type::krn_type != kernel_type::reshape &&
-					base_type::krn_type != kernel_type::transpose && base_type::krn_type != kernel_type::view) &&
-				base_type::krn_type != kernel_type::none) {
-				count_new += base_type::layer_type == op_type;
-			}
-		}
-		template<uint64_t size> NIHILUS_FORCE_INLINE constexpr static void impl(array<op_type_type, size>& value, layer_op_type op_type, uint64_t& current_index) {
-			if ((base_type::layer_type == op_type && base_type::krn_type != kernel_type::permute && base_type::krn_type != kernel_type::reshape &&
-					base_type::krn_type != kernel_type::transpose && base_type::krn_type != kernel_type::view) &&
-				base_type::krn_type != kernel_type::none) {
-				value[current_index] = base_type::type;
-				++current_index;
-			}
-		};
-	};
-
 	template<typename base_type> struct memory_mapper {
 		NIHILUS_FORCE_INLINE memory_mapper() noexcept								 = default;
 		NIHILUS_FORCE_INLINE memory_mapper& operator=(const memory_mapper&) noexcept = delete;
@@ -261,25 +262,6 @@ namespace nihilus {
 		}
 	};
 
-	template<typename base_type> struct memory_allocator {
-		NIHILUS_FORCE_INLINE memory_allocator() noexcept								   = default;
-		NIHILUS_FORCE_INLINE memory_allocator& operator=(const memory_allocator&) noexcept = delete;
-		NIHILUS_FORCE_INLINE memory_allocator(const memory_allocator&) noexcept			   = delete;
-		NIHILUS_FORCE_INLINE memory_allocator& operator=(memory_allocator&&) noexcept	   = delete;
-		NIHILUS_FORCE_INLINE memory_allocator(memory_allocator&&) noexcept				   = delete;
-		using output_type																   = base_type::output_type;
-		using model_traits_type															   = base_type::model_traits_type;
-		NIHILUS_FORCE_INLINE constexpr static void impl(uint64_t& total_required_bytes) {
-			using core_traits_type = base_type;
-			using output_type	   = core_traits_type::output_type;
-			if constexpr (core_traits_type::alc_type == alloc_type::per_block_alloc) {
-				total_required_bytes += round_up_to_multiple<cpu_alignment>(core_traits_type::total_required_bytes) * model_traits_type::block_count;
-			} else if constexpr (core_traits_type::alc_type == alloc_type::single_alloc) {
-				total_required_bytes += round_up_to_multiple<cpu_alignment>(core_traits_type::total_required_bytes);
-			}
-		}
-	};
-
 	template<typename base_type> struct tensor_debugger_impl {
 		NIHILUS_FORCE_INLINE tensor_debugger_impl() noexcept									   = default;
 		NIHILUS_FORCE_INLINE tensor_debugger_impl& operator=(const tensor_debugger_impl&) noexcept = delete;
@@ -290,10 +272,10 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE static void impl(base_type& core) {
 			if constexpr (array_type<decltype(core.data)>) {
 				for (uint64_t x = 0; x < base_type::model_traits_type::block_count; ++x) {
-					tensor_debugger::compare_tensor_data(core, x);
+					//tensor_debugger::compare_tensor_data(core, x);
 				}
 			} else {
-				tensor_debugger::compare_tensor_data(core, 0);
+				//tensor_debugger::compare_tensor_data(core, 0);
 			}
 		}
 	};
@@ -360,40 +342,40 @@ namespace nihilus {
 
 		static constexpr uint64_t global_input_count{ [] {
 			uint64_t return_value{};
-			get_constexpr_core_bases_config_base_t<config>::template impl_constexpr<execution_planner_constexpr>(return_value, layer_op_type::global_input);
+			get_core_bases_config_base_t<config>::template impl_constexpr<execution_planner>(return_value, layer_op_type::global_input);
 			return return_value;
 		}() };
 
 		static constexpr uint64_t per_block_count{ [] {
 			uint64_t return_value{};
-			get_constexpr_core_bases_config_base_t<config>::template impl_constexpr<execution_planner_constexpr>(return_value, layer_op_type::per_block);
+			get_core_bases_config_base_t<config>::template impl_constexpr<execution_planner>(return_value, layer_op_type::per_block);
 			return return_value;
 		}() };
 
 		static constexpr uint64_t global_output_count{ [] {
 			uint64_t return_value{};
-			get_constexpr_core_bases_config_base_t<config>::template impl_constexpr<execution_planner_constexpr>(return_value, layer_op_type::global_output);
+			get_core_bases_config_base_t<config>::template impl_constexpr<execution_planner>(return_value, layer_op_type::global_output);
 			return return_value;
 		}() };
 
 		static constexpr auto global_input{ [] {
 			uint64_t current_index{};
 			array<op_type_type, global_input_count> return_value{};
-			get_constexpr_core_bases_config_base_t<config>::template impl_constexpr<execution_planner_constexpr>(return_value, layer_op_type::global_input, current_index);
+			get_core_bases_config_base_t<config>::template impl_constexpr<execution_planner>(return_value, layer_op_type::global_input, current_index);
 			return return_value;
 		}() };
 
 		static constexpr auto per_block{ [] {
 			uint64_t current_index{};
 			array<op_type_type, per_block_count> return_value{};
-			get_constexpr_core_bases_config_base_t<config>::template impl_constexpr<execution_planner_constexpr>(return_value, layer_op_type::per_block, current_index);
+			get_core_bases_config_base_t<config>::template impl_constexpr<execution_planner>(return_value, layer_op_type::per_block, current_index);
 			return return_value;
 		}() };
 
 		static constexpr auto global_output{ [] {
 			uint64_t current_index{};
 			array<op_type_type, global_output_count> return_value{};
-			get_constexpr_core_bases_config_base_t<config>::template impl_constexpr<execution_planner_constexpr>(return_value, layer_op_type::global_output, current_index);
+			get_core_bases_config_base_t<config>::template impl_constexpr<execution_planner>(return_value, layer_op_type::global_output, current_index);
 			return return_value;
 		}() };
 
@@ -443,6 +425,21 @@ namespace nihilus {
 			impl_global_output<thread_function>(thread_index, thread_count);
 		}
 
+		template<template<model_config, typename> typename thread_function, typename... arg_types> NIHILUS_FORCE_INLINE void impl(arg_types&&... args) {
+			static constexpr uint64_t global_input_count{ [] {
+				uint64_t return_value{};
+				get_core_bases_config_base_t<config>::template impl_constexpr<thread_function>(return_value, layer_op_type::global_input);
+				return return_value;
+			}() };
+
+			static constexpr auto global_input{ [] {
+				uint64_t current_index{};
+				array<op_type_type, global_input_count> return_value{};
+				get_core_bases_config_base_t<config>::template impl_constexpr<thread_function>(return_value, layer_op_type::global_input, current_index);
+				return return_value;
+			}() };
+		}
+
 		template<template<model_config, typename> typename thread_function, uint64_t current_index = 0> NIHILUS_FORCE_INLINE void impl_global_output_main() {
 			if constexpr (current_index < global_output_count) {
 				static constexpr op_type_type op_type = global_output[current_index];
@@ -472,14 +469,14 @@ namespace nihilus {
 			impl_global_output_main<thread_function>();
 		};
 	};
-
-	template<model_config config, template<typename> typename construction_function> struct invocable_axis {
+	/*
+	template<model_config config, typename derived_type, template<typename> typename function> struct invocable_axis {
 		using model_traits_type = model_traits<config.arch, config.model_size, config.model_generation>;
 		using op_type_type		= model_traits_type::op_type_type;
 
 		static constexpr uint64_t active_count{ [] {
 			uint64_t return_value{};
-			get_constexpr_core_bases_config_base_t<config>::template impl_constexpr<construction_function>(return_value);
+			get_core_bases_config_base_t<config>::template impl_constexpr<function>(return_value);
 			return return_value;
 		}() };
 
@@ -487,17 +484,22 @@ namespace nihilus {
 			static constexpr auto active_traits{ [] {
 				uint64_t current_index{};
 				array<op_type_type, active_count> return_value{};
-				get_constexpr_core_bases_config_base_t<config>::template impl_constexpr<construction_function>(return_value, current_index);
+				get_core_bases_config_base_t<config>::template impl_constexpr<function>(return_value, current_index);
 				return return_value;
 			}() };
 		};
 
-		template<template<typename> typename runtime_function, typename... arg_types> NIHILUS_FORCE_INLINE static void impl(arg_types&&... args) {
-			using function_type = get_runtime_core_bases_config_base_t<config, trait_holder>;
-			function_type::template impl_static<runtime_function>(args...);
+		template<typename... arg_types> NIHILUS_FORCE_INLINE static void impl_static(arg_types&&... args) {
+			using function_type = get_runtime_core_bases_config_base_t<config, derived_type, trait_holder>;
+			function_type::template impl_static<function>(args...);
+		}
+
+		template<typename... arg_types> NIHILUS_FORCE_INLINE void impl(arg_types&&... args) {
+			using function_type = get_runtime_core_bases_config_base_t<config, derived_type, trait_holder>;
+			static_cast<function_type*>(this)->template impl<function>(args...);
 		};
 	};
-
+	*/
 	template<model_config config, typename derived_type_new> struct thread_pool : public threading_strategy<config, derived_type_new> {
 		using derived_type														 = derived_type_new;
 		NIHILUS_FORCE_INLINE thread_pool() noexcept								 = delete;

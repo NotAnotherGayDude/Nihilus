@@ -30,28 +30,6 @@ inline static void cpuid(uint32_t* eax, uint32_t* ebx, uint32_t* ecx, uint32_t* 
 inline static uint64_t xgetbv();
 #endif
 
-std::string get_cpu_info() {
-	char brand[49]{};
-#if defined(__x86_64__) || defined(_M_AMD64)
-	uint32_t regs[12];
-	regs[0] = 0x80000000;
-	cpuid(regs, regs + 1, regs + 2, regs + 3);
-	if (regs[0] < 0x80000004) {
-		return {};
-	}
-	regs[0] = 0x80000002;
-	cpuid(regs, regs + 1, regs + 2, regs + 3);
-	regs[4] = 0x80000003;
-	cpuid(regs + 4, regs + 5, regs + 6, regs + 7);
-	regs[8] = 0x80000004;
-	cpuid(regs + 8, regs + 9, regs + 10, regs + 11);
-	memcpy(brand, regs, sizeof(regs));
-#elif defined(__aarch64__) || defined(_M_ARM64) || defined(_M_ARM64EC)
-	strcpy(brand, "ARM64 Processor");
-#endif
-	return brand;
-}
-
 #if defined(__aarch64__) || defined(_M_ARM64) || defined(_M_ARM64EC)
 	#if defined(__linux__)
 		#include <sys/auxv.h>
@@ -155,6 +133,5 @@ inline static uint32_t detect_supported_architectures() {
 
 int32_t main() {
 	const auto supported_isa = detect_supported_architectures();
-	std::cout << "CPU Brand: " << get_cpu_info() << "\n";
 	return supported_isa;
 }

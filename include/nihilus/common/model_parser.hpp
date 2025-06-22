@@ -184,7 +184,7 @@ namespace nihilus {
 #endif
 		}
 
-	  private:
+	  protected:
 		std::string_view file_path_;
 		void* mapped_data_	= nullptr;
 		uint64_t file_size_ = 0;
@@ -876,30 +876,6 @@ namespace nihilus {
 		}
 	};
 
-	NIHILUS_FORCE_INLINE bool operator<(const core_base_creation_data& lhs, const core_base_creation_data& rhs) noexcept {
-		const std::string& lhs_name{ lhs.name };
-		const std::string& rhs_name{ rhs.name };
-		if (lhs_name.find_first_of("1234567890") != std::string::npos && rhs_name.find_first_of("1234567890") != std::string::npos) {
-			uint64_t lhs_offset{ lhs_name.find_first_of("1234567890") };
-			uint64_t rhs_offset{ rhs_name.find_first_of("1234567890") };
-			std::string lhs_val_raw{ lhs_name.substr(lhs_offset, lhs_name.find_first_not_of("1234567890", lhs_offset) - lhs_offset + 1) };
-			std::string rhs_val_raw{ rhs_name.substr(rhs_offset, rhs_name.find_first_not_of("1234567890", rhs_offset) - rhs_offset + 1) };
-			auto* lhs_ptr_01 = lhs_val_raw.data();
-			auto* lhs_ptr_02 = lhs_val_raw.data() + lhs_val_raw.size();
-			uint64_t lhs_val{ std::strtoull(lhs_ptr_01, &lhs_ptr_02, 10) };
-			auto* rhs_ptr_01 = rhs_val_raw.data();
-			auto* rhs_ptr_02 = rhs_val_raw.data() + rhs_val_raw.size();
-			uint64_t rhs_val{ std::strtoull(rhs_ptr_01, &rhs_ptr_02, 10) };
-			return lhs_val < rhs_val;
-		} else {
-			return lhs_name < rhs_name;
-		}
-	}
-
-	NIHILUS_FORCE_INLINE void sort_tensor_infos(std::vector<core_base_creation_data>& tensor_infos) noexcept {
-		std::sort(tensor_infos.begin(), tensor_infos.end(), std::less<core_base_creation_data>{});
-	}
-
 	NIHILUS_FORCE_INLINE constexpr uint64_t parse_number(std::string_view str) noexcept {
 		uint64_t result = 0;
 		for (char c: str) {
@@ -930,16 +906,24 @@ namespace nihilus {
 		}
 
 		return 0;
+	}	
+
+	NIHILUS_FORCE_INLINE bool operator<(const core_base_creation_data& lhs, const core_base_creation_data& rhs) noexcept {
+		const uint64_t lhs_number{ extract_layer_number(lhs.name) };
+		const uint64_t rhs_number{ extract_layer_number(rhs.name) };
+		return lhs_number < rhs_number;
+	}
+
+	NIHILUS_FORCE_INLINE void sort_tensor_infos(std::vector<core_base_creation_data>& tensor_infos) noexcept {
+		std::sort(tensor_infos.begin(), tensor_infos.end(), std::less<core_base_creation_data>{});
 	}
 
 	struct gguf_file_t {
 		std::vector<core_base_creation_data> tensor_infos{};
-		std::vector<uint8_t> tensor_data{};
-		std::vector<uint8_t> _padding{};
 		gguf_header_t header{};
 	};
 
-	NIHILUS_FORCE_INLINE uint64_t align_offset(uint64_t offset, uint64_t alignment = 0) {
+	NIHILUS_FORCE_INLINE uint64_t align_offset(uint64_t offset, uint64_t alignment) {
 		alignment = alignment == 0 ? 1 : alignment;
 		return offset + (alignment - (offset % alignment)) % alignment;
 	}
@@ -981,8 +965,6 @@ namespace nihilus {
 			return return_value;
 		}
 	};
-
-	template<model_config config> struct model_parser;
 
 	template<model_config config> struct model_parser {
 		using model_traits_type = model_traits<config.arch, config.model_size, config.model_generation>;
