@@ -39,22 +39,26 @@ namespace nihilus {
 	static constexpr impl_indices indices_new{};
 
 	template<model_config config> struct model : public model_base<decltype(config.model_size), decltype(config.model_generation)>,
-												 public get_core_traits_config_base_t<config>,
+												 public get_constexpr_core_bases_config_base_t<config>,
 												 public thread_pool<config, model<config>>,
 												 public hyper_parameters<config.arch> {
-		using core_bases_config_type		  = get_core_traits_config_base_t<config>;
+		using core_bases_config_type		  = get_constexpr_core_bases_config_base_t<config>;
 		using model_traits_type				  = model_traits<config.arch, config.model_size, config.model_generation>;
 		using op_type_type					  = model_traits_type::op_type_type;
 		using kernel_type_profile_traits_type = kernel_type_profile_traits<config.kernel_profile>;
 		using base_type						  = model_base<decltype(config.model_size), decltype(config.model_generation)>;
 		template<typename model_type> friend struct input_session;
 		inline static constexpr impl_indices indices{ indices_new };
-		static constexpr uint64_t total_required_bytes{ collect_required_bytes<config>::impl() };
-		NIHILUS_FORCE_INLINE model()						  = default;
-		NIHILUS_FORCE_INLINE model& operator=(model&&)	  = delete;
-		NIHILUS_FORCE_INLINE model(model&&)				  = delete;
+		static constexpr uint64_t total_required_bytes{ [] {
+			uint64_t return_value{};
+			core_bases_config_type::template impl_constexpr<memory_allocator>(return_value);
+			return return_value;
+		}() };
+		NIHILUS_FORCE_INLINE model()						= default;
+		NIHILUS_FORCE_INLINE model& operator=(model&&)		= delete;
+		NIHILUS_FORCE_INLINE model(model&&)					= delete;
 		NIHILUS_FORCE_INLINE model& operator=(const model&) = delete;
-		NIHILUS_FORCE_INLINE model(const model&)			  = delete;
+		NIHILUS_FORCE_INLINE model(const model&)			= delete;
 		NIHILUS_FORCE_INLINE model(cli_params params) : thread_pool<config, model>{ params.thread_count } {
 			init(params);
 		}

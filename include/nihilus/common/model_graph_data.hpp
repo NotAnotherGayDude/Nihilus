@@ -95,8 +95,8 @@ namespace nihilus {
 	};
 
 	template<model_config config> struct model_graph_data {
-		using op_type_type = typename decltype(config)::op_type_type;
-		NIHILUS_INLINE model_graph_data()								= default;
+		using op_type_type													= typename decltype(config)::op_type_type;
+		NIHILUS_INLINE model_graph_data()									= default;
 		NIHILUS_INLINE model_graph_data& operator=(model_graph_data&&)		= default;
 		NIHILUS_INLINE model_graph_data(model_graph_data&&)					= default;
 		NIHILUS_INLINE model_graph_data& operator=(const model_graph_data&) = delete;

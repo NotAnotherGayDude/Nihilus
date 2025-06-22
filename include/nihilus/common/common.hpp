@@ -135,7 +135,7 @@ namespace nihilus {
 	template<uint64_t const_value> struct mutable_constexpr_array<0, const_value> {
 		NIHILUS_FORCE_INLINE constexpr mutable_constexpr_array() noexcept = default;
 
-		NIHILUS_FORCE_INLINE constexpr mutable_constexpr_array(const std::initializer_list<uint64_t>&dims_new) noexcept {
+		NIHILUS_FORCE_INLINE constexpr mutable_constexpr_array(const std::initializer_list<uint64_t>& dims_new) noexcept {
 			for (uint64_t x = 0; x < 3; ++x) {
 				dims[x] = dims_new.begin()[x];
 			}
@@ -176,12 +176,12 @@ namespace nihilus {
 	};
 
 	template<uint64_t const_value> struct mutable_constexpr_array<1, const_value> {
-		using index_type = uint64_t;
+		using index_type												  = uint64_t;
 		NIHILUS_FORCE_INLINE constexpr mutable_constexpr_array() noexcept = default;
 
 		NIHILUS_FORCE_INLINE constexpr mutable_constexpr_array(const std::initializer_list<uint64_t>& dims_new) noexcept {
-			dim0 = dims_new.begin()[0];
-			dim1 = dims_new.begin()[1];
+			dim0	= dims_new.begin()[0];
+			dim1	= dims_new.begin()[1];
 			dims[0] = dims_new.begin()[2];
 			dims[1] = dims_new.begin()[2];
 		}
@@ -212,7 +212,7 @@ namespace nihilus {
 		template<uint64_t index> NIHILUS_FORCE_INLINE constexpr uint64_t operator[](tag<index> index_new) const {
 			if constexpr (index_new == 0) {
 				return dim0;
-			} else if constexpr(index_new==1){
+			} else if constexpr (index_new == 1) {
 				return dim1;
 			} else {
 				return dims[index - 2];

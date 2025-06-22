@@ -38,9 +38,9 @@ namespace nihilus {
 	};
 
 	template<model_config config> struct harbinger<config> {
-		using model_type = model<config>;
-		using model_base_type = typename model<config>::base_type;
-		using input_session_type = input_session<model_type>;
+		using model_type			  = model<config>;
+		using model_base_type		  = typename model<config>::base_type;
+		using input_session_type	  = input_session<model_type>;
 		using input_session_base_type = input_session_type::base_type;
 
 		NIHILUS_FORCE_INLINE static auto parse_model_graph_data(cli_params params) {

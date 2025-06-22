@@ -40,7 +40,7 @@ namespace nihilus {
 
 	enum class array_static_assert_errors {
 		invalid_index_type,
-	};	
+	};
 
 	template<uint64_t index> using tag = std::integral_constant<uint64_t, index>;
 

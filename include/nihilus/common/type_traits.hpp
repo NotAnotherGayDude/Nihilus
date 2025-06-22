@@ -39,14 +39,14 @@ namespace nihilus {
 	template<typename derived_type> struct total_bytes_size {
 		NIHILUS_FORCE_INLINE constexpr static uint64_t total_byte_size(const array<uint64_t, 4>& dims) {
 			uint64_t total_elements = dims[0] * dims[1] * dims[2] * dims[3];
-			uint64_t num_blocks	  = (total_elements + derived_type::block_size - 1) / derived_type::block_size;
+			uint64_t num_blocks		= (total_elements + derived_type::block_size - 1) / derived_type::block_size;
 			return num_blocks * derived_type::type_size;
 		}
 	};
 
 	template<typename derived_type> struct get_strides {
 		NIHILUS_FORCE_INLINE constexpr static array<uint64_t, 4> impl(const array<uint64_t, 4>& dims) {
-			array<uint64_t, 4> return_values{}; 
+			array<uint64_t, 4> return_values{};
 			return_values[0] = derived_type::type_size;
 			return_values[1] = return_values[0] * (dims[0] / derived_type::block_size);
 			for (int i = 2; i < 4; i++) {
@@ -57,7 +57,7 @@ namespace nihilus {
 	};
 
 	template<typename derived_type> struct get_dynamic_type_traits {
-		NIHILUS_FORCE_INLINE constexpr static type_traits_dynamic get_dynamic_type_traits_impl() {
+		NIHILUS_FORCE_INLINE consteval static type_traits_dynamic get_dynamic_type_traits_impl() {
 			type_traits_dynamic return_values{};
 			return_values.block_size   = derived_type::block_size;
 			return_values.is_quantized = derived_type::is_quantized;
@@ -101,8 +101,7 @@ namespace nihilus {
 		inline static constexpr uint64_t n_rows{ 1 };
 	};
 
-	template<> struct type_traits<float>
-		: public total_bytes_size<type_traits<float>>, public get_strides<type_traits<float>>, public get_dynamic_type_traits<type_traits<float>> {
+	template<> struct type_traits<float> : public total_bytes_size<type_traits<float>>, public get_strides<type_traits<float>>, public get_dynamic_type_traits<type_traits<float>> {
 		using value_type = float;
 		using quant_type = float;
 		inline static constexpr data_type type{ data_type::f32 };
@@ -112,7 +111,8 @@ namespace nihilus {
 		inline static constexpr uint64_t n_rows{ 1 };
 	};
 
-	template<> struct type_traits<double> : public total_bytes_size<type_traits<double>>, public get_strides<type_traits<double>>, public get_dynamic_type_traits<type_traits<double>> {
+	template<> struct type_traits<double>
+		: public total_bytes_size<type_traits<double>>, public get_strides<type_traits<double>>, public get_dynamic_type_traits<type_traits<double>> {
 		using value_type = double;
 		using quant_type = double;
 		inline static constexpr data_type type{ data_type::f32 };

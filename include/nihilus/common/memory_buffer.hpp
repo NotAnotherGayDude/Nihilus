@@ -37,7 +37,7 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE memory_buffer() noexcept = default;
 
 		NIHILUS_FORCE_INLINE memory_buffer& operator=(const memory_buffer&) noexcept = delete;
-		NIHILUS_FORCE_INLINE memory_buffer(const memory_buffer&) noexcept			   = delete;
+		NIHILUS_FORCE_INLINE memory_buffer(const memory_buffer&) noexcept			 = delete;
 
 		NIHILUS_FORCE_INLINE memory_buffer& operator=(memory_buffer&& other) noexcept {
 			if (this != &other) {

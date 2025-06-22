@@ -37,7 +37,7 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE memory_planner_construction& operator=(memory_planner_construction&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE memory_planner_construction(memory_planner_construction&&) noexcept				 = delete;
 		using op_type_type																						 = typename base_type::model_traits_type::op_type_type;
-		using model_traits_type = typename base_type::model_traits_type;
+		using model_traits_type																					 = typename base_type::model_traits_type;
 		template<typename core_traits_type> static constexpr uint64_t get_multiplier() {
 			if constexpr (core_traits_type::alc_type == alloc_type::per_block_alloc) {
 				return model_traits_type::block_count;
@@ -66,15 +66,15 @@ namespace nihilus {
 				++current_index;
 			}
 		}
-	};	
+	};
 
 	template<typename base_type> struct memory_planner : public base_type {
-		NIHILUS_FORCE_INLINE memory_planner() noexcept								 = default;
+		NIHILUS_FORCE_INLINE memory_planner() noexcept								   = default;
 		NIHILUS_FORCE_INLINE memory_planner& operator=(const memory_planner&) noexcept = delete;
-		NIHILUS_FORCE_INLINE memory_planner(const memory_planner&) noexcept			 = delete;
-		NIHILUS_FORCE_INLINE memory_planner& operator=(memory_planner&&) noexcept		 = delete;
-		NIHILUS_FORCE_INLINE memory_planner(memory_planner&&) noexcept				 = delete;
-		using output_type															 = base_type::output_type;
+		NIHILUS_FORCE_INLINE memory_planner(const memory_planner&) noexcept			   = delete;
+		NIHILUS_FORCE_INLINE memory_planner& operator=(memory_planner&&) noexcept	   = delete;
+		NIHILUS_FORCE_INLINE memory_planner(memory_planner&&) noexcept				   = delete;
+		using output_type															   = base_type::output_type;
 		template<typename memory_buffer_type> NIHILUS_FORCE_INLINE void impl(memory_buffer_type& memory_buffer) {
 			if constexpr (base_type::total_required_bytes > 0) {
 				output_type* ptr = static_cast<output_type*>(memory_buffer.claim_memory(base_type::total_required_bytes));
@@ -107,7 +107,8 @@ namespace nihilus {
 			return return_value;
 		}() };
 
-		template<template<typename> typename thread_function, typename... arg_types> NIHILUS_FORCE_INLINE void impl(arg_types&&... args) {}
+		template<template<typename> typename thread_function, typename... arg_types> NIHILUS_FORCE_INLINE void impl(arg_types&&... args) {
+		}
 	};
 
 }

@@ -32,7 +32,6 @@ namespace nihilus {
 	enum class alloc_type : uint8_t {
 		no_alloc,
 		single_alloc,
-		single_max_alloc,
 		per_block_alloc,
 	};
 
@@ -64,11 +63,11 @@ namespace nihilus {
 		static constexpr uint64_t dim02{ dim02_new };
 		static constexpr uint64_t dim03{ dim03_new };
 
-		NIHILUS_FORCE_INLINE static constexpr nihilus::array<uint64_t, 4> get_array() {
+		NIHILUS_FORCE_INLINE static constexpr array<uint64_t, 4> get_array() {
 			return { { dim00, dim01, dim02, dim03 } };
 		}
 
-		template<uint64_t index> NIHILUS_FORCE_INLINE uint64_t operator[](nihilus::tag<index>) const {
+		template<uint64_t index> NIHILUS_FORCE_INLINE uint64_t operator[](tag<index>) const {
 			if constexpr (index == 0) {
 				return static_cast<const derived_type*>(this)->dim00;
 			} else if constexpr (index == 1) {
@@ -100,11 +99,11 @@ namespace nihilus {
 		static constexpr uint64_t dim02{ dim02_new };
 		static constexpr uint64_t dim03{ dim03_new };
 
-		NIHILUS_FORCE_INLINE static constexpr nihilus::array<uint64_t, 4> get_array() {
+		NIHILUS_FORCE_INLINE static constexpr array<uint64_t, 4> get_array() {
 			return { { dim00, dim01, dim02, dim03 } };
 		}
 
-		template<uint64_t index> NIHILUS_FORCE_INLINE uint64_t operator[](nihilus::tag<index>) const {
+		template<uint64_t index> NIHILUS_FORCE_INLINE uint64_t operator[](tag<index>) const {
 			if constexpr (index == 0) {
 				return static_cast<const derived_type*>(this)->dim00;
 			} else if constexpr (index == 1) {
@@ -140,11 +139,11 @@ namespace nihilus {
 		static constexpr uint64_t dim02{ dim02_new };
 		static constexpr uint64_t dim03{ dim03_new };
 
-		NIHILUS_FORCE_INLINE static constexpr nihilus::array<uint64_t, 4> get_array() {
+		NIHILUS_FORCE_INLINE static constexpr array<uint64_t, 4> get_array() {
 			return { { dim00, dim01, dim02, dim03 } };
 		}
 
-		template<uint64_t index> NIHILUS_FORCE_INLINE uint64_t operator[](nihilus::tag<index>) const {
+		template<uint64_t index> NIHILUS_FORCE_INLINE uint64_t operator[](tag<index>) const {
 			if constexpr (index == 0) {
 				return static_cast<const derived_type*>(this)->dim00;
 			} else if constexpr (index == 1) {
@@ -626,12 +625,10 @@ namespace nihilus {
 			core_trait_dims<core_traits<config, llama_op_types::inp_embd>, model_traits_type::embedding_dim, model_traits_type::max_sequence_length, 1, 1, 1>;
 		static constexpr uint64_t depth{ std::max(input_type01::depth, input_type02::depth) + 1 };
 		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_type01::output_type, typename input_type02::output_type>::required };
-		static constexpr alloc_type alc_type{ alloc_type::single_max_alloc };
+		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> strides{ { type_traits<output_type>::impl(core_traits_dims_type::get_array()) } };
-		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(
-			type_traits<output_type>::total_byte_size(array<uint64_t, 4>{ { model_traits_type::embedding_dim, model_traits_type::max_sequence_length, 1, 1 } }) +
-			(dequantization ? type_traits<output_type>::total_byte_size(array<uint64_t, 4>{ { model_traits_type::embedding_dim, model_traits_type::max_sequence_length, 1, 1 } })
-							: 0)) };
+		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
+			(dequantization ? type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) : 0)) };
 		static constexpr layer_op_type layer_type{ layer_op_type::global_input };
 		static constexpr kernel_type krn_type{ kernel_type::get_rows };
 		static constexpr llama_op_types type{ llama_op_types::inp_embd };
@@ -808,8 +805,7 @@ namespace nihilus {
 		using input_type01														 = core_traits<config, llama_op_types::attn_k_weight>;
 		using input_type02														 = core_traits<config, llama_op_types::attn_norm>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::key_type;
-		using core_traits_dims_type = core_trait_dims<core_traits<config, llama_op_types::kcur>, model_traits_type::n_embd_kv_gqa,
-			model_traits_type::max_sequence_length, 1, 1, 1>;
+		using core_traits_dims_type = core_trait_dims<core_traits<config, llama_op_types::kcur>, model_traits_type::n_embd_kv_gqa, model_traits_type::max_sequence_length, 1, 1, 1>;
 		static constexpr uint64_t depth{ std::max(input_type01::depth, input_type02::depth) + 1 };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_type01::output_type, typename input_type02::output_type>::required };
@@ -934,8 +930,8 @@ namespace nihilus {
 		using this_type															 = core_traits<config, llama_op_types::k_cache_view>;
 		using input_type01														 = core_traits<config, llama_op_types::cache_k>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::kv_cache_type;
-		using core_traits_dims_type = core_trait_dims<core_traits<config, llama_op_types::k_cache_view>, model_traits_type::n_embd_kv_gqa,
-			model_traits_type::max_sequence_length, 1, 1, 1>;
+		using core_traits_dims_type =
+			core_trait_dims<core_traits<config, llama_op_types::k_cache_view>, model_traits_type::n_embd_kv_gqa, model_traits_type::max_sequence_length, 1, 1, 1>;
 		static constexpr uint64_t depth{ input_type01::depth + 1 };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
@@ -962,8 +958,8 @@ namespace nihilus {
 		using this_type															 = core_traits<config, llama_op_types::k_cache_view_copy>;
 		using input_type01														 = core_traits<config, llama_op_types::kcur_rope>;
 		using output_type														 = typename core_traits<config, llama_op_types::k_cache_view>::output_type;
-		using core_traits_dims_type = core_trait_dims<core_traits<config, llama_op_types::k_cache_view_copy>, model_traits_type::n_embd_kv_gqa,
-			model_traits_type::max_sequence_length, 1, 1, 1>;
+		using core_traits_dims_type =
+			core_trait_dims<core_traits<config, llama_op_types::k_cache_view_copy>, model_traits_type::n_embd_kv_gqa, model_traits_type::max_sequence_length, 1, 1, 1>;
 		static constexpr uint64_t depth{ input_type01::depth + 1 };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
@@ -1018,8 +1014,8 @@ namespace nihilus {
 		using this_type															 = core_traits<config, llama_op_types::v_cache_view>;
 		using input_type01														 = core_traits<config, llama_op_types::cache_v>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::kv_cache_type;
-		using core_traits_dims_type = core_trait_dims<core_traits<config, llama_op_types::v_cache_view>, model_traits_type::max_sequence_length,
-			model_traits_type::n_embd_kv_gqa, 1, 1, 0>;
+		using core_traits_dims_type =
+			core_trait_dims<core_traits<config, llama_op_types::v_cache_view>, model_traits_type::max_sequence_length, model_traits_type::n_embd_kv_gqa, 1, 1, 0>;
 		static constexpr uint64_t depth{ input_type01::depth + 1 };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
@@ -1046,8 +1042,8 @@ namespace nihilus {
 		using this_type															 = core_traits<config, llama_op_types::v_cache_view_copy>;
 		using input_type01														 = core_traits<config, llama_op_types::vcur_transposed>;
 		using output_type														 = typename core_traits<config, llama_op_types::v_cache_view>::output_type;
-		using core_traits_dims_type = core_trait_dims<core_traits<config, llama_op_types::v_cache_view_copy>, model_traits_type::max_sequence_length,
-			model_traits_type::n_embd_kv_gqa, 1, 1, 0>;
+		using core_traits_dims_type =
+			core_trait_dims<core_traits<config, llama_op_types::v_cache_view_copy>, model_traits_type::max_sequence_length, model_traits_type::n_embd_kv_gqa, 1, 1, 0>;
 		static constexpr uint64_t depth{ input_type01::depth + 1 };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
@@ -1474,7 +1470,6 @@ namespace nihilus {
 		int32_t value{};
 	};
 
-	// Final operations with sequence-length dimensional patterns...
 	template<model_config config> struct core_traits<config, llama_op_types::ffn_up>
 		: core_trait_dims<core_traits<config, llama_op_types::ffn_up>, model_traits_type<config>::feed_forward_length, model_traits_type<config>::max_sequence_length, 1, 1, 1> {
 		NIHILUS_FORCE_INLINE core_traits(uint64_t thread_count) noexcept : sync_flag_start{ thread_count }, sync_flag_end{ thread_count } {};
@@ -1798,15 +1793,26 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename index_sequence> struct get_core_traits_base;
+	template<model_config config, typename index_sequence> struct get_constexpr_core_bases_base;
 
 	template<model_config config> using op_type_type_t = typename model_traits<config.arch, config.model_size, config.model_generation>::op_type_type;
 
-	template<model_config config, uint64_t... index> struct get_core_traits_base<config, std::index_sequence<index...>> {
+	template<model_config config, uint64_t... index> struct get_constexpr_core_bases_base<config, std::index_sequence<index...>> {
 		using type = core_bases<core_traits<config, static_cast<op_type_type_t<config>>(index)>...>;
 	};
 
-	template<model_config config> using get_core_traits_config_base_t =
-		typename get_core_traits_base<config, std::make_index_sequence<static_cast<uint64_t>(op_type_type_t<config>::count)>>::type;
+	template<model_config config> using get_constexpr_core_bases_config_base_t =
+		typename get_constexpr_core_bases_base<config, std::make_index_sequence<static_cast<uint64_t>(op_type_type_t<config>::count)>>::type;
+
+	template<model_config config, typename enum_holder_type, typename index_sequence> struct get_runtime_core_bases_base;
+
+	template<model_config config> using op_type_type_t = typename model_traits<config.arch, config.model_size, config.model_generation>::op_type_type;
+
+	template<model_config config, typename enum_holder_type, uint64_t... index> struct get_runtime_core_bases_base<config, enum_holder_type, std::index_sequence<index...>> {
+		using type = core_bases<core_traits<config, enum_holder_type::active_traits[index]>...>;
+	};
+
+	template<model_config config, typename enum_holder_type> using get_runtime_core_bases_config_base_t =
+		typename get_runtime_core_bases_base<config, enum_holder_type, std::make_index_sequence<static_cast<uint64_t>(op_type_type_t<config>::count)>>::type;
 
 }

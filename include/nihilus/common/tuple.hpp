@@ -125,16 +125,16 @@ namespace nihilus {
 
 	template<typename... value_type> struct tuple : tuple_base_t<value_type...> {
 		static constexpr uint64_t index = sizeof...(value_type);
-		using super					  = tuple_base_t<value_type...>;
+		using super						= tuple_base_t<value_type...>;
 		using super::operator[];
 		using super::decl_elem;
 	};
 
 	template<> struct tuple<> : tuple_base_t<> {
 		static constexpr uint64_t index = 0;
-		using super					  = tuple_base_t<>;
-		using base_list				  = type_list<>;
-		using element_list			  = type_list<>;
+		using super						= tuple_base_t<>;
+		using base_list					= type_list<>;
+		using element_list				= type_list<>;
 	};
 
 	template<typename... types> tuple(types&&...) -> tuple<std::remove_cvref_t<types>...>;

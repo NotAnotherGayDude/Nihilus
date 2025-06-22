@@ -29,7 +29,7 @@ namespace nihilus {
 
 	struct input_session_config {
 		NIHILUS_FORCE_INLINE input_session_config& operator=(const input_session_config&) = delete;
-		NIHILUS_FORCE_INLINE input_session_config(const input_session_config&)			= delete;
+		NIHILUS_FORCE_INLINE input_session_config(const input_session_config&)			  = delete;
 		NIHILUS_FORCE_INLINE input_session_config(std::istream& stream_new, uint64_t max_tokens_new) : stream{ stream_new }, max_tokens{ max_tokens_new } {};
 		std::istream& stream;
 		uint64_t max_tokens{};

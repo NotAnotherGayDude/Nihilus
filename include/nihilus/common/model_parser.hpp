@@ -186,7 +186,7 @@ namespace nihilus {
 
 	  private:
 		std::string_view file_path_;
-		void* mapped_data_	   = nullptr;
+		void* mapped_data_	= nullptr;
 		uint64_t file_size_ = 0;
 
 #ifdef NIHILUS_PLATFORM_WINDOWS
@@ -385,7 +385,7 @@ namespace nihilus {
 			if (last <= first)
 				return;
 
-			void* unmap_addr	   = static_cast<char*>(mapped_data_) + first;
+			void* unmap_addr	= static_cast<char*>(mapped_data_) + first;
 			uint64_t unmap_size = last - first;
 
 			if (munmap(unmap_addr, unmap_size) != 0) {
@@ -939,7 +939,7 @@ namespace nihilus {
 		gguf_header_t header{};
 	};
 
-	NIHILUS_FORCE_INLINE uint64_t align_offset(uint64_t offset, uint64_t alignment = 1) {
+	NIHILUS_FORCE_INLINE uint64_t align_offset(uint64_t offset, uint64_t alignment = 0) {
 		alignment = alignment == 0 ? 1 : alignment;
 		return offset + (alignment - (offset % alignment)) % alignment;
 	}
@@ -960,15 +960,15 @@ namespace nihilus {
 			for (uint64_t x = 0; x < gguf_file.header.tensor_count; ++x) {
 				gguf_file.tensor_infos.emplace_back(value_reader<core_base_creation_data>::gather_value(ptr));
 			}
-			uint64_t max_tensor_end		= 0;
+			uint64_t max_tensor_end = 0;
 			for (const auto& tensor: gguf_file.tensor_infos) {
 				uint64_t tensor_size = tensor.core_total_byte_size();
-				uint64_t tensor_end = tensor.offset + tensor_size;
-				max_tensor_end		= std::max(max_tensor_end, tensor_end);
+				uint64_t tensor_end	 = tensor.offset + tensor_size;
+				max_tensor_end		 = std::max(max_tensor_end, tensor_end);
 			}
 
 			uint64_t tensor_data_start = ptr.file->size() - max_tensor_end;
-			uint64_t alignment{ 32 };
+			uint64_t alignment{ 0 };
 			gather_scalar("alignment", alignment, gguf_file.header.metadata_kv);
 			return_value.cparams		  = value_reader<construction_parameters<model_arch::llama>, model_arch::llama>::gather_value(gguf_file.header.metadata_kv);
 			return_value.tokenizer_params = value_reader<tokenizer_parameters<model_arch::llama>, model_arch::llama>::gather_value(gguf_file.header.metadata_kv);
@@ -976,7 +976,7 @@ namespace nihilus {
 			for (uint64_t x = 0; x < gguf_file.header.tensor_count; ++x) {
 				uint64_t absolute_offset = tensor_data_start + gguf_file.tensor_infos[x].offset;
 				ptr.map_pointer(data[string_to_op_type<model_arch::llama>::impl(gguf_file.tensor_infos[x].name)][extract_layer_number(gguf_file.tensor_infos[x].name)],
-					absolute_offset);
+					align_offset(absolute_offset, alignment));
 			};
 			return return_value;
 		}
