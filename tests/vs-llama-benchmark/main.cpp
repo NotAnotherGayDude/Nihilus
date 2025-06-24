@@ -75,120 +75,24 @@ static void sigint_handler(int signo) {
 }
 #endif
 
-template<typename... bases> struct core_bases_depth : bases... {
-	NIHILUS_FORCE_INLINE core_bases_depth() noexcept						  = default;
-	NIHILUS_FORCE_INLINE core_bases_depth& operator=(core_bases_depth&&)	  = delete;
-	NIHILUS_FORCE_INLINE core_bases_depth(core_bases_depth&&)				  = delete;
-	NIHILUS_FORCE_INLINE core_bases_depth& operator=(const core_bases_depth&) = delete;
-	NIHILUS_FORCE_INLINE core_bases_depth(const core_bases_depth&)			  = delete;
-
-	template<template<typename> typename mixin_type, typename op_entity_type, typename... arg_types> NIHILUS_FORCE_INLINE void impl_internal(arg_types&&... args) {
-		return mixin_type<op_entity_type>::impl(*static_cast<op_entity_type*>(this), std::forward<arg_types>(args)...);
-	}
-
-	template<template<typename> typename mixin_type, typename... arg_types> NIHILUS_FORCE_INLINE void impl(arg_types&&... args) {
-		(impl_internal<mixin_type, bases>(std::forward<arg_types>(args)...), ...);
-	}
-
-	template<template<typename> typename mixin_type, typename op_entity_type, typename... arg_types>
-	NIHILUS_FORCE_INLINE static constexpr void impl_internal_constexpr(arg_types&&... args) {
-		return mixin_type<op_entity_type>::impl_constexpr(std::forward<arg_types>(args)...);
-	}
-
-	template<template<typename> typename mixin_type, typename... arg_types> NIHILUS_FORCE_INLINE static constexpr void impl_constexpr(arg_types&&... args) {
-		(impl_internal_constexpr<mixin_type, bases>(args...), ...);
-	}
-};
-
-template<nihilus::model_config config, typename index_sequence> struct get_core_bases_base;
-
-template<nihilus::model_config config> using op_type_type_t = typename nihilus::model_traits<config.arch, config.model_size, config.model_generation>::op_type_type;
-
-template<nihilus::model_config config, uint64_t... index> struct get_core_bases_base<config, std::index_sequence<index...>> {
-	using type = core_bases_depth<nihilus::core_traits<config, static_cast<op_type_type_t<config>>(index)>...>;
-};
-
-template<nihilus::model_config config> using get_core_bases_config_base_t =
-	typename get_core_bases_base<config, std::make_index_sequence<static_cast<uint64_t>(op_type_type_t<config>::count)>>::type;
-
-template<nihilus::model_config config, typename enum_holder_type, typename index_sequence> struct get_runtime_core_bases_base;
-
-template<nihilus::model_config config, typename enum_holder_type, uint64_t... index> struct get_runtime_core_bases_base<config, enum_holder_type, std::index_sequence<index...>> {
-	using type = core_bases_depth<nihilus::core_traits<config, enum_holder_type::active_traits[index]>...>;
-};
-
-template<nihilus::model_config config, typename enum_holder_type> using get_runtime_core_bases_config_base_t =
-	typename get_runtime_core_bases_base<config, enum_holder_type, std::make_index_sequence<static_cast<uint64_t>(op_type_type_t<config>::count)>>::type;
-
-template<typename base_type_new> struct memory_mapper {
-	NIHILUS_FORCE_INLINE memory_mapper() noexcept								 = default;
-	NIHILUS_FORCE_INLINE memory_mapper& operator=(const memory_mapper&) noexcept = delete;
-	NIHILUS_FORCE_INLINE memory_mapper(const memory_mapper&) noexcept			 = delete;
-	NIHILUS_FORCE_INLINE memory_mapper& operator=(memory_mapper&&) noexcept		 = delete;
-	NIHILUS_FORCE_INLINE memory_mapper(memory_mapper&&) noexcept				 = delete;
-	using base_type																 = base_type_new;
-	using output_type															 = base_type::output_type;
-	using model_traits_type														 = typename base_type::model_traits_type;
-	using op_type_type															 = typename model_traits_type::op_type_type;
-	template<typename memory_buffer_type> NIHILUS_FORCE_INLINE void impl(memory_buffer_type& memory_buffer) {
-		if constexpr (base_type::total_required_bytes > 0) {
-			output_type* ptr = static_cast<output_type*>(memory_buffer.claim_memory(this->total_required_bytes));
-			if constexpr (nihilus::array_type<decltype(this->data)>) {
-				for (uint64_t x = 0; x < base_type::model_traits_type::block_count; ++x) {
-					this->data[x] = ptr;
-				}
-			} else {
-				this->data = ptr;
-			}
-		}
-	}
-	NIHILUS_FORCE_INLINE constexpr static void impl_constexpr(uint64_t& total_required_bytes) {
-		using output_type = base_type::output_type;
-		if constexpr (base_type::total_required_bytes > 0) {
-			++total_required_bytes;
-		}
-	}
-	template<uint64_t size> NIHILUS_FORCE_INLINE constexpr static void impl_constexpr(nihilus::array<op_type_type, size>& value, uint64_t& current_index) {
-		using output_type = base_type::output_type;
-		if constexpr (base_type::total_required_bytes > 0) {
-			value[current_index] = base_type::type;
-			++current_index;
-		}
-	}
-};
-
-template<nihilus::model_config config> struct model : public nihilus::model_base<decltype(config.model_size), decltype(config.model_generation)>,
-													  public get_core_bases_config_base_t<config>,
-													  public nihilus::thread_pool<config, model<config>>,
-													  public nihilus::hyper_parameters<config.arch> {
-	using core_bases_config_type						= get_core_bases_config_base_t<config>;
-	using model_traits_type								= nihilus::model_traits<config.arch, config.model_size, config.model_generation>;
-	using op_type_type									= model_traits_type::op_type_type;
-	using kernel_type_profile_traits_type				= nihilus::kernel_type_profile_traits<config.kernel_profile>;
-	using base_type										= nihilus::model_base<decltype(config.model_size), decltype(config.model_generation)>;
-	NIHILUS_FORCE_INLINE model()						= default;
-	NIHILUS_FORCE_INLINE model& operator=(model&&)		= delete;
-	NIHILUS_FORCE_INLINE model(model&&)					= delete;
-	NIHILUS_FORCE_INLINE model& operator=(const model&) = delete;
-	NIHILUS_FORCE_INLINE model(const model&)			= delete;
-	NIHILUS_FORCE_INLINE void init(nihilus::cli_params params) {
-		nihilus::array<nihilus::array<void*, model_traits_type::block_count>, op_type_type::count> data{};
-		core_bases_config_type::template impl<nihilus::execution_planner>(params.thread_count, data);
-		core_bases_config_type::template impl<nihilus::tensor_debugger_impl>();
-	}
-};
-
 int main(int argc, char** argv) {
 	try {
 		static constexpr auto model_config = nihilus::generate_model_config(nihilus::llama_model_generation::v3, nihilus::llama_model_size::llama_8B,
 			nihilus::kernel_type_profile::q8_gqa, nihilus::model_arch::llama, false);
-		for (uint64_t x = 0; x < nihilus::thread_strategy<model_config, nihilus::llama_op_types> ::final_ops.size(); ++x) {
-			for (size_t y = 0; y < nihilus::thread_strategy<model_config, nihilus::llama_op_types>::final_ops[x].size(); ++y) {
-				std::cout << "Op-Type: " << ( int32_t )nihilus::thread_strategy<model_config, nihilus::llama_op_types>::final_ops[x][y] << std::endl;
+		auto cli_args_final				   = nihilus::harbinger<model_config>::parse_cli_arguments(argc, argv);
+		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 2, 1, true, "Token">::runBenchmark<"nihilus">([&] {
+			nihilus::model<model_config> model_new{ cli_args_final };
+			nihilus::input_session_config session_config{ std::cin, 1024 };
+			nihilus::input_session input_session{ session_config, model_new };
+			input_session.exec_params.token_count  = cli_args_final.n_tokens;
+			input_session.exec_params.thread_count = cli_args_final.thread_count;
+			std::cout << "CURRENT COUNT: " << input_session.exec_params.token_count << std::endl;
+			while (input_session.process_input()) {
 			}
-		}
+			return input_session.exec_params.token_count - 1;
+		});
 		std::string return_value{};
-		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 2, 1, true, "Token">::runBenchmark<"llama.cpp", "cyan">([&] {
+		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 2, 1, true, "Token">::runBenchmark<"llama.cpp">([&] {
 			return_value.clear();
 			uint64_t token_count{};
 			common_params params;
@@ -491,7 +395,7 @@ int main(int argc, char** argv) {
 						// If we're not running interactively, the reverse prompt might be tokenized with some following characters
 						// so we'll compensate for that by widening the search window a bit.
 						for (std::string& antiprompt: params.antiprompt) {
-							uint64_t extra_padding	= params.interactive ? 0 : 2;
+							uint64_t extra_padding	  = params.interactive ? 0 : 2;
 							uint64_t search_start_pos = last_output.length() > static_cast<uint64_t>(antiprompt.length() + extra_padding)
 								? last_output.length() - static_cast<uint64_t>(antiprompt.length() + extra_padding)
 								: 0;
@@ -695,20 +599,6 @@ int main(int argc, char** argv) {
 			ggml_threadpool_free_fn(threadpool_batch);
 			return static_cast<int32_t>(token_count - 2);
 		});
-		//invocable<model_config>.impl();
-		auto cli_args_final = nihilus::harbinger<model_config>::parse_cli_arguments(argc, argv);
-		nihilus::model<model_config> model_graph_data{ cli_args_final };
-		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 2, 1, true, "Token">::runBenchmark<"nihilus", "cyan">([&] {
-			nihilus::input_session_config session_config{ std::cin, 1024 };
-			nihilus::input_session input_session{ session_config, model_graph_data };
-			input_session.exec_params.token_count  = cli_args_final.n_tokens;
-			input_session.exec_params.thread_count = cli_args_final.thread_count;
-			std::cout << "CURRENT COUNT: " << input_session.exec_params.token_count << std::endl;
-			while (input_session.process_input()) {
-			}
-			return input_session.exec_params.token_count - 1;
-		});
-		std::this_thread::sleep_for(std::chrono::seconds{ 15 });
 		std::cout << return_value << std::endl;
 		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 2, 1, true, "Token">::printResults();
 	} catch (const std::exception& error) {

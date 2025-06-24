@@ -29,19 +29,19 @@ RealTimeChris (Chris model_traits_type.)
 #include <latch>
 
 namespace nihilus {
-
-	template<typename base_type> struct memory_allocator {
+	
+	template<typename base_type, auto type> struct memory_allocator : public base_type {
 		NIHILUS_FORCE_INLINE memory_allocator() noexcept								   = default;
 		NIHILUS_FORCE_INLINE memory_allocator& operator=(const memory_allocator&) noexcept = delete;
 		NIHILUS_FORCE_INLINE memory_allocator(const memory_allocator&) noexcept			   = delete;
 		NIHILUS_FORCE_INLINE memory_allocator& operator=(memory_allocator&&) noexcept	   = delete;
 		NIHILUS_FORCE_INLINE memory_allocator(memory_allocator&&) noexcept				   = delete;
 		using model_traits_type															   = base_type::model_traits_type;
-		NIHILUS_FORCE_INLINE constexpr static void impl_constexpr(uint64_t& total_required_bytes) {
-			if constexpr (base_type::alc_type == alloc_type::per_block_alloc) {
-				total_required_bytes += round_up_to_multiple<cpu_alignment>(base_type::total_required_bytes) * model_traits_type::block_count;
-			} else if constexpr (base_type::alc_type == alloc_type::single_alloc) {
-				total_required_bytes += round_up_to_multiple<cpu_alignment>(base_type::total_required_bytes);
+		NIHILUS_FORCE_INLINE constexpr static void impl(uint64_t& total_required_bytes) {
+			if constexpr (base_type::alc_type == nihilus::alloc_type::per_block_alloc) {
+				total_required_bytes += nihilus::round_up_to_multiple<cpu_alignment>(base_type::total_required_bytes) * model_traits_type::block_count;
+			} else if constexpr (base_type::alc_type == nihilus::alloc_type::single_alloc) {
+				total_required_bytes += nihilus::round_up_to_multiple<cpu_alignment>(base_type::total_required_bytes);
 			}
 		}
 	};

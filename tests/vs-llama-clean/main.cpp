@@ -77,7 +77,7 @@ static void sigint_handler(int signo) {
 int main(int argc, char** argv) {
 	try {
 		std::string return_value{};
-		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 2, 1,  true, "Token">::runBenchmark<"llama.cpp", "cyan">([&] {
+		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 2, 1,  true, "Token">::runBenchmark<"llama.cpp">([&] {
 			return_value.clear();
 			size_t token_count{};
 			common_params params;
@@ -575,7 +575,6 @@ int main(int argc, char** argv) {
 			common_sampler_free(smpl);
 
 			llama_backend_free();
-
 			ggml_threadpool_free_fn(threadpool);
 			ggml_threadpool_free_fn(threadpool_batch);
 			return static_cast<int32_t>(token_count - 2);
@@ -583,15 +582,13 @@ int main(int argc, char** argv) {
 		static constexpr auto model_config = nihilus::generate_model_config(nihilus::llama_model_generation::v3, nihilus::llama_model_size::llama_8B,
 			nihilus::kernel_type_profile::q8_gqa, nihilus::model_arch::llama, false);
 		auto cli_args_final				   = nihilus::harbinger<model_config>::parse_cli_arguments(argc, argv);
-		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 2, 1,  true, "Token">::runBenchmark<"nihilus", "cyan">([&] {
-			nihilus::model<model_config> model_graph_data{ cli_args_final };
-			nihilus::input_session_config session_config{ std::cin, 1024 };
-			nihilus::input_session input_session{ session_config, model_graph_data };
-			input_session.exec_params.token_count  = cli_args_final.n_tokens;
-			input_session.exec_params.thread_count = cli_args_final.thread_count;
-			std::cout << "CURRENT COUNT: " << input_session.exec_params.token_count << std::endl;
-			while (input_session.process_input()) {
-			}
+		nihilus::model<model_config> model_graph_data{ cli_args_final };
+		nihilus::input_session_config session_config{ std::cin, 1024 };
+		nihilus::input_session input_session{ session_config, model_graph_data };
+		while (input_session.process_input()) {
+		}
+		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 2, 1,  true, "Token">::runBenchmark<"nihilus">([&] {
+			
 			return input_session.exec_params.token_count - 1;
 		});
 		std::cout << return_value << std::endl;

@@ -47,7 +47,7 @@ namespace nihilus {
 		static_assert(integral_or_enum<decltype(size_new)>, "Sorry, but the size val passed to array must be integral or enum!");
 		static constexpr uint64_t size_val{ static_cast<uint64_t>(size_new) };
 		using value_type			 = value_type_new;
-		using size_type				 = decltype(size_new);
+		using uint64_type				 = decltype(size_new);
 		using difference_type		 = ptrdiff_t;
 		using pointer				 = value_type*;
 		using const_pointer			 = const value_type*;
@@ -110,11 +110,11 @@ namespace nihilus {
 			return rend();
 		}
 
-		NIHILUS_FORCE_INLINE constexpr size_type size() const noexcept {
+		NIHILUS_FORCE_INLINE constexpr uint64_type size() const noexcept {
 			return size_new;
 		}
 
-		NIHILUS_FORCE_INLINE constexpr size_type max_size() const noexcept {
+		NIHILUS_FORCE_INLINE constexpr uint64_type max_size() const noexcept {
 			return size_new;
 		}
 
@@ -205,7 +205,7 @@ namespace nihilus {
 	template<class value_type_new> class array<value_type_new, 0> {
 	  public:
 		using value_type			 = value_type_new;
-		using size_type				 = uint64_t;
+		using uint64_type				 = uint64_t;
 		using difference_type		 = ptrdiff_t;
 		using pointer				 = value_type*;
 		using const_pointer			 = const value_type*;
@@ -270,11 +270,11 @@ namespace nihilus {
 			return rend();
 		}
 
-		NIHILUS_FORCE_INLINE constexpr size_type size() const noexcept {
+		NIHILUS_FORCE_INLINE constexpr uint64_type size() const noexcept {
 			return 0;
 		}
 
-		NIHILUS_FORCE_INLINE constexpr size_type max_size() const noexcept {
+		NIHILUS_FORCE_INLINE constexpr uint64_type max_size() const noexcept {
 			return 0;
 		}
 
@@ -282,19 +282,19 @@ namespace nihilus {
 			return true;
 		}
 
-		NIHILUS_FORCE_INLINE constexpr reference at(size_type) {
+		NIHILUS_FORCE_INLINE constexpr reference at(uint64_type) {
 			throw std::runtime_error{ "invalid array<T, N> subscript" };
 		}
 
-		NIHILUS_FORCE_INLINE constexpr const_reference at(size_type) const {
+		NIHILUS_FORCE_INLINE constexpr const_reference at(uint64_type) const {
 			throw std::runtime_error{ "invalid array<T, N> subscript" };
 		}
 
-		NIHILUS_FORCE_INLINE constexpr reference operator[](size_type) noexcept {
+		NIHILUS_FORCE_INLINE constexpr reference operator[](uint64_type) noexcept {
 			return *data();
 		}
 
-		NIHILUS_FORCE_INLINE constexpr const_reference operator[](size_type) const noexcept {
+		NIHILUS_FORCE_INLINE constexpr const_reference operator[](uint64_type) const noexcept {
 			return *data();
 		}
 

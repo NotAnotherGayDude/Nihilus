@@ -75,7 +75,7 @@ target_link_libraries(
 
 include("cmake/nihilus_detect_architecture.cmake")
 
-set(RT_RM_COMMON_COMPILE_FLAGS
+set(NIHILUS_COMMON_COMPILE_FLAGS
     "$<$<CONFIG:RELEASE>:$<$<OR:$<CXX_COMPILER_ID:GNU>,$<STREQUAL:$<UPPER_CASE:$<CXX_COMPILER_ID>>,CLANG>>:-fno-asynchronous-unwind-tables>>"
     "$<$<CONFIG:RELEASE>:$<$<OR:$<CXX_COMPILER_ID:GNU>,$<STREQUAL:$<UPPER_CASE:$<CXX_COMPILER_ID>>,CLANG>>:-fvisibility-inlines-hidden>>"
     "$<$<BOOL:${PGO_GENERATE}>:$<$<OR:$<CXX_COMPILER_ID:GNU>,$<STREQUAL:$<UPPER_CASE:$<CXX_COMPILER_ID>>,CLANG>>:-fprofile-generate>>"
@@ -119,10 +119,11 @@ set(RT_RM_COMMON_COMPILE_FLAGS
 	"$<$<CXX_COMPILER_ID:MSVC>:/Wall>"
 	"$<$<CXX_COMPILER_ID:GNU>:-Wall>"
 	"$<$<CXX_COMPILER_ID:MSVC>:/W4>"
+    "$<$<CXX_COMPILER_ID:MSVC>:/w4324>"
     "${SIMD_FLAG}"
 )
 
-set(RT_RM_COMMON_LINK_OPTIONS
+set(NIHILUS_COMMON_LINK_OPTIONS
     "$<$<BOOL:${PGO_GENERATE}>:$<$<OR:$<CXX_COMPILER_ID:GNU>,$<STREQUAL:$<UPPER_CASE:$<CXX_COMPILER_ID>>,CLANG>>:-fprofile-generate>>"
     "$<$<CONFIG:RELEASE>:$<$<OR:$<CXX_COMPILER_ID:GNU>,$<STREQUAL:$<UPPER_CASE:$<CXX_COMPILER_ID>>,CLANG>>:-Wl,--discard-all>>"
     "$<$<AND:$<STREQUAL:$<UPPER_CASE:$<CXX_COMPILER_ID>>,CLANG>,$<STREQUAL:${NIHILUS_ASAN_ENABLED},TRUE>>:-fsanitize=address>"
@@ -144,12 +145,12 @@ set(RT_RM_COMMON_LINK_OPTIONS
 
 target_compile_options(
     "${PROJECT_NAME}" INTERFACE
-    "${RT_RM_COMMON_COMPILE_FLAGS}"
+    "${NIHILUS_COMMON_COMPILE_FLAGS}"
 )
 
 target_link_options(
     "${PROJECT_NAME}" INTERFACE
-    "${RT_RM_COMMON_LINK_OPTIONS}"
+    "${NIHILUS_COMMON_LINK_OPTIONS}"
 )
 
 target_compile_definitions(

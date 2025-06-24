@@ -44,29 +44,69 @@ namespace nihilus {
 	};
 
 	template<typename model_type> struct input_session : public input_session_base, public tokenizer<model_type::model_traits_type::arch> {
-		using base_type = input_session_base;
+		using base_type			= input_session_base;
+		using tokenizer_type	= tokenizer<model_type::model_traits_type::arch>;
+		using model_traits_type = typename model_type::model_traits_type;
 
 		NIHILUS_FORCE_INLINE input_session() noexcept = default;
-		NIHILUS_FORCE_INLINE input_session(const input_session_config&, model_type& model) : model_ptr{ &model } {
-			exec_params.thread_count = model.thread_count;
+
+		NIHILUS_FORCE_INLINE input_session(const input_session_config& config, model_type& model) : model_ptr{ &model } {
+			exec_params.token_count	 = config.max_tokens;
 		};
 
 		NIHILUS_FORCE_INLINE bool process_input() {
-			this->tokenize(input, model_ptr->template get_core<model_type::op_type_type::inp_tokens>().data);
+			//this->tokenize(input, model_ptr->template get_core<model_type::op_type_type::inp_tokens>().data);
 			model_ptr->execute_model(exec_params);
-			std::cout << "FOR " << exec_params.thread_count << " THREADS, WITH " << spinlock_time << " NANOSECONDS OF SPINLOCK PER KERNEL, "
+			std::cout << "FOR " << exec_params.thread_count << " THREADS, WITH " << 500 << " NANOSECONDS OF SPINLOCK PER KERNEL, "
 					  << "NIHILUS AVERAGE COMPUTE TIME, OVER: " << std::setw(50 - std::size("NIHILUS AVERAGE COMPUTE TIME, OVER: ")) << stop_watch_val_nihilus.get_count()
 					  << " TOKENS: " << stop_watch_val_nihilus.get_average() << std::endl;
 			return false;
 		}
 
+		/*
+		NIHILUS_FORCE_INLINE bool process_input() {
+			// Get input text (you'd implement input reading here)
+			std::string input_text = get_input_text();
+
+			if (input_text.empty()) {
+				return false;
+			}
+
+			// Tokenize input text into the model's input tensor
+			auto& token_tensor = model_ptr->template get_core<model_traits_type::op_type_type::inp_tokens>();
+			size_t token_count = this->tokenize(input_text, token_tensor.data, token_tensor.dim00);
+
+			// Update execution parameters
+			exec_params.token_count	 = token_count;
+			exec_params.input_tokens = token_tensor.data;
+
+			// Execute the model
+			model_ptr->execute_model(exec_params);
+
+			// Output performance metrics
+			std::cout << "FOR " << exec_params.thread_count << " THREADS, WITH " << spinlock_time << " NANOSECONDS OF SPINLOCK PER KERNEL, "
+					  << "NIHILUS AVERAGE COMPUTE TIME, OVER: " << std::setw(50 - std::size("NIHILUS AVERAGE COMPUTE TIME, OVER: ")) << stop_watch_val_nihilus.get_count()
+					  << " TOKENS: " << stop_watch_val_nihilus.get_average() << std::endl;
+
+			return token_count > 0;
+		}*/
+
 		NIHILUS_FORCE_INLINE operator bool() {
-			return false;
+			return model_ptr != nullptr;
 		}
 
-	  protected:
+	  private:
 		model_type* model_ptr{};
-		std::string input{};
+
+		// Get input text - you'd implement this based on your input method
+		NIHILUS_FORCE_INLINE std::string get_input_text() {
+			// Placeholder - implement based on whether you're reading from:
+			// - Command line arguments
+			// - Standard input
+			// - File
+			// - Interactive prompt
+			return "What is the meaning of life?";// Example
+		}
 	};
 
 }

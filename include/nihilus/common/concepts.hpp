@@ -66,7 +66,7 @@ namespace nihilus {
 
 	template<typename value_type>
 	concept has_size = requires(std::remove_cvref_t<value_type> value) {
-		{ value.size() } -> std::same_as<typename value_type::size_type>;
+		{ value.size() } -> std::same_as<typename value_type::uint64_type>;
 	};
 
 	template<typename value_type>
@@ -76,7 +76,7 @@ namespace nihilus {
 
 	template<typename value_type>
 	concept vector_subscriptable = requires(std::remove_cvref_t<value_type> value) {
-		{ value[std::declval<typename value_type::size_type>()] } -> std::same_as<typename value_type::reference>;
+		{ value[std::declval<typename value_type::uint64_type>()] } -> std::same_as<typename value_type::reference>;
 	};
 
 	template<typename value_type>
@@ -100,9 +100,9 @@ namespace nihilus {
 
 	template<typename value_type>
 	concept blocking = requires(std::remove_cvref_t<value_type> value) {
-		value_type::sync_flag_end;
-		value_type::sync_flag_start;
-	} && value_type::depth > 0;
+		std::remove_cvref_t<value_type>::sync_flag_end;
+		std::remove_cvref_t<value_type>::sync_flag_start;
+	};
 
 	template<typename value_type>
 	concept no_input = requires(std::remove_cvref_t<value_type>) { typename std::remove_cvref_t<value_type>::output_type; };

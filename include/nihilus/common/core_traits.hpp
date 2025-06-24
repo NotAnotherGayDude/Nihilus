@@ -36,8 +36,10 @@ namespace nihilus {
 		per_block_alloc,
 	};
 
-	enum class layer_op_type : uint8_t {
+	enum class thread_strategy_type : uint8_t {
 		none,
+		weight_mapping,
+		thread_prep,
 		global_input,
 		global_output,
 		per_block,
@@ -47,59 +49,153 @@ namespace nihilus {
 		static constexpr bool required{ !std::is_same_v<type01, type02> };
 	};
 
-	template<model_config config, auto op_type> struct core_traits;
+	template<model_config config_new, auto op_type> struct core_traits;
 
 	template<typename op_type_type> struct core_traits_dynamic {
 		op_type_type type{};
 		uint64_t depth{};
 	};
 
-	template<model_config config, typename op_type_type, op_type_type current_index = static_cast<op_type_type>(0)>
-	constexpr uint64_t count_active_ops(uint64_t current_max_depth = 0) {
-		if constexpr (static_cast<uint64_t>(current_index) < static_cast<uint64_t>(op_type_type::count)) {
-			constexpr uint64_t current_index_new = static_cast<uint64_t>(current_index);
-			current_max_depth += core_traits<config, current_index>::krn_type != kernel_type::none ? 1 : 0;
-			return count_active_ops<config, op_type_type, static_cast<op_type_type>(current_index_new + 1)>(current_max_depth);
-		} else {
-			return current_max_depth;
-		}
-	}
+	template<nihilus::model_config config_new, typename op_type_type, nihilus::thread_strategy_type layer_type> struct count_active_ops;
 
-	template<model_config config, typename op_type_type, uint64_t size, op_type_type current_index = static_cast<op_type_type>(0)>
-	constexpr auto generate_core_traits_dynamic_array(array<core_traits_dynamic<op_type_type>, size> values, uint64_t current_index_newer = 0) {
-		constexpr uint64_t current_index_new = static_cast<uint64_t>(current_index);
-		if constexpr (current_index_new < static_cast<uint64_t>(op_type_type::count)) {
-			if constexpr (core_traits<config, current_index>::krn_type != kernel_type::none) {
-				core_traits_dynamic<op_type_type> return_values{};
-				return_values.depth			= core_traits<config, current_index>::depth;
-				return_values.type			= core_traits<config, current_index>::type;
-				values[current_index_newer] = return_values;
-				++current_index_newer;
+	template<nihilus::model_config config_new, typename op_type_type, nihilus::thread_strategy_type layer_type>
+		requires(layer_type == thread_strategy_type::global_input || layer_type == thread_strategy_type::per_block || layer_type == thread_strategy_type::global_output)
+	struct count_active_ops<config_new, op_type_type, layer_type> {
+		template<op_type_type current_index = static_cast<op_type_type>(0)> static constexpr auto impl(uint64_t current_max_depth = 0) {
+			if constexpr (static_cast<uint64_t>(current_index) < static_cast<uint64_t>(op_type_type::count)) {
+				constexpr uint64_t current_index_new = static_cast<uint64_t>(current_index);
+				current_max_depth += (nihilus::core_traits<config_new, current_index>::krn_type != nihilus::kernel_type::none &&
+										 nihilus::core_traits<config_new, current_index>::layer_type == layer_type && nihilus::core_traits<config_new, current_index>::depth != 0)
+					? 1
+					: 0;
+				return impl<static_cast<op_type_type>(current_index_new + 1)>(current_max_depth);
+			} else {
+				return current_max_depth;
 			}
-			return generate_core_traits_dynamic_array<config, op_type_type, size, static_cast<op_type_type>(current_index_new + 1)>(values, current_index_newer);
-		} else {
-			return values;
 		}
-	}
+	};
 
-	template<model_config config, typename op_type_type> constexpr auto generate_core_traits_dynamic_array() {
-		constexpr uint64_t active_op_count{ count_active_ops<config, op_type_type>() };
-		array<core_traits_dynamic<op_type_type>, active_op_count> return_values{};
-		return generate_core_traits_dynamic_array<config, op_type_type>(return_values);
-	}
-
-	template<typename op_type_type, uint64_t depth_count, uint64_t array_size>
-	constexpr auto count_ops_per_depth(const nihilus::array<core_traits_dynamic<op_type_type>, array_size>& traits_array) {
-		if constexpr (array_size == 0) {
-			return 0;
+	template<nihilus::model_config config_new, typename op_type_type> struct count_active_ops<config_new, op_type_type, nihilus::thread_strategy_type::thread_prep> {
+		template<op_type_type current_index = static_cast<op_type_type>(0)> static constexpr auto impl(uint64_t current_max_depth = 0) {
+			if constexpr (static_cast<uint64_t>(current_index) < static_cast<uint64_t>(op_type_type::count)) {
+				constexpr uint64_t current_index_new = static_cast<uint64_t>(current_index);
+				current_max_depth += blocking<core_traits<config_new, current_index>>;
+				return impl<static_cast<op_type_type>(current_index_new + 1)>(current_max_depth);
+			} else {
+				return current_max_depth;
+			}
 		}
-		array<uint64_t, depth_count> return_values{};
+	};
 
-		for (uint64_t i = 0; i < array_size; ++i) {
-			++return_values[traits_array[i].depth - 1];
+	template<nihilus::model_config config_new, typename op_type_type> struct count_active_ops<config_new, op_type_type, nihilus::thread_strategy_type::weight_mapping> {
+		template<op_type_type current_index = static_cast<op_type_type>(0)> static constexpr auto impl(uint64_t current_max_depth = 0) {
+			if constexpr (static_cast<uint64_t>(current_index) < static_cast<uint64_t>(op_type_type::count)) {
+				constexpr uint64_t current_index_new = static_cast<uint64_t>(current_index);
+				current_max_depth +=
+					static_cast<uint64_t>(core_traits<config_new, current_index>::type) >= 0 && static_cast<uint64_t>(core_traits<config_new, current_index>::type) <= 12;
+				return impl<static_cast<op_type_type>(current_index_new + 1)>(current_max_depth);
+			} else {
+				return current_max_depth;
+			}
 		}
-		return return_values;
-	}
+	};
+
+	template<nihilus::model_config config_new, typename op_type_type, nihilus::thread_strategy_type layer_type> struct generate_core_traits_dynamic_array;
+
+	template<nihilus::model_config config_new, typename op_type_type, nihilus::thread_strategy_type layer_type>
+		requires(layer_type == thread_strategy_type::global_input || layer_type == thread_strategy_type::per_block || layer_type == thread_strategy_type::global_output)
+	struct generate_core_traits_dynamic_array<config_new, op_type_type, layer_type> {
+		template<uint64_t size, op_type_type current_index = static_cast<op_type_type>(0)>
+		static constexpr auto impl(nihilus::array<core_traits_dynamic<op_type_type>, size> values = {}, uint64_t current_index_newer = 0) {
+			constexpr uint64_t current_index_new = static_cast<uint64_t>(current_index);
+			if constexpr (current_index_new < static_cast<uint64_t>(op_type_type::count)) {
+				if constexpr (nihilus::core_traits<config_new, current_index>::krn_type != nihilus::kernel_type::none &&
+					nihilus::core_traits<config_new, current_index>::layer_type == layer_type && nihilus::core_traits<config_new, current_index>::depth != 0) {
+					core_traits_dynamic<op_type_type> return_values{};
+					return_values.depth			= nihilus::core_traits<config_new, current_index>::depth;
+					return_values.type			= nihilus::core_traits<config_new, current_index>::type;
+					values[current_index_newer] = return_values;
+					++current_index_newer;
+				}
+				return impl<size, static_cast<op_type_type>(current_index_new + 1)>(values, current_index_newer);
+			} else {
+				return values;
+			}
+		}
+
+		static constexpr auto impl() {
+			constexpr uint64_t active_op_count{ count_active_ops<config_new, op_type_type, layer_type>::impl() };
+			array<core_traits_dynamic<op_type_type>, active_op_count> return_values{};
+			return impl(return_values);
+		}
+	};
+
+	template<nihilus::model_config config_new, typename op_type_type>
+	struct generate_core_traits_dynamic_array<config_new, op_type_type, nihilus::thread_strategy_type::thread_prep> {
+		template<uint64_t size, op_type_type current_index = static_cast<op_type_type>(0)>
+		static constexpr auto impl(nihilus::array<core_traits_dynamic<op_type_type>, size> values = {}, uint64_t current_index_newer = 0) {
+			constexpr uint64_t current_index_new = static_cast<uint64_t>(current_index);
+			if constexpr (current_index_new < static_cast<uint64_t>(op_type_type::count)) {
+				if constexpr (blocking<core_traits<config_new, current_index>>) {
+					core_traits_dynamic<op_type_type> return_values{};
+					return_values.depth			= nihilus::core_traits<config_new, current_index>::depth;
+					return_values.type			= nihilus::core_traits<config_new, current_index>::type;
+					values[current_index_newer] = return_values;
+					++current_index_newer;
+				}
+				return impl<size, static_cast<op_type_type>(current_index_new + 1)>(values, current_index_newer);
+			} else {
+				return values;
+			}
+		}
+
+		static constexpr auto impl() {
+			constexpr uint64_t active_op_count{ count_active_ops<config_new, op_type_type, thread_strategy_type::thread_prep>::impl() };
+			array<core_traits_dynamic<op_type_type>, active_op_count> return_values{};
+			return impl(return_values);
+		}
+	};
+
+	template<nihilus::model_config config_new, typename op_type_type>
+	struct generate_core_traits_dynamic_array<config_new, op_type_type, nihilus::thread_strategy_type::weight_mapping> {
+		template<uint64_t size, op_type_type current_index = static_cast<op_type_type>(0)>
+		static constexpr auto impl(nihilus::array<core_traits_dynamic<op_type_type>, size> values = {}, uint64_t current_index_newer = 0) {
+			constexpr uint64_t current_index_new = static_cast<uint64_t>(current_index);
+			if constexpr (current_index_new < static_cast<uint64_t>(op_type_type::count)) {
+				if constexpr (static_cast<uint64_t>(core_traits<config_new, current_index>::type) >= 0 &&
+					static_cast<uint64_t>(core_traits<config_new, current_index>::type) <= 12) {
+					core_traits_dynamic<op_type_type> return_values{};
+					return_values.depth			= nihilus::core_traits<config_new, current_index>::depth;
+					return_values.type			= nihilus::core_traits<config_new, current_index>::type;
+					values[current_index_newer] = return_values;
+					++current_index_newer;
+				}
+				return impl<size, static_cast<op_type_type>(current_index_new + 1)>(values, current_index_newer);
+			} else {
+				return values;
+			}
+		}
+
+		static constexpr auto impl() {
+			constexpr uint64_t active_op_count{ count_active_ops<config_new, op_type_type, thread_strategy_type::weight_mapping>::impl() };
+			array<core_traits_dynamic<op_type_type>, active_op_count> return_values{};
+			return impl(return_values);
+		}
+	};
+
+	template<typename op_type_type, uint64_t depth_count> struct count_ops_per_depth {
+		template<uint64_t array_size> static constexpr auto impl(const nihilus::array<core_traits_dynamic<op_type_type>, array_size>& traits_array) {
+			if constexpr (array_size == 0) {
+				return 0;
+			}
+			array<uint64_t, depth_count> return_values{};
+
+			for (uint64_t i = 0; i < array_size; ++i) {
+				++return_values[traits_array[i].depth];
+			}
+			return return_values;
+		}
+	};
 
 	template<typename op_type_type, uint64_t array_size> constexpr uint64_t count_unique_depths(const nihilus::array<core_traits_dynamic<op_type_type>, array_size>& traits_array) {
 		if constexpr (array_size == 0) {
@@ -110,17 +206,17 @@ namespace nihilus {
 		for (uint64_t i = 0; i < array_size; ++i) {
 			max_depth = traits_array[i].depth > max_depth ? traits_array[i].depth : max_depth;
 		}
-		return max_depth;
+		return max_depth + 1;
 	}
 
-	template<typename op_type_type, size_t depth_count, uint64_t array_size>
+	template<typename op_type_type, uint64_t depth_count, uint64_t array_size>
 	constexpr uint64_t count_max_ops_per_depth(const nihilus::array<core_traits_dynamic<op_type_type>, array_size>& traits_array) {
 		if constexpr (array_size == 0) {
 			return 0;
 		}
 		array<uint64_t, depth_count> array{};
 		for (uint64_t i = 0; i < array_size; ++i) {
-			++array[traits_array[i].depth - 1];
+			++array[traits_array[i].depth];
 		}
 		uint64_t max_depth_count{};
 
@@ -130,7 +226,7 @@ namespace nihilus {
 		return max_depth_count;
 	}
 
-	template<model_config config, typename op_type_type, uint64_t max_ops_per_depth, uint64_t depth_count, size_t array_size>
+	template<model_config config_new, typename op_type_type, uint64_t max_ops_per_depth, uint64_t depth_count, uint64_t array_size>
 	constexpr auto construct_thread_strategy(const nihilus::array<core_traits_dynamic<op_type_type>, array_size>& traits_array) {
 		array<array<op_type_type, max_ops_per_depth>, depth_count> result{};
 		array<uint64_t, depth_count> counters{};
@@ -143,7 +239,7 @@ namespace nihilus {
 		}
 
 		for (uint64_t i = 0; i < traits_array.size(); ++i) {
-			uint64_t depth_index = traits_array[i].depth - 1;
+			uint64_t depth_index = traits_array[i].depth;
 
 			if (depth_index < depth_count && counters[depth_index] < max_ops_per_depth) {
 				result[depth_index][counters[depth_index]] = traits_array[i].type;
@@ -154,13 +250,12 @@ namespace nihilus {
 		return result;
 	}
 
-	template<model_config config, typename op_type_type> struct thread_strategy {
-		static constexpr auto dynamic_core_traits_array{ generate_core_traits_dynamic_array<config, op_type_type>() };
-		static constexpr uint64_t active_op_count{ count_active_ops<config, op_type_type>() };
+	template<model_config config_new, typename op_type_type, thread_strategy_type layer_type> struct thread_strategy_pre {
+		static constexpr auto dynamic_core_traits_array{ generate_core_traits_dynamic_array<config_new, op_type_type, layer_type>::impl() };
 		static constexpr uint64_t unique_depth_count{ count_unique_depths<op_type_type>(dynamic_core_traits_array) };
-		static constexpr auto actual_ops_per_depth{ count_ops_per_depth<op_type_type, unique_depth_count>(dynamic_core_traits_array) };
 		static constexpr auto max_ops_per_depth{ count_max_ops_per_depth<op_type_type, unique_depth_count>(dynamic_core_traits_array) };
-		static constexpr auto final_ops{ construct_thread_strategy<config, op_type_type, max_ops_per_depth, unique_depth_count>(dynamic_core_traits_array) };
+		static constexpr auto actual_ops_per_depth{ count_ops_per_depth<op_type_type, unique_depth_count>::impl(dynamic_core_traits_array) };
+		static constexpr auto final_ops{ construct_thread_strategy<config_new, op_type_type, max_ops_per_depth, unique_depth_count>(dynamic_core_traits_array) };
 	};
 
 	template<kernel_type kernel_type01, kernel_type kernel_type02> struct output_transform {};
@@ -169,7 +264,7 @@ namespace nihilus {
 		template<typename value_type> NIHILUS_FORCE_INLINE static void impl(value_type*, uint64_t) {};
 	};
 
-	template<model_config config, auto op_type> struct depth_tracker {};
+	template<model_config config_new, auto op_type> struct depth_tracker {};
 
 	template<typename derived_type, uint64_t... indices> struct core_trait_dims;
 
@@ -184,7 +279,7 @@ namespace nihilus {
 			return { { dim00, dim01, dim02, dim03 } };
 		}
 
-		template<size_t index> NIHILUS_FORCE_INLINE uint64_t& operator[](tag<index>) const {
+		template<uint64_t index> NIHILUS_FORCE_INLINE uint64_t operator[](tag<index>) const {
 			if constexpr (index == 0) {
 				return dim00;
 			} else if constexpr (index == 1) {
@@ -229,26 +324,47 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config> using model_traits_type = model_traits<config.arch, config.model_size, config.model_generation>;
+	template<kernel_type, typename... input_types> struct dimension_transformer;
 
-	template<model_config config> struct model;
+	template<kernel_type type, typename input_type01> struct dimension_transformer<type, input_type01> {};
 
-	template<model_config config> struct core_traits<config, llama_op_types::token_embd_weight>
-		: core_trait_dims<core_traits<config, llama_op_types::token_embd_weight>, model_traits_type<config>::embedding_dim, model_traits_type<config>::vocab_size, 1, 1> {
+	template<kernel_type type, typename input_type01, typename input_type02> struct dimension_transformer<type, input_type01, input_type02> {
+		static constexpr auto get_dimensions() {
+			if constexpr (type == kernel_type::add) {
+				return input_type01::dims;
+			} else if constexpr (type == kernel_type::get_rows) {
+				return input_type01::dims;
+			}
+		}
+
+		static constexpr auto dims{ get_dimensions() };
+	};
+
+	template<kernel_type type, typename input_type01, typename input_type02, typename input_type03> struct dimension_transformer<type, input_type01, input_type02, input_type03> {};
+
+	template<model_config config_new> using model_traits_type = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+
+	template<model_config config_new> struct model;
+
+	template<model_config config_new> struct core_traits<config_new, llama_op_types::token_embd_weight>
+		: public config_holder<config_new>,
+		  core_trait_dims<core_traits<config_new, llama_op_types::token_embd_weight>, model_traits_type<config_new>::embedding_dim, model_traits_type<config_new>::vocab_size, 1,
+			  1> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
-		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::weight_type;
+		using model_traits_type													 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+		using output_type														 = typename kernel_type_profile_traits<config_new.kernel_profile>::weight_type;
 		using core_traits_dims_type =
-			core_trait_dims<core_traits<config, llama_op_types::token_embd_weight>, model_traits_type::embedding_dim, model_traits_type::vocab_size, 1, 1>;
+			core_trait_dims<core_traits<config_new, llama_op_types::token_embd_weight>, model_traits_type::embedding_dim, model_traits_type::vocab_size, 1, 1>;
 		static constexpr uint64_t depth{ 0 };
+		static constexpr auto config{ config_holder<config_new>::config };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ 0 };
-		static constexpr layer_op_type layer_type{ layer_op_type::none };
+		static constexpr thread_strategy_type layer_type{ thread_strategy_type::none };
 		static constexpr kernel_type krn_type{ kernel_type::none };
 		static constexpr llama_op_types type{ llama_op_types::token_embd_weight };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
@@ -256,21 +372,22 @@ namespace nihilus {
 		int32_t value{};
 	};
 
-	template<model_config config> struct core_traits<config, llama_op_types::inp_tokens>
-		: core_trait_dims<core_traits<config, llama_op_types::inp_tokens>, model_traits_type<config>::max_sequence_length, 1, 1, 1, 0> {
+	template<model_config config_new> struct core_traits<config_new, llama_op_types::inp_tokens>
+		: public config_holder<config_new>, core_trait_dims<core_traits<config_new, llama_op_types::inp_tokens>, model_traits_type<config_new>::max_sequence_length, 1, 1, 1, 0> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
-		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::input_token_type;
-		using core_traits_dims_type = core_trait_dims<core_traits<config, llama_op_types::inp_tokens>, model_traits_type::max_sequence_length, 1, 1, 1, 0>;
+		using model_traits_type													 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+		using output_type														 = typename kernel_type_profile_traits<config_new.kernel_profile>::input_token_type;
+		using core_traits_dims_type = core_trait_dims<core_traits<config_new, llama_op_types::inp_tokens>, model_traits_type::max_sequence_length, 1, 1, 1, 0>;
 		static constexpr uint64_t depth{ 0 };
+		static constexpr auto config{ config_holder<config_new>::config };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array())) };
-		static constexpr layer_op_type layer_type{ layer_op_type::none };
+		static constexpr thread_strategy_type layer_type{ thread_strategy_type::none };
 		static constexpr kernel_type krn_type{ kernel_type::none };
 		static constexpr llama_op_types type{ llama_op_types::inp_tokens };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
@@ -279,21 +396,22 @@ namespace nihilus {
 		int32_t value{};
 	};
 
-	template<model_config config> struct core_traits<config, llama_op_types::inp_pos>
-		: core_trait_dims<core_traits<config, llama_op_types::inp_pos>, model_traits_type<config>::max_sequence_length, 1, 1, 1, 0> {
+	template<model_config config_new> struct core_traits<config_new, llama_op_types::inp_pos>
+		: public config_holder<config_new>, core_trait_dims<core_traits<config_new, llama_op_types::inp_pos>, model_traits_type<config_new>::max_sequence_length, 1, 1, 1, 0> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
-		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::position_type;
-		using core_traits_dims_type = core_trait_dims<core_traits<config, llama_op_types::inp_pos>, model_traits_type::max_sequence_length, 1, 1, 1, 0>;
+		using model_traits_type													 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+		using output_type														 = typename kernel_type_profile_traits<config_new.kernel_profile>::position_type;
+		using core_traits_dims_type = core_trait_dims<core_traits<config_new, llama_op_types::inp_pos>, model_traits_type::max_sequence_length, 1, 1, 1, 0>;
 		static constexpr uint64_t depth{ 0 };
+		static constexpr auto config{ config_holder<config_new>::config };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array())) };
-		static constexpr layer_op_type layer_type{ layer_op_type::none };
+		static constexpr thread_strategy_type layer_type{ thread_strategy_type::none };
 		static constexpr kernel_type krn_type{ kernel_type::none };
 		static constexpr llama_op_types type{ llama_op_types::inp_pos };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
@@ -302,21 +420,22 @@ namespace nihilus {
 		int32_t value{};
 	};
 
-	template<model_config config> struct core_traits<config, llama_op_types::inp_out_ids>
-		: core_trait_dims<core_traits<config, llama_op_types::inp_out_ids>, model_traits_type<config>::max_sequence_length, 1, 1, 1, 0> {
+	template<model_config config_new> struct core_traits<config_new, llama_op_types::inp_out_ids>
+		: public config_holder<config_new>, core_trait_dims<core_traits<config_new, llama_op_types::inp_out_ids>, model_traits_type<config_new>::max_sequence_length, 1, 1, 1, 0> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
-		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::output_token_type;
-		using core_traits_dims_type = core_trait_dims<core_traits<config, llama_op_types::inp_out_ids>, model_traits_type::max_sequence_length, 1, 1, 1, 0>;
+		using model_traits_type													 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+		using output_type														 = typename kernel_type_profile_traits<config_new.kernel_profile>::output_token_type;
+		using core_traits_dims_type = core_trait_dims<core_traits<config_new, llama_op_types::inp_out_ids>, model_traits_type::max_sequence_length, 1, 1, 1, 0>;
 		static constexpr uint64_t depth{ 0 };
+		static constexpr auto config{ config_holder<config_new>::config };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array())) };
-		static constexpr layer_op_type layer_type{ layer_op_type::none };
+		static constexpr thread_strategy_type layer_type{ thread_strategy_type::none };
 		static constexpr kernel_type krn_type{ kernel_type::none };
 		static constexpr llama_op_types type{ llama_op_types::inp_out_ids };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
@@ -325,21 +444,23 @@ namespace nihilus {
 		int32_t value{};
 	};
 
-	template<model_config config> struct core_traits<config, llama_op_types::rope_freqs_weight>
-		: core_trait_dims<core_traits<config, llama_op_types::rope_freqs_weight>, model_traits_type<config>::rope_dimension_count / 2, 1, 1, 1> {
+	template<model_config config_new> struct core_traits<config_new, llama_op_types::rope_freqs_weight>
+		: public config_holder<config_new>,
+		  core_trait_dims<core_traits<config_new, llama_op_types::rope_freqs_weight>, model_traits_type<config_new>::rope_dimension_count / 2, 1, 1, 1> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
-		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::rope_freqs_weight_type;
-		using core_traits_dims_type = core_trait_dims<core_traits<config, llama_op_types::rope_freqs_weight>, model_traits_type::rope_dimension_count / 2, 1, 1, 1>;
+		using model_traits_type													 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+		using output_type														 = typename kernel_type_profile_traits<config_new.kernel_profile>::rope_freqs_weight_type;
+		using core_traits_dims_type = core_trait_dims<core_traits<config_new, llama_op_types::rope_freqs_weight>, model_traits_type::rope_dimension_count / 2, 1, 1, 1>;
 		static constexpr uint64_t depth{ 0 };
+		static constexpr auto config{ config_holder<config_new>::config };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ 0 };
-		static constexpr layer_op_type layer_type{ layer_op_type::none };
+		static constexpr thread_strategy_type layer_type{ thread_strategy_type::none };
 		static constexpr kernel_type krn_type{ kernel_type::none };
 		static constexpr llama_op_types type{ llama_op_types::rope_freqs_weight };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
@@ -347,21 +468,24 @@ namespace nihilus {
 		int32_t value{};
 	};
 
-	template<model_config config> struct core_traits<config, llama_op_types::output_weight>
-		: core_trait_dims<core_traits<config, llama_op_types::output_weight>, model_traits_type<config>::embedding_dim, model_traits_type<config>::vocab_size, 1, 1> {
+	template<model_config config_new> struct core_traits<config_new, llama_op_types::output_weight>
+		: public config_holder<config_new>,
+		  core_trait_dims<core_traits<config_new, llama_op_types::output_weight>, model_traits_type<config_new>::embedding_dim, model_traits_type<config_new>::vocab_size, 1, 1> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
-		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::weight_type;
-		using core_traits_dims_type = core_trait_dims<core_traits<config, llama_op_types::output_weight>, model_traits_type::embedding_dim, model_traits_type::vocab_size, 1, 1>;
+		using model_traits_type													 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+		using output_type														 = typename kernel_type_profile_traits<config_new.kernel_profile>::weight_type;
+		using core_traits_dims_type =
+			core_trait_dims<core_traits<config_new, llama_op_types::output_weight>, model_traits_type::embedding_dim, model_traits_type::vocab_size, 1, 1>;
 		static constexpr uint64_t depth{ 0 };
+		static constexpr auto config{ config_holder<config_new>::config };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ 0 };
-		static constexpr layer_op_type layer_type{ layer_op_type::none };
+		static constexpr thread_strategy_type layer_type{ thread_strategy_type::none };
 		static constexpr kernel_type krn_type{ kernel_type::none };
 		static constexpr llama_op_types type{ llama_op_types::output_weight };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
@@ -369,21 +493,22 @@ namespace nihilus {
 		int32_t value{};
 	};
 
-	template<model_config config> struct core_traits<config, llama_op_types::output_norm_weight>
-		: core_trait_dims<core_traits<config, llama_op_types::output_norm_weight>, model_traits_type<config>::embedding_dim, 1, 1, 1> {
+	template<model_config config_new> struct core_traits<config_new, llama_op_types::output_norm_weight>
+		: public config_holder<config_new>, core_trait_dims<core_traits<config_new, llama_op_types::output_norm_weight>, model_traits_type<config_new>::embedding_dim, 1, 1, 1> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
-		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::output_norm_weight_type;
-		using core_traits_dims_type = core_trait_dims<core_traits<config, llama_op_types::output_norm_weight>, model_traits_type::embedding_dim, 1, 1, 1>;
+		using model_traits_type													 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+		using output_type														 = typename kernel_type_profile_traits<config_new.kernel_profile>::output_norm_weight_type;
+		using core_traits_dims_type = core_trait_dims<core_traits<config_new, llama_op_types::output_norm_weight>, model_traits_type::embedding_dim, 1, 1, 1>;
 		static constexpr uint64_t depth{ 0 };
+		static constexpr auto config{ config_holder<config_new>::config };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ 0 };
-		static constexpr layer_op_type layer_type{ layer_op_type::none };
+		static constexpr thread_strategy_type layer_type{ thread_strategy_type::none };
 		static constexpr kernel_type krn_type{ kernel_type::none };
 		static constexpr llama_op_types type{ llama_op_types::output_norm_weight };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
@@ -391,21 +516,25 @@ namespace nihilus {
 		int32_t value{};
 	};
 
-	template<model_config config> struct core_traits<config, llama_op_types::attn_q_weight>
-		: core_trait_dims<core_traits<config, llama_op_types::attn_q_weight>, model_traits_type<config>::embedding_dim, model_traits_type<config>::embedding_dim, 1, 1> {
+	template<model_config config_new> struct core_traits<config_new, llama_op_types::attn_q_weight>
+		: public config_holder<config_new>,
+		  core_trait_dims<core_traits<config_new, llama_op_types::attn_q_weight>, model_traits_type<config_new>::embedding_dim, model_traits_type<config_new>::embedding_dim, 1,
+			  1> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
-		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::attn_q_weight_type;
-		using core_traits_dims_type = core_trait_dims<core_traits<config, llama_op_types::attn_q_weight>, model_traits_type::embedding_dim, model_traits_type::embedding_dim, 1, 1>;
+		using model_traits_type													 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+		using output_type														 = typename kernel_type_profile_traits<config_new.kernel_profile>::attn_q_weight_type;
+		using core_traits_dims_type =
+			core_trait_dims<core_traits<config_new, llama_op_types::attn_q_weight>, model_traits_type::embedding_dim, model_traits_type::embedding_dim, 1, 1>;
 		static constexpr uint64_t depth{ 0 };
+		static constexpr auto config{ config_holder<config_new>::config };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ 0 };
-		static constexpr layer_op_type layer_type{ layer_op_type::none };
+		static constexpr thread_strategy_type layer_type{ thread_strategy_type::none };
 		static constexpr kernel_type krn_type{ kernel_type::none };
 		static constexpr llama_op_types type{ llama_op_types::attn_q_weight };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
@@ -413,23 +542,25 @@ namespace nihilus {
 		int32_t value{};
 	};
 
-	template<model_config config> struct core_traits<config, llama_op_types::attn_k_weight>
-		: core_trait_dims<core_traits<config, llama_op_types::attn_k_weight>, model_traits_type<config>::embedding_dim,
-			  (model_traits_type<config>::head_dim * model_traits_type<config>::head_count_kv), 1, 1> {
+	template<model_config config_new> struct core_traits<config_new, llama_op_types::attn_k_weight>
+		: public config_holder<config_new>,
+		  core_trait_dims<core_traits<config_new, llama_op_types::attn_k_weight>, model_traits_type<config_new>::embedding_dim,
+			  (model_traits_type<config_new>::head_dim * model_traits_type<config_new>::head_count_kv), 1, 1> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
-		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::attn_k_weight_type;
-		using core_traits_dims_type = core_trait_dims<core_traits<config, llama_op_types::attn_k_weight>, model_traits_type::embedding_dim,
+		using model_traits_type													 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+		using output_type														 = typename kernel_type_profile_traits<config_new.kernel_profile>::attn_k_weight_type;
+		using core_traits_dims_type = core_trait_dims<core_traits<config_new, llama_op_types::attn_k_weight>, model_traits_type::embedding_dim,
 			(model_traits_type::head_dim * model_traits_type::head_count_kv), 1, 1>;
 		static constexpr uint64_t depth{ 0 };
+		static constexpr auto config{ config_holder<config_new>::config };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ 0 };
-		static constexpr layer_op_type layer_type{ layer_op_type::none };
+		static constexpr thread_strategy_type layer_type{ thread_strategy_type::none };
 		static constexpr kernel_type krn_type{ kernel_type::none };
 		static constexpr llama_op_types type{ llama_op_types::attn_k_weight };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
@@ -437,23 +568,25 @@ namespace nihilus {
 		int32_t value{};
 	};
 
-	template<model_config config> struct core_traits<config, llama_op_types::attn_v_weight>
-		: core_trait_dims<core_traits<config, llama_op_types::attn_v_weight>, model_traits_type<config>::embedding_dim,
-			  (model_traits_type<config>::head_dim * model_traits_type<config>::head_count_kv), 1, 1> {
+	template<model_config config_new> struct core_traits<config_new, llama_op_types::attn_v_weight>
+		: public config_holder<config_new>,
+		  core_trait_dims<core_traits<config_new, llama_op_types::attn_v_weight>, model_traits_type<config_new>::embedding_dim,
+			  (model_traits_type<config_new>::head_dim * model_traits_type<config_new>::head_count_kv), 1, 1> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
-		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::attn_v_weight_type;
-		using core_traits_dims_type = core_trait_dims<core_traits<config, llama_op_types::attn_v_weight>, model_traits_type::embedding_dim,
+		using model_traits_type													 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+		using output_type														 = typename kernel_type_profile_traits<config_new.kernel_profile>::attn_v_weight_type;
+		using core_traits_dims_type = core_trait_dims<core_traits<config_new, llama_op_types::attn_v_weight>, model_traits_type::embedding_dim,
 			(model_traits_type::head_dim * model_traits_type::head_count_kv), 1, 1>;
 		static constexpr uint64_t depth{ 0 };
+		static constexpr auto config{ config_holder<config_new>::config };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ 0 };
-		static constexpr layer_op_type layer_type{ layer_op_type::none };
+		static constexpr thread_strategy_type layer_type{ thread_strategy_type::none };
 		static constexpr kernel_type krn_type{ kernel_type::none };
 		static constexpr llama_op_types type{ llama_op_types::attn_v_weight };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
@@ -461,22 +594,25 @@ namespace nihilus {
 		int32_t value{};
 	};
 
-	template<model_config config> struct core_traits<config, llama_op_types::attn_output_weight>
-		: core_trait_dims<core_traits<config, llama_op_types::attn_output_weight>, model_traits_type<config>::embedding_dim, model_traits_type<config>::embedding_dim, 1, 1> {
+	template<model_config config_new> struct core_traits<config_new, llama_op_types::attn_output_weight>
+		: public config_holder<config_new>,
+		  core_trait_dims<core_traits<config_new, llama_op_types::attn_output_weight>, model_traits_type<config_new>::embedding_dim, model_traits_type<config_new>::embedding_dim,
+			  1, 1> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
-		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::attn_output_weight_type;
+		using model_traits_type													 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+		using output_type														 = typename kernel_type_profile_traits<config_new.kernel_profile>::attn_output_weight_type;
 		using core_traits_dims_type =
-			core_trait_dims<core_traits<config, llama_op_types::attn_output_weight>, model_traits_type::embedding_dim, model_traits_type::embedding_dim, 1, 1>;
+			core_trait_dims<core_traits<config_new, llama_op_types::attn_output_weight>, model_traits_type::embedding_dim, model_traits_type::embedding_dim, 1, 1>;
 		static constexpr uint64_t depth{ 0 };
+		static constexpr auto config{ config_holder<config_new>::config };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ 0 };
-		static constexpr layer_op_type layer_type{ layer_op_type::none };
+		static constexpr thread_strategy_type layer_type{ thread_strategy_type::none };
 		static constexpr kernel_type krn_type{ kernel_type::none };
 		static constexpr llama_op_types type{ llama_op_types::attn_output_weight };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
@@ -484,21 +620,22 @@ namespace nihilus {
 		int32_t value{};
 	};
 
-	template<model_config config> struct core_traits<config, llama_op_types::attn_norm_weight>
-		: core_trait_dims<core_traits<config, llama_op_types::attn_norm_weight>, model_traits_type<config>::embedding_dim, 1, 1, 1> {
+	template<model_config config_new> struct core_traits<config_new, llama_op_types::attn_norm_weight>
+		: public config_holder<config_new>, core_trait_dims<core_traits<config_new, llama_op_types::attn_norm_weight>, model_traits_type<config_new>::embedding_dim, 1, 1, 1> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
-		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::attn_norm_weight_type;
-		using core_traits_dims_type = core_trait_dims<core_traits<config, llama_op_types::attn_norm_weight>, model_traits_type::embedding_dim, 1, 1, 1>;
+		using model_traits_type													 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+		using output_type														 = typename kernel_type_profile_traits<config_new.kernel_profile>::attn_norm_weight_type;
+		using core_traits_dims_type = core_trait_dims<core_traits<config_new, llama_op_types::attn_norm_weight>, model_traits_type::embedding_dim, 1, 1, 1>;
 		static constexpr uint64_t depth{ 0 };
+		static constexpr auto config{ config_holder<config_new>::config };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ 0 };
-		static constexpr layer_op_type layer_type{ layer_op_type::none };
+		static constexpr thread_strategy_type layer_type{ thread_strategy_type::none };
 		static constexpr kernel_type krn_type{ kernel_type::none };
 		static constexpr llama_op_types type{ llama_op_types::attn_norm_weight };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
@@ -506,22 +643,25 @@ namespace nihilus {
 		int32_t value{};
 	};
 
-	template<model_config config> struct core_traits<config, llama_op_types::ffn_gate_weight>
-		: core_trait_dims<core_traits<config, llama_op_types::ffn_gate_weight>, model_traits_type<config>::embedding_dim, model_traits_type<config>::feed_forward_length, 1, 1> {
+	template<model_config config_new> struct core_traits<config_new, llama_op_types::ffn_gate_weight>
+		: public config_holder<config_new>,
+		  core_trait_dims<core_traits<config_new, llama_op_types::ffn_gate_weight>, model_traits_type<config_new>::embedding_dim,
+			  model_traits_type<config_new>::feed_forward_length, 1, 1> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
-		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::ffn_gate_weight_type;
+		using model_traits_type													 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+		using output_type														 = typename kernel_type_profile_traits<config_new.kernel_profile>::ffn_gate_weight_type;
 		using core_traits_dims_type =
-			core_trait_dims<core_traits<config, llama_op_types::ffn_gate_weight>, model_traits_type::embedding_dim, model_traits_type::feed_forward_length, 1, 1>;
+			core_trait_dims<core_traits<config_new, llama_op_types::ffn_gate_weight>, model_traits_type::embedding_dim, model_traits_type::feed_forward_length, 1, 1>;
 		static constexpr uint64_t depth{ 0 };
+		static constexpr auto config{ config_holder<config_new>::config };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ 0 };
-		static constexpr layer_op_type layer_type{ layer_op_type::none };
+		static constexpr thread_strategy_type layer_type{ thread_strategy_type::none };
 		static constexpr kernel_type krn_type{ kernel_type::none };
 		static constexpr llama_op_types type{ llama_op_types::ffn_gate_weight };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
@@ -529,22 +669,25 @@ namespace nihilus {
 		int32_t value{};
 	};
 
-	template<model_config config> struct core_traits<config, llama_op_types::ffn_up_weight>
-		: core_trait_dims<core_traits<config, llama_op_types::ffn_up_weight>, model_traits_type<config>::embedding_dim, model_traits_type<config>::feed_forward_length, 1, 1> {
+	template<model_config config_new> struct core_traits<config_new, llama_op_types::ffn_up_weight>
+		: public config_holder<config_new>,
+		  core_trait_dims<core_traits<config_new, llama_op_types::ffn_up_weight>, model_traits_type<config_new>::embedding_dim, model_traits_type<config_new>::feed_forward_length,
+			  1, 1> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
-		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::ffn_up_weight_type;
+		using model_traits_type													 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+		using output_type														 = typename kernel_type_profile_traits<config_new.kernel_profile>::ffn_up_weight_type;
 		using core_traits_dims_type =
-			core_trait_dims<core_traits<config, llama_op_types::ffn_up_weight>, model_traits_type::embedding_dim, model_traits_type::feed_forward_length, 1, 1>;
+			core_trait_dims<core_traits<config_new, llama_op_types::ffn_up_weight>, model_traits_type::embedding_dim, model_traits_type::feed_forward_length, 1, 1>;
 		static constexpr uint64_t depth{ 0 };
+		static constexpr auto config{ config_holder<config_new>::config };
 		static constexpr alloc_type alc_type{ alloc_type::per_block_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ 0 };
-		static constexpr layer_op_type layer_type{ layer_op_type::none };
+		static constexpr thread_strategy_type layer_type{ thread_strategy_type::none };
 		static constexpr kernel_type krn_type{ kernel_type::none };
 		static constexpr llama_op_types type{ llama_op_types::ffn_up_weight };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
@@ -552,22 +695,25 @@ namespace nihilus {
 		int32_t value{};
 	};
 
-	template<model_config config> struct core_traits<config, llama_op_types::ffn_down_weight>
-		: core_trait_dims<core_traits<config, llama_op_types::ffn_down_weight>, model_traits_type<config>::feed_forward_length, model_traits_type<config>::embedding_dim, 1, 1> {
+	template<model_config config_new> struct core_traits<config_new, llama_op_types::ffn_down_weight>
+		: public config_holder<config_new>,
+		  core_trait_dims<core_traits<config_new, llama_op_types::ffn_down_weight>, model_traits_type<config_new>::feed_forward_length,
+			  model_traits_type<config_new>::embedding_dim, 1, 1> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
-		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::ffn_down_weight_type;
+		using model_traits_type													 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+		using output_type														 = typename kernel_type_profile_traits<config_new.kernel_profile>::ffn_down_weight_type;
 		using core_traits_dims_type =
-			core_trait_dims<core_traits<config, llama_op_types::ffn_down_weight>, model_traits_type::feed_forward_length, model_traits_type::embedding_dim, 1, 1>;
+			core_trait_dims<core_traits<config_new, llama_op_types::ffn_down_weight>, model_traits_type::feed_forward_length, model_traits_type::embedding_dim, 1, 1>;
 		static constexpr uint64_t depth{ 0 };
+		static constexpr auto config{ config_holder<config_new>::config };
 		static constexpr alloc_type alc_type{ alloc_type::per_block_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ 0 };
-		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
+		static constexpr thread_strategy_type layer_type{ thread_strategy_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::none };
 		static constexpr llama_op_types type{ llama_op_types::ffn_down_weight };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
@@ -575,21 +721,22 @@ namespace nihilus {
 		int32_t value{};
 	};
 
-	template<model_config config> struct core_traits<config, llama_op_types::ffn_norm_weight>
-		: core_trait_dims<core_traits<config, llama_op_types::ffn_norm_weight>, model_traits_type<config>::embedding_dim, 1, 1, 1> {
+	template<model_config config_new> struct core_traits<config_new, llama_op_types::ffn_norm_weight>
+		: public config_holder<config_new>, core_trait_dims<core_traits<config_new, llama_op_types::ffn_norm_weight>, model_traits_type<config_new>::embedding_dim, 1, 1, 1> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
-		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::ffn_norm_weight_type;
-		using core_traits_dims_type = core_trait_dims<core_traits<config, llama_op_types::ffn_norm_weight>, model_traits_type::embedding_dim, 1, 1, 1>;
+		using model_traits_type													 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+		using output_type														 = typename kernel_type_profile_traits<config_new.kernel_profile>::ffn_norm_weight_type;
+		using core_traits_dims_type = core_trait_dims<core_traits<config_new, llama_op_types::ffn_norm_weight>, model_traits_type::embedding_dim, 1, 1, 1>;
 		static constexpr uint64_t depth{ 0 };
+		static constexpr auto config{ config_holder<config_new>::config };
 		static constexpr alloc_type alc_type{ alloc_type::per_block_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ 0 };
-		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
+		static constexpr thread_strategy_type layer_type{ thread_strategy_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::none };
 		static constexpr llama_op_types type{ llama_op_types::ffn_norm_weight };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
@@ -597,21 +744,23 @@ namespace nihilus {
 		int32_t value{};
 	};
 
-	template<model_config config> struct core_traits<config, llama_op_types::cache_k>
-		: core_trait_dims<core_traits<config, llama_op_types::cache_k>, model_traits_type<config>::n_embd_kv_gqa, model_traits_type<config>::embedding_dim, 1, 1> {
+	template<model_config config_new> struct core_traits<config_new, llama_op_types::cache_k>
+		: public config_holder<config_new>,
+		  core_trait_dims<core_traits<config_new, llama_op_types::cache_k>, model_traits_type<config_new>::n_embd_kv_gqa, model_traits_type<config_new>::embedding_dim, 1, 1> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
-		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::kv_cache_type;
-		using core_traits_dims_type = core_trait_dims<core_traits<config, llama_op_types::cache_k>, model_traits_type::n_embd_kv_gqa, model_traits_type::embedding_dim, 1, 1>;
+		using model_traits_type													 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+		using output_type														 = typename kernel_type_profile_traits<config_new.kernel_profile>::kv_cache_type;
+		using core_traits_dims_type = core_trait_dims<core_traits<config_new, llama_op_types::cache_k>, model_traits_type::n_embd_kv_gqa, model_traits_type::embedding_dim, 1, 1>;
 		static constexpr uint64_t depth{ 0 };
+		static constexpr auto config{ config_holder<config_new>::config };
 		static constexpr alloc_type alc_type{ alloc_type::per_block_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array())) };
-		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
+		static constexpr thread_strategy_type layer_type{ thread_strategy_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::none };
 		static constexpr llama_op_types type{ llama_op_types::cache_k };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
@@ -619,21 +768,23 @@ namespace nihilus {
 		int32_t value{};
 	};
 
-	template<model_config config> struct core_traits<config, llama_op_types::cache_v>
-		: core_trait_dims<core_traits<config, llama_op_types::cache_v>, model_traits_type<config>::n_embd_kv_gqa, model_traits_type<config>::embedding_dim, 1, 1> {
+	template<model_config config_new> struct core_traits<config_new, llama_op_types::cache_v>
+		: public config_holder<config_new>,
+		  core_trait_dims<core_traits<config_new, llama_op_types::cache_v>, model_traits_type<config_new>::n_embd_kv_gqa, model_traits_type<config_new>::embedding_dim, 1, 1> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
-		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::kv_cache_type;
-		using core_traits_dims_type = core_trait_dims<core_traits<config, llama_op_types::cache_v>, model_traits_type::n_embd_kv_gqa, model_traits_type::embedding_dim, 1, 1>;
+		using model_traits_type													 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+		using output_type														 = typename kernel_type_profile_traits<config_new.kernel_profile>::kv_cache_type;
+		using core_traits_dims_type = core_trait_dims<core_traits<config_new, llama_op_types::cache_v>, model_traits_type::n_embd_kv_gqa, model_traits_type::embedding_dim, 1, 1>;
 		static constexpr uint64_t depth{ 0 };
+		static constexpr auto config{ config_holder<config_new>::config };
 		static constexpr alloc_type alc_type{ alloc_type::per_block_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array())) };
-		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
+		static constexpr thread_strategy_type layer_type{ thread_strategy_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::none };
 		static constexpr llama_op_types type{ llama_op_types::cache_v };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
@@ -641,22 +792,25 @@ namespace nihilus {
 		int32_t value{};
 	};
 
-	template<model_config config> struct core_traits<config, llama_op_types::kq_mask>
-		: core_trait_dims<core_traits<config, llama_op_types::kq_mask>, model_traits_type<config>::max_sequence_length, model_traits_type<config>::max_sequence_length, 1, 1, 0> {
+	template<model_config config_new> struct core_traits<config_new, llama_op_types::kq_mask>
+		: public config_holder<config_new>,
+		  core_trait_dims<core_traits<config_new, llama_op_types::kq_mask>, model_traits_type<config_new>::max_sequence_length, model_traits_type<config_new>::max_sequence_length,
+			  1, 1, 0> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
-		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::kq_mask_type;
+		using model_traits_type													 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+		using output_type														 = typename kernel_type_profile_traits<config_new.kernel_profile>::kq_mask_type;
 		using core_traits_dims_type =
-			core_trait_dims<core_traits<config, llama_op_types::kq_mask>, model_traits_type::max_sequence_length, model_traits_type::max_sequence_length, 1, 1, 0>;
+			core_trait_dims<core_traits<config_new, llama_op_types::kq_mask>, model_traits_type::max_sequence_length, model_traits_type::max_sequence_length, 1, 1, 0>;
 		static constexpr uint64_t depth{ 0 };
+		static constexpr auto config{ config_holder<config_new>::config };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array())) };
-		static constexpr layer_op_type layer_type{ layer_op_type::none };
+		static constexpr thread_strategy_type layer_type{ thread_strategy_type::none };
 		static constexpr kernel_type krn_type{ kernel_type::none };
 		static constexpr llama_op_types type{ llama_op_types::kq_mask };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
@@ -665,27 +819,30 @@ namespace nihilus {
 		int32_t value{};
 	};
 
-	template<model_config config> struct core_traits<config, llama_op_types::inp_embd>
-		: core_trait_dims<core_traits<config, llama_op_types::inp_embd>, model_traits_type<config>::embedding_dim, model_traits_type<config>::max_sequence_length, 1, 1, 1> {
+	template<model_config config_new> struct core_traits<config_new, llama_op_types::inp_embd>
+		: public config_holder<config_new>,
+		  core_trait_dims<core_traits<config_new, llama_op_types::inp_embd>, model_traits_type<config_new>::embedding_dim, model_traits_type<config_new>::max_sequence_length, 1, 1,
+			  1> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
-		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using input_type01														 = core_traits<config, llama_op_types::token_embd_weight>;
-		using input_type02														 = core_traits<config, llama_op_types::inp_tokens>;
-		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::embedding_type;
+		using model_traits_type													 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+		using input_type01														 = core_traits<config_new, llama_op_types::token_embd_weight>;
+		using input_type02														 = core_traits<config_new, llama_op_types::inp_tokens>;
+		using output_type														 = typename kernel_type_profile_traits<config_new.kernel_profile>::embedding_type;
 		using core_traits_dims_type =
-			core_trait_dims<core_traits<config, llama_op_types::inp_embd>, model_traits_type::embedding_dim, model_traits_type::max_sequence_length, 1, 1, 1>;
+			core_trait_dims<core_traits<config_new, llama_op_types::inp_embd>, model_traits_type::embedding_dim, model_traits_type::max_sequence_length, 1, 1, 1>;
 		static constexpr uint64_t depth{ std::max(input_type01::depth, input_type02::depth) + 1 };
 		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_type01::output_type, typename input_type02::output_type>::required };
+		static constexpr auto config{ config_holder<config_new>::config };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
 			(dequantization ? type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) : 0)) };
-		static constexpr layer_op_type layer_type{ layer_op_type::global_input };
+		static constexpr thread_strategy_type layer_type{ thread_strategy_type::global_input };
 		static constexpr kernel_type krn_type{ kernel_type::get_rows };
 		static constexpr llama_op_types type{ llama_op_types::inp_embd };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
@@ -694,25 +851,29 @@ namespace nihilus {
 		int32_t value{};
 	};
 
-	template<model_config config> struct core_traits<config, llama_op_types::norm>
-		: core_trait_dims<core_traits<config, llama_op_types::norm>, model_traits_type<config>::embedding_dim, model_traits_type<config>::max_sequence_length, 1, 1, 1> {
+	template<model_config config_new> struct core_traits<config_new, llama_op_types::norm>
+		: public config_holder<config_new>,
+		  core_trait_dims<core_traits<config_new, llama_op_types::norm>, model_traits_type<config_new>::embedding_dim, model_traits_type<config_new>::max_sequence_length, 1, 1,
+			  1> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
-		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using input_type01														 = core_traits<config, llama_op_types::inp_embd>;
-		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::norm_output_type;
-		using core_traits_dims_type = core_trait_dims<core_traits<config, llama_op_types::norm>, model_traits_type::embedding_dim, model_traits_type::max_sequence_length, 1, 1, 1>;
+		using model_traits_type													 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+		using input_type01														 = core_traits<config_new, llama_op_types::inp_embd>;
+		using output_type														 = typename kernel_type_profile_traits<config_new.kernel_profile>::norm_output_type;
+		using core_traits_dims_type =
+			core_trait_dims<core_traits<config_new, llama_op_types::norm>, model_traits_type::embedding_dim, model_traits_type::max_sequence_length, 1, 1, 1>;
 		static constexpr uint64_t depth{ input_type01::depth + 1 };
 		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_type01::output_type, output_type>::required };
+		static constexpr auto config{ config_holder<config_new>::config };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
 			(dequantization ? type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) : 0)) };
-		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
+		static constexpr thread_strategy_type layer_type{ thread_strategy_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::rms_norm };
 		static constexpr llama_op_types type{ llama_op_types::norm };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
@@ -721,27 +882,30 @@ namespace nihilus {
 		int32_t value{};
 	};
 
-	template<model_config config> struct core_traits<config, llama_op_types::attn_norm>
-		: core_trait_dims<core_traits<config, llama_op_types::attn_norm>, model_traits_type<config>::embedding_dim, model_traits_type<config>::max_sequence_length, 1, 1, 1> {
+	template<model_config config_new> struct core_traits<config_new, llama_op_types::attn_norm>
+		: public config_holder<config_new>,
+		  core_trait_dims<core_traits<config_new, llama_op_types::attn_norm>, model_traits_type<config_new>::embedding_dim, model_traits_type<config_new>::max_sequence_length, 1,
+			  1, 1> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
-		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using input_type01														 = core_traits<config, llama_op_types::norm>;
-		using input_type02														 = core_traits<config, llama_op_types::attn_norm_weight>;
-		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::norm_output_type;
+		using model_traits_type													 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+		using input_type01														 = core_traits<config_new, llama_op_types::norm>;
+		using input_type02														 = core_traits<config_new, llama_op_types::attn_norm_weight>;
+		using output_type														 = typename kernel_type_profile_traits<config_new.kernel_profile>::norm_output_type;
 		using transform_type													 = output_transform<input_type01::krn_type, input_type02::krn_type>;
 		using core_traits_dims_type =
-			core_trait_dims<core_traits<config, llama_op_types::attn_norm>, model_traits_type::embedding_dim, model_traits_type::max_sequence_length, 1, 1, 1>;
+			core_trait_dims<core_traits<config_new, llama_op_types::attn_norm>, model_traits_type::embedding_dim, model_traits_type::max_sequence_length, 1, 1, 1>;
 		static constexpr uint64_t depth{ std::max(input_type01::depth, input_type02::depth) + 1 };
 		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_type01::output_type, typename input_type02::output_type>::required };
+		static constexpr auto config{ config_holder<config_new>::config };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
 			(dequantization ? type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) : 0)) };
-		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
+		static constexpr thread_strategy_type layer_type{ thread_strategy_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::mul };
 		static constexpr llama_op_types type{ llama_op_types::attn_norm };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
@@ -750,58 +914,61 @@ namespace nihilus {
 		int32_t value{};
 	};
 
-	template<model_config config> struct core_traits<config, llama_op_types::qcur>
-		: core_trait_dims<core_traits<config, llama_op_types::qcur>, model_traits_type<config>::head_count * model_traits_type<config>::head_dim,
-			  model_traits_type<config>::max_sequence_length, 1, 1, 1> {
-		NIHILUS_FORCE_INLINE core_traits(uint64_t thread_count) noexcept : sync_flag_start{ thread_count }, sync_flag_end{ thread_count } {};
+	template<model_config config_new> struct core_traits<config_new, llama_op_types::qcur>
+		: public config_holder<config_new>,
+		  core_trait_dims<core_traits<config_new, llama_op_types::qcur>, model_traits_type<config_new>::head_count * model_traits_type<config_new>::head_dim,
+			  model_traits_type<config_new>::max_sequence_length, 1, 1, 1> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
-		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using input_type01														 = core_traits<config, llama_op_types::attn_q_weight>;
-		using input_type02														 = core_traits<config, llama_op_types::attn_norm>;
-		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::query_type;
-		using core_traits_dims_type = core_trait_dims<core_traits<config, llama_op_types::qcur>, model_traits_type::head_count * model_traits_type::head_dim,
+		using model_traits_type													 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+		using input_type01														 = core_traits<config_new, llama_op_types::attn_q_weight>;
+		using input_type02														 = core_traits<config_new, llama_op_types::attn_norm>;
+		using output_type														 = typename kernel_type_profile_traits<config_new.kernel_profile>::query_type;
+		using core_traits_dims_type = core_trait_dims<core_traits<config_new, llama_op_types::qcur>, model_traits_type::head_count * model_traits_type::head_dim,
 			model_traits_type::max_sequence_length, 1, 1, 1>;
 		static constexpr uint64_t depth{ std::max(input_type01::depth, input_type02::depth) + 1 };
+		static constexpr auto config{ config_holder<config_new>::config };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_type01::output_type, typename input_type02::output_type>::required };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
 			(dequantization ? type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) : 0)) };
-		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
+		static constexpr thread_strategy_type layer_type{ thread_strategy_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::mul_mat };
 		static constexpr llama_op_types type{ llama_op_types::qcur };
-		array<op_latch, model_traits_type::block_count> sync_flag_start;
-		array<op_latch, model_traits_type::block_count> sync_flag_end;
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
+		array<op_latch, model_traits_type::block_count> sync_flag_start{};
+		array<op_latch, model_traits_type::block_count> sync_flag_end{};
 		uint64_t dim01{ model_traits_type::max_sequence_length };
 		output_type* data{};
 		int32_t value{};
 	};
 
-	template<model_config config> struct core_traits<config, llama_op_types::qcur_reshaped>
-		: core_trait_dims<core_traits<config, llama_op_types::qcur_reshaped>, model_traits_type<config>::head_dim, model_traits_type<config>::max_sequence_length,
-			  model_traits_type<config>::head_count, 1, 1> {
+	template<model_config config_new> struct core_traits<config_new, llama_op_types::qcur_reshaped>
+		: public config_holder<config_new>,
+		  core_trait_dims<core_traits<config_new, llama_op_types::qcur_reshaped>, model_traits_type<config_new>::head_dim, model_traits_type<config_new>::max_sequence_length,
+			  model_traits_type<config_new>::head_count, 1, 1> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
-		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using input_type01														 = core_traits<config, llama_op_types::qcur>;
-		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::query_type;
-		using core_traits_dims_type = core_trait_dims<core_traits<config, llama_op_types::qcur_reshaped>, model_traits_type::head_dim, model_traits_type::max_sequence_length,
+		using model_traits_type													 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+		using input_type01														 = core_traits<config_new, llama_op_types::qcur>;
+		using output_type														 = typename kernel_type_profile_traits<config_new.kernel_profile>::query_type;
+		using core_traits_dims_type = core_trait_dims<core_traits<config_new, llama_op_types::qcur_reshaped>, model_traits_type::head_dim, model_traits_type::max_sequence_length,
 			model_traits_type::head_count, 1, 1>;
 		static constexpr uint64_t depth{ input_type01::depth + 1 };
+		static constexpr auto config{ config_holder<config_new>::config };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array())) };
-		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
+		static constexpr thread_strategy_type layer_type{ thread_strategy_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::reshape };
 		static constexpr llama_op_types type{ llama_op_types::qcur_reshaped };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
@@ -810,29 +977,31 @@ namespace nihilus {
 		int32_t value{};
 	};
 
-	template<model_config config> struct core_traits<config, llama_op_types::qcur_rope>
-		: core_trait_dims<core_traits<config, llama_op_types::qcur_rope>, model_traits_type<config>::head_dim, model_traits_type<config>::max_sequence_length,
-			  model_traits_type<config>::head_count, 1, 1> {
+	template<model_config config_new> struct core_traits<config_new, llama_op_types::qcur_rope>
+		: public config_holder<config_new>,
+		  core_trait_dims<core_traits<config_new, llama_op_types::qcur_rope>, model_traits_type<config_new>::head_dim, model_traits_type<config_new>::max_sequence_length,
+			  model_traits_type<config_new>::head_count, 1, 1> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
-		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using input_type01														 = core_traits<config, llama_op_types::qcur_reshaped>;
-		using input_type02														 = core_traits<config, llama_op_types::inp_pos>;
-		using input_type03														 = core_traits<config, llama_op_types::rope_freqs_weight>;
-		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::query_type;
-		using core_traits_dims_type = core_trait_dims<core_traits<config, llama_op_types::qcur_rope>, model_traits_type::head_dim, model_traits_type::max_sequence_length,
+		using model_traits_type													 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+		using input_type01														 = core_traits<config_new, llama_op_types::qcur_reshaped>;
+		using input_type02														 = core_traits<config_new, llama_op_types::inp_pos>;
+		using input_type03														 = core_traits<config_new, llama_op_types::rope_freqs_weight>;
+		using output_type														 = typename kernel_type_profile_traits<config_new.kernel_profile>::query_type;
+		using core_traits_dims_type = core_trait_dims<core_traits<config_new, llama_op_types::qcur_rope>, model_traits_type::head_dim, model_traits_type::max_sequence_length,
 			model_traits_type::head_count, 1, 1>;
 		static constexpr uint64_t depth{ std::max(input_type01::depth, input_type02::depth) + 1 };
 		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_type01::output_type, typename input_type02::output_type>::required };
+		static constexpr auto config{ config_holder<config_new>::config };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
 			(dequantization ? type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) : 0)) };
-		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
+		static constexpr thread_strategy_type layer_type{ thread_strategy_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::rope };
 		static constexpr llama_op_types type{ llama_op_types::qcur_rope };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
@@ -841,57 +1010,61 @@ namespace nihilus {
 		int32_t value{};
 	};
 
-	template<model_config config> struct core_traits<config, llama_op_types::kcur>
-		: core_trait_dims<core_traits<config, llama_op_types::kcur>, model_traits_type<config>::head_count_kv * model_traits_type<config>::head_dim,
-			  model_traits_type<config>::max_sequence_length, 1, 1, 1> {
-		NIHILUS_FORCE_INLINE core_traits(uint64_t thread_count) noexcept : sync_flag_start{ thread_count }, sync_flag_end{ thread_count } {};
+	template<model_config config_new> struct core_traits<config_new, llama_op_types::kcur>
+		: public config_holder<config_new>,
+		  core_trait_dims<core_traits<config_new, llama_op_types::kcur>, model_traits_type<config_new>::head_count_kv * model_traits_type<config_new>::head_dim,
+			  model_traits_type<config_new>::max_sequence_length, 1, 1, 1> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
-		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using input_type01														 = core_traits<config, llama_op_types::attn_k_weight>;
-		using input_type02														 = core_traits<config, llama_op_types::attn_norm>;
-		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::key_type;
-		using core_traits_dims_type = core_trait_dims<core_traits<config, llama_op_types::kcur>, model_traits_type::n_embd_kv_gqa, model_traits_type::max_sequence_length, 1, 1, 1>;
+		using model_traits_type													 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+		using input_type01														 = core_traits<config_new, llama_op_types::attn_k_weight>;
+		using input_type02														 = core_traits<config_new, llama_op_types::attn_norm>;
+		using output_type														 = typename kernel_type_profile_traits<config_new.kernel_profile>::key_type;
+		using core_traits_dims_type =
+			core_trait_dims<core_traits<config_new, llama_op_types::kcur>, model_traits_type::n_embd_kv_gqa, model_traits_type::max_sequence_length, 1, 1, 1>;
 		static constexpr uint64_t depth{ std::max(input_type01::depth, input_type02::depth) + 1 };
+		static constexpr auto config{ config_holder<config_new>::config };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_type01::output_type, typename input_type02::output_type>::required };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
 			(dequantization ? type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) : 0)) };
-		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
+		static constexpr thread_strategy_type layer_type{ thread_strategy_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::mul_mat };
 		static constexpr llama_op_types type{ llama_op_types::kcur };
-		array<op_latch, model_traits_type::block_count> sync_flag_start;
-		array<op_latch, model_traits_type::block_count> sync_flag_end;
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
+		array<op_latch, model_traits_type::block_count> sync_flag_start{};
+		array<op_latch, model_traits_type::block_count> sync_flag_end{};
 		uint64_t dim01{ model_traits_type::max_sequence_length };
 		output_type* data{};
 		int32_t value{};
 	};
 
-	template<model_config config> struct core_traits<config, llama_op_types::kcur_reshaped>
-		: core_trait_dims<core_traits<config, llama_op_types::kcur_reshaped>, model_traits_type<config>::head_dim, model_traits_type<config>::max_sequence_length,
-			  model_traits_type<config>::head_count_kv, 1, 1> {
+	template<model_config config_new> struct core_traits<config_new, llama_op_types::kcur_reshaped>
+		: public config_holder<config_new>,
+		  core_trait_dims<core_traits<config_new, llama_op_types::kcur_reshaped>, model_traits_type<config_new>::head_dim, model_traits_type<config_new>::max_sequence_length,
+			  model_traits_type<config_new>::head_count_kv, 1, 1> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
-		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using input_type01														 = core_traits<config, llama_op_types::kcur>;
-		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::key_type;
-		using core_traits_dims_type = core_trait_dims<core_traits<config, llama_op_types::kcur_reshaped>, model_traits_type::head_dim, model_traits_type::max_sequence_length,
+		using model_traits_type													 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+		using input_type01														 = core_traits<config_new, llama_op_types::kcur>;
+		using output_type														 = typename kernel_type_profile_traits<config_new.kernel_profile>::key_type;
+		using core_traits_dims_type = core_trait_dims<core_traits<config_new, llama_op_types::kcur_reshaped>, model_traits_type::head_dim, model_traits_type::max_sequence_length,
 			model_traits_type::head_count_kv, 1, 1>;
 		static constexpr uint64_t depth{ input_type01::depth + 1 };
+		static constexpr auto config{ config_holder<config_new>::config };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array())) };
-		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
+		static constexpr thread_strategy_type layer_type{ thread_strategy_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::reshape };
 		static constexpr llama_op_types type{ llama_op_types::kcur_reshaped };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
@@ -900,29 +1073,31 @@ namespace nihilus {
 		int32_t value{};
 	};
 
-	template<model_config config> struct core_traits<config, llama_op_types::kcur_rope>
-		: core_trait_dims<core_traits<config, llama_op_types::kcur_rope>, model_traits_type<config>::head_dim, model_traits_type<config>::max_sequence_length,
-			  model_traits_type<config>::head_count_kv, 1, 1> {
+	template<model_config config_new> struct core_traits<config_new, llama_op_types::kcur_rope>
+		: public config_holder<config_new>,
+		  core_trait_dims<core_traits<config_new, llama_op_types::kcur_rope>, model_traits_type<config_new>::head_dim, model_traits_type<config_new>::max_sequence_length,
+			  model_traits_type<config_new>::head_count_kv, 1, 1> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
-		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using input_type01														 = core_traits<config, llama_op_types::kcur_reshaped>;
-		using input_type02														 = core_traits<config, llama_op_types::inp_pos>;
-		using input_type03														 = core_traits<config, llama_op_types::rope_freqs_weight>;
-		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::key_type;
-		using core_traits_dims_type = core_trait_dims<core_traits<config, llama_op_types::kcur_rope>, model_traits_type::head_dim, model_traits_type::max_sequence_length,
+		using model_traits_type													 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+		using input_type01														 = core_traits<config_new, llama_op_types::kcur_reshaped>;
+		using input_type02														 = core_traits<config_new, llama_op_types::inp_pos>;
+		using input_type03														 = core_traits<config_new, llama_op_types::rope_freqs_weight>;
+		using output_type														 = typename kernel_type_profile_traits<config_new.kernel_profile>::key_type;
+		using core_traits_dims_type = core_trait_dims<core_traits<config_new, llama_op_types::kcur_rope>, model_traits_type::head_dim, model_traits_type::max_sequence_length,
 			model_traits_type::head_count_kv, 1, 1>;
 		static constexpr uint64_t depth{ std::max(std::max(input_type01::depth, input_type02::depth), input_type03::depth) + 1 };
 		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_type01::output_type, typename input_type02::output_type>::required };
+		static constexpr auto config{ config_holder<config_new>::config };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
 			(dequantization ? type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) : 0)) };
-		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
+		static constexpr thread_strategy_type layer_type{ thread_strategy_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::rope };
 		static constexpr llama_op_types type{ llama_op_types::kcur_rope };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
@@ -931,57 +1106,61 @@ namespace nihilus {
 		int32_t value{};
 	};
 
-	template<model_config config> struct core_traits<config, llama_op_types::vcur>
-		: core_trait_dims<core_traits<config, llama_op_types::vcur>, model_traits_type<config>::head_dim * model_traits_type<config>::head_count_kv,
-			  model_traits_type<config>::max_sequence_length, 1, 1, 1> {
-		NIHILUS_FORCE_INLINE core_traits(uint64_t thread_count) noexcept : sync_flag_start{ thread_count }, sync_flag_end{ thread_count } {};
+	template<model_config config_new> struct core_traits<config_new, llama_op_types::vcur>
+		: public config_holder<config_new>,
+		  core_trait_dims<core_traits<config_new, llama_op_types::vcur>, model_traits_type<config_new>::head_dim * model_traits_type<config_new>::head_count_kv,
+			  model_traits_type<config_new>::max_sequence_length, 1, 1, 1> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
-		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using input_type01														 = core_traits<config, llama_op_types::attn_v_weight>;
-		using input_type02														 = core_traits<config, llama_op_types::attn_norm>;
-		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::value_type;
-		using core_traits_dims_type = core_trait_dims<core_traits<config, llama_op_types::vcur>, model_traits_type::head_dim * model_traits_type::head_count_kv,
+		using model_traits_type													 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+		using input_type01														 = core_traits<config_new, llama_op_types::attn_v_weight>;
+		using input_type02														 = core_traits<config_new, llama_op_types::attn_norm>;
+		using output_type														 = typename kernel_type_profile_traits<config_new.kernel_profile>::value_type;
+		using core_traits_dims_type = core_trait_dims<core_traits<config_new, llama_op_types::vcur>, model_traits_type::head_dim * model_traits_type::head_count_kv,
 			model_traits_type::max_sequence_length, 1, 1, 1>;
 		static constexpr uint64_t depth{ std::max(input_type01::depth, input_type02::depth) + 1 };
+		static constexpr auto config{ config_holder<config_new>::config };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_type01::output_type, typename input_type02::output_type>::required };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
 			(dequantization ? type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) : 0)) };
-		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
+		static constexpr thread_strategy_type layer_type{ thread_strategy_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::mul_mat };
 		static constexpr llama_op_types type{ llama_op_types::vcur };
-		array<op_latch, model_traits_type::block_count> sync_flag_start;
-		array<op_latch, model_traits_type::block_count> sync_flag_end;
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
+		array<op_latch, model_traits_type::block_count> sync_flag_start{};
+		array<op_latch, model_traits_type::block_count> sync_flag_end{};
 		uint64_t dim01{ model_traits_type::max_sequence_length };
 		output_type* data{};
 		int32_t value{};
 	};
 
-	template<model_config config> struct core_traits<config, llama_op_types::k_cache_view>
-		: core_trait_dims<core_traits<config, llama_op_types::k_cache_view>, 2, model_traits_type<config>::head_count_kv * model_traits_type<config>::head_dim, 1, 1, 1> {
+	template<model_config config_new> struct core_traits<config_new, llama_op_types::k_cache_view>
+		: public config_holder<config_new>,
+		  core_trait_dims<core_traits<config_new, llama_op_types::k_cache_view>, 2, model_traits_type<config_new>::head_count_kv * model_traits_type<config_new>::head_dim, 1, 1,
+			  1> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
-		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using input_type01														 = core_traits<config, llama_op_types::cache_k>;
-		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::kv_cache_type;
-		using core_traits_dims_type = core_trait_dims<core_traits<config, llama_op_types::k_cache_view>, 1, model_traits_type::head_count_kv * model_traits_type::head_dim,
+		using model_traits_type													 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+		using input_type01														 = core_traits<config_new, llama_op_types::cache_k>;
+		using output_type														 = typename kernel_type_profile_traits<config_new.kernel_profile>::kv_cache_type;
+		using core_traits_dims_type = core_trait_dims<core_traits<config_new, llama_op_types::k_cache_view>, 1, model_traits_type::head_count_kv * model_traits_type::head_dim,
 			model_traits_type::max_sequence_length, 1, 1>;
 		static constexpr uint64_t depth{ input_type01::depth + 1 };
+		static constexpr auto config{ config_holder<config_new>::config };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ 0 };
-		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
+		static constexpr thread_strategy_type layer_type{ thread_strategy_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::view };
 		static constexpr llama_op_types type{ llama_op_types::k_cache_view };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
@@ -990,25 +1169,27 @@ namespace nihilus {
 		int32_t value{};
 	};
 
-	template<model_config config> struct core_traits<config, llama_op_types::k_cache_view_copy>
-		: core_trait_dims<core_traits<config, llama_op_types::k_cache_view_copy>, model_traits_type<config>::head_count_kv * model_traits_type<config>::head_dim,
-			  model_traits_type<config>::max_sequence_length, 1, 1, 1> {
+	template<model_config config_new> struct core_traits<config_new, llama_op_types::k_cache_view_copy>
+		: public config_holder<config_new>,
+		  core_trait_dims<core_traits<config_new, llama_op_types::k_cache_view_copy>, model_traits_type<config_new>::head_count_kv * model_traits_type<config_new>::head_dim,
+			  model_traits_type<config_new>::max_sequence_length, 1, 1, 1> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
-		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using input_type01														 = core_traits<config, llama_op_types::kcur_rope>;
-		using output_type														 = typename core_traits<config, llama_op_types::k_cache_view>::output_type;
+		using model_traits_type													 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+		using input_type01														 = core_traits<config_new, llama_op_types::kcur_rope>;
+		using output_type														 = typename core_traits<config_new, llama_op_types::k_cache_view>::output_type;
 		using core_traits_dims_type =
-			core_trait_dims<core_traits<config, llama_op_types::k_cache_view_copy>, model_traits_type::n_embd_kv_gqa, model_traits_type::max_sequence_length, 1, 1, 1>;
+			core_trait_dims<core_traits<config_new, llama_op_types::k_cache_view_copy>, model_traits_type::n_embd_kv_gqa, model_traits_type::max_sequence_length, 1, 1, 1>;
 		static constexpr uint64_t depth{ input_type01::depth + 1 };
+		static constexpr auto config{ config_holder<config_new>::config };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ 0 };
-		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
+		static constexpr thread_strategy_type layer_type{ thread_strategy_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::copy };
 		static constexpr llama_op_types type{ llama_op_types::k_cache_view_copy };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
@@ -1017,25 +1198,27 @@ namespace nihilus {
 		int32_t value{};
 	};
 
-	template<model_config config> struct core_traits<config, llama_op_types::vcur_transposed>
-		: core_trait_dims<core_traits<config, llama_op_types::vcur_transposed>, model_traits_type<config>::max_sequence_length,
-			  model_traits_type<config>::head_dim * model_traits_type<config>::head_count_kv, 1, 1, 0> {
+	template<model_config config_new> struct core_traits<config_new, llama_op_types::vcur_transposed>
+		: public config_holder<config_new>,
+		  core_trait_dims<core_traits<config_new, llama_op_types::vcur_transposed>, model_traits_type<config_new>::max_sequence_length,
+			  model_traits_type<config_new>::head_dim * model_traits_type<config_new>::head_count_kv, 1, 1, 0> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
-		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using input_type01														 = core_traits<config, llama_op_types::vcur>;
-		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::value_type;
-		using core_traits_dims_type = core_trait_dims<core_traits<config, llama_op_types::vcur_transposed>, model_traits_type::max_sequence_length,
+		using model_traits_type													 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+		using input_type01														 = core_traits<config_new, llama_op_types::vcur>;
+		using output_type														 = typename kernel_type_profile_traits<config_new.kernel_profile>::value_type;
+		using core_traits_dims_type = core_trait_dims<core_traits<config_new, llama_op_types::vcur_transposed>, model_traits_type::max_sequence_length,
 			model_traits_type::head_dim * model_traits_type::head_count_kv, 1, 1, 0>;
 		static constexpr uint64_t depth{ input_type01::depth + 1 };
+		static constexpr auto config{ config_holder<config_new>::config };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array())) };
-		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
+		static constexpr thread_strategy_type layer_type{ thread_strategy_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::transpose };
 		static constexpr llama_op_types type{ llama_op_types::vcur_transposed };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
@@ -1044,24 +1227,27 @@ namespace nihilus {
 		int32_t value{};
 	};
 
-	template<model_config config> struct core_traits<config, llama_op_types::v_cache_view>
-		: core_trait_dims<core_traits<config, llama_op_types::v_cache_view>, 2, model_traits_type<config>::head_count_kv * model_traits_type<config>::head_dim, 1, 1, 1> {
+	template<model_config config_new> struct core_traits<config_new, llama_op_types::v_cache_view>
+		: public config_holder<config_new>,
+		  core_trait_dims<core_traits<config_new, llama_op_types::v_cache_view>, 2, model_traits_type<config_new>::head_count_kv * model_traits_type<config_new>::head_dim, 1, 1,
+			  1> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
-		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using input_type01														 = core_traits<config, llama_op_types::cache_v>;
-		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::kv_cache_type;
-		using core_traits_dims_type = core_trait_dims<core_traits<config, llama_op_types::v_cache_view>, 1, model_traits_type::head_count_kv * model_traits_type::head_dim,
+		using model_traits_type													 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+		using input_type01														 = core_traits<config_new, llama_op_types::cache_v>;
+		using output_type														 = typename kernel_type_profile_traits<config_new.kernel_profile>::kv_cache_type;
+		using core_traits_dims_type = core_trait_dims<core_traits<config_new, llama_op_types::v_cache_view>, 1, model_traits_type::head_count_kv * model_traits_type::head_dim,
 			model_traits_type::max_sequence_length, 1, 1>;
 		static constexpr uint64_t depth{ input_type01::depth + 1 };
+		static constexpr auto config{ config_holder<config_new>::config };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ 0 };
-		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
+		static constexpr thread_strategy_type layer_type{ thread_strategy_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::view };
 		static constexpr llama_op_types type{ llama_op_types::v_cache_view };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
@@ -1070,25 +1256,27 @@ namespace nihilus {
 		int32_t value{};
 	};
 
-	template<model_config config> struct core_traits<config, llama_op_types::v_cache_view_copy>
-		: core_trait_dims<core_traits<config, llama_op_types::v_cache_view_copy>, model_traits_type<config>::max_sequence_length,
-			  model_traits_type<config>::head_count_kv * model_traits_type<config>::head_dim, 1, 1, 0> {
+	template<model_config config_new> struct core_traits<config_new, llama_op_types::v_cache_view_copy>
+		: public config_holder<config_new>,
+		  core_trait_dims<core_traits<config_new, llama_op_types::v_cache_view_copy>, model_traits_type<config_new>::max_sequence_length,
+			  model_traits_type<config_new>::head_count_kv * model_traits_type<config_new>::head_dim, 1, 1, 0> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
-		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using input_type01														 = core_traits<config, llama_op_types::vcur_transposed>;
-		using output_type														 = typename core_traits<config, llama_op_types::v_cache_view>::output_type;
+		using model_traits_type													 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+		using input_type01														 = core_traits<config_new, llama_op_types::vcur_transposed>;
+		using output_type														 = typename core_traits<config_new, llama_op_types::v_cache_view>::output_type;
 		using core_traits_dims_type =
-			core_trait_dims<core_traits<config, llama_op_types::v_cache_view_copy>, model_traits_type::max_sequence_length, model_traits_type::n_embd_kv_gqa, 1, 1, 0>;
+			core_trait_dims<core_traits<config_new, llama_op_types::v_cache_view_copy>, model_traits_type::max_sequence_length, model_traits_type::n_embd_kv_gqa, 1, 1, 0>;
 		static constexpr uint64_t depth{ input_type01::depth + 1 };
+		static constexpr auto config{ config_holder<config_new>::config };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ 0 };
-		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
+		static constexpr thread_strategy_type layer_type{ thread_strategy_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::copy };
 		static constexpr llama_op_types type{ llama_op_types::v_cache_view_copy };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
@@ -1097,24 +1285,26 @@ namespace nihilus {
 		int32_t value{};
 	};
 
-	template<model_config config> struct core_traits<config, llama_op_types::v> : core_trait_dims<core_traits<config, llama_op_types::v>, model_traits_type<config>::head_dim,
-																					  model_traits_type<config>::block_count, model_traits_type<config>::head_count_kv, 1, 1> {
+	template<model_config config_new> struct core_traits<config_new, llama_op_types::v>
+		: core_trait_dims<core_traits<config_new, llama_op_types::v>, model_traits_type<config_new>::head_dim, model_traits_type<config_new>::block_count,
+			  model_traits_type<config_new>::head_count_kv, 1, 1> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
-		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using input_type01														 = core_traits<config, llama_op_types::cache_v>;
-		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::scale_type;
-		using core_traits_dims_type =
-			core_trait_dims<core_traits<config, llama_op_types::v>, model_traits_type::head_dim, model_traits_type::block_count, model_traits_type::head_count_kv, 1, 1>;
+		using model_traits_type													 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+		using input_type01														 = core_traits<config_new, llama_op_types::cache_v>;
+		using output_type														 = typename kernel_type_profile_traits<config_new.kernel_profile>::scale_type;
+		using core_traits_dims_type = core_trait_dims<core_traits<config_new, llama_op_types::v>, model_traits_type::max_sequence_length, model_traits_type::head_dim,
+			model_traits_type::head_count_kv, 1, 1>;
 		static constexpr uint64_t depth{ input_type01::depth + 1 };
+		static constexpr auto config{ config_holder<config_new>::config };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ 0 };
-		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
+		static constexpr thread_strategy_type layer_type{ thread_strategy_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::view };
 		static constexpr llama_op_types type{ llama_op_types::v };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
@@ -1123,24 +1313,26 @@ namespace nihilus {
 		int32_t value{};
 	};
 
-	template<model_config config> struct core_traits<config, llama_op_types::k> : core_trait_dims<core_traits<config, llama_op_types::k>, model_traits_type<config>::head_dim,
-																					  model_traits_type<config>::block_count, model_traits_type<config>::head_count_kv, 1, 1> {
+	template<model_config config_new> struct core_traits<config_new, llama_op_types::k>
+		: core_trait_dims<core_traits<config_new, llama_op_types::k>, model_traits_type<config_new>::head_dim, model_traits_type<config_new>::block_count,
+			  model_traits_type<config_new>::head_count_kv, 1, 1> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
-		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using input_type01														 = core_traits<config, llama_op_types::cache_k>;
-		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::kv_cache_type;
+		using model_traits_type													 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+		using input_type01														 = core_traits<config_new, llama_op_types::cache_k>;
+		using output_type														 = typename kernel_type_profile_traits<config_new.kernel_profile>::kv_cache_type;
 		using core_traits_dims_type =
-			core_trait_dims<core_traits<config, llama_op_types::k>, model_traits_type::head_dim, model_traits_type::block_count, model_traits_type::head_count_kv, 1, 1>;
+			core_trait_dims<core_traits<config_new, llama_op_types::k>, model_traits_type::head_dim, model_traits_type::block_count, model_traits_type::head_count_kv, 1, 1>;
 		static constexpr uint64_t depth{ input_type01::depth + 1 };
+		static constexpr auto config{ config_holder<config_new>::config };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ 0 };
-		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
+		static constexpr thread_strategy_type layer_type{ thread_strategy_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::view };
 		static constexpr llama_op_types type{ llama_op_types::k };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
@@ -1149,24 +1341,26 @@ namespace nihilus {
 		int32_t value{};
 	};
 
-	template<model_config config> struct core_traits<config, llama_op_types::q> : core_trait_dims<core_traits<config, llama_op_types::q>, model_traits_type<config>::head_dim,
-																					  model_traits_type<config>::max_sequence_length, model_traits_type<config>::head_count, 1, 1> {
+	template<model_config config_new> struct core_traits<config_new, llama_op_types::q>
+		: core_trait_dims<core_traits<config_new, llama_op_types::q>, model_traits_type<config_new>::head_dim, model_traits_type<config_new>::max_sequence_length,
+			  model_traits_type<config_new>::head_count, 1, 1> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
-		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using input_type01														 = core_traits<config, llama_op_types::qcur_rope>;
-		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::query_type;
+		using model_traits_type													 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+		using input_type01														 = core_traits<config_new, llama_op_types::qcur_rope>;
+		using output_type														 = typename kernel_type_profile_traits<config_new.kernel_profile>::query_type;
 		using core_traits_dims_type =
-			core_trait_dims<core_traits<config, llama_op_types::q>, model_traits_type::head_dim, model_traits_type::max_sequence_length, model_traits_type::head_count, 1, 1>;
+			core_trait_dims<core_traits<config_new, llama_op_types::q>, model_traits_type::head_dim, model_traits_type::max_sequence_length, model_traits_type::head_count, 1, 1>;
 		static constexpr uint64_t depth{ input_type01::depth + 1 };
+		static constexpr auto config{ config_holder<config_new>::config };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ 0 };
-		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
+		static constexpr thread_strategy_type layer_type{ thread_strategy_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::permute };
 		static constexpr llama_op_types type{ llama_op_types::q };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
@@ -1175,116 +1369,119 @@ namespace nihilus {
 		int32_t value{};
 	};
 
-	template<model_config config> struct core_traits<config, llama_op_types::kq>
-		: core_trait_dims<core_traits<config, llama_op_types::kq>, model_traits_type<config>::max_sequence_length, 1, model_traits_type<config>::head_count, 1, 0> {
-		NIHILUS_FORCE_INLINE core_traits(uint64_t thread_count) noexcept : sync_flag_start{ thread_count }, sync_flag_end{ thread_count } {};
+	template<model_config config_new> struct core_traits<config_new, llama_op_types::kq>
+		: public config_holder<config_new>,
+		  core_trait_dims<core_traits<config_new, llama_op_types::kq>, model_traits_type<config_new>::max_sequence_length, 1, model_traits_type<config_new>::head_count, 1, 0> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
-		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using input_type01														 = core_traits<config, llama_op_types::k>;
-		using input_type02														 = core_traits<config, llama_op_types::q>;
-		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::attention_score_type;
-		using core_traits_dims_type = core_trait_dims<core_traits<config, llama_op_types::kq>, model_traits_type::max_sequence_length, 1, model_traits_type::head_count, 1, 0>;
+		using model_traits_type													 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+		using input_type01														 = core_traits<config_new, llama_op_types::k>;
+		using input_type02														 = core_traits<config_new, llama_op_types::q>;
+		using output_type														 = typename kernel_type_profile_traits<config_new.kernel_profile>::attention_score_type;
+		using core_traits_dims_type = core_trait_dims<core_traits<config_new, llama_op_types::kq>, model_traits_type::max_sequence_length, 1, model_traits_type::head_count, 1, 0>;
 		static constexpr uint64_t depth{ std::max(input_type01::depth, input_type02::depth) + 1 };
+		static constexpr auto config{ config_holder<config_new>::config };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_type01::output_type, typename input_type02::output_type>::required };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
 			(dequantization ? type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) : 0)) };
-		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
+		static constexpr thread_strategy_type layer_type{ thread_strategy_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::mul_mat };
 		static constexpr llama_op_types type{ llama_op_types::kq };
-		array<op_latch, model_traits_type::block_count> sync_flag_start;
-		array<op_latch, model_traits_type::block_count> sync_flag_end;
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
+		array<op_latch, model_traits_type::block_count> sync_flag_start{};
+		array<op_latch, model_traits_type::block_count> sync_flag_end{};
 		uint64_t dim00{ model_traits_type::max_sequence_length };
 		output_type* data{};
 		int32_t value{};
 	};
 
-	template<model_config config> struct core_traits<config, llama_op_types::kq_soft_max>
-		: core_trait_dims<core_traits<config, llama_op_types::kq_soft_max>, model_traits_type<config>::max_sequence_length, 1, model_traits_type<config>::head_count, 1, 0> {
-		NIHILUS_FORCE_INLINE core_traits(uint64_t thread_count) noexcept : sync_flag_start{ thread_count }, sync_flag_end{ thread_count } {};
-		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
+	template<model_config config_new> struct core_traits<config_new, llama_op_types::kq_soft_max>
+		: public config_holder<config_new>,
+		  core_trait_dims<core_traits<config_new, llama_op_types::kq_soft_max>, model_traits_type<config_new>::head_count, 1, model_traits_type<config_new>::head_count, 1, 0> {
+		NIHILUS_FORCE_INLINE core_traits() noexcept {};
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
-		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using input_type01														 = core_traits<config, llama_op_types::kq>;
-		using input_type02														 = core_traits<config, llama_op_types::kq_mask>;
-		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::softmax_type;
+		using model_traits_type													 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+		using input_type01														 = core_traits<config_new, llama_op_types::kq>;
+		using input_type02														 = core_traits<config_new, llama_op_types::kq_mask>;
+		using output_type														 = typename kernel_type_profile_traits<config_new.kernel_profile>::softmax_type;
 		using core_traits_dims_type =
-			core_trait_dims<core_traits<config, llama_op_types::kq_soft_max>, model_traits_type::max_sequence_length, 1, model_traits_type::head_count, 1, 0>;
+			core_trait_dims<core_traits<config_new, llama_op_types::kq_soft_max>, model_traits_type::head_count, model_traits_type::head_dim, model_traits_type::head_count, 1, 0>;
 		static constexpr uint64_t depth{ std::max(input_type01::depth, input_type02::depth) + 1 };
 		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_type01::output_type, typename input_type02::output_type>::required };
+		static constexpr auto config{ config_holder<config_new>::config };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
 			(dequantization ? type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) : 0)) };
-		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
+		static constexpr thread_strategy_type layer_type{ thread_strategy_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::softmax };
 		static constexpr llama_op_types type{ llama_op_types::kq_soft_max };
-		array<op_latch, model_traits_type::block_count> sync_flag_start;
-		array<op_latch, model_traits_type::block_count> sync_flag_end;
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		uint64_t dim00{ model_traits_type::max_sequence_length };
 		output_type* data{};
 		int32_t value{};
 	};
 
-	template<model_config config> struct core_traits<config, llama_op_types::kqv>
-		: core_trait_dims<core_traits<config, llama_op_types::kqv>, model_traits_type<config>::head_dim, 1, model_traits_type<config>::head_count, 1> {
-		NIHILUS_FORCE_INLINE core_traits(uint64_t thread_count) noexcept : sync_flag_start{ thread_count }, sync_flag_end{ thread_count } {};
+	template<model_config config_new> struct core_traits<config_new, llama_op_types::kqv>
+		: public config_holder<config_new>,
+		  core_trait_dims<core_traits<config_new, llama_op_types::kqv>, model_traits_type<config_new>::head_dim, 1, model_traits_type<config_new>::head_count, 1> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
-		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using input_type01														 = core_traits<config, llama_op_types::v>;
-		using input_type02														 = core_traits<config, llama_op_types::kq_soft_max>;
-		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::value_type;
-		using core_traits_dims_type = core_trait_dims<core_traits<config, llama_op_types::kqv>, model_traits_type::head_dim, 1, model_traits_type::head_count, 1>;
+		using model_traits_type													 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+		using input_type01														 = core_traits<config_new, llama_op_types::v>;
+		using input_type02														 = core_traits<config_new, llama_op_types::kq_soft_max>;
+		using output_type														 = typename kernel_type_profile_traits<config_new.kernel_profile>::value_type;
+		using core_traits_dims_type = core_trait_dims<core_traits<config_new, llama_op_types::kqv>, model_traits_type::head_dim, 1, model_traits_type::head_count, 1>;
 		static constexpr uint64_t depth{ std::max(input_type01::depth, input_type02::depth) + 1 };
+		static constexpr auto config{ config_holder<config_new>::config };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_type01::output_type, typename input_type02::output_type>::required };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
 			(dequantization ? type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) : 0)) };
-		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
+		static constexpr thread_strategy_type layer_type{ thread_strategy_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::mul_mat };
 		static constexpr llama_op_types type{ llama_op_types::kqv };
-		array<op_latch, model_traits_type::block_count> sync_flag_start;
-		array<op_latch, model_traits_type::block_count> sync_flag_end;
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
+		array<op_latch, model_traits_type::block_count> sync_flag_start{};
+		array<op_latch, model_traits_type::block_count> sync_flag_end{};
 		output_type* data{};
 		int32_t value{};
 	};
 
-	template<model_config config> struct core_traits<config, llama_op_types::kqv_merged>
-		: core_trait_dims<core_traits<config, llama_op_types::kqv_merged>, model_traits_type<config>::head_dim, model_traits_type<config>::head_count, 1, 1> {
+	template<model_config config_new> struct core_traits<config_new, llama_op_types::kqv_merged>
+		: public config_holder<config_new>,
+		  core_trait_dims<core_traits<config_new, llama_op_types::kqv_merged>, model_traits_type<config_new>::head_dim, model_traits_type<config_new>::head_count, 1, 1> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
-		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using input_type01														 = core_traits<config, llama_op_types::kqv>;
-		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::value_type;
-		using core_traits_dims_type = core_trait_dims<core_traits<config, llama_op_types::kqv_merged>, model_traits_type::head_dim, model_traits_type::head_count, 1, 1>;
+		using model_traits_type													 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+		using input_type01														 = core_traits<config_new, llama_op_types::kqv>;
+		using output_type														 = typename kernel_type_profile_traits<config_new.kernel_profile>::value_type;
+		using core_traits_dims_type = core_trait_dims<core_traits<config_new, llama_op_types::kqv_merged>, model_traits_type::head_dim, model_traits_type::head_count, 1, 1>;
 		static constexpr uint64_t depth{ input_type01::depth + 1 };
+		static constexpr auto config{ config_holder<config_new>::config };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ 0 };
-		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
+		static constexpr thread_strategy_type layer_type{ thread_strategy_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::permute };
 		static constexpr llama_op_types type{ llama_op_types::kqv_merged };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
@@ -1292,23 +1489,24 @@ namespace nihilus {
 		int32_t value{};
 	};
 
-	template<model_config config> struct core_traits<config, llama_op_types::kqv_merged_cont>
-		: core_trait_dims<core_traits<config, llama_op_types::kqv_merged_cont>, model_traits_type<config>::embedding_dim, 1, 1, 1> {
+	template<model_config config_new> struct core_traits<config_new, llama_op_types::kqv_merged_cont>
+		: public config_holder<config_new>, core_trait_dims<core_traits<config_new, llama_op_types::kqv_merged_cont>, model_traits_type<config_new>::embedding_dim, 1, 1, 1> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
-		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using input_type01														 = core_traits<config, llama_op_types::kqv_merged>;
-		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::value_type;
-		using core_traits_dims_type = core_trait_dims<core_traits<config, llama_op_types::kqv_merged_cont>, model_traits_type::embedding_dim, 1, 1, 1>;
+		using model_traits_type													 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+		using input_type01														 = core_traits<config_new, llama_op_types::kqv_merged>;
+		using output_type														 = typename kernel_type_profile_traits<config_new.kernel_profile>::value_type;
+		using core_traits_dims_type = core_trait_dims<core_traits<config_new, llama_op_types::kqv_merged_cont>, model_traits_type::embedding_dim, 1, 1, 1>;
 		static constexpr uint64_t depth{ input_type01::depth + 1 };
+		static constexpr auto config{ config_holder<config_new>::config };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ 0 };
-		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
+		static constexpr thread_strategy_type layer_type{ thread_strategy_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::cont };
 		static constexpr llama_op_types type{ llama_op_types::kqv_merged_cont };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
@@ -1316,59 +1514,64 @@ namespace nihilus {
 		int32_t value{};
 	};
 
-	template<model_config config> struct core_traits<config, llama_op_types::kqv_out>
-		: core_trait_dims<core_traits<config, llama_op_types::kqv_out>, model_traits_type<config>::embedding_dim, model_traits_type<config>::max_sequence_length, 1, 1, 1> {
-		NIHILUS_FORCE_INLINE core_traits(uint64_t thread_count) noexcept : sync_flag_start{ thread_count }, sync_flag_end{ thread_count } {};
+	template<model_config config_new> struct core_traits<config_new, llama_op_types::kqv_out>
+		: public config_holder<config_new>,
+		  core_trait_dims<core_traits<config_new, llama_op_types::kqv_out>, model_traits_type<config_new>::embedding_dim, model_traits_type<config_new>::max_sequence_length, 1, 1,
+			  1> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
-		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using input_type01														 = core_traits<config, llama_op_types::attn_output_weight>;
-		using input_type02														 = core_traits<config, llama_op_types::kqv_merged_cont>;
-		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::hidden_type;
+		using model_traits_type													 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+		using input_type01														 = core_traits<config_new, llama_op_types::attn_output_weight>;
+		using input_type02														 = core_traits<config_new, llama_op_types::kqv_merged_cont>;
+		using output_type														 = typename kernel_type_profile_traits<config_new.kernel_profile>::hidden_type;
 		using core_traits_dims_type =
-			core_trait_dims<core_traits<config, llama_op_types::kqv_out>, model_traits_type::embedding_dim, model_traits_type::max_sequence_length, 1, 1, 1>;
+			core_trait_dims<core_traits<config_new, llama_op_types::kqv_out>, model_traits_type::embedding_dim, model_traits_type::max_sequence_length, 1, 1, 1>;
 		static constexpr uint64_t depth{ std::max(input_type01::depth, input_type02::depth) + 1 };
+		static constexpr auto config{ config_holder<config_new>::config };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_type01::output_type, typename input_type02::output_type>::required };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
 			(dequantization ? type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) : 0)) };
-		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
+		static constexpr thread_strategy_type layer_type{ thread_strategy_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::mul_mat };
 		static constexpr llama_op_types type{ llama_op_types::kqv_out };
-		array<op_latch, model_traits_type::block_count> sync_flag_start;
-		array<op_latch, model_traits_type::block_count> sync_flag_end;
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
+		array<op_latch, model_traits_type::block_count> sync_flag_start{};
+		array<op_latch, model_traits_type::block_count> sync_flag_end{};
 		uint64_t dim01{ model_traits_type::max_sequence_length };
 		output_type* data{};
 		int32_t value{};
 	};
 
-	template<model_config config> struct core_traits<config, llama_op_types::ffn_inp>
-		: core_trait_dims<core_traits<config, llama_op_types::ffn_inp>, model_traits_type<config>::embedding_dim, model_traits_type<config>::max_sequence_length, 1, 1, 1> {
+	template<model_config config_new> struct core_traits<config_new, llama_op_types::ffn_inp>
+		: public config_holder<config_new>,
+		  core_trait_dims<core_traits<config_new, llama_op_types::ffn_inp>, model_traits_type<config_new>::embedding_dim, model_traits_type<config_new>::max_sequence_length, 1, 1,
+			  1> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
-		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using input_type01														 = core_traits<config, llama_op_types::kqv_out>;
-		using input_type02														 = core_traits<config, llama_op_types::l_out>;
-		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::residual_type;
+		using model_traits_type													 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+		using input_type01														 = core_traits<config_new, llama_op_types::kqv_out>;
+		using input_type02														 = core_traits<config_new, llama_op_types::l_out>;
+		using output_type														 = typename kernel_type_profile_traits<config_new.kernel_profile>::residual_type;
 		using core_traits_dims_type =
-			core_trait_dims<core_traits<config, llama_op_types::ffn_inp>, model_traits_type::embedding_dim, model_traits_type::max_sequence_length, 1, 1, 1>;
+			core_trait_dims<core_traits<config_new, llama_op_types::ffn_inp>, model_traits_type::embedding_dim, model_traits_type::max_sequence_length, 1, 1, 1>;
 		static constexpr uint64_t depth{ input_type01::depth + 1 };
+		static constexpr auto config{ config_holder<config_new>::config };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_type01::output_type, typename input_type02::output_type>::required };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
 			(dequantization ? type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) : 0)) };
-		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
+		static constexpr thread_strategy_type layer_type{ thread_strategy_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::add };
 		static constexpr llama_op_types type{ llama_op_types::ffn_inp };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
@@ -1377,26 +1580,29 @@ namespace nihilus {
 		int32_t value{};
 	};
 
-	template<model_config config> struct core_traits<config, llama_op_types::norm_out>
-		: core_trait_dims<core_traits<config, llama_op_types::norm_out>, model_traits_type<config>::embedding_dim, model_traits_type<config>::max_sequence_length, 1, 1, 1> {
+	template<model_config config_new> struct core_traits<config_new, llama_op_types::norm_out>
+		: public config_holder<config_new>,
+		  core_trait_dims<core_traits<config_new, llama_op_types::norm_out>, model_traits_type<config_new>::embedding_dim, model_traits_type<config_new>::max_sequence_length, 1, 1,
+			  1> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
-		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using input_type01														 = core_traits<config, llama_op_types::ffn_inp>;
-		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::residual_type;
+		using model_traits_type													 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+		using input_type01														 = core_traits<config_new, llama_op_types::ffn_inp>;
+		using output_type														 = typename kernel_type_profile_traits<config_new.kernel_profile>::residual_type;
 		using core_traits_dims_type =
-			core_trait_dims<core_traits<config, llama_op_types::norm_out>, model_traits_type::embedding_dim, model_traits_type::max_sequence_length, 1, 1, 1>;
+			core_trait_dims<core_traits<config_new, llama_op_types::norm_out>, model_traits_type::embedding_dim, model_traits_type::max_sequence_length, 1, 1, 1>;
 		static constexpr uint64_t depth{ input_type01::depth + 1 };
 		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_type01::output_type, output_type>::required };
+		static constexpr auto config{ config_holder<config_new>::config };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
 			(dequantization ? type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) : 0)) };
-		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
+		static constexpr thread_strategy_type layer_type{ thread_strategy_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::rms_norm };
 		static constexpr llama_op_types type{ llama_op_types::norm_out };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
@@ -1405,27 +1611,30 @@ namespace nihilus {
 		int32_t value{};
 	};
 
-	template<model_config config> struct core_traits<config, llama_op_types::ffn_norm>
-		: core_trait_dims<core_traits<config, llama_op_types::ffn_norm>, model_traits_type<config>::embedding_dim, model_traits_type<config>::max_sequence_length, 1, 1, 1> {
+	template<model_config config_new> struct core_traits<config_new, llama_op_types::ffn_norm>
+		: public config_holder<config_new>,
+		  core_trait_dims<core_traits<config_new, llama_op_types::ffn_norm>, model_traits_type<config_new>::embedding_dim, model_traits_type<config_new>::max_sequence_length, 1, 1,
+			  1> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
-		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using input_type01														 = core_traits<config, llama_op_types::norm_out>;
-		using input_type02														 = core_traits<config, llama_op_types::ffn_norm_weight>;
-		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::residual_type;
+		using model_traits_type													 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+		using input_type01														 = core_traits<config_new, llama_op_types::norm_out>;
+		using input_type02														 = core_traits<config_new, llama_op_types::ffn_norm_weight>;
+		using output_type														 = typename kernel_type_profile_traits<config_new.kernel_profile>::residual_type;
 		using transform_type													 = output_transform<input_type01::krn_type, input_type02::krn_type>;
 		using core_traits_dims_type =
-			core_trait_dims<core_traits<config, llama_op_types::ffn_norm>, model_traits_type::embedding_dim, model_traits_type::max_sequence_length, 1, 1, 1>;
+			core_trait_dims<core_traits<config_new, llama_op_types::ffn_norm>, model_traits_type::embedding_dim, model_traits_type::max_sequence_length, 1, 1, 1>;
 		static constexpr uint64_t depth{ std::max(input_type01::depth, input_type02::depth) + 1 };
 		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_type01::output_type, typename input_type02::output_type>::required };
+		static constexpr auto config{ config_holder<config_new>::config };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
 			(dequantization ? type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) : 0)) };
-		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
+		static constexpr thread_strategy_type layer_type{ thread_strategy_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::mul };
 		static constexpr llama_op_types type{ llama_op_types::ffn_norm };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
@@ -1434,58 +1643,63 @@ namespace nihilus {
 		int32_t value{};
 	};
 
-	template<model_config config> struct core_traits<config, llama_op_types::ffn_gate>
-		: core_trait_dims<core_traits<config, llama_op_types::ffn_gate>, model_traits_type<config>::feed_forward_length, model_traits_type<config>::max_sequence_length, 1, 1, 1> {
-		NIHILUS_FORCE_INLINE core_traits(uint64_t thread_count) noexcept : sync_flag_start{ thread_count }, sync_flag_end{ thread_count } {};
+	template<model_config config_new> struct core_traits<config_new, llama_op_types::ffn_gate>
+		: public config_holder<config_new>,
+		  core_trait_dims<core_traits<config_new, llama_op_types::ffn_gate>, model_traits_type<config_new>::feed_forward_length, model_traits_type<config_new>::max_sequence_length,
+			  1, 1, 1> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
-		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using input_type01														 = core_traits<config, llama_op_types::ffn_gate_weight>;
-		using input_type02														 = core_traits<config, llama_op_types::ffn_norm>;
-		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::ffn_intermediate_type;
+		using model_traits_type													 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+		using input_type01														 = core_traits<config_new, llama_op_types::ffn_gate_weight>;
+		using input_type02														 = core_traits<config_new, llama_op_types::ffn_norm>;
+		using output_type														 = typename kernel_type_profile_traits<config_new.kernel_profile>::ffn_intermediate_type;
 		using core_traits_dims_type =
-			core_trait_dims<core_traits<config, llama_op_types::ffn_gate>, model_traits_type::feed_forward_length, model_traits_type::max_sequence_length, 1, 1, 1>;
+			core_trait_dims<core_traits<config_new, llama_op_types::ffn_gate>, model_traits_type::feed_forward_length, model_traits_type::max_sequence_length, 1, 1, 1>;
 		static constexpr uint64_t depth{ std::max(input_type01::depth, input_type02::depth) + 1 };
+		static constexpr auto config{ config_holder<config_new>::config };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_type01::output_type, typename input_type02::output_type>::required };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
 			(dequantization ? type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) : 0)) };
-		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
+		static constexpr thread_strategy_type layer_type{ thread_strategy_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::mul_mat };
 		static constexpr llama_op_types type{ llama_op_types::ffn_gate };
-		array<op_latch, model_traits_type::block_count> sync_flag_start;
-		array<op_latch, model_traits_type::block_count> sync_flag_end;
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
+		array<op_latch, model_traits_type::block_count> sync_flag_start{};
+		array<op_latch, model_traits_type::block_count> sync_flag_end{};
 		uint64_t dim01{ model_traits_type::max_sequence_length };
 		output_type* data{};
 		int32_t value{};
 	};
 
-	template<model_config config> struct core_traits<config, llama_op_types::ffn_silu>
-		: core_trait_dims<core_traits<config, llama_op_types::ffn_silu>, model_traits_type<config>::feed_forward_length, model_traits_type<config>::max_sequence_length, 1, 1, 1> {
+	template<model_config config_new> struct core_traits<config_new, llama_op_types::ffn_silu>
+		: public config_holder<config_new>,
+		  core_trait_dims<core_traits<config_new, llama_op_types::ffn_silu>, model_traits_type<config_new>::feed_forward_length, model_traits_type<config_new>::max_sequence_length,
+			  1, 1, 1> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
-		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using input_type01														 = core_traits<config, llama_op_types::ffn_gate>;
-		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::ffn_intermediate_type;
+		using model_traits_type													 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+		using input_type01														 = core_traits<config_new, llama_op_types::ffn_gate>;
+		using output_type														 = typename kernel_type_profile_traits<config_new.kernel_profile>::ffn_intermediate_type;
 		using core_traits_dims_type =
-			core_trait_dims<core_traits<config, llama_op_types::ffn_silu>, model_traits_type::feed_forward_length, model_traits_type::max_sequence_length, 1, 1, 1>;
+			core_trait_dims<core_traits<config_new, llama_op_types::ffn_silu>, model_traits_type::feed_forward_length, model_traits_type::max_sequence_length, 1, 1, 1>;
 		static constexpr uint64_t depth{ input_type01::depth + 1 };
 		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_type01::output_type, output_type>::required };
+		static constexpr auto config{ config_holder<config_new>::config };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
 			(dequantization ? type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) : 0)) };
-		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
+		static constexpr thread_strategy_type layer_type{ thread_strategy_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::silu };
 		static constexpr llama_op_types type{ llama_op_types::ffn_silu };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
@@ -1494,60 +1708,64 @@ namespace nihilus {
 		int32_t value{};
 	};
 
-	template<model_config config> struct core_traits<config, llama_op_types::ffn_up>
-		: core_trait_dims<core_traits<config, llama_op_types::ffn_up>, model_traits_type<config>::feed_forward_length, model_traits_type<config>::max_sequence_length, 1, 1, 1> {
-		NIHILUS_FORCE_INLINE core_traits(uint64_t thread_count) noexcept : sync_flag_start{ thread_count }, sync_flag_end{ thread_count } {};
+	template<model_config config_new> struct core_traits<config_new, llama_op_types::ffn_up>
+		: public config_holder<config_new>,
+		  core_trait_dims<core_traits<config_new, llama_op_types::ffn_up>, model_traits_type<config_new>::feed_forward_length, model_traits_type<config_new>::max_sequence_length,
+			  1, 1, 1> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
-		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using input_type01														 = core_traits<config, llama_op_types::ffn_up_weight>;
-		using input_type02														 = core_traits<config, llama_op_types::ffn_norm>;
-		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::ffn_intermediate_type;
+		using model_traits_type													 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+		using input_type01														 = core_traits<config_new, llama_op_types::ffn_up_weight>;
+		using input_type02														 = core_traits<config_new, llama_op_types::ffn_norm>;
+		using output_type														 = typename kernel_type_profile_traits<config_new.kernel_profile>::ffn_intermediate_type;
 		using core_traits_dims_type =
-			core_trait_dims<core_traits<config, llama_op_types::ffn_up>, model_traits_type::feed_forward_length, model_traits_type::max_sequence_length, 1, 1, 1>;
+			core_trait_dims<core_traits<config_new, llama_op_types::ffn_up>, model_traits_type::feed_forward_length, model_traits_type::max_sequence_length, 1, 1, 1>;
 		static constexpr uint64_t depth{ std::max(input_type01::depth, input_type02::depth) + 1 };
+		static constexpr auto config{ config_holder<config_new>::config };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_type01::output_type, typename input_type02::output_type>::required };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
 			(dequantization ? type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) : 0)) };
-		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
+		static constexpr thread_strategy_type layer_type{ thread_strategy_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::mul_mat };
 		static constexpr llama_op_types type{ llama_op_types::ffn_up };
-		array<op_latch, model_traits_type::block_count> sync_flag_start;
-		array<op_latch, model_traits_type::block_count> sync_flag_end;
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
+		array<op_latch, model_traits_type::block_count> sync_flag_start{};
+		array<op_latch, model_traits_type::block_count> sync_flag_end{};
 		uint64_t dim01{ model_traits_type::max_sequence_length };
 		output_type* data{};
 		int32_t value{};
 	};
 
-	template<model_config config> struct core_traits<config, llama_op_types::ffn_gate_par>
-		: core_trait_dims<core_traits<config, llama_op_types::ffn_gate_par>, model_traits_type<config>::feed_forward_length, model_traits_type<config>::max_sequence_length, 1, 1,
-			  1> {
+	template<model_config config_new> struct core_traits<config_new, llama_op_types::ffn_gate_par>
+		: public config_holder<config_new>,
+		  core_trait_dims<core_traits<config_new, llama_op_types::ffn_gate_par>, model_traits_type<config_new>::feed_forward_length,
+			  model_traits_type<config_new>::max_sequence_length, 1, 1, 1> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
-		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using input_type01														 = core_traits<config, llama_op_types::ffn_silu>;
-		using input_type02														 = core_traits<config, llama_op_types::ffn_up>;
-		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::ffn_intermediate_type;
+		using model_traits_type													 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+		using input_type01														 = core_traits<config_new, llama_op_types::ffn_silu>;
+		using input_type02														 = core_traits<config_new, llama_op_types::ffn_up>;
+		using output_type														 = typename kernel_type_profile_traits<config_new.kernel_profile>::ffn_intermediate_type;
 		using transform_type													 = output_transform<input_type01::krn_type, input_type02::krn_type>;
 		using core_traits_dims_type =
-			core_trait_dims<core_traits<config, llama_op_types::ffn_gate_par>, model_traits_type::feed_forward_length, model_traits_type::max_sequence_length, 1, 1, 1>;
+			core_trait_dims<core_traits<config_new, llama_op_types::ffn_gate_par>, model_traits_type::feed_forward_length, model_traits_type::max_sequence_length, 1, 1, 1>;
 		static constexpr uint64_t depth{ std::max(input_type01::depth, input_type02::depth) + 1 };
 		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_type01::output_type, typename input_type02::output_type>::required };
+		static constexpr auto config{ config_holder<config_new>::config };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
 			(dequantization ? type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) : 0)) };
-		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
+		static constexpr thread_strategy_type layer_type{ thread_strategy_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::mul };
 		static constexpr llama_op_types type{ llama_op_types::ffn_gate_par };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
@@ -1556,59 +1774,64 @@ namespace nihilus {
 		int32_t value{};
 	};
 
-	template<model_config config> struct core_traits<config, llama_op_types::ffn_out>
-		: core_trait_dims<core_traits<config, llama_op_types::ffn_out>, model_traits_type<config>::embedding_dim, model_traits_type<config>::max_sequence_length, 1, 1, 1> {
-		NIHILUS_FORCE_INLINE core_traits(uint64_t thread_count) noexcept : sync_flag_start{ thread_count }, sync_flag_end{ thread_count } {};
+	template<model_config config_new> struct core_traits<config_new, llama_op_types::ffn_out>
+		: public config_holder<config_new>,
+		  core_trait_dims<core_traits<config_new, llama_op_types::ffn_out>, model_traits_type<config_new>::embedding_dim, model_traits_type<config_new>::max_sequence_length, 1, 1,
+			  1> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
-		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using input_type01														 = core_traits<config, llama_op_types::ffn_down_weight>;
-		using input_type02														 = core_traits<config, llama_op_types::ffn_gate_par>;
-		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::hidden_type;
+		using model_traits_type													 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+		using input_type01														 = core_traits<config_new, llama_op_types::ffn_down_weight>;
+		using input_type02														 = core_traits<config_new, llama_op_types::ffn_gate_par>;
+		using output_type														 = typename kernel_type_profile_traits<config_new.kernel_profile>::hidden_type;
 		using core_traits_dims_type =
-			core_trait_dims<core_traits<config, llama_op_types::ffn_out>, model_traits_type::embedding_dim, model_traits_type::max_sequence_length, 1, 1, 1>;
+			core_trait_dims<core_traits<config_new, llama_op_types::ffn_out>, model_traits_type::embedding_dim, model_traits_type::max_sequence_length, 1, 1, 1>;
 		static constexpr uint64_t depth{ std::max(input_type01::depth, input_type02::depth) + 1 };
+		static constexpr auto config{ config_holder<config_new>::config };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_type01::output_type, typename input_type02::output_type>::required };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
 			(dequantization ? type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) : 0)) };
-		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
+		static constexpr thread_strategy_type layer_type{ thread_strategy_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::mul_mat };
 		static constexpr llama_op_types type{ llama_op_types::ffn_out };
-		array<op_latch, model_traits_type::block_count> sync_flag_start;
-		array<op_latch, model_traits_type::block_count> sync_flag_end;
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
+		array<op_latch, model_traits_type::block_count> sync_flag_start{};
+		array<op_latch, model_traits_type::block_count> sync_flag_end{};
 		uint64_t dim01{ model_traits_type::max_sequence_length };
 		output_type* data{};
 		int32_t value{};
 	};
 
-	template<model_config config> struct core_traits<config, llama_op_types::l_out>
-		: core_trait_dims<core_traits<config, llama_op_types::l_out>, model_traits_type<config>::embedding_dim, model_traits_type<config>::max_sequence_length, 1, 1, 1> {
+	template<model_config config_new> struct core_traits<config_new, llama_op_types::l_out>
+		: public config_holder<config_new>,
+		  core_trait_dims<core_traits<config_new, llama_op_types::l_out>, model_traits_type<config_new>::embedding_dim, model_traits_type<config_new>::max_sequence_length, 1, 1,
+			  1> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
-		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using input_type01														 = core_traits<config, llama_op_types::ffn_out>;
-		using input_type02														 = core_traits<config, llama_op_types::ffn_inp>;
-		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::residual_type;
+		using model_traits_type													 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+		using input_type01														 = core_traits<config_new, llama_op_types::ffn_out>;
+		using input_type02														 = core_traits<config_new, llama_op_types::ffn_inp>;
+		using output_type														 = typename kernel_type_profile_traits<config_new.kernel_profile>::residual_type;
 		using core_traits_dims_type =
-			core_trait_dims<core_traits<config, llama_op_types::l_out>, model_traits_type::embedding_dim, model_traits_type::max_sequence_length, 1, 1, 1>;
+			core_trait_dims<core_traits<config_new, llama_op_types::l_out>, model_traits_type::embedding_dim, model_traits_type::max_sequence_length, 1, 1, 1>;
 		static constexpr uint64_t depth{ std::max(input_type01::depth, input_type02::depth) + 1 };
 		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_type01::output_type, typename input_type02::output_type>::required };
+		static constexpr auto config{ config_holder<config_new>::config };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
 			(dequantization ? type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) : 0)) };
-		static constexpr layer_op_type layer_type{ layer_op_type::per_block };
+		static constexpr thread_strategy_type layer_type{ thread_strategy_type::per_block };
 		static constexpr kernel_type krn_type{ kernel_type::add };
 		static constexpr llama_op_types type{ llama_op_types::l_out };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
@@ -1617,27 +1840,30 @@ namespace nihilus {
 		int32_t value{};
 	};
 
-	template<model_config config> struct core_traits<config, llama_op_types::attn_residual>
-		: core_trait_dims<core_traits<config, llama_op_types::attn_residual>, model_traits_type<config>::embedding_dim, model_traits_type<config>::max_sequence_length, 1, 1, 1> {
+	template<model_config config_new> struct core_traits<config_new, llama_op_types::attn_residual>
+		: public config_holder<config_new>,
+		  core_trait_dims<core_traits<config_new, llama_op_types::attn_residual>, model_traits_type<config_new>::embedding_dim, model_traits_type<config_new>::max_sequence_length,
+			  1, 1, 1> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
-		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using input_type01														 = core_traits<config, llama_op_types::kqv_out>;
-		using input_type02														 = core_traits<config, llama_op_types::inp_out_ids>;
-		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::residual_type;
+		using model_traits_type													 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+		using input_type01														 = core_traits<config_new, llama_op_types::kqv_out>;
+		using input_type02														 = core_traits<config_new, llama_op_types::inp_out_ids>;
+		using output_type														 = typename kernel_type_profile_traits<config_new.kernel_profile>::residual_type;
 		using core_traits_dims_type =
-			core_trait_dims<core_traits<config, llama_op_types::attn_residual>, model_traits_type::embedding_dim, model_traits_type::max_sequence_length, 1, 1, 1>;
+			core_trait_dims<core_traits<config_new, llama_op_types::attn_residual>, model_traits_type::embedding_dim, model_traits_type::max_sequence_length, 1, 1, 1>;
 		static constexpr uint64_t depth{ std::max(input_type01::depth, input_type02::depth) + 1 };
 		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_type01::output_type, typename input_type02::output_type>::required };
+		static constexpr auto config{ config_holder<config_new>::config };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
 			(dequantization ? type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) : 0)) };
-		static constexpr layer_op_type layer_type{ layer_op_type::global_output };
+		static constexpr thread_strategy_type layer_type{ thread_strategy_type::global_output };
 		static constexpr kernel_type krn_type{ kernel_type::get_rows };
 		static constexpr llama_op_types type{ llama_op_types::attn_residual };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
@@ -1646,27 +1872,30 @@ namespace nihilus {
 		int32_t value{};
 	};
 
-	template<model_config config> struct core_traits<config, llama_op_types::prev_residual>
-		: core_trait_dims<core_traits<config, llama_op_types::prev_residual>, model_traits_type<config>::embedding_dim, model_traits_type<config>::max_sequence_length, 1, 1, 1> {
+	template<model_config config_new> struct core_traits<config_new, llama_op_types::prev_residual>
+		: public config_holder<config_new>,
+		  core_trait_dims<core_traits<config_new, llama_op_types::prev_residual>, model_traits_type<config_new>::embedding_dim, model_traits_type<config_new>::max_sequence_length,
+			  1, 1, 1> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
-		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using input_type01														 = core_traits<config, llama_op_types::l_out>;
-		using input_type02														 = core_traits<config, llama_op_types::inp_out_ids>;
-		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::residual_type;
+		using model_traits_type													 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+		using input_type01														 = core_traits<config_new, llama_op_types::l_out>;
+		using input_type02														 = core_traits<config_new, llama_op_types::inp_out_ids>;
+		using output_type														 = typename kernel_type_profile_traits<config_new.kernel_profile>::residual_type;
 		using core_traits_dims_type =
-			core_trait_dims<core_traits<config, llama_op_types::prev_residual>, model_traits_type::embedding_dim, model_traits_type::max_sequence_length, 1, 1, 1>;
+			core_trait_dims<core_traits<config_new, llama_op_types::prev_residual>, model_traits_type::embedding_dim, model_traits_type::max_sequence_length, 1, 1, 1>;
 		static constexpr uint64_t depth{ std::max(input_type01::depth, input_type02::depth) + 1 };
 		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_type01::output_type, typename input_type02::output_type>::required };
+		static constexpr auto config{ config_holder<config_new>::config };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
 			(dequantization ? type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) : 0)) };
-		static constexpr layer_op_type layer_type{ layer_op_type::global_output };
+		static constexpr thread_strategy_type layer_type{ thread_strategy_type::global_output };
 		static constexpr kernel_type krn_type{ kernel_type::get_rows };
 		static constexpr llama_op_types type{ llama_op_types::prev_residual };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
@@ -1675,26 +1904,29 @@ namespace nihilus {
 		int32_t value{};
 	};
 
-	template<model_config config> struct core_traits<config, llama_op_types::final_norm>
-		: core_trait_dims<core_traits<config, llama_op_types::final_norm>, model_traits_type<config>::embedding_dim, model_traits_type<config>::max_sequence_length, 1, 1, 1> {
+	template<model_config config_new> struct core_traits<config_new, llama_op_types::final_norm>
+		: public config_holder<config_new>,
+		  core_trait_dims<core_traits<config_new, llama_op_types::final_norm>, model_traits_type<config_new>::embedding_dim, model_traits_type<config_new>::max_sequence_length, 1,
+			  1, 1> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
-		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using input_type01														 = core_traits<config, llama_op_types::l_out>;
-		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::norm_output_type;
+		using model_traits_type													 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+		using input_type01														 = core_traits<config_new, llama_op_types::l_out>;
+		using output_type														 = typename kernel_type_profile_traits<config_new.kernel_profile>::norm_output_type;
 		using core_traits_dims_type =
-			core_trait_dims<core_traits<config, llama_op_types::final_norm>, model_traits_type::embedding_dim, model_traits_type::max_sequence_length, 1, 1, 1>;
+			core_trait_dims<core_traits<config_new, llama_op_types::final_norm>, model_traits_type::embedding_dim, model_traits_type::max_sequence_length, 1, 1, 1>;
 		static constexpr uint64_t depth{ input_type01::depth + 1 };
 		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_type01::output_type, output_type>::required };
+		static constexpr auto config{ config_holder<config_new>::config };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
 			(dequantization ? type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) : 0)) };
-		static constexpr layer_op_type layer_type{ layer_op_type::global_output };
+		static constexpr thread_strategy_type layer_type{ thread_strategy_type::global_output };
 		static constexpr kernel_type krn_type{ kernel_type::rms_norm };
 		static constexpr llama_op_types type{ llama_op_types::final_norm };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
@@ -1703,27 +1935,30 @@ namespace nihilus {
 		int32_t value{};
 	};
 
-	template<model_config config> struct core_traits<config, llama_op_types::result_norm>
-		: core_trait_dims<core_traits<config, llama_op_types::result_norm>, model_traits_type<config>::embedding_dim, model_traits_type<config>::max_sequence_length, 1, 1, 1> {
+	template<model_config config_new> struct core_traits<config_new, llama_op_types::result_norm>
+		: public config_holder<config_new>,
+		  core_trait_dims<core_traits<config_new, llama_op_types::result_norm>, model_traits_type<config_new>::embedding_dim, model_traits_type<config_new>::max_sequence_length, 1,
+			  1, 1> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
-		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using input_type01														 = core_traits<config, llama_op_types::final_norm>;
-		using input_type02														 = core_traits<config, llama_op_types::output_norm_weight>;
-		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::norm_output_type;
+		using model_traits_type													 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+		using input_type01														 = core_traits<config_new, llama_op_types::final_norm>;
+		using input_type02														 = core_traits<config_new, llama_op_types::output_norm_weight>;
+		using output_type														 = typename kernel_type_profile_traits<config_new.kernel_profile>::norm_output_type;
 		using transform_type													 = output_transform<input_type01::krn_type, input_type02::krn_type>;
 		using core_traits_dims_type =
-			core_trait_dims<core_traits<config, llama_op_types::result_norm>, model_traits_type::embedding_dim, model_traits_type::max_sequence_length, 1, 1, 1>;
+			core_trait_dims<core_traits<config_new, llama_op_types::result_norm>, model_traits_type::embedding_dim, model_traits_type::max_sequence_length, 1, 1, 1>;
 		static constexpr uint64_t depth{ std::max(input_type01::depth, input_type02::depth) + 1 };
 		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_type01::output_type, typename input_type02::output_type>::required };
+		static constexpr auto config{ config_holder<config_new>::config };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
 			(dequantization ? type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) : 0)) };
-		static constexpr layer_op_type layer_type{ layer_op_type::global_output };
+		static constexpr thread_strategy_type layer_type{ thread_strategy_type::global_output };
 		static constexpr kernel_type krn_type{ kernel_type::mul };
 		static constexpr llama_op_types type{ llama_op_types::result_norm };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
@@ -1732,32 +1967,35 @@ namespace nihilus {
 		int32_t value{};
 	};
 
-	template<model_config config> struct core_traits<config, llama_op_types::result_output>
-		: core_trait_dims<core_traits<config, llama_op_types::result_output>, model_traits_type<config>::vocab_size, model_traits_type<config>::max_sequence_length, 1, 1, 1> {
+	template<model_config config_new> struct core_traits<config_new, llama_op_types::result_output>
+		: public config_holder<config_new>,
+		  core_trait_dims<core_traits<config_new, llama_op_types::result_output>, model_traits_type<config_new>::vocab_size, model_traits_type<config_new>::max_sequence_length, 1,
+			  1, 1> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type													 = int32_t;
-		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
-		using input_type01														 = core_traits<config, llama_op_types::output_weight>;
-		using input_type02														 = core_traits<config, llama_op_types::result_norm>;
-		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::logit_type;
+		using model_traits_type													 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+		using input_type01														 = core_traits<config_new, llama_op_types::output_weight>;
+		using input_type02														 = core_traits<config_new, llama_op_types::result_norm>;
+		using output_type														 = typename kernel_type_profile_traits<config_new.kernel_profile>::logit_type;
 		using core_traits_dims_type =
-			core_trait_dims<core_traits<config, llama_op_types::result_output>, model_traits_type::vocab_size, model_traits_type::max_sequence_length, 1, 1, 1>;
+			core_trait_dims<core_traits<config_new, llama_op_types::result_output>, model_traits_type::vocab_size, model_traits_type::max_sequence_length, 1, 1, 1>;
 		static constexpr uint64_t depth{ std::max(input_type01::depth, input_type02::depth) + 1 };
+		static constexpr auto config{ config_holder<config_new>::config };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_type01::output_type, typename input_type02::output_type>::required };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
 			(dequantization ? type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) : 0)) };
-		static constexpr layer_op_type layer_type{ layer_op_type::global_output };
+		static constexpr thread_strategy_type layer_type{ thread_strategy_type::global_output };
 		static constexpr kernel_type krn_type{ kernel_type::mul_mat };
 		static constexpr llama_op_types type{ llama_op_types::result_output };
-		array<op_latch, model_traits_type::block_count> sync_flag_start;
-		array<op_latch, model_traits_type::block_count> sync_flag_end;
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
+		array<op_latch, model_traits_type::block_count> sync_flag_start{};
+		array<op_latch, model_traits_type::block_count> sync_flag_end{};
 		uint64_t dim01{ model_traits_type::max_sequence_length };
 		output_type* data{};
 		int32_t value{};
@@ -1774,8 +2012,8 @@ namespace nihilus {
 		return tupleRefs;
 	}
 
-	template<model_config config, typename op_type_type> constexpr auto collectTupleRefs() {
-		constexpr auto depth_count = count_depths<config, op_type_type>;
+	template<model_config config_new, typename op_type_type> constexpr auto collectTupleRefs() {
+		constexpr auto depth_count = count_depths<config_new, op_type_type>;
 		array<tuple_reference, depth_count> tupleRefs{};
 		return collectTupleRefsImpl<tupleSize>(tuple, tupleRefs);
 	}
@@ -1793,147 +2031,55 @@ namespace nihilus {
 		return createNewTupleImpl<value_type>(std::make_index_sequence<tupleRefs.size()>{});
 	}
 	*/
-	template<model_config config, auto krn_type, uint64_t index> struct get_adjacent_value;
+	template<model_config config_new, auto krn_type, uint64_t index> struct get_adjacent_value;
 
-	template<model_config config, auto krn_type, uint64_t index> struct get_adjacent_value {
-		using derived_type		   = core_traits<config, krn_type>;
-		using model_traits_type	   = model_traits<config.arch, config.model_size, config.model_generation>;
-		using derived_derived_type = model<config>;
+	template<model_config config_new, auto krn_type, uint64_t index> struct get_adjacent_value {
+		using derived_type		   = core_traits<config_new, krn_type>;
+		using model_traits_type	   = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+		using derived_derived_type = model<config_new>;
+		using thread_pool_type	   = typename derived_derived_type::thread_pool_type;
 		NIHILUS_FORCE_INLINE static auto& impl(derived_type& core) {
 			if constexpr (index == 0) {
-				using input_type01 = typename derived_type::input_type01;
-				return *static_cast<input_type01*>(static_cast<derived_type*>(&core));
+				return *static_cast<typename derived_type::input_type01*>(static_cast<typename derived_derived_type::thread_pool_type::core_base_type*>(&core));
 			} else if constexpr (index == 1) {
-				using input_type02 = typename derived_type::input_type02;
-				return *static_cast<input_type02*>(static_cast<derived_type*>(&core));
+				return *static_cast<typename derived_type::input_type02*>(static_cast<typename derived_derived_type::thread_pool_type::core_base_type*>(&core));
 			} else if constexpr (index == 2) {
-				using input_type03 = typename derived_type::input_type03;
-				return *static_cast<input_type03*>(static_cast<derived_type*>(&core));
+				return *static_cast<typename derived_type::input_type03*>(static_cast<typename derived_derived_type::thread_pool_type::core_base_type*>(&core));
 			}
 		}
 	};
 
-	template<typename... bases> struct core_bases : bases... {
-		NIHILUS_FORCE_INLINE core_bases() noexcept					  = default;
-		NIHILUS_FORCE_INLINE core_bases& operator=(core_bases&&)	  = delete;
-		NIHILUS_FORCE_INLINE core_bases(core_bases&&)				  = delete;
-		NIHILUS_FORCE_INLINE core_bases& operator=(const core_bases&) = delete;
-		NIHILUS_FORCE_INLINE core_bases(const core_bases&)			  = delete;
-
-		template<template<typename> typename mixin_type, typename op_entity_type, typename... arg_types> NIHILUS_FORCE_INLINE void impl_internal(arg_types&&... args) {
-			return mixin_type<op_entity_type>::impl(*static_cast<op_entity_type*>(this), std::forward<arg_types>(args)...);
+	template<nihilus::model_config config, typename... bases> struct core_bases : public bases... {
+		template<template<nihilus::model_config, typename> typename mixin_type, typename... arg_types> NIHILUS_FORCE_INLINE constexpr void impl(arg_types&&... args) {
+			(impl_internal_filtered<mixin_type, bases>(std::forward<arg_types>(args)...), ...);
 		}
 
-		template<template<typename> typename mixin_type, typename... arg_types> NIHILUS_FORCE_INLINE void impl(arg_types&&... args) {
-			(impl_internal<mixin_type, bases>(std::forward<arg_types>(args)...), ...);
+		template<template<nihilus::model_config, typename> typename mixin_type, typename... arg_types> NIHILUS_FORCE_INLINE static constexpr void impl_static(arg_types&&... args) {
+			(impl_internal_filtered_static<mixin_type, bases>(std::forward<arg_types>(args)...), ...);
 		}
 
-		template<template<model_config, typename> typename mixin_type, model_config config, typename op_entity_type>
-		NIHILUS_FORCE_INLINE void impl_thread_internal(size_t thread_index, size_t thread_count) {
-			return static_cast<op_entity_type*>(static_cast<mixin_type<config, op_entity_type>*>(this))->impl_thread(thread_index, thread_count);
+	  protected:
+		template<template<nihilus::model_config, typename> typename mixin_type, typename base_type, typename... arg_types>
+		NIHILUS_FORCE_INLINE constexpr void impl_internal_filtered(arg_types&&... args) {
+			if constexpr (mixin_type<config, base_type>::filter()) {
+				mixin_type<config, base_type>::impl(*static_cast<base_type*>(this), std::forward<arg_types>(args)...);
+			}
 		}
 
-		template<template<model_config, typename> typename mixin_type, model_config config> NIHILUS_FORCE_INLINE void impl_thread(size_t thread_index, size_t thread_count) {
-			(impl_thread_internal<mixin_type, config, bases>(thread_index, thread_count), ...);
-		}
-
-		template<template<typename> typename mixin_type, typename op_entity_type, typename... arg_types>
-		NIHILUS_FORCE_INLINE static constexpr void impl_internal_constexpr(arg_types&&... args) {
-			return mixin_type<op_entity_type>::impl_constexpr(std::forward<arg_types>(args)...);
-		}
-
-		template<template<typename> typename mixin_type, typename... arg_types> NIHILUS_FORCE_INLINE static constexpr void impl_constexpr(arg_types&&... args) {
-			(impl_internal_constexpr<mixin_type, bases>(args...), ...);
+		template<template<nihilus::model_config, typename> typename mixin_type, typename base_type, typename... arg_types>
+		NIHILUS_FORCE_INLINE static constexpr void impl_internal_filtered_static(arg_types&&... args) {
+			if constexpr (mixin_type<config, base_type>::filter()) {
+				mixin_type<config, base_type>::impl(std::forward<arg_types>(args)...);
+			}
 		}
 	};
 
-	template<model_config config, typename index_sequence> struct get_core_bases_base;
+	template<nihilus::model_config config, typename index_sequence> struct get_core_bases;
 
-	template<model_config config> using op_type_type_t = typename model_traits<config.arch, config.model_size, config.model_generation>::op_type_type;
-
-	template<model_config config, uint64_t... index> struct get_core_bases_base<config, std::index_sequence<index...>> {
-		using type = core_bases<core_traits<config, static_cast<op_type_type_t<config>>(index)>...>;
+	template<nihilus::model_config config, uint64_t... index> struct get_core_bases<config, std::index_sequence<index...>> {
+		using type = core_bases<config, nihilus::core_traits<config, static_cast<typename nihilus::model_traits_type<config>::op_type_type>(index)>...>;
 	};
 
-	template<model_config config> using get_core_bases_config_base_t =
-		typename get_core_bases_base<config, std::make_index_sequence<static_cast<uint64_t>(op_type_type_t<config>::count)>>::type;
-
-	template<typename derived_type, typename... bases> struct thread_core_bases : bases... {
-		NIHILUS_FORCE_INLINE thread_core_bases() noexcept							= default;
-		NIHILUS_FORCE_INLINE thread_core_bases& operator=(thread_core_bases&&)		= delete;
-		NIHILUS_FORCE_INLINE thread_core_bases(thread_core_bases&&)					= delete;
-		NIHILUS_FORCE_INLINE thread_core_bases& operator=(const thread_core_bases&) = delete;
-		NIHILUS_FORCE_INLINE thread_core_bases(const thread_core_bases&)			= delete;
-
-		template<template<model_config, typename> typename mixin_type, model_config config, typename op_entity_type, typename... arg_types>
-		NIHILUS_FORCE_INLINE void impl_one_internal(arg_types&&... args) {
-			return static_cast<mixin_type<config, op_entity_type>*>(static_cast<op_entity_type*>(this))->impl(std::forward<arg_types>(args)...);
-		}
-
-		template<template<model_config, typename> typename mixin_type, model_config config, typename... arg_types> NIHILUS_FORCE_INLINE void impl_one(arg_types&&... args) {
-			(impl_one_internal<mixin_type, config, bases>(std::forward<arg_types>(args)...), ...);
-		}
-
-		template<template<model_config, typename> typename mixin_type, model_config config, typename op_entity_type>
-		NIHILUS_FORCE_INLINE void impl_thread_internal(size_t thread_index, size_t thread_count) {
-			static_cast<mixin_type<config, op_entity_type>*>(static_cast<op_entity_type*>(this))->impl_thread(thread_index, thread_count);
-			//static_cast<op_entity_type*>(static_cast<model_type*>(static_cast<derived_type*>(this)))->impl_thread(thread_index, thread_count);
-			//return static_cast<op_entity_type*>(static_cast<mixin_type<config, op_entity_type>*>(this))->impl_thread(thread_index, thread_count);
-		}
-
-		template<template<model_config, typename> typename mixin_type, model_config config> NIHILUS_FORCE_INLINE void impl_thread(size_t thread_index, size_t thread_count) {
-			(impl_thread_internal<mixin_type, config, bases>(thread_index, thread_count), ...);
-		}
-	};
-
-	template<typename derived_type, typename... bases> struct thread_depth_bases : bases... {
-		NIHILUS_FORCE_INLINE thread_depth_bases() noexcept							  = default;
-		NIHILUS_FORCE_INLINE thread_depth_bases& operator=(thread_depth_bases&&)	  = delete;
-		NIHILUS_FORCE_INLINE thread_depth_bases(thread_depth_bases&&)				  = delete;
-		NIHILUS_FORCE_INLINE thread_depth_bases& operator=(const thread_depth_bases&) = delete;
-		NIHILUS_FORCE_INLINE thread_depth_bases(const thread_depth_bases&)			  = delete;
-
-		template<template<model_config, typename> typename mixin_type, model_config config, typename op_entity_type, typename... arg_types>
-		NIHILUS_FORCE_INLINE void impl_internal(arg_types&&... args) {
-			static_cast<derived_type*>(this)->template impl_one<mixin_type, config>(args...);
-			//return mixin_type<config, op_entity_type>::impl(std::forward<arg_types>(args)...);
-		}
-
-		template<template<model_config, typename> typename mixin_type, model_config config, typename... arg_types> NIHILUS_FORCE_INLINE void impl(arg_types&&... args) {
-			(impl_internal<mixin_type, config, bases>(std::forward<arg_types>(args)...), ...);
-		}
-
-		template<template<model_config, typename> typename mixin_type, model_config config, typename op_entity_type>
-		NIHILUS_FORCE_INLINE void impl_thread_internal(size_t thread_index, size_t thread_count) {
-			using model_type = typename derived_type::derived_type;
-			static_cast<op_entity_type*>(static_cast<model_type*>(static_cast<derived_type*>(this)))->template impl_thread<mixin_type, config>(thread_index, thread_count);
-		}
-
-		template<template<model_config, typename> typename mixin_type, model_config config> NIHILUS_FORCE_INLINE void impl_thread(size_t thread_index, size_t thread_count) {
-			(impl_thread_internal<mixin_type, config, bases>(thread_index, thread_count), ...);
-		}
-	};
-
-	template<model_config config, typename derived_type, typename thread_strategy_type, size_t current_depth, typename index_sequence>
-	struct get_depth_level_thread_core_bases_base;
-
-	template<model_config config, typename derived_type, typename thread_strategy_type, size_t current_depth, uint64_t... index>
-	struct get_depth_level_thread_core_bases_base<config, derived_type, thread_strategy_type, current_depth, std::index_sequence<index...>> {
-		using type = thread_core_bases<derived_type, core_traits<config, thread_strategy_type::final_ops[current_depth][index]>...>;
-	};
-
-	template<model_config config, typename derived_type, typename thread_strategy_type, size_t current_depth> using get_depth_level_thread_core_bases_config_base_t =
-		typename get_depth_level_thread_core_bases_base<config, derived_type, thread_strategy_type, current_depth,
-			std::make_index_sequence<thread_strategy_type::actual_ops_per_depth[current_depth]>>::type;
-
-	template<model_config config, typename derived_type, typename thread_strategy_type, typename index_sequence> struct get_depth_level_thread_strategy_thread_core_bases_base;
-
-	template<model_config config, typename derived_type, typename thread_strategy_type, uint64_t... index>
-	struct get_depth_level_thread_strategy_thread_core_bases_base<config, derived_type, thread_strategy_type, std::index_sequence<index...>> {
-		using type = thread_depth_bases<derived_type, get_depth_level_thread_core_bases_config_base_t<config, derived_type, thread_strategy_type, index>...>;
-	};
-
-	template<model_config config, typename derived_type, typename thread_strategy_type> using get_depth_level_thread_strategy_thread_core_bases_config_base_t =
-		typename get_depth_level_thread_strategy_thread_core_bases_base<config, derived_type, thread_strategy_type,
-			std::make_index_sequence<thread_strategy_type::unique_depth_count>>::type;
+	template<nihilus::model_config config> using get_core_bases_t =
+		typename get_core_bases<config, std::make_index_sequence<static_cast<uint64_t>(nihilus::model_traits_type<config>::op_type_type::count)>>::type;
 }

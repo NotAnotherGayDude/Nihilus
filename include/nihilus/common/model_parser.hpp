@@ -373,14 +373,14 @@ namespace nihilus {
 			if (page_size <= 0)
 				return;
 
-			uint64_t page_size_t = static_cast<uint64_t>(page_size);
+			uint64_t page_uint64_t = static_cast<uint64_t>(page_size);
 
-			uint64_t offset_in_page = first & (page_size_t - 1);
+			uint64_t offset_in_page = first & (page_uint64_t - 1);
 			if (offset_in_page != 0) {
-				first += page_size_t - offset_in_page;
+				first += page_uint64_t - offset_in_page;
 			}
 
-			last = last & ~(page_size_t - 1);
+			last = last & ~(page_uint64_t - 1);
 
 			if (last <= first)
 				return;
