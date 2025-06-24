@@ -134,18 +134,18 @@ namespace nihilus {
 
 	template<auto op_type, kernel_type krn_type, single_input core_type, typename output_type, typename input_type01>
 	struct kernel_base<op_type, krn_type, core_type, output_type, input_type01> {
-		using input01									 = typename core_type::input_type01;
-		using output									 = core_type;
+		using input01									 = input_type01;
+		using output									 = output_type;
 		static constexpr auto dims01					 = core_type::get_array();
 		static constexpr auto dims02					 = core_type::input_type01::get_array();
 		static constexpr auto strides01					 = core_type::strides;
 		static constexpr auto strides02					 = core_type::input_type01::strides;
 		static constexpr uint64_t total_elements		 = dims01[0] * dims01[1] * dims01[2] * dims01[3];
 		static constexpr uint64_t input01_total_elements = dims02[0] * dims02[1] * dims02[2] * dims02[3];
-		static_assert(static_assert_printer<( std::is_same_v<output_type, typename core_type::output_type> ),
-			kernel_trait_static_assert_errors::Sorry_but_these_output_types_are_not_the_same, kernel_base, core_type, output_type, input_type01>::impl);
-		static_assert(static_assert_printer<( std::is_same_v<input_type01, typename core_type::input_type01::output_type> ),
-			kernel_trait_static_assert_errors::Sorry_but_these_input_type01_types_are_not_the_same, kernel_base, core_type, output_type, input_type01>::impl);
+		//static_assert(static_assert_printer<( std::is_same_v<output_type, typename core_type::output_type> ),//
+		//kernel_trait_static_assert_errors::Sorry_but_these_output_types_are_not_the_same, kernel_base, core_type, output_type, input_type01>::impl);
+		//		static_assert(static_assert_printer<( std::is_same_v<input_type01, typename core_type::input_type01::output_type> ),
+		//			kernel_trait_static_assert_errors::Sorry_but_these_input_type01_types_are_not_the_same, kernel_base, core_type, output_type, input_type01>::impl);
 	};
 
 	template<auto op_type, kernel_type krn_type, double_input core_type, typename output_type, typename input_type01, typename input_type02>

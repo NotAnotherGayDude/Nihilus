@@ -37,6 +37,12 @@ namespace nihilus {
 		}
 	};
 
+	template<typename transform_type, typename core_type> struct kernel_dispatcher_impl<1, kernel_type::view, transform_type, core_type, half, half>
+		: public kernel_base<core_type::type, kernel_type::view, core_type, half, float> {
+		NIHILUS_FORCE_INLINE static void impl(uint64_t thread_index, uint64_t thread_count, core_type& output, const typename core_type::input_type01& input01) {
+		}
+	};
+
 	template<typename transform_type, typename core_type> struct kernel_dispatcher_impl<1, kernel_type::cont, transform_type, core_type, float, float>
 		: public kernel_base<core_type::type, kernel_type::cont, core_type, float, float> {
 		NIHILUS_FORCE_INLINE static void impl(uint64_t thread_index, uint64_t thread_count, core_type& output, const typename core_type::input_type01& input01) {

@@ -42,7 +42,7 @@ namespace nihilus {
 												 public thread_pool<config, model<config>>,
 												 public hyper_parameters<config.arch> {
 		using core_bases_config_type		  = get_core_bases_config_base_t<config>;
-		using model_traits_type				  = model_traits<config.arch, config.model_size, config.model_generation>;
+		using model_traits_type				  = model_traits_type<config>;
 		using op_type_type					  = model_traits_type::op_type_type;
 		using kernel_type_profile_traits_type = kernel_type_profile_traits<config.kernel_profile>;
 		using base_type						  = model_base<decltype(config.model_size), decltype(config.model_generation)>;
@@ -65,13 +65,14 @@ namespace nihilus {
 			memory.init(total_required_bytes);
 			std::cout << "Total required bytes: " << total_required_bytes << std::endl;
 			weight_memory = memory_mapped_file{ params.model_file };
+			thread_pool<config, model>::init();
 			array<array<void*, model_traits_type::block_count>, op_type_type::count> data{};
-			core_bases_config_type::template impl<memory_mapper>(memory);
-			core_bases_config_type::template impl<execution_planner>(params.thread_count, data);
+			//core_bases_config_type::template impl<memory_mapper>(memory);
+			//core_bases_config_type::template impl<execution_planner>(params.thread_count, data);
 			stop_watch_val_nihilus.reset();
-			model_graph_data<config> model_construction_data = model_parser<config>::parse_model(data, &weight_memory);
+			//model_graph_data<config> model_construction_data = model_parser<config>::parse_model(data, &weight_memory);
 			std::cout << "Nihilus model Load time: " << stop_watch_val_nihilus.total_time_elapsed() << std::endl;
-			core_bases_config_type::template impl<tensor_debugger_impl>();
+			//core_bases_config_type::template impl<tensor_debugger_impl>();
 		}
 
 		NIHILUS_FORCE_INLINE void deinit(cli_params params) {

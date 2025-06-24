@@ -127,3 +127,16 @@ template<bool value, auto enum_error, typename... value_to_test> struct static_a
 		}
 	}() };
 };
+
+template<auto enum_error, auto... values> struct error_printer_impl_val;
+
+template<bool value, auto enum_error, auto... values> struct static_assert_printer_val {
+	static constexpr bool impl{ [] {
+		if constexpr (!value) {
+			error_printer_impl_val<enum_error, values...>::failure_value;
+			return false;
+		} else {
+			return true;
+		}
+	}() };
+};

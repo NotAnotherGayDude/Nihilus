@@ -160,7 +160,7 @@ namespace nihilus {
 		static constexpr uint64_t unique_depth_count{ count_unique_depths<op_type_type>(dynamic_core_traits_array) };
 		static constexpr auto actual_ops_per_depth{ count_ops_per_depth<op_type_type, unique_depth_count>(dynamic_core_traits_array) };
 		static constexpr auto max_ops_per_depth{ count_max_ops_per_depth<op_type_type, unique_depth_count>(dynamic_core_traits_array) };
-		inline static auto final_ops{ construct_thread_strategy<config, op_type_type, max_ops_per_depth, unique_depth_count>(dynamic_core_traits_array) };
+		static constexpr auto final_ops{ construct_thread_strategy<config, op_type_type, max_ops_per_depth, unique_depth_count>(dynamic_core_traits_array) };
 	};
 
 	template<kernel_type kernel_type01, kernel_type kernel_type02> struct output_transform {};
@@ -628,7 +628,7 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE core_traits(core_traits&&) noexcept				 = delete;
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::kv_cache_type;
-		using core_traits_dims_type = core_trait_dims<core_traits<config, llama_op_types::cache_k>, model_traits_type::n_embd_kv_gqa, model_traits_type::embedding_dim, 1, 1>;
+		using core_traits_dims_type = core_trait_dims<core_traits<config, llama_op_types::cache_v>, model_traits_type::n_embd_kv_gqa, model_traits_type::embedding_dim, 1, 1>;
 		static constexpr uint64_t depth{ 0 };
 		static constexpr alloc_type alc_type{ alloc_type::per_block_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
@@ -965,8 +965,7 @@ namespace nihilus {
 	};
 
 	template<model_config config> struct core_traits<config, llama_op_types::k_cache_view>
-		: core_trait_dims<core_traits<config, llama_op_types::k_cache_view>, model_traits_type<config>::head_count_kv * model_traits_type<config>::head_dim,
-			  model_traits_type<config>::max_sequence_length, 1, 1, 1> {
+		: core_trait_dims<core_traits<config, llama_op_types::k_cache_view>, 2, model_traits_type<config>::head_count_kv * model_traits_type<config>::head_dim, 1, 1, 1> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
@@ -976,8 +975,8 @@ namespace nihilus {
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
 		using input_type01														 = core_traits<config, llama_op_types::cache_k>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::kv_cache_type;
-		using core_traits_dims_type =
-			core_trait_dims<core_traits<config, llama_op_types::k_cache_view>, model_traits_type::n_embd_kv_gqa, model_traits_type::max_sequence_length, 1, 1, 1>;
+		using core_traits_dims_type = core_trait_dims<core_traits<config, llama_op_types::k_cache_view>, 1, model_traits_type::head_count_kv * model_traits_type::head_dim,
+			model_traits_type::max_sequence_length, 1, 1>;
 		static constexpr uint64_t depth{ input_type01::depth + 1 };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
@@ -1046,8 +1045,7 @@ namespace nihilus {
 	};
 
 	template<model_config config> struct core_traits<config, llama_op_types::v_cache_view>
-		: core_trait_dims<core_traits<config, llama_op_types::v_cache_view>, model_traits_type<config>::max_sequence_length,
-			  model_traits_type<config>::head_count_kv * model_traits_type<config>::head_dim, 1, 1, 0> {
+		: core_trait_dims<core_traits<config, llama_op_types::v_cache_view>, 2, model_traits_type<config>::head_count_kv * model_traits_type<config>::head_dim, 1, 1, 1> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
@@ -1057,8 +1055,8 @@ namespace nihilus {
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
 		using input_type01														 = core_traits<config, llama_op_types::cache_v>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::kv_cache_type;
-		using core_traits_dims_type =
-			core_trait_dims<core_traits<config, llama_op_types::v_cache_view>, model_traits_type::max_sequence_length, model_traits_type::n_embd_kv_gqa, 1, 1, 0>;
+		using core_traits_dims_type = core_trait_dims<core_traits<config, llama_op_types::v_cache_view>, 1, model_traits_type::head_count_kv * model_traits_type::head_dim,
+			model_traits_type::max_sequence_length, 1, 1>;
 		static constexpr uint64_t depth{ input_type01::depth + 1 };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
@@ -1099,9 +1097,8 @@ namespace nihilus {
 		int32_t value{};
 	};
 
-	template<model_config config> struct core_traits<config, llama_op_types::v>
-		: core_trait_dims<core_traits<config, llama_op_types::v>, model_traits_type<config>::max_sequence_length, model_traits_type<config>::head_dim,
-			  model_traits_type<config>::head_count_kv, 1, 0> {
+	template<model_config config> struct core_traits<config, llama_op_types::v> : core_trait_dims<core_traits<config, llama_op_types::v>, model_traits_type<config>::head_dim,
+																					  model_traits_type<config>::block_count, model_traits_type<config>::head_count_kv, 1, 1> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
@@ -1112,7 +1109,7 @@ namespace nihilus {
 		using input_type01														 = core_traits<config, llama_op_types::cache_v>;
 		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::scale_type;
 		using core_traits_dims_type =
-			core_trait_dims<core_traits<config, llama_op_types::v>, model_traits_type::max_sequence_length, model_traits_type::head_dim, model_traits_type::head_count_kv, 1, 0>;
+			core_trait_dims<core_traits<config, llama_op_types::v>, model_traits_type::head_dim, model_traits_type::block_count, model_traits_type::head_count_kv, 1, 1>;
 		static constexpr uint64_t depth{ input_type01::depth + 1 };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
@@ -1126,9 +1123,8 @@ namespace nihilus {
 		int32_t value{};
 	};
 
-	template<model_config config> struct core_traits<config, llama_op_types::k>
-		: core_trait_dims<core_traits<config, llama_op_types::k>, model_traits_type<config>::head_dim, model_traits_type<config>::max_sequence_length,
-			  model_traits_type<config>::head_count_kv, 1, 1> {
+	template<model_config config> struct core_traits<config, llama_op_types::k> : core_trait_dims<core_traits<config, llama_op_types::k>, model_traits_type<config>::head_dim,
+																					  model_traits_type<config>::block_count, model_traits_type<config>::head_count_kv, 1, 1> {
 		NIHILUS_FORCE_INLINE core_traits() noexcept								 = default;
 		NIHILUS_FORCE_INLINE core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_FORCE_INLINE core_traits(const core_traits&) noexcept			 = delete;
@@ -1137,9 +1133,9 @@ namespace nihilus {
 		using transform_type													 = int32_t;
 		using model_traits_type													 = model_traits<config.arch, config.model_size, config.model_generation>;
 		using input_type01														 = core_traits<config, llama_op_types::cache_k>;
-		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::scale_type;
+		using output_type														 = typename kernel_type_profile_traits<config.kernel_profile>::kv_cache_type;
 		using core_traits_dims_type =
-			core_trait_dims<core_traits<config, llama_op_types::k>, model_traits_type::head_dim, model_traits_type::max_sequence_length, model_traits_type::head_count_kv, 1, 1>;
+			core_trait_dims<core_traits<config, llama_op_types::k>, model_traits_type::head_dim, model_traits_type::block_count, model_traits_type::head_count_kv, 1, 1>;
 		static constexpr uint64_t depth{ input_type01::depth + 1 };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
@@ -1806,13 +1802,13 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE static auto& impl(derived_type& core) {
 			if constexpr (index == 0) {
 				using input_type01 = typename derived_type::input_type01;
-				return *static_cast<input_type01*>(static_cast<derived_derived_type*>(&core));
+				return *static_cast<input_type01*>(static_cast<derived_type*>(&core));
 			} else if constexpr (index == 1) {
 				using input_type02 = typename derived_type::input_type02;
-				return *static_cast<input_type02*>(static_cast<derived_derived_type*>(&core));
+				return *static_cast<input_type02*>(static_cast<derived_type*>(&core));
 			} else if constexpr (index == 2) {
 				using input_type03 = typename derived_type::input_type03;
-				return *static_cast<input_type03*>(static_cast<derived_derived_type*>(&core));
+				return *static_cast<input_type03*>(static_cast<derived_type*>(&core));
 			}
 		}
 	};
@@ -1832,12 +1828,13 @@ namespace nihilus {
 			(impl_internal<mixin_type, bases>(std::forward<arg_types>(args)...), ...);
 		}
 
-		template<template<typename> typename mixin_type, typename op_entity_type> NIHILUS_FORCE_INLINE void impl_internal(size_t thread_index, size_t thread_count) {
-			return mixin_type<op_entity_type>::impl(*static_cast<op_entity_type*>(this), thread_index, thread_count);
+		template<template<model_config, typename> typename mixin_type, model_config config, typename op_entity_type>
+		NIHILUS_FORCE_INLINE void impl_thread_internal(size_t thread_index, size_t thread_count) {
+			return static_cast<op_entity_type*>(static_cast<mixin_type<config, op_entity_type>*>(this))->impl_thread(thread_index, thread_count);
 		}
 
-		template<template<typename> typename mixin_type> NIHILUS_FORCE_INLINE void impl(size_t thread_index, size_t thread_count) {
-			(impl_internal<mixin_type, bases>(thread_index, thread_count), ...);
+		template<template<model_config, typename> typename mixin_type, model_config config> NIHILUS_FORCE_INLINE void impl_thread(size_t thread_index, size_t thread_count) {
+			(impl_thread_internal<mixin_type, config, bases>(thread_index, thread_count), ...);
 		}
 
 		template<template<typename> typename mixin_type, typename op_entity_type, typename... arg_types>
@@ -1861,24 +1858,82 @@ namespace nihilus {
 	template<model_config config> using get_core_bases_config_base_t =
 		typename get_core_bases_base<config, std::make_index_sequence<static_cast<uint64_t>(op_type_type_t<config>::count)>>::type;
 
-	template<model_config config, typename thread_strategy_type, size_t current_depth, typename index_sequence> struct get_depth_level_core_bases_base;
+	template<typename derived_type, typename... bases> struct thread_core_bases : bases... {
+		NIHILUS_FORCE_INLINE thread_core_bases() noexcept							= default;
+		NIHILUS_FORCE_INLINE thread_core_bases& operator=(thread_core_bases&&)		= delete;
+		NIHILUS_FORCE_INLINE thread_core_bases(thread_core_bases&&)					= delete;
+		NIHILUS_FORCE_INLINE thread_core_bases& operator=(const thread_core_bases&) = delete;
+		NIHILUS_FORCE_INLINE thread_core_bases(const thread_core_bases&)			= delete;
 
-	template<model_config config, typename thread_strategy_type, size_t current_depth, uint64_t... index>
-	struct get_depth_level_core_bases_base<config, thread_strategy_type, current_depth, std::index_sequence<index...>> {
-		using type = core_bases<core_traits<config, thread_strategy_type::final_ops[current_depth][index]>...>;
+		template<template<model_config, typename> typename mixin_type, model_config config, typename op_entity_type, typename... arg_types>
+		NIHILUS_FORCE_INLINE void impl_one_internal(arg_types&&... args) {
+			return static_cast<mixin_type<config, op_entity_type>*>(static_cast<op_entity_type*>(this))->impl(std::forward<arg_types>(args)...);
+		}
+
+		template<template<model_config, typename> typename mixin_type, model_config config, typename... arg_types> NIHILUS_FORCE_INLINE void impl_one(arg_types&&... args) {
+			(impl_one_internal<mixin_type, config, bases>(std::forward<arg_types>(args)...), ...);
+		}
+
+		template<template<model_config, typename> typename mixin_type, model_config config, typename op_entity_type>
+		NIHILUS_FORCE_INLINE void impl_thread_internal(size_t thread_index, size_t thread_count) {
+			static_cast<mixin_type<config, op_entity_type>*>(static_cast<op_entity_type*>(this))->impl_thread(thread_index, thread_count);
+			//static_cast<op_entity_type*>(static_cast<model_type*>(static_cast<derived_type*>(this)))->impl_thread(thread_index, thread_count);
+			//return static_cast<op_entity_type*>(static_cast<mixin_type<config, op_entity_type>*>(this))->impl_thread(thread_index, thread_count);
+		}
+
+		template<template<model_config, typename> typename mixin_type, model_config config> NIHILUS_FORCE_INLINE void impl_thread(size_t thread_index, size_t thread_count) {
+			(impl_thread_internal<mixin_type, config, bases>(thread_index, thread_count), ...);
+		}
 	};
 
-	template<model_config config, typename thread_strategy_type, size_t current_depth> using get_depth_level_core_bases_config_base_t =
-		typename get_depth_level_core_bases_base<config, thread_strategy_type, current_depth,
+	template<typename derived_type, typename... bases> struct thread_depth_bases : bases... {
+		NIHILUS_FORCE_INLINE thread_depth_bases() noexcept							  = default;
+		NIHILUS_FORCE_INLINE thread_depth_bases& operator=(thread_depth_bases&&)	  = delete;
+		NIHILUS_FORCE_INLINE thread_depth_bases(thread_depth_bases&&)				  = delete;
+		NIHILUS_FORCE_INLINE thread_depth_bases& operator=(const thread_depth_bases&) = delete;
+		NIHILUS_FORCE_INLINE thread_depth_bases(const thread_depth_bases&)			  = delete;
+
+		template<template<model_config, typename> typename mixin_type, model_config config, typename op_entity_type, typename... arg_types>
+		NIHILUS_FORCE_INLINE void impl_internal(arg_types&&... args) {
+			static_cast<derived_type*>(this)->template impl_one<mixin_type, config>(args...);
+			//return mixin_type<config, op_entity_type>::impl(std::forward<arg_types>(args)...);
+		}
+
+		template<template<model_config, typename> typename mixin_type, model_config config, typename... arg_types> NIHILUS_FORCE_INLINE void impl(arg_types&&... args) {
+			(impl_internal<mixin_type, config, bases>(std::forward<arg_types>(args)...), ...);
+		}
+
+		template<template<model_config, typename> typename mixin_type, model_config config, typename op_entity_type>
+		NIHILUS_FORCE_INLINE void impl_thread_internal(size_t thread_index, size_t thread_count) {
+			using model_type = typename derived_type::derived_type;
+			static_cast<op_entity_type*>(static_cast<model_type*>(static_cast<derived_type*>(this)))->template impl_thread<mixin_type, config>(thread_index, thread_count);
+		}
+
+		template<template<model_config, typename> typename mixin_type, model_config config> NIHILUS_FORCE_INLINE void impl_thread(size_t thread_index, size_t thread_count) {
+			(impl_thread_internal<mixin_type, config, bases>(thread_index, thread_count), ...);
+		}
+	};
+
+	template<model_config config, typename derived_type, typename thread_strategy_type, size_t current_depth, typename index_sequence>
+	struct get_depth_level_thread_core_bases_base;
+
+	template<model_config config, typename derived_type, typename thread_strategy_type, size_t current_depth, uint64_t... index>
+	struct get_depth_level_thread_core_bases_base<config, derived_type, thread_strategy_type, current_depth, std::index_sequence<index...>> {
+		using type = thread_core_bases<derived_type, core_traits<config, thread_strategy_type::final_ops[current_depth][index]>...>;
+	};
+
+	template<model_config config, typename derived_type, typename thread_strategy_type, size_t current_depth> using get_depth_level_thread_core_bases_config_base_t =
+		typename get_depth_level_thread_core_bases_base<config, derived_type, thread_strategy_type, current_depth,
 			std::make_index_sequence<thread_strategy_type::actual_ops_per_depth[current_depth]>>::type;
 
-	template<model_config config, typename thread_strategy_type, typename index_sequence> struct get_depth_level_thread_strategy_core_bases_base;
+	template<model_config config, typename derived_type, typename thread_strategy_type, typename index_sequence> struct get_depth_level_thread_strategy_thread_core_bases_base;
 
-	template<model_config config, typename thread_strategy_type, uint64_t... index>
-	struct get_depth_level_thread_strategy_core_bases_base<config, thread_strategy_type, std::index_sequence<index...>> {
-		using type = core_bases<get_depth_level_core_bases_config_base_t<config, thread_strategy_type, index>...>;
+	template<model_config config, typename derived_type, typename thread_strategy_type, uint64_t... index>
+	struct get_depth_level_thread_strategy_thread_core_bases_base<config, derived_type, thread_strategy_type, std::index_sequence<index...>> {
+		using type = thread_depth_bases<derived_type, get_depth_level_thread_core_bases_config_base_t<config, derived_type, thread_strategy_type, index>...>;
 	};
 
-	template<model_config config, typename thread_strategy_type> using get_depth_level_thread_strategy_core_bases_config_base_t =
-		typename get_depth_level_thread_strategy_core_bases_base<config, thread_strategy_type, std::make_index_sequence<thread_strategy_type::unique_depth_count>>::type;
+	template<model_config config, typename derived_type, typename thread_strategy_type> using get_depth_level_thread_strategy_thread_core_bases_config_base_t =
+		typename get_depth_level_thread_strategy_thread_core_bases_base<config, derived_type, thread_strategy_type,
+			std::make_index_sequence<thread_strategy_type::unique_depth_count>>::type;
 }
