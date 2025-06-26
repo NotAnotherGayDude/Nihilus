@@ -29,7 +29,7 @@ namespace nihilus {
 	concept uint_type = std::is_unsigned_v<std::remove_cvref_t<value_type>> && std::is_integral_v<std::remove_cvref_t<value_type>>;
 
 	template<typename value_type>
-	concept int_type = std::is_signed_v<std::remove_cvref_t<value_type>> && std::is_integral_v<std::remove_cvref_t<value_type>>;
+	concept int_type = std::is_signed_v<std::remove_cvref_t<value_type>> && std::is_integral_v<std::remove_cvref_t<value_type>> && !uint_type<value_type>;
 
 	template<typename value_type>
 	concept int8_type = int_type<std::remove_cvref_t<value_type>> && sizeof(std::remove_cvref_t<value_type>) == 1;
@@ -75,9 +75,17 @@ namespace nihilus {
 	};
 
 	template<typename value_type>
+	concept has_find = requires(std::remove_cvref_t<value_type> value) {
+		{ value.find(std::declval<typename std::remove_cvref_t<value_type>::value_type>()) } -> std::same_as<typename value_type::size_type>;
+	};
+
+	template<typename value_type>
 	concept vector_subscriptable = requires(std::remove_cvref_t<value_type> value) {
 		{ value[std::declval<typename value_type::uint64_type>()] } -> std::same_as<typename value_type::reference>;
 	};
+
+	template<typename value_type>
+	concept string_type = vector_subscriptable<value_type> && has_data<value_type> && has_size<value_type> && has_find<value_type>;
 
 	template<typename value_type>
 	concept array_type = vector_subscriptable<value_type> && has_data<value_type> && has_size<value_type>;

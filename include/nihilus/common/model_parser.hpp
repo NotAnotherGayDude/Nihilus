@@ -17,10 +17,11 @@ Signed,
 RealTimeChris (Chris M.)
 2025
 */
-
 #pragma once
+
 #include <nihilus/common/type_traits.hpp>
 #include <nihilus/common/model_graph_data.hpp>
+#include <nihilus/common/tokenizer.hpp>
 #include <nihilus/common/debugging_io.hpp>
 #include <nihilus/common/model_traits.hpp>
 
@@ -703,6 +704,96 @@ namespace nihilus {
 		}
 	};
 
+	template<> NIHILUS_FORCE_INLINE void gather_scalar(const std::string& key, uint32_t& out, const std::map<std::string, gguf_metadata_kv_t>& metadata_kv) {
+		auto it = metadata_kv.find(key);
+		if (it == metadata_kv.end())
+			return;
+		const auto& v = it->second.value.value;
+		if (std::holds_alternative<uint64_t>(v)) {
+			out = static_cast<uint32_t>(std::get<uint64_t>(v));
+		}
+	};
+
+	template<> NIHILUS_FORCE_INLINE void gather_scalar(const std::string& key, uint16_t& out, const std::map<std::string, gguf_metadata_kv_t>& metadata_kv) {
+		auto it = metadata_kv.find(key);
+		if (it == metadata_kv.end())
+			return;
+		const auto& v = it->second.value.value;
+		if (std::holds_alternative<uint64_t>(v)) {
+			out = static_cast<uint16_t>(std::get<uint64_t>(v));
+		}
+	};
+
+	template<> NIHILUS_FORCE_INLINE void gather_scalar(const std::string& key, uint8_t& out, const std::map<std::string, gguf_metadata_kv_t>& metadata_kv) {
+		auto it = metadata_kv.find(key);
+		if (it == metadata_kv.end())
+			return;
+		const auto& v = it->second.value.value;
+		if (std::holds_alternative<uint64_t>(v)) {
+			out = static_cast<uint8_t>(std::get<uint64_t>(v));
+		}
+	};
+	template<> NIHILUS_FORCE_INLINE void gather_scalar(const std::string& key, int32_t& out, const std::map<std::string, gguf_metadata_kv_t>& metadata_kv) {
+		auto it = metadata_kv.find(key);
+		if (it == metadata_kv.end())
+			return;
+		const auto& v = it->second.value.value;
+		if (std::holds_alternative<int64_t>(v)) {
+			out = static_cast<int32_t>(std::get<uint64_t>(v));
+		}
+	};
+
+	template<> NIHILUS_FORCE_INLINE void gather_scalar(const std::string& key, int16_t& out, const std::map<std::string, gguf_metadata_kv_t>& metadata_kv) {
+		auto it = metadata_kv.find(key);
+		if (it == metadata_kv.end())
+			return;
+		const auto& v = it->second.value.value;
+		if (std::holds_alternative<int64_t>(v)) {
+			out = static_cast<int16_t>(std::get<uint64_t>(v));
+		}
+	};
+
+	template<> NIHILUS_FORCE_INLINE void gather_scalar(const std::string& key, int8_t& out, const std::map<std::string, gguf_metadata_kv_t>& metadata_kv) {
+		auto it = metadata_kv.find(key);
+		if (it == metadata_kv.end())
+			return;
+		const auto& v = it->second.value.value;
+		if (std::holds_alternative<int64_t>(v)) {
+			out = static_cast<int8_t>(std::get<uint64_t>(v));
+		}
+	};
+
+	template<typename value_type>
+	NIHILUS_FORCE_INLINE void gather_array(const std::string& key, std::vector<value_type>& out, const std::map<std::string, gguf_metadata_kv_t>& metadata_kv);
+
+	template<int_type value_type>
+	NIHILUS_FORCE_INLINE void gather_array(const std::string& key, std::vector<value_type>& out, const std::map<std::string, gguf_metadata_kv_t>& metadata_kv) {
+		auto it = metadata_kv.find(key);
+		if (it == metadata_kv.end())
+			return;
+		const auto& v = it->second.value.value;
+		if (std::holds_alternative<gguf_array_t*>(v)) {
+			gguf_array_t& new_array{ *std::get<gguf_array_t*>(v) };
+			for (auto& value: new_array.array) {
+				out.emplace_back(static_cast<value_type>(std::get<int64_t>(value.value)));
+			}
+		}
+	};
+
+	template<uint_type value_type>
+	NIHILUS_FORCE_INLINE void gather_array(const std::string& key, std::vector<value_type>& out, const std::map<std::string, gguf_metadata_kv_t>& metadata_kv) {
+		auto it = metadata_kv.find(key);
+		if (it == metadata_kv.end())
+			return;
+		const auto& v = it->second.value.value;
+		if (std::holds_alternative<gguf_array_t*>(v)) {
+			gguf_array_t& new_array{ *std::get<gguf_array_t*>(v) };
+			for (auto& value: new_array.array) {
+				out.emplace_back(static_cast<value_type>(std::get<uint64_t>(value.value)));
+			}
+		}
+	};
+
 	template<typename value_type>
 	NIHILUS_FORCE_INLINE void gather_array(const std::string& key, std::vector<value_type>& out, const std::map<std::string, gguf_metadata_kv_t>& metadata_kv) {
 		auto it = metadata_kv.find(key);
@@ -732,6 +823,93 @@ namespace nihilus {
 			std::cout << "Value: " << std::get<gguf_string_t>(variant) << std::endl;
 		} else if (std::holds_alternative<gguf_array_t*>(variant)) {
 		}
+	}
+
+	NIHILUS_FORCE_INLINE vocab_types string_to_vocab_type(const std::string& vocab_type_str) {
+		if (vocab_type_str == "llama")
+			return vocab_types::spm;
+		if (vocab_type_str == "gpt2")
+			return vocab_types::bpe;
+		if (vocab_type_str == "bert")
+			return vocab_types::wpm;
+		if (vocab_type_str == "t5")
+			return vocab_types::spm;
+		if (vocab_type_str == "gpt-neox")
+			return vocab_types::bpe;
+		if (vocab_type_str == "falcon")
+			return vocab_types::bpe;
+		if (vocab_type_str == "mpt")
+			return vocab_types::bpe;
+		if (vocab_type_str == "starcoder")
+			return vocab_types::bpe;
+		if (vocab_type_str == "gpt-j")
+			return vocab_types::bpe;
+		if (vocab_type_str == "refact")
+			return vocab_types::bpe;
+		if (vocab_type_str == "command-r")
+			return vocab_types::bpe;
+		if (vocab_type_str == "qwen2")
+			return vocab_types::bpe;
+		if (vocab_type_str == "olmo")
+			return vocab_types::bpe;
+		if (vocab_type_str == "dbrx")
+			return vocab_types::bpe;
+		if (vocab_type_str == "minicp")
+			return vocab_types::bpe;
+		if (vocab_type_str == "tekken")
+			return vocab_types::bpe;
+		if (vocab_type_str == "smollm")
+			return vocab_types::bpe;
+		if (vocab_type_str == "viking")
+			return vocab_types::bpe;
+		if (vocab_type_str == "jais")
+			return vocab_types::bpe;
+		if (vocab_type_str == "chatglm")
+			return vocab_types::spm;
+		if (vocab_type_str == "baichuan")
+			return vocab_types::spm;
+		if (vocab_type_str == "xverse")
+			return vocab_types::spm;
+		if (vocab_type_str == "internlm2")
+			return vocab_types::spm;
+		if (vocab_type_str == "minicpm")
+			return vocab_types::spm;
+		if (vocab_type_str == "gemma")
+			return vocab_types::spm;
+		if (vocab_type_str == "gemma2")
+			return vocab_types::spm;
+		if (vocab_type_str == "phi3")
+			return vocab_types::spm;
+		if (vocab_type_str == "paligemma")
+			return vocab_types::spm;
+		if (vocab_type_str == "bloom")
+			return vocab_types::bpe;
+		if (vocab_type_str == "stablelm")
+			return vocab_types::bpe;
+		if (vocab_type_str == "qwen")
+			return vocab_types::bpe;
+		if (vocab_type_str == "plamo")
+			return vocab_types::spm;
+		if (vocab_type_str == "codeshell")
+			return vocab_types::bpe;
+		if (vocab_type_str == "orion")
+			return vocab_types::spm;
+		if (vocab_type_str == "internlm")
+			return vocab_types::spm;
+		if (vocab_type_str == "minicpm3")
+			return vocab_types::spm;
+		if (vocab_type_str == "rwkv")
+			return vocab_types::rwkv;
+		if (vocab_type_str == "command")
+			return vocab_types::bpe;
+		if (vocab_type_str == "deci")
+			return vocab_types::bpe;
+		if (vocab_type_str == "granite")
+			return vocab_types::bpe;
+		if (vocab_type_str == "chameleon")
+			return vocab_types::bpe;
+
+		return vocab_types::none;
 	}
 
 	template<> struct value_reader<construction_parameters<model_arch::llama>, model_arch::llama> {
@@ -765,17 +943,324 @@ namespace nihilus {
 		}
 	};
 
-	template<> struct value_reader<tokenizer_parameters<model_arch::llama>, model_arch::llama> {
-		NIHILUS_FORCE_INLINE static tokenizer_parameters<model_arch::llama> gather_value(const std::map<std::string, gguf_metadata_kv_t>& metadata_kv) {
-			tokenizer_parameters<model_arch::llama> value{};
-			gather_scalar("tokenizer.ggml.bos_token_id", value.bos_token_id, metadata_kv);
-			gather_scalar("tokenizer.ggml.eos_token_id", value.eos_token_id, metadata_kv);
-			gather_scalar("tokenizer.chat_template", value.chat_template, metadata_kv);
-			gather_array("tokenizer.ggml.merges", value.merges, metadata_kv);
-			gather_scalar("tokenizer.ggml.pre", value.pre, metadata_kv);
-			gather_array("tokenizer.ggml.tokens", value.tokens, metadata_kv);
-			gather_array("tokenizer.ggml.token_type", value.token_types, metadata_kv);
-			return value;
+	template<typename derived_type> struct value_reader<vocab<model_arch::llama, vocab_types::bpe, derived_type>> {
+		NIHILUS_FORCE_INLINE static void gather_value(const std::map<std::string, gguf_metadata_kv_t>& metadata_kv,
+			vocab<model_arch::llama, vocab_types::bpe, derived_type>& tokenizer) {
+			std::string tokenizer_model;
+			std::string tokenizer_pre;
+
+			gather_scalar("tokenizer.ggml.model", tokenizer_model, metadata_kv);
+			gather_scalar("tokenizer.ggml.pre", tokenizer_pre, metadata_kv);
+			gather_scalar("tokenizer.ggml.token_type_count", tokenizer.n_token_types, metadata_kv);
+
+			if (tokenizer_model == "no_vocab" || tokenizer_model == "none") {
+				tokenizer.special_bos_id  = token_null;
+				tokenizer.special_eos_id  = token_null;
+				tokenizer.special_unk_id  = token_null;
+				tokenizer.special_sep_id  = token_null;
+				tokenizer.special_pad_id  = token_null;
+				tokenizer.special_mask_id = token_null;
+				tokenizer.linefeed_id	  = token_null;
+				uint32_t n_tokens		  = 0;
+				gather_scalar("general.vocab_size", n_tokens, metadata_kv);
+				if (n_tokens != 0) {
+					tokenizer.id_to_token.resize(n_tokens);
+				}
+				return;
+			}
+
+			if (tokenizer_model == "llama") {
+				tokenizer.special_bos_id  = 1;
+				tokenizer.special_eos_id  = 2;
+				tokenizer.special_unk_id  = 0;
+				tokenizer.special_sep_id  = token_null;
+				tokenizer.special_pad_id  = token_null;
+				tokenizer.special_mask_id = token_null;
+			} else if (tokenizer_model == "bert") {
+				tokenizer.special_bos_id  = 101;
+				tokenizer.special_eos_id  = token_null;
+				tokenizer.special_unk_id  = 100;
+				tokenizer.special_sep_id  = 102;
+				tokenizer.special_pad_id  = 0;
+				tokenizer.special_mask_id = 103;
+			} else if (tokenizer_model == "gpt2") {
+				std::vector<std::string> merges;
+				gather_array("tokenizer.ggml.merges", merges, metadata_kv);
+
+				for (size_t i = 0; i < merges.size(); ++i) {
+					const std::string& merge_str = merges[i];
+					size_t space_pos			 = merge_str.find(' ', 1);
+					if (space_pos != std::string::npos) {
+						std::string first  = merge_str.substr(0, space_pos);
+						std::string second = merge_str.substr(space_pos + 1);
+
+						tokenizer.bpe_ranks.emplace(std::make_pair(first, second), static_cast<int>(i));
+					}
+				}
+
+				tokenizer.special_bos_id  = 11;
+				tokenizer.special_eos_id  = 11;
+				tokenizer.special_unk_id  = token_null;
+				tokenizer.special_sep_id  = token_null;
+				tokenizer.special_pad_id  = token_null;
+				tokenizer.special_mask_id = token_null;
+			} else if (tokenizer_model == "t5") {
+				tokenizer.special_bos_id  = token_null;
+				tokenizer.special_eos_id  = 1;
+				tokenizer.special_unk_id  = 2;
+				tokenizer.special_sep_id  = token_null;
+				tokenizer.special_pad_id  = 0;
+				tokenizer.special_mask_id = token_null;
+
+				std::vector<uint8_t> precompiled_data;
+				gather_array("tokenizer.ggml.precompiled_charsmap", precompiled_data, metadata_kv);
+				if (!precompiled_data.empty()) {
+					tokenizer.precompiled_charsmap.assign(precompiled_data.begin(), precompiled_data.end());
+				}
+			} else if (tokenizer_model == "rwkv") {
+				tokenizer.special_bos_id = token_null;
+				tokenizer.special_eos_id = token_null;
+				tokenizer.special_unk_id = token_null;
+				tokenizer.special_sep_id = token_null;
+				tokenizer.special_pad_id = token_null;
+			} else {
+				throw std::runtime_error("Unknown tokenizer model: " + tokenizer_model);
+			}
+
+			if (tokenizer_model == "gpt2" || tokenizer_model == "bert" || tokenizer_model == "t5") {
+				tokenizer.add_space_prefix = false;
+				tokenizer.clean_spaces	   = true;
+
+				if (tokenizer_pre.empty()) {
+					tokenizer.pre_type = vocab_pre_types::default_pre;
+				} else if (tokenizer_pre == "default") {
+					tokenizer.pre_type = vocab_pre_types::default_pre;
+				} else if (tokenizer_pre == "llama3" || tokenizer_pre == "llama-v3" || tokenizer_pre == "llama-bpe" || tokenizer_pre == "falcon3") {
+					tokenizer.pre_type		= vocab_pre_types::llama3;
+					tokenizer.ignore_merges = true;
+					tokenizer.add_bos		= true;
+				} else if (tokenizer_pre == "deepseek-llm") {
+					tokenizer.pre_type	   = vocab_pre_types::deepseek_llm;
+					tokenizer.clean_spaces = false;
+				} else if (tokenizer_pre == "deepseek-coder") {
+					tokenizer.pre_type	   = vocab_pre_types::deepseek_coder;
+					tokenizer.clean_spaces = false;
+				} else if (tokenizer_pre == "deepseek-v3") {
+					tokenizer.pre_type	   = vocab_pre_types::deepseek3_llm;
+					tokenizer.clean_spaces = false;
+				} else if (tokenizer_pre == "falcon") {
+					tokenizer.pre_type = vocab_pre_types::falcon;
+				} else if (tokenizer_pre == "mpt") {
+					tokenizer.pre_type = vocab_pre_types::mpt;
+				} else if (tokenizer_pre == "starcoder") {
+					tokenizer.pre_type = vocab_pre_types::starcoder;
+				} else if (tokenizer_pre == "gpt-2" || tokenizer_pre == "phi-2" || tokenizer_pre == "jina-es" || tokenizer_pre == "jina-de" || tokenizer_pre == "gigachat" ||
+					tokenizer_pre == "roberta-bpe") {
+					tokenizer.pre_type = vocab_pre_types::gpt2;
+				} else if (tokenizer_pre == "refact") {
+					tokenizer.pre_type = vocab_pre_types::refact;
+				} else if (tokenizer_pre == "command-r") {
+					tokenizer.pre_type	   = vocab_pre_types::command_r;
+					tokenizer.clean_spaces = false;
+				} else if (tokenizer_pre == "qwen2") {
+					tokenizer.pre_type	   = vocab_pre_types::qwen2;
+					tokenizer.clean_spaces = false;
+				} else if (tokenizer_pre == "tekken") {
+					tokenizer.pre_type		= vocab_pre_types::tekken;
+					tokenizer.clean_spaces	= false;
+					tokenizer.ignore_merges = true;
+					tokenizer.add_bos		= true;
+				} else if (tokenizer_pre == "smollm") {
+					tokenizer.pre_type	   = vocab_pre_types::smollm;
+					tokenizer.clean_spaces = false;
+				} else if (tokenizer_pre == "chameleon") {
+					tokenizer.pre_type	   = vocab_pre_types::chameleon;
+					tokenizer.add_bos	   = true;
+					tokenizer.clean_spaces = false;
+				} else {
+					throw std::runtime_error("Unknown pre-tokenizer type: " + tokenizer_pre);
+				}
+			} else {
+				tokenizer.pre_type = vocab_pre_types::default_pre;
+				if (tokenizer_model == "llama") {
+					tokenizer.add_space_prefix = true;
+					tokenizer.clean_spaces	   = false;
+					tokenizer.add_bos		   = true;
+					tokenizer.add_eos		   = false;
+				} else if (tokenizer_model == "bert") {
+					tokenizer.add_space_prefix = false;
+					tokenizer.clean_spaces	   = true;
+					tokenizer.add_bos		   = true;
+					tokenizer.add_eos		   = false;
+				} else if (tokenizer_model == "t5") {
+					tokenizer.add_bos = false;
+					tokenizer.add_eos = true;
+				} else if (tokenizer_model == "rwkv") {
+					tokenizer.add_space_prefix = false;
+					tokenizer.clean_spaces	   = false;
+					tokenizer.add_bos		   = false;
+					tokenizer.add_eos		   = false;
+				}
+			}
+
+			gather_scalar("tokenizer.ggml.add_space_prefix", tokenizer.add_space_prefix, metadata_kv);
+			gather_scalar("tokenizer.ggml.remove_extra_whitespace", tokenizer.remove_extra_whitespaces, metadata_kv);
+			gather_scalar("tokenizer.ggml.add_bos", tokenizer.add_bos, metadata_kv);
+			gather_scalar("tokenizer.ggml.add_eos", tokenizer.add_eos, metadata_kv);
+
+			std::vector<std::string> tokens;
+			gather_array("tokenizer.ggml.tokens", tokens, metadata_kv);
+
+			std::vector<float> scores;
+			gather_array("tokenizer.ggml.scores", scores, metadata_kv);
+
+			std::vector<int32_t> token_types;
+			gather_array("tokenizer.ggml.token_type", token_types, metadata_kv);
+
+			uint32_t n_tokens = static_cast<uint32_t>(tokens.size());
+			tokenizer.id_to_token.resize(n_tokens);
+
+			for (uint32_t i = 0; i < n_tokens; i++) {
+				std::string word = tokens[i];
+				if (word.empty()) {
+					word = "[EMPTY_" + std::to_string(i) + "]";
+				}
+
+				tokenizer.token_to_id[word] = i;
+				tokenizer.max_token_len		= std::max(tokenizer.max_token_len, static_cast<int>(word.size()));
+
+				auto& token_data = tokenizer.id_to_token[i];
+				token_data.text	 = std::move(word);
+				token_data.score = (i < scores.size()) ? scores[i] : 0.0f;
+				token_data.att	 = tokens::normal;
+
+				if (i < token_types.size()) {
+					switch (token_types[i]) {
+						case 0:
+							token_data.att = tokens::unknown;
+							break;
+						case 1:
+							token_data.att = tokens::unused;
+							break;
+						case 2:
+							token_data.att = tokens::normal;
+							break;
+						case 3:
+							token_data.att = tokens::control;
+							break;
+						case 4:
+							token_data.att = tokens::user_defined;
+							break;
+						case 5:
+							token_data.att = tokens::byte;
+							break;
+						default:
+							token_data.att = tokens::undefined;
+							break;
+					}
+				}
+			}
+
+			gather_scalar("tokenizer.ggml.bos_token_id", tokenizer.special_bos_id, metadata_kv);
+			gather_scalar("tokenizer.ggml.eos_token_id", tokenizer.special_eos_id, metadata_kv);
+			gather_scalar("tokenizer.ggml.unknown_token_id", tokenizer.special_unk_id, metadata_kv);
+			gather_scalar("tokenizer.ggml.separator_token_id", tokenizer.special_sep_id, metadata_kv);
+			gather_scalar("tokenizer.ggml.padding_token_id", tokenizer.special_pad_id, metadata_kv);
+
+			for (const auto& [text, id]: tokenizer.token_to_id) {
+				if (tokenizer.special_eot_id == token_null) {
+					if (text == "<|eot_id|>" || text == "<|im_end|>" || text == "<|end|>" || text == "<end_of_turn>" || text == "<|endoftext|>" || text == "< EOT >" ||
+						text == "<｜end▁of▁sentence｜>") {
+						tokenizer.special_eot_id	  = id;
+						tokenizer.id_to_token[id].att = tokens::control;
+					}
+				}
+
+				if (tokenizer.special_eom_id == token_null && text == "<|eom_id|>") {
+					tokenizer.special_eom_id	  = id;
+					tokenizer.id_to_token[id].att = tokens::control;
+				}
+
+				if (tokenizer.special_fim_pre_id == token_null) {
+					if (text == "<|fim_prefix|>" || text == "<fim-prefix>" || text == "<｜fim▁begin｜>" || text == "<PRE>") {
+						tokenizer.special_fim_pre_id  = id;
+						tokenizer.id_to_token[id].att = tokens::control;
+					}
+				}
+
+				if (tokenizer.special_fim_suf_id == token_null) {
+					if (text == "<|fim_suffix|>" || text == "<fim-suffix>" || text == "<｜fim▁hole｜>" || text == "<SUF>") {
+						tokenizer.special_fim_suf_id  = id;
+						tokenizer.id_to_token[id].att = tokens::control;
+					}
+				}
+
+				if (tokenizer.special_fim_mid_id == token_null) {
+					if (text == "<|fim_middle|>" || text == "<fim-middle>" || text == "<｜fim▁end｜>" || text == "<MID>") {
+						tokenizer.special_fim_mid_id  = id;
+						tokenizer.id_to_token[id].att = tokens::control;
+					}
+				}
+			}
+
+			for (token id = 0; id < static_cast<token>(n_tokens); ++id) {
+				if (static_cast<size_t>(tokenizer.id_to_token[id].att) &
+					(static_cast<size_t>(tokens::control) | static_cast<size_t>(tokens::user_defined) | static_cast<size_t>(tokens::unused))) {
+					tokenizer.cache_special_tokens.push_back(id);
+				}
+			}
+
+			std::sort(tokenizer.cache_special_tokens.begin(), tokenizer.cache_special_tokens.end(), [&](token a, token b) {
+				return tokenizer.id_to_token[a].text.size() > tokenizer.id_to_token[b].text.size();
+			});
+
+			tokenizer.special_eog_ids.clear();
+			for (const auto& [text, id]: tokenizer.token_to_id) {
+				if (text == "<|eot_id|>" || text == "<|im_end|>" || text == "<|end|>" || text == "<end_of_turn>" || text == "<|endoftext|>" || text == "<|eom_id|>" ||
+					text == "< EOT >") {
+					tokenizer.special_eog_ids.insert(id);
+				}
+			}
+
+			if (tokenizer.special_eos_id != token_null) {
+				tokenizer.special_eog_ids.insert(tokenizer.special_eos_id);
+			}
+			if (tokenizer.special_eot_id != token_null) {
+				tokenizer.special_eog_ids.insert(tokenizer.special_eot_id);
+			}
+			if (tokenizer.special_eom_id != token_null) {
+				tokenizer.special_eog_ids.insert(tokenizer.special_eom_id);
+			}
+
+			if (tokenizer_model == "llama") {
+				tokenizer.init_tokenizer(vocab_types::spm);
+			} else if (tokenizer_model == "gpt2") {
+				tokenizer.init_tokenizer(vocab_types::bpe);
+			} else if (tokenizer_model == "bert") {
+				tokenizer.init_tokenizer(vocab_types::wpm);
+			} else if (tokenizer_model == "t5") {
+				tokenizer.init_tokenizer(vocab_types::ugm);
+			} else if (tokenizer_model == "rwkv") {
+				tokenizer.init_tokenizer(vocab_types::rwkv);
+			}
+		}
+	};
+
+	template<model_config config, typename derived_type, vocab_types vocab_type>
+	struct value_reader<tokenizer<config, derived_type, model_arch::llama, vocab_type>, model_arch::llama> {
+		NIHILUS_FORCE_INLINE static void gather_value(const std::map<std::string, gguf_metadata_kv_t>& metadata_kv,
+			tokenizer<config, derived_type, model_arch::llama, vocab_type>& tokenizer) {
+			gather_scalar("tokenizer.ggml.bos_token_id", tokenizer.bos_token_id, metadata_kv);
+			gather_scalar("tokenizer.ggml.eos_token_id", tokenizer.eos_token_id, metadata_kv);
+			gather_scalar("tokenizer.chat_template", tokenizer.chat_template, metadata_kv);
+			std::string vocab_type_str{};
+			gather_scalar("tokenizer.ggml.model", vocab_type_str, metadata_kv);
+			//tokenizer.vocab_type = string_to_vocab_type(vocab_type_str);
+			gather_array("tokenizer.ggml.merges", tokenizer.merges, metadata_kv);
+			gather_scalar("tokenizer.ggml.pre", tokenizer.pre, metadata_kv);
+			gather_array("tokenizer.ggml.tokens", tokenizer.tokens, metadata_kv);
+			gather_array("tokenizer.ggml.token_type", tokenizer.token_types, metadata_kv);
+			return;
 		}
 	};
 
@@ -906,14 +1391,13 @@ namespace nihilus {
 		}
 
 		return 0;
-	}	
+	}
 
 	NIHILUS_FORCE_INLINE bool operator<(const core_base_creation_data& lhs, const core_base_creation_data& rhs) noexcept {
 		const uint64_t lhs_number{ extract_layer_number(lhs.name) };
 		const uint64_t rhs_number{ extract_layer_number(rhs.name) };
 		return lhs_number < rhs_number;
 	}
-
 	NIHILUS_FORCE_INLINE void sort_tensor_infos(std::vector<core_base_creation_data>& tensor_infos) noexcept {
 		std::sort(tensor_infos.begin(), tensor_infos.end(), std::less<core_base_creation_data>{});
 	}
@@ -928,15 +1412,16 @@ namespace nihilus {
 		return offset + (alignment - (offset % alignment)) % alignment;
 	}
 
-	template<model_config config, model_arch arch, model_format type> struct model_parser_impl;
+	template<model_config config> struct model_parser_impl {};
 
-	template<model_config config> struct model_parser_impl<config, model_arch::llama, model_format::gguf> {
+	template<model_config config>
+		requires((config.arch == model_arch::llama) && (config.format == model_format::gguf))
+	struct model_parser_impl<config> {
 		using model_traits_type = model_traits<config.arch, config.model_size, config.model_generation>;
 		using op_type_type		= typename decltype(config)::op_type_type;
 		static_assert((std::endian::native == std::endian::little), "Sorry, but big-endian is not yet supported by the library");
-
-		NIHILUS_FORCE_INLINE static model_graph_data<config> parse_model(array<array<void*, model_traits_type::block_count>, op_type_type::count>& data,
-			memory_mapped_file* memory_file) {
+		template<typename tokenizer_type> NIHILUS_FORCE_INLINE static model_graph_data<config> parse_model(
+			array<array<void*, model_traits_type::block_count>, op_type_type::count>& data, memory_mapped_file* memory_file, tokenizer_type& tokenizer) {
 			model_graph_data<config> return_value{};
 			gguf_file_t gguf_file{};
 			stream_iterator ptr{ memory_file };
@@ -954,8 +1439,9 @@ namespace nihilus {
 			uint64_t tensor_data_start = ptr.file->size() - max_tensor_end;
 			uint64_t alignment{ 0 };
 			gather_scalar("alignment", alignment, gguf_file.header.metadata_kv);
-			return_value.cparams		  = value_reader<construction_parameters<model_arch::llama>, model_arch::llama>::gather_value(gguf_file.header.metadata_kv);
-			return_value.tokenizer_params = value_reader<tokenizer_parameters<model_arch::llama>, model_arch::llama>::gather_value(gguf_file.header.metadata_kv);
+			return_value.cparams = value_reader<construction_parameters<model_arch::llama>, model_arch::llama>::gather_value(gguf_file.header.metadata_kv);
+			value_reader<tokenizer_type, model_arch::llama>::gather_value(gguf_file.header.metadata_kv, tokenizer);
+			value_reader<typename tokenizer_type::vocab_type>::gather_value(gguf_file.header.metadata_kv, *static_cast<typename tokenizer_type::vocab_type*>(&tokenizer));
 			sort_tensor_infos(gguf_file.tensor_infos);
 			for (uint64_t x = 0; x < gguf_file.header.tensor_count; ++x) {
 				uint64_t absolute_offset = tensor_data_start + gguf_file.tensor_infos[x].offset;
@@ -970,9 +1456,9 @@ namespace nihilus {
 		using model_traits_type = model_traits<config.arch, config.model_size, config.model_generation>;
 		using op_type_type		= typename decltype(config)::op_type_type;
 
-		NIHILUS_FORCE_INLINE static model_graph_data<config> parse_model(array<array<void*, model_traits_type::block_count>, op_type_type::count>& data,
-			memory_mapped_file* memory_file) {
-			return model_parser_impl<config, config.arch, config.format>::parse_model(data, memory_file);
+		template<typename tokenizer_type> NIHILUS_FORCE_INLINE static model_graph_data<config> parse_model(
+			array<array<void*, model_traits_type::block_count>, op_type_type::count>& data, memory_mapped_file* memory_file, tokenizer_type& tokenizer) {
+			return model_parser_impl<config>::parse_model(data, memory_file, tokenizer);
 		}
 	};
 }

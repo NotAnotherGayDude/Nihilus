@@ -393,7 +393,9 @@ namespace nihilus {
 
 	enum class kernel_type : uint8_t {
 		none,
+		add_rms_norm_mul,
 		get_rows,
+		rms_norm_mul,
 		rms_norm,
 		mul,
 		mul_mat,
@@ -435,8 +437,7 @@ namespace nihilus {
 		cache_k,
 		cache_v,
 		kq_mask,
-		norm,
-		attn_norm,
+		norm_attn_norm,
 		qcur,
 		qcur_reshaped,
 		qcur_rope,
@@ -459,6 +460,7 @@ namespace nihilus {
 		kqv_merged_cont,
 		kqv_out,
 		ffn_inp,
+		ffn_inp_norm_out_ffn_norm,
 		norm_out,
 		ffn_norm,
 		ffn_gate,
@@ -508,12 +510,10 @@ namespace nihilus {
 			case llama_op_types::attn_residual:
 			case llama_op_types::prev_residual:
 				return kernel_type::get_rows;
-			case llama_op_types::norm:
 			case llama_op_types::norm_out:
 			case llama_op_types::ffn_norm:
 			case llama_op_types::final_norm:
 				return kernel_type::rms_norm;
-			case llama_op_types::attn_norm:
 			case llama_op_types::ffn_gate_par:
 			case llama_op_types::result_norm:
 				return kernel_type::mul;
@@ -556,6 +556,10 @@ namespace nihilus {
 			case llama_op_types::ffn_inp:
 			case llama_op_types::l_out:
 				return kernel_type::add;
+			case llama_op_types::norm_attn_norm:
+				return kernel_type::rms_norm_mul;
+			case llama_op_types::ffn_inp_norm_out_ffn_norm:
+				return kernel_type::add_rms_norm_mul;
 			case llama_op_types::count:
 			default:
 				return kernel_type::none;
@@ -649,11 +653,114 @@ namespace nihilus {
 		using type = decltype(get_op_type_impl());
 	};
 
+	static constexpr int32_t token_null{ -1 };
+
+	enum class vocab_types {
+		none,
+		spm,
+		bpe,
+		wpm,
+		ugm,
+		rwkv,
+	};
+
+	enum class vocab_pre_types {
+		default_pre,
+		llama3,
+		deepseek_llm,
+		deepseek_coder,
+		falcon,
+		mpt,
+		starcoder,
+		gpt2,
+		refact,
+		command_r,
+		stablelm2,
+		qwen2,
+		olmo,
+		dbrx,
+		smaug,
+		poro,
+		chatglm3,
+		chatglm4,
+		viking,
+		jais,
+		tekken,
+		smollm,
+		codeshell,
+		bloom,
+		gpt3_finnish,
+		exaone,
+		chameleon,
+		minerva,
+		deepseek3_llm,
+	};
+
+	enum class rope_types {
+		none_rope = -1,
+		norm,
+		neox,
+		mrope,
+		vision,
+	};
+
+	enum class token_types {
+		undefined_token,
+		normal,
+		unknown,
+		control,
+		user_defined,
+		unused,
+		byte,
+	};
+
+	enum class tokens {
+		undefined	 = 0,
+		unknown		 = 1 << 0,
+		unused		 = 1 << 1,
+		normal		 = 1 << 2,
+		control		 = 1 << 3,
+		user_defined = 1 << 4,
+		byte		 = 1 << 5,
+		normalized	 = 1 << 6,
+		lstrip		 = 1 << 7,
+		rstrip		 = 1 << 8,
+		single_word	 = 1 << 9,
+	};
+
 	enum class model_format { gguf = 1 };
 
 	template<typename model_generation_type_new, typename model_uint64_type_new> struct model_config;
 
 	template<auto> struct harbinger;
+
+	template<auto model_generation_new, auto model_size_new, kernel_type_profile kernel_profile_new, model_arch arch_new,
+		kv_cache_strategy cache_strategy_new = kv_cache_strategy::paged, bool use_gradient_checkpointing_new = false,
+		rope_scaling_type rope_scaling_new = rope_scaling_type::linear, bool use_rotary_embeddings_new = true, uint64_t kv_cache_block_size_new = 16,
+		bool use_flash_attention_new = true, norm_type rms_norm_type_new = norm_type::rms_standard, vocab_types vocab_type_new = vocab_types::bpe,
+		model_format format_new = model_format::gguf, auto norm_epsilon_new = 1e-6f, bool exceptions_new = false, bool benchmark_new = false>
+	struct model_config_new {
+		using model_generation_type = decltype(model_generation_new);
+		using model_size_type		= decltype(model_size_new);
+		using op_type_type			= typename get_op_type_type<model_size_type>::type;
+
+		static constexpr model_generation_type model_generation{ model_generation_new };
+		static constexpr model_size_type model_size{ model_size_new };
+		static constexpr kernel_type_profile kernel_profile{ kernel_profile_new };
+		static constexpr model_arch arch{ arch_new };
+		static constexpr kv_cache_strategy cache_strategy{ cache_strategy_new };
+		static constexpr bool use_gradient_checkpointing{ use_gradient_checkpointing_new };
+		static constexpr rope_scaling_type rope_scaling{ rope_scaling_new };
+		static constexpr bool use_rotary_embeddings{ use_rotary_embeddings_new };
+		static constexpr uint64_t kv_cache_block_size{ kv_cache_block_size_new };
+		static constexpr bool use_flash_attention{ use_flash_attention_new };
+		static constexpr norm_type rms_norm_type{ rms_norm_type_new };
+		static constexpr vocab_types vocab_type{ vocab_type_new };
+		static constexpr model_format format{ format_new };
+		static constexpr float norm_epsilon{ norm_epsilon_new };
+		static constexpr bool exceptions{ exceptions_new };
+		static constexpr bool benchmark{ benchmark_new };
+	};
 
 	template<typename model_generation_type_new, typename model_uint64_type_new> struct model_config {
 		using model_generation_type = model_generation_type_new;
@@ -670,6 +777,7 @@ namespace nihilus {
 		uint64_t kv_cache_block_size{};
 		bool use_flash_attention{};
 		norm_type rms_norm_type{};
+		vocab_types vocab_type{};
 		model_format format{};
 		float norm_epsilon{};
 		bool exceptions{};
@@ -679,15 +787,16 @@ namespace nihilus {
 		template<typename model_generateion_type_newer, typename model_uint64_type_newer> friend struct model_base;
 		NIHILUS_FORCE_INLINE friend consteval auto generate_model_config(auto model_generation, auto model_size, kernel_type_profile kernel_profile, model_arch arch,
 			bool exceptions, kv_cache_strategy cache_strategy, bool use_gradient_checkpointing, rope_scaling_type rope_scaling, bool use_rotary_embeddings,
-			uint64_t kv_cache_block_size, bool use_flash_attention, norm_type rms_norm_type, model_format format, float norm_epsilon);
+			uint64_t kv_cache_block_size, bool use_flash_attention, norm_type rms_norm_type, vocab_types vocab_type, model_format format, float norm_epsilon);
 
 		constexpr model_config(auto model_generation_new, auto model_size_new, kernel_type_profile kernel_profile_new, model_arch arch_new, bool exceptions_new,
 			kv_cache_strategy cache_strategy_new, bool use_gradient_checkpointing_new, rope_scaling_type rope_scaling_new, bool use_rotary_embeddings_new,
-			uint64_t kv_cache_block_size_new, bool use_flash_attention_new, norm_type rms_norm_type_new, model_format format_new, float norm_epsilon_new)
+			uint64_t kv_cache_block_size_new, bool use_flash_attention_new, norm_type rms_norm_type_new, vocab_types vocab_type_new, model_format format_new,
+			float norm_epsilon_new)
 			: model_generation(model_generation_new), model_size(model_size_new), kernel_profile(kernel_profile_new), arch(arch_new), cache_strategy(cache_strategy_new),
 			  use_gradient_checkpointing(use_gradient_checkpointing_new), rope_scaling(rope_scaling_new), use_rotary_embeddings(use_rotary_embeddings_new),
-			  kv_cache_block_size(kv_cache_block_size_new), use_flash_attention(use_flash_attention_new), rms_norm_type(rms_norm_type_new), format{ format_new },
-			  norm_epsilon(norm_epsilon_new), exceptions(exceptions_new) {};
+			  kv_cache_block_size(kv_cache_block_size_new), use_flash_attention(use_flash_attention_new), rms_norm_type(rms_norm_type_new), vocab_type{ vocab_type_new },
+			  format{ format_new }, norm_epsilon(norm_epsilon_new), exceptions(exceptions_new) {};
 
 		constexpr model_config() = default;
 	};
@@ -710,21 +819,17 @@ namespace nihilus {
 		uint64_t gpu_index{};
 	};
 
-	struct runtime_model_config {
-		uint64_t num_threads{ std::thread::hardware_concurrency() };
-	};
-
 	struct execution_parameters {
 		const int32_t* input_tokens{};
 		uint64_t kv_cache_seq_len{};
 		uint64_t position_offset{};
 		uint64_t max_new_tokens{};
-		uint64_t random_seed{};
-		int32_t eos_token_id{};
-		bool clear_kv_cache{};
 		uint64_t thread_count{};
 		uint64_t token_count{};
+		uint64_t random_seed{};
+		int32_t eos_token_id{};
 		uint64_t sequence_id{};
+		bool clear_kv_cache{};
 		uint64_t batch_size{};
 		float temperature{};
 		bool is_prefill{};

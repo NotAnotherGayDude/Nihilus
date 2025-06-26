@@ -21,7 +21,6 @@ RealTimeChris (Chris M.)
 #pragma once
 
 #include <nihilus/common/kernel_type_profile_traits.hpp>
-#include <nihilus/common/arch_traits.hpp>
 #include <nihilus/common/tuple.hpp>
 
 namespace nihilus {

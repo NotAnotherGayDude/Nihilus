@@ -156,6 +156,7 @@ target_link_options(
 target_compile_definitions(
     "${PROJECT_NAME}" INTERFACE 
     "$<$<STREQUAL:${NIHILUS_ASAN_ENABLED},TRUE>:NIHILUS_ASAN_ENABLED>"
+    "$<$<STREQUAL:${NIHILUS_DEV_ENABLED},TRUE>:NIHILUS_DEBUG>"
 )
 
 set(CONFIG_FILE_NAME "${PROJECT_NAME}Config.cmake")

@@ -21,9 +21,9 @@ RealTimeChris (Chris M.)
 #pragma once
 
 #include <jsonifier/Index.hpp>
-#include <nihilus/common/arch_traits.hpp>
 #include <nihilus/common/common.hpp>
 #include <filesystem>
+#include <iostream>
 #include <stdexcept>
 #include <charconv>
 #include <cstdint>
@@ -60,7 +60,6 @@ namespace nihilus {
 		GGML_OP_RMS_NORM,
 		GGML_OP_RMS_NORM_BACK,
 		GGML_OP_GROUP_NORM,
-		GGML_OP_L2_NORM,
 
 		GGML_OP_MUL_MAT,
 		GGML_OP_MUL_MAT_ID,
@@ -87,12 +86,11 @@ namespace nihilus {
 		GGML_OP_CONV_TRANSPOSE_1D,
 		GGML_OP_IM2COL,
 		GGML_OP_IM2COL_BACK,
-		GGML_OP_CONV_2D_DW,
 		GGML_OP_CONV_TRANSPOSE_2D,
 		GGML_OP_POOL_1D,
 		GGML_OP_POOL_2D,
 		GGML_OP_POOL_2D_BACK,
-		GGML_OP_UPSCALE,
+		GGML_OP_UPSCALE,// nearest interpolate
 		GGML_OP_PAD,
 		GGML_OP_PAD_REFLECT_1D,
 		GGML_OP_ARANGE,
@@ -110,15 +108,19 @@ namespace nihilus {
 		GGML_OP_ADD_REL_POS,
 		GGML_OP_RWKV_WKV6,
 		GGML_OP_GATED_LINEAR_ATTN,
-		GGML_OP_RWKV_WKV7,
 
 		GGML_OP_UNARY,
+
+		GGML_OP_MAP_UNARY,
+		GGML_OP_MAP_BINARY,
+
+		GGML_OP_MAP_CUSTOM1_F32,
+		GGML_OP_MAP_CUSTOM2_F32,
+		GGML_OP_MAP_CUSTOM3_F32,
 
 		GGML_OP_MAP_CUSTOM1,
 		GGML_OP_MAP_CUSTOM2,
 		GGML_OP_MAP_CUSTOM3,
-
-		GGML_OP_CUSTOM,
 
 		GGML_OP_CROSS_ENTROPY_LOSS,
 		GGML_OP_CROSS_ENTROPY_LOSS_BACK,
@@ -211,7 +213,6 @@ namespace nihilus {
 			case GGML_OP_NORM:// Layer norm - could potentially map to rms_norm
 			case GGML_OP_RMS_NORM_BACK:// RMS norm backward - not implemented
 			case GGML_OP_GROUP_NORM:// Group normalization - not implemented
-			case GGML_OP_L2_NORM:// L2 normalization - not implemented
 			case GGML_OP_OUT_PROD:// Outer product - not implemented
 			case GGML_OP_SCALE:// Scaling - could potentially map to mul
 			case GGML_OP_SET:// Set values - not implemented
@@ -225,7 +226,6 @@ namespace nihilus {
 			case GGML_OP_CONV_TRANSPOSE_1D:// 1D transposed convolution - not implemented
 			case GGML_OP_IM2COL:// Image to column - not implemented
 			case GGML_OP_IM2COL_BACK:// Image to column backward - not implemented
-			case GGML_OP_CONV_2D_DW:// 2D depthwise convolution - not implemented
 			case GGML_OP_CONV_TRANSPOSE_2D:// 2D transposed convolution - not implemented
 			case GGML_OP_POOL_1D:// 1D pooling - not implemented
 			case GGML_OP_POOL_2D:// 2D pooling - not implemented
@@ -247,12 +247,10 @@ namespace nihilus {
 			case GGML_OP_ADD_REL_POS:// Add relative position - not implemented
 			case GGML_OP_RWKV_WKV6:// RWKV WKV6 - not implemented
 			case GGML_OP_GATED_LINEAR_ATTN:// Gated linear attention - not implemented
-			case GGML_OP_RWKV_WKV7:// RWKV WKV7 - not implemented
 			case GGML_OP_UNARY:// Unary operation - not implemented
 			case GGML_OP_MAP_CUSTOM1:// Custom operation 1 - not implemented
 			case GGML_OP_MAP_CUSTOM2:// Custom operation 2 - not implemented
 			case GGML_OP_MAP_CUSTOM3:// Custom operation 3 - not implemented
-			case GGML_OP_CUSTOM:// Custom operation - not implemented
 			case GGML_OP_CROSS_ENTROPY_LOSS:// Cross entropy loss - not implemented
 			case GGML_OP_CROSS_ENTROPY_LOSS_BACK:// Cross entropy loss backward - not implemented
 			case GGML_OP_OPT_STEP_ADAMW:// AdamW optimizer step - not implemented
@@ -280,7 +278,48 @@ namespace nihilus {
 			return_values.resize(4);
 			return return_values;
 		}() };
+
 		NIHILUS_FORCE_INLINE intermediary_tensor() noexcept = default;
+
+		NIHILUS_FORCE_INLINE intermediary_tensor(const intermediary_tensor& other) {
+			dims = other.dims;
+			data = other.data;
+			name = other.name;
+			type = other.type;
+			op	 = other.op;
+		}
+
+		NIHILUS_FORCE_INLINE intermediary_tensor(intermediary_tensor&& other) noexcept {
+			dims = std::move(other.dims);
+			data = std::move(other.data);
+			name = std::move(other.name);
+			type = other.type;
+			op	 = other.op;
+		}
+
+		NIHILUS_FORCE_INLINE intermediary_tensor& operator=(const intermediary_tensor& other) {
+			if (this != &other) {
+				dims = other.dims;
+				data = other.data;
+				name = other.name;
+				type = other.type;
+				op	 = other.op;
+			}
+			return *this;
+		}
+
+		NIHILUS_FORCE_INLINE intermediary_tensor& operator=(intermediary_tensor&& other) noexcept {
+			if (this != &other) {
+				dims = std::move(other.dims);
+				data = std::move(other.data);
+				name = std::move(other.name);
+				type = other.type;
+				op	 = other.op;
+			}
+			return *this;
+		}
+
+		// YOUR EXISTING CONSTRUCTORS...
 		NIHILUS_FORCE_INLINE intermediary_tensor(const intermediary_ggml_tensor& other) {
 			dims = other.dims;
 			data = other.data;
@@ -289,12 +328,12 @@ namespace nihilus {
 			op	 = convert_ggml_op_to_nihilus_kernel(other.op);
 		}
 
-		template<core_traits_type tensor_type> NIHILUS_FORCE_INLINE intermediary_tensor(const tensor_type& other, const std::string& name_new, uint64_t current_block) {
+		template<core_traits_type tensor_type> NIHILUS_FORCE_INLINE intermediary_tensor(tensor_type& other, const std::string& name_new, uint64_t current_block) {
 			using output_type = typename tensor_type::output_type;
-			dims[0]			  = other.get_array()[0];
-			dims[1]			  = other.get_array()[1];
-			dims[2]			  = other.get_array()[2];
-			dims[3]			  = other.get_array()[3];
+			dims[0] = other[0];
+			dims[1] = other[1];
+			dims[2] = other[2];
+			dims[3] = other[3];
 			data.resize(128);
 			if constexpr (array_type<decltype(other.data)>) {
 				if (other.data[current_block]) {
@@ -313,59 +352,53 @@ namespace nihilus {
 		std::vector<uint8_t> data{};
 		data_type type{};
 		kernel_type op{};
-		NIHILUS_FORCE_INLINE bool operator==(const intermediary_tensor& other) const {
+		NIHILUS_FORCE_INLINE bool operator==(intermediary_tensor& other) const {
 			if (op != other.op) {
 				std::cout << "Incorret op-types:, For Tensor: " << name << std::endl;
 				std::cout << "LHS OP: " << ( int32_t )op << std::endl;
 				std::cout << "RHS OP: " << ( int32_t )other.op << std::endl;
+				return false;
 			}
 			if (type != other.type) {
 				std::cout << "Incorret Types:, For Tensor: " << name << std::endl;
 				std::cout << "LHS TYPE: " << ( int32_t )type << std::endl;
 				std::cout << "RHS TYPE: " << ( int32_t )other.type << std::endl;
+				return false;
 			}
 
 			if (dims != other.dims) {
 				std::cout << "Incorret Dims:, For Tensor: " << name << std::endl;
 				std::cout << "LHS Dims: " << dims << std::endl;
 				std::cout << "RHS Dims: " << other.dims << std::endl;
+				return false;
 			}
-			if (data != other.data) {
+			size_t this_dims  = dims[0] * dims[1] * dims[2] * dims[3];
+			size_t other_dims = other.dims[0] * other.dims[1] * other.dims[2] * other.dims[3];
+			size_t this_size  = get_type_traits(type).type_size * this_dims;
+			size_t other_size = get_type_traits(other.type).type_size * other_dims;
+			size_t final_size = std::min(this_size, other_size);
+			final_size		  = std::min(final_size, static_cast<size_t>(128ull));
+
+			int64_t equal_data = std ::memcmp(data.data(), other.data.data(), final_size);
+			for (int i = 0; i < final_size; i++) {
+				if (data.data()[i] != other.data.data()[i]) {
+					printf("Difference at %d: %d vs %d\n", i, data[i], other.data[i]);
+					equal_data = 1;
+					break;
+				}
+			}
+
+			if (equal_data) {
 				std::cout << "Incorret Data:, For Tensor: " << name << std::endl;
+				std::cout << "At Index: " << equal_data << std::endl;
 				std::cout << "LHS Data: " << data << std::endl;
 				std::cout << "RHS Data: " << other.data << std::endl;
+				return false;
 			}
 
-			return data == other.data && dims == other.dims && name == other.name;
+			return dims == other.dims && name == other.name;
 		}
 	};
-
-	std::ostream& operator<<(std::ostream& os, const std::array<uint64_t, 4>& tensor) {
-		os << "[";
-		os << tensor[0];
-		os << ",";
-		os << tensor[1];
-		os << ",";
-		os << tensor[2];
-		os << ",";
-		os << tensor[3];
-		os << "]" << std::endl;
-		return os;
-	}
-
-	std::ostream& operator<<(std::ostream& os, const intermediary_ggml_tensor& tensor) {
-		os << "Name: ";
-		os << tensor.name << std::endl;
-		os << "Dims: ";
-		os << tensor.dims << std::endl;
-		os << "Type: ";
-		os << get_type_name(tensor.type) << std::endl;
-		os << "Op-Type: ";
-		os << kernel_names[convert_ggml_op_to_nihilus_kernel(tensor.op)] << std::endl;
-		os << std::endl;
-		//os << tensor.data.data() << std::endl;
-		return os;
-	}
 }
 
 namespace jsonifier {
@@ -383,8 +416,14 @@ namespace nihilus {
 			case llama_op_types::inp_embd: {
 				return "inp_embd";
 			}
+			case llama_op_types::inp_pos: {
+				return "inp_pos";
+			}
 			case llama_op_types::inp_tokens: {
-				return "leaf_2";
+				return "inp_tokens";
+			}
+			case llama_op_types::inp_out_ids: {
+				return "inp_out_ids";
 			}
 			case llama_op_types::attn_k_weight: {
 				return "blk." + block + ".attn_k.weight";
@@ -437,52 +476,92 @@ namespace nihilus {
 		}
 	}
 
-	std::map<std::string, intermediary_tensor> get_tensors(std::string_view path) {
-		std::map<std::string, intermediary_ggml_tensor> return_values_ggml{};
-		std::map<std::string, intermediary_tensor> return_values{};
-		file_loader<false> file_loader{ path };
-		jsonifier::jsonifier_core parser{};
-		parser.parseJson<jsonifier::parse_options{ .minified = true }>(return_values_ggml, file_loader.operator const std::string&());
-		for (auto& [key, value]: return_values_ggml) {
-			return_values[key] = value;
-			std::cout << key << std::endl;
-			std::cout << value << std::endl;
+	std::vector<std::map<std::string, intermediary_tensor>> get_tensors_multi_iteration(std::string_view base_path, std::string_view base_name) {
+		std::vector<std::map<std::string, intermediary_tensor>> return_values{};
+
+		// Try to load files with incrementing indices until we can't find any more
+		for (int iteration = 0;; ++iteration) {
+			// Construct the filename: "Node_Data_0.json", "Node_Data_1.json", etc.
+			std::string filename = std::string(base_path) + "/" + std::string(base_name) + "_" + std::to_string(iteration) + ".json";
+
+			// Check if file exists
+			std::ifstream test_file(filename);
+			if (!test_file.good()) {
+				break;// No more files found, stop iteration
+			}
+			test_file.close();
+
+			std::map<std::string, intermediary_ggml_tensor> iteration_ggml{};
+			std::map<std::string, intermediary_tensor> iteration_tensors{};
+
+			try {
+				file_loader<false> file_loader{ filename };
+				jsonifier::jsonifier_core parser{};
+				parser.parseJson<jsonifier::parse_options{ .minified = true }>(iteration_ggml, file_loader.operator const std::string&());
+
+				for (auto& [key, value]: iteration_ggml) {
+					iteration_tensors[key] = value;
+					//std::cout << "Iteration " << iteration << " - " << key << std::endl;
+					//std::cout << value << std::endl;
+				}
+
+				for (auto& value: parser.getErrors()) {
+					//std::cout << "Iteration " << iteration << " - Error: " << value << std::endl;
+				}
+
+				return_values.push_back(std::move(iteration_tensors));
+
+			} catch (const std::exception& e) {
+				std::cout << "Failed to parse iteration " << iteration << ": " << e.what() << std::endl;
+				break;
+			}
 		}
-		for (auto& value: parser.getErrors()) {
-			std::cout << value << std::endl;
-		}
+
 		return return_values;
 	}
 
 	struct tensor_debugger {
-		inline static std::map<std::string, intermediary_tensor> leafs{ get_tensors("C:/users/chris/source/repos/ft-tl/Leaf_Data.json") };
-		inline static std::map<std::string, intermediary_tensor> nodes{ get_tensors("C:/users/chris/source/repos/ft-tl/Node_Data.json") };
-		template<core_traits_type tensor_type> static bool compare_tensor_data(const tensor_type& tensor, uint64_t current_block) {
-			std::string tensor_name{ convert_op_to_string(tensor.type, current_block) };
-			if (leafs.contains(tensor_name)) {
-				intermediary_tensor tensor_new{ tensor, tensor_name, current_block };
-				std::cout << "Found an op of name: " << tensor_name << ", OF TYPE: " << ( int32_t )tensor.type << std::endl;
-				return tensor_new == leafs[tensor_name];
-			} else if (nodes.contains(tensor_name)) {
-				intermediary_tensor tensor_new{ tensor, tensor_name, current_block };
-				std::cout << "Found an op of name: " << tensor_name << ", OF TYPE: " << ( int32_t )tensor.type << std::endl;
-				return tensor_new == nodes[tensor_name];
-			} else {
-				return false;
-			}
+		inline static std::vector<std::map<std::string, intermediary_tensor>> leaf_iterations{ get_tensors_multi_iteration("C:/users/chris/source/repos/ft-tl", "Leaf_Data") };
+
+		inline static std::vector<std::map<std::string, intermediary_tensor>> node_iterations{ get_tensors_multi_iteration("C:/users/chris/source/repos/ft-tl", "Node_Data") };
+
+		// Helper methods to access specific iterations
+		static const std::map<std::string, intermediary_tensor>& get_leaf_iteration(size_t iteration) {
+			static const std::map<std::string, intermediary_tensor> empty{};
+			return (iteration < leaf_iterations.size()) ? leaf_iterations[iteration] : empty;
 		}
 
-		static bool compare_tensor_data(const intermediary_tensor& tensor) {
-			std::string tensor_name{ tensor.name };
-			if (leafs.contains(tensor_name)) {
-				intermediary_tensor tensor_new{ tensor };
-				std::cout << "Found an op of name: " << tensor_name << ", OF TYPE: " << ( int32_t )tensor.type << std::endl;
-				return tensor_new == leafs[tensor_name];
-			} else if (nodes.contains(tensor_name)) {
-				intermediary_tensor tensor_new{ tensor };
-				std::cout << "Found an op of name: " << tensor_name << ", OF TYPE: " << ( int32_t )tensor.type << std::endl;
-				return tensor_new == nodes[tensor_name];
+		static const std::map<std::string, intermediary_tensor>& get_node_iteration(size_t iteration) {
+			static const std::map<std::string, intermediary_tensor> empty{};
+			return (iteration < node_iterations.size()) ? node_iterations[iteration] : empty;
+		}
+
+		// Get total number of iterations available
+		static size_t get_iteration_count() {
+			return std::max(leaf_iterations.size(), node_iterations.size());
+		}
+
+		template<typename tensor_type> static bool compare_tensor_data(tensor_type& tensor, uint64_t current_block, uint64_t iteration) {
+			std::string tensor_name{ convert_op_to_string(tensor.type, current_block) };
+			// Get the appropriate iteration data
+			const auto& current_leafs = get_leaf_iteration(iteration);
+			const auto& current_nodes = get_node_iteration(iteration);
+			intermediary_tensor tensor_new{ tensor, tensor_name, current_block };
+
+			if (current_leafs.contains(tensor_name)) {
+				bool return_value{ tensor_new == current_leafs.at(tensor_name) };
+				if (!return_value) {
+					std::cout << "Found an op of name: " << tensor_name << ", OF TYPE: " << ( int32_t )tensor.type << " (iteration " << iteration << ")" << std::endl;
+				}
+				return return_value;
+			} else if (current_nodes.contains(tensor_name)) {
+				bool return_value{ tensor_new == current_nodes.at(tensor_name) };
+				if (!return_value) {
+					std::cout << "Found an op of name: " << tensor_name << ", OF TYPE: " << ( int32_t )tensor.type << " (iteration " << iteration << ")" << std::endl;
+				}
+				return return_value;
 			} else {
+				std::cout << "Not Found: Tensor of name: " << tensor_name << ", OF TYPE: " << ( int32_t )tensor.type << " (iteration " << iteration << ")" << std::endl;
 				return false;
 			}
 		}

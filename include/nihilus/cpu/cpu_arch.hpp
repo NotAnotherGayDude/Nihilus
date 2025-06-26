@@ -27,6 +27,13 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
+	template<typename transform_type, typename core_type> struct kernel_dispatcher_impl<0, kernel_type::add_rms_norm_mul, transform_type, core_type, float, float, float>
+		: public kernel_base<core_type::type, kernel_type::add_rms_norm_mul, core_type, float, float, float> {
+		NIHILUS_FORCE_INLINE static void impl(uint64_t thread_index, uint64_t thread_count, core_type& output, const typename core_type::input_type01& input01,
+			const typename core_type::input_type02& input02) {
+		}
+	};
+
 	template<typename transform_type, typename core_type> struct kernel_dispatcher_impl<0, kernel_type::copy, transform_type, core_type, float, float>
 		: public kernel_base<core_type::type, kernel_type::copy, core_type, float, float> {
 		NIHILUS_FORCE_INLINE static void impl(uint64_t thread_index, uint64_t thread_count, core_type& output, const typename core_type::input_type01& input01) {

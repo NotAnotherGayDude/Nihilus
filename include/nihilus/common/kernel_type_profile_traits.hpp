@@ -20,7 +20,6 @@ RealTimeChris (Chris M.)
 
 #pragma once
 
-#include <nihilus/common/arch_traits.hpp>
 #include <nihilus/common/tuple.hpp>
 
 namespace nihilus {

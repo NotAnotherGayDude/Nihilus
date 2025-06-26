@@ -32,6 +32,7 @@ namespace nihilus {
 	using bf16_t   = int16_t;
 	using float_32 = float;
 	using float_64 = double;
+	using token	   = int32_t;
 
 	template<typename half_type> struct block_q8_0 {
 		half_type d;

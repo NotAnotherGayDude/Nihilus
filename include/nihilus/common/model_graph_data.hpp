@@ -22,6 +22,7 @@ RealTimeChris (Chris M.)
 
 #include <nihilus/common/memory_buffer.hpp>
 #include <nihilus/common/common.hpp>
+#include <nihilus/common/tokenizer.hpp>
 
 namespace nihilus {
 
@@ -58,18 +59,6 @@ namespace nihilus {
 		}
 	};
 
-	template<model_arch arch> struct tokenizer_parameters;
-
-	template<> struct tokenizer_parameters<model_arch::llama> {
-		std::vector<int64_t> token_types{};
-		std::vector<std::string> tokens{};
-		std::vector<std::string> merges{};
-		std::string chat_template{};
-		uint64_t bos_token_id{};
-		uint64_t eos_token_id{};
-		std::string pre{};
-	};
-
 	template<model_arch arch> struct construction_parameters;
 
 	template<> struct construction_parameters<model_arch::llama> {
@@ -102,7 +91,6 @@ namespace nihilus {
 		NIHILUS_INLINE model_graph_data& operator=(const model_graph_data&) = delete;
 		NIHILUS_INLINE model_graph_data(const model_graph_data&)			= delete;
 		std::unordered_map<op_type_type, core_base_creation_data> cores{};
-		tokenizer_parameters<config.arch> tokenizer_params{};
 		construction_parameters<config.arch> cparams{};
 	};
 

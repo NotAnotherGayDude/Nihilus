@@ -20,9 +20,9 @@ RealTimeChris (Chris M.)
 
 #pragma once
 
-#include <nihilus/common/arch_traits.hpp>
 #include <nihilus/common/model_traits.hpp>
 #include <nihilus/common/model_parser.hpp>
+#include <nihilus/common/input_session.hpp>
 #include <nihilus/cpu/thread_pool.hpp>
 #include <nihilus/common/h_params.hpp>
 #include <nihilus/common/memory.hpp>
@@ -37,12 +37,15 @@ namespace nihilus {
 		virtual ~model_base()									 = default;
 	};
 
-	template<nihilus::model_config config> struct model : public thread_pool<config, model<config>>,
-														  public model_base<decltype(config.model_generation), decltype(config.model_size)> {
-		using thread_pool_type		= thread_pool<config, model<config>>;
+	template<nihilus::model_config config_new> struct model : public thread_pool<config_new, model<config_new>>,
+															  public model_base<decltype(config_new.model_generation), decltype(config_new.model_size)>,
+															  public input_session<config_new, model<config_new>> {
+		static constexpr model_config config{ config_new };
+		using thread_pool_type	= thread_pool<config, model<config>>;
 		using model_traits_type = nihilus::model_traits_type<config>;
 		using core_bases_t		= get_core_bases_t<config>;
 		using op_type_type		= typename model_traits_type ::op_type_type;
+		using tokenizer_type	= tokenizer<config, model, config.arch, config.vocab_type>;
 		using base_type			= model_base<decltype(config.model_generation), decltype(config.model_size)>;
 
 		static constexpr uint64_t total_required_bytes{ []() {
@@ -65,9 +68,9 @@ namespace nihilus {
 			this->template impl<weight_mapper>(data);
 			this->template impl<memory_mapper>(memory);
 			nihilus::stop_watch_val_nihilus.reset();
-			nihilus::model_graph_data<config> model_construction_data = nihilus::model_parser<config>::parse_model(data, &weight_memory);
+			nihilus::model_graph_data<config> model_construction_data = nihilus::model_parser<config>::parse_model(data, &weight_memory, *static_cast<tokenizer_type*>(this));
+			this->load_vocabulary();
 			std::cout << "Nihilus model Load time: " << nihilus::stop_watch_val_nihilus.total_time_elapsed() << std::endl;
-			this->template impl<tensor_debugger_impl>();
 		}
 
 		NIHILUS_FORCE_INLINE void deinit(nihilus::cli_params params) {
@@ -75,9 +78,33 @@ namespace nihilus {
 		}
 
 		NIHILUS_FORCE_INLINE void execute_model(nihilus::execution_parameters& params) {
-			for (uint64_t x = 0; x < params.token_count + 1; ++x) {
+			current_iteration = 0;
+			std::cout << "Nihilus model Load time: " << nihilus::stop_watch_val_nihilus.total_time_elapsed() << std::endl;
+			this->template impl<dim_updater>(2);
+#if defined(NIHILUS_DEBUG)
+			this->template impl<tensor_debugger_impl>();
+			++current_iteration;
+#endif
+			static_cast<thread_pool<config, model>*>(this)->execute_tasks();
+			this->template impl<dim_updater>(params.token_count);
+#if defined(NIHILUS_DEBUG)
+			this->template impl<tensor_debugger_impl>();
+			++current_iteration;
+#endif
+			static_cast<thread_pool<config, model>*>(this)->execute_tasks();
+			this->template impl<dim_updater>(1);
+#if defined(NIHILUS_DEBUG)
+			this->template impl<tensor_debugger_impl>();
+			++current_iteration;
+#endif
+			static_cast<thread_pool<config, model>*>(this)->execute_tasks();
+			for (uint64_t x = 0; x < params.token_count; ++x) {
 				nihilus::stop_watch_val_nihilus.reset();
 				static_cast<thread_pool<config, model>*>(this)->execute_tasks();
+#if defined(NIHILUS_DEBUG)
+				this->template impl<tensor_debugger_impl>();
+				++current_iteration;
+#endif
 				nihilus::stop_watch_val_nihilus.add_time();
 			}
 			// Perform all of the necessary stuff to execute the model - along with all of the constexpr values stored globally inside the class LOL!.

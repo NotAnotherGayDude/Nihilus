@@ -80,17 +80,17 @@ int main(int argc, char** argv) {
 		static constexpr auto model_config = nihilus::generate_model_config(nihilus::llama_model_generation::v3, nihilus::llama_model_size::llama_8B,
 			nihilus::kernel_type_profile::q8_gqa, nihilus::model_arch::llama, false);
 		auto cli_args_final				   = nihilus::harbinger<model_config>::parse_cli_arguments(argc, argv);
+		test::stop_watch stop_watch_val{ 0 };
 		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 2, 1, true, "Token">::runBenchmark<"nihilus">([&] {
-			nihilus::model<model_config> model_new{ cli_args_final };
-			nihilus::input_session_config session_config{ std::cin, 1024 };
-			nihilus::input_session input_session{ session_config, model_new };
-			input_session.exec_params.token_count  = cli_args_final.n_tokens;
-			input_session.exec_params.thread_count = cli_args_final.thread_count;
-			std::cout << "CURRENT COUNT: " << input_session.exec_params.token_count << std::endl;
-			while (input_session.process_input()) {
+			static constexpr nihilus::model_config model_config = nihilus::generate_model_config(nihilus::llama_model_generation::v3, nihilus::llama_model_size::llama_8B,
+				nihilus::kernel_type_profile::q8_gqa, nihilus::model_arch::llama, false);
+			auto cli_args_final									= nihilus::harbinger<model_config>::parse_cli_arguments(argc, argv);
+			nihilus::model<model_config> model_graph_data{ cli_args_final };
+			while (model_graph_data.process_input(cli_args_final.prompt)) {
 			}
-			return input_session.exec_params.token_count - 1;
+			return model_graph_data.exec_params.token_count - 1;
 		});
+		std::cout << return_value << std::endl;
 		std::string return_value{};
 		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 2, 1, true, "Token">::runBenchmark<"llama.cpp">([&] {
 			return_value.clear();
@@ -115,13 +115,12 @@ int main(int argc, char** argv) {
 			llama_numa_init(params.numa);
 
 			llama_model* model	 = nullptr;
-			llama_context* ctx	 = nullptr;
+			llama_context* ctx						 = nullptr;
 			common_sampler* smpl = nullptr;
 
 			g_model = &model;
 			g_ctx	= &ctx;
 			g_smpl	= &smpl;
-
 			std::vector<common_chat_msg> chat_msgs;
 
 			// load the model and apply lora adapter, if any
@@ -186,6 +185,7 @@ int main(int argc, char** argv) {
 			std::string path_session = params.path_prompt_cache;
 			std::vector<llama_token> session_tokens;
 
+			ctx->stop_watch_val = stop_watch_val;
 			const bool add_bos = llama_vocab_get_add_bos(vocab) && !params.use_jinja;
 			if (!llama_model_has_encoder(model)) {
 				GGML_ASSERT(!llama_vocab_get_add_eos(vocab));
@@ -597,6 +597,7 @@ int main(int argc, char** argv) {
 					  << ctx->stop_watch_val.get_count() << " TOKENS: " << ctx->stop_watch_val.get_average() << std::endl;
 			ggml_threadpool_free_fn(threadpool);
 			ggml_threadpool_free_fn(threadpool_batch);
+			stop_watch_val = ctx->stop_watch_val;
 			return static_cast<int32_t>(token_count - 2);
 		});
 		std::cout << return_value << std::endl;
