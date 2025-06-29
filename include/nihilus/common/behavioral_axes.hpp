@@ -68,6 +68,7 @@ namespace nihilus {
 			for (uint64_t x = 0; x < base_type::model_traits_type::block_count; ++x) {
 				core.sync_flag_start[x].init(thread_count);
 				core.sync_flag_end[x].init(thread_count);
+				core.remaining_thread_count.store(thread_count, std::memory_order_release);
 			}
 		}
 	};
@@ -170,8 +171,11 @@ namespace nihilus {
 			return core_traits_type::layer_type == nihilus::thread_strategy_type::global_input && core_traits_type::krn_type != nihilus::kernel_types::none;
 		}
 		NIHILUS_FORCE_INLINE static void impl(base_type& core, uint64_t thread_index, uint64_t thread_count) {
-			nihilus::kernel_dispatcher<config, nihilus::device_types::cpu, base_type>::impl(core, thread_index, thread_count);
-			nihilus::spinlock_nanoseconds(spinlock_time);
+			if (core.remaining_thread_count.load(std::memory_order_acquire) > 0) {
+				//core.fetch_sub(1, std::memory_order_release);
+				nihilus::kernel_dispatcher<config, nihilus::device_types::cpu, base_type>::impl(core, thread_index, thread_count);
+				nihilus::spinlock_nanoseconds(spinlock_time);
+			}
 		}
 	};
 
@@ -317,6 +321,8 @@ namespace nihilus {
 		}
 	};
 
+#if defined(NIHILUS_DEBUG)
+
 	template<nihilus::model_config config, typename base_type> struct tensor_debugger_impl {
 		NIHILUS_FORCE_INLINE tensor_debugger_impl() noexcept									   = default;
 		NIHILUS_FORCE_INLINE tensor_debugger_impl& operator=(const tensor_debugger_impl&) noexcept = delete;
@@ -338,5 +344,6 @@ namespace nihilus {
 			}
 		}
 	};
+#endif
 
 }

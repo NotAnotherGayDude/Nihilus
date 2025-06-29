@@ -64,6 +64,28 @@
       }
     },
     {
+      "name": "x64-debug-nh",
+      "displayName": "x64 Debug",
+      "inherits": "windows-base",
+      "architecture": {
+        "value": "x64",
+        "strategy": "external"
+      },
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "NIHILUS_NH_ONLY": true
+      }
+    },
+    {
+      "name": "x64-release-nh",
+      "displayName": "x64 Release",
+      "inherits": "x64-debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "NIHILUS_NH_ONLY": true
+      }
+    },
+    {
       "name": "x64-debug-benchmark",
       "displayName": "x64 Debug",
       "inherits": "windows-base",

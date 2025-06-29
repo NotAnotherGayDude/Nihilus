@@ -27,6 +27,8 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
+#if !defined(NIHILUS_AVX2) && !defined(NIHILUS_AVX512) && !defined(NIHILUS_NEON) && !defined(NIHILUS_SVE2)
+
 	template<typename transform_type, typename core_type> struct kernel_dispatcher_impl<0, kernel_types::add_rms_norm_mul, transform_type, core_type, float, float, float>
 		: public kernel_base<core_type::type, kernel_types::add_rms_norm_mul, core_type, float, float, float> {
 		NIHILUS_FORCE_INLINE static void impl(uint64_t thread_index, uint64_t thread_count, core_type& output, const typename core_type::input_type01& input01,
@@ -133,4 +135,7 @@ namespace nihilus {
 			const typename core_type::input_type02& input02, const typename core_type::input_type03& input03) {
 		}
 	};
+
+#endif
+
 }

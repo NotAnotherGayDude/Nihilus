@@ -27,14 +27,6 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-	struct input_session_config {
-		NIHILUS_FORCE_INLINE input_session_config& operator=(const input_session_config&) = delete;
-		NIHILUS_FORCE_INLINE input_session_config(const input_session_config&)			  = delete;
-		NIHILUS_FORCE_INLINE input_session_config(std::istream& stream_new, uint64_t max_tokens_new) : stream{ stream_new }, max_tokens{ max_tokens_new } {};
-		std::istream& stream;
-		uint64_t max_tokens{};
-	};
-
 	template<model_config config, typename model_type> struct input_session
 		: public tokenizer<config, model_type, model_traits<config.arch, config.model_size, config.model_generation>::arch, config.vocab_type> {
 		using tokenizer_type	= tokenizer<config, model_type, model_traits<config.arch, config.model_size, config.model_generation>::arch, config.vocab_type>;
@@ -46,7 +38,7 @@ namespace nihilus {
 			exec_params.token_count = config_new.n_tokens;
 		};
 
-		NIHILUS_FORCE_INLINE bool process_input(const std::string& input) {
+		NIHILUS_FORCE_INLINE bool process_input_impl(const std::string& input) {
 			exec_params.sequence_length = tokenizer_type::tokenize(input, static_cast<model_type*>(this)->template get_core<model_type::op_type_type::inp_tokens>().data);
 			static_cast<model_type*>(this)->execute_model(exec_params);
 			return false;

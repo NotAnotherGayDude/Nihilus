@@ -21,6 +21,7 @@ RealTimeChris (Chris M.)
 
 #include <nihilus/common/type_traits.hpp>
 #include <nihilus/common/model_graph_data.hpp>
+#include <nihilus/common/compare.hpp>
 #include <nihilus/common/tokenizer.hpp>
 #include <nihilus/common/debugging_io.hpp>
 #include <nihilus/common/model_traits.hpp>
@@ -200,6 +201,7 @@ namespace nihilus {
 
 		NIHILUS_FORCE_INLINE void map_file(std::string_view file_path, uint64_t prefetch_bytes, bool numa_aware) {
 #ifdef NIHILUS_PLATFORM_WINDOWS
+			( void )numa_aware;
 			std::string file_path_str(file_path);
 
 			file_handle_ = CreateFileA(file_path_str.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
@@ -825,89 +827,173 @@ namespace nihilus {
 		}
 	}
 
+	// Static constexpr string literals for compile-time optimization
+	static constexpr string_literal llama{ "llama" };
+	static constexpr string_literal gpt2{ "gpt2" };
+	static constexpr string_literal bert{ "bert" };
+	static constexpr string_literal t5{ "t5" };
+	static constexpr string_literal gpt_neox{ "gpt-neox" };
+	static constexpr string_literal falcon{ "falcon" };
+	static constexpr string_literal mpt{ "mpt" };
+	static constexpr string_literal starcoder{ "starcoder" };
+	static constexpr string_literal gpt_j{ "gpt-j" };
+	static constexpr string_literal refact{ "refact" };
+	static constexpr string_literal command_r{ "command-r" };
+	static constexpr string_literal qwen2{ "qwen2" };
+	static constexpr string_literal olmo{ "olmo" };
+	static constexpr string_literal dbrx{ "dbrx" };
+	static constexpr string_literal minicp{ "minicp" };
+	static constexpr string_literal tekken{ "tekken" };
+	static constexpr string_literal smollm{ "smollm" };
+	static constexpr string_literal viking{ "viking" };
+	static constexpr string_literal jais{ "jais" };
+	static constexpr string_literal chatglm{ "chatglm" };
+	static constexpr string_literal baichuan{ "baichuan" };
+	static constexpr string_literal xverse{ "xverse" };
+	static constexpr string_literal internlm2{ "internlm2" };
+	static constexpr string_literal minicpm{ "minicpm" };
+	static constexpr string_literal gemma{ "gemma" };
+	static constexpr string_literal gemma2{ "gemma2" };
+	static constexpr string_literal phi3{ "phi3" };
+	static constexpr string_literal paligemma{ "paligemma" };
+	static constexpr string_literal bloom{ "bloom" };
+	static constexpr string_literal stablelm{ "stablelm" };
+	static constexpr string_literal qwen{ "qwen" };
+	static constexpr string_literal plamo{ "plamo" };
+	static constexpr string_literal codeshell{ "codeshell" };
+	static constexpr string_literal orion{ "orion" };
+	static constexpr string_literal internlm{ "internlm" };
+	static constexpr string_literal minicpm3{ "minicpm3" };
+	static constexpr string_literal rwkv{ "rwkv" };
+	static constexpr string_literal command{ "command" };
+	static constexpr string_literal deci{ "deci" };
+	static constexpr string_literal granite{ "granite" };
+	static constexpr string_literal chameleon{ "chameleon" };
+
 	NIHILUS_FORCE_INLINE vocab_types string_to_vocab_type(const std::string& vocab_type_str) {
-		if (vocab_type_str == "llama")
+		if (string_literal_comparitor<decltype(llama), llama>::impl(vocab_type_str.data())) {
 			return vocab_types::spm;
-		if (vocab_type_str == "gpt2")
+		}
+		if (string_literal_comparitor<decltype(gpt2), gpt2>::impl(vocab_type_str.data())) {
 			return vocab_types::bpe;
-		if (vocab_type_str == "bert")
+		}
+		if (string_literal_comparitor<decltype(bert), bert>::impl(vocab_type_str.data())) {
 			return vocab_types::wpm;
-		if (vocab_type_str == "t5")
+		}
+		if (string_literal_comparitor<decltype(t5), t5>::impl(vocab_type_str.data())) {
 			return vocab_types::spm;
-		if (vocab_type_str == "gpt-neox")
+		}
+		if (string_literal_comparitor<decltype(gpt_neox), gpt_neox>::impl(vocab_type_str.data())) {
 			return vocab_types::bpe;
-		if (vocab_type_str == "falcon")
+		}
+		if (string_literal_comparitor<decltype(falcon), falcon>::impl(vocab_type_str.data())) {
 			return vocab_types::bpe;
-		if (vocab_type_str == "mpt")
+		}
+		if (string_literal_comparitor<decltype(mpt), mpt>::impl(vocab_type_str.data())) {
 			return vocab_types::bpe;
-		if (vocab_type_str == "starcoder")
+		}
+		if (string_literal_comparitor<decltype(starcoder), starcoder>::impl(vocab_type_str.data())) {
 			return vocab_types::bpe;
-		if (vocab_type_str == "gpt-j")
+		}
+		if (string_literal_comparitor<decltype(gpt_j), gpt_j>::impl(vocab_type_str.data())) {
 			return vocab_types::bpe;
-		if (vocab_type_str == "refact")
+		}
+		if (string_literal_comparitor<decltype(refact), refact>::impl(vocab_type_str.data())) {
 			return vocab_types::bpe;
-		if (vocab_type_str == "command-r")
+		}
+		if (string_literal_comparitor<decltype(command_r), command_r>::impl(vocab_type_str.data())) {
 			return vocab_types::bpe;
-		if (vocab_type_str == "qwen2")
+		}
+		if (string_literal_comparitor<decltype(qwen2), qwen2>::impl(vocab_type_str.data())) {
 			return vocab_types::bpe;
-		if (vocab_type_str == "olmo")
+		}
+		if (string_literal_comparitor<decltype(olmo), olmo>::impl(vocab_type_str.data())) {
 			return vocab_types::bpe;
-		if (vocab_type_str == "dbrx")
+		}
+		if (string_literal_comparitor<decltype(dbrx), dbrx>::impl(vocab_type_str.data())) {
 			return vocab_types::bpe;
-		if (vocab_type_str == "minicp")
+		}
+		if (string_literal_comparitor<decltype(minicp), minicp>::impl(vocab_type_str.data())) {
 			return vocab_types::bpe;
-		if (vocab_type_str == "tekken")
+		}
+		if (string_literal_comparitor<decltype(tekken), tekken>::impl(vocab_type_str.data())) {
 			return vocab_types::bpe;
-		if (vocab_type_str == "smollm")
+		}
+		if (string_literal_comparitor<decltype(smollm), smollm>::impl(vocab_type_str.data())) {
 			return vocab_types::bpe;
-		if (vocab_type_str == "viking")
+		}
+		if (string_literal_comparitor<decltype(viking), viking>::impl(vocab_type_str.data())) {
 			return vocab_types::bpe;
-		if (vocab_type_str == "jais")
+		}
+		if (string_literal_comparitor<decltype(jais), jais>::impl(vocab_type_str.data())) {
 			return vocab_types::bpe;
-		if (vocab_type_str == "chatglm")
+		}
+		if (string_literal_comparitor<decltype(chatglm), chatglm>::impl(vocab_type_str.data())) {
 			return vocab_types::spm;
-		if (vocab_type_str == "baichuan")
+		}
+		if (string_literal_comparitor<decltype(baichuan), baichuan>::impl(vocab_type_str.data())) {
 			return vocab_types::spm;
-		if (vocab_type_str == "xverse")
+		}
+		if (string_literal_comparitor<decltype(xverse), xverse>::impl(vocab_type_str.data())) {
 			return vocab_types::spm;
-		if (vocab_type_str == "internlm2")
+		}
+		if (string_literal_comparitor<decltype(internlm2), internlm2>::impl(vocab_type_str.data())) {
 			return vocab_types::spm;
-		if (vocab_type_str == "minicpm")
+		}
+		if (string_literal_comparitor<decltype(minicpm), minicpm>::impl(vocab_type_str.data())) {
 			return vocab_types::spm;
-		if (vocab_type_str == "gemma")
+		}
+		if (string_literal_comparitor<decltype(gemma), gemma>::impl(vocab_type_str.data())) {
 			return vocab_types::spm;
-		if (vocab_type_str == "gemma2")
+		}
+		if (string_literal_comparitor<decltype(gemma2), gemma2>::impl(vocab_type_str.data())) {
 			return vocab_types::spm;
-		if (vocab_type_str == "phi3")
+		}
+		if (string_literal_comparitor<decltype(phi3), phi3>::impl(vocab_type_str.data())) {
 			return vocab_types::spm;
-		if (vocab_type_str == "paligemma")
+		}
+		if (string_literal_comparitor<decltype(paligemma), paligemma>::impl(vocab_type_str.data())) {
 			return vocab_types::spm;
-		if (vocab_type_str == "bloom")
+		}
+		if (string_literal_comparitor<decltype(bloom), bloom>::impl(vocab_type_str.data())) {
 			return vocab_types::bpe;
-		if (vocab_type_str == "stablelm")
+		}
+		if (string_literal_comparitor<decltype(stablelm), stablelm>::impl(vocab_type_str.data())) {
 			return vocab_types::bpe;
-		if (vocab_type_str == "qwen")
+		}
+		if (string_literal_comparitor<decltype(qwen), qwen>::impl(vocab_type_str.data())) {
 			return vocab_types::bpe;
-		if (vocab_type_str == "plamo")
+		}
+		if (string_literal_comparitor<decltype(plamo), plamo>::impl(vocab_type_str.data())) {
 			return vocab_types::spm;
-		if (vocab_type_str == "codeshell")
+		}
+		if (string_literal_comparitor<decltype(codeshell), codeshell>::impl(vocab_type_str.data())) {
 			return vocab_types::bpe;
-		if (vocab_type_str == "orion")
+		}
+		if (string_literal_comparitor<decltype(orion), orion>::impl(vocab_type_str.data())) {
 			return vocab_types::spm;
-		if (vocab_type_str == "internlm")
+		}
+		if (string_literal_comparitor<decltype(internlm), internlm>::impl(vocab_type_str.data())) {
 			return vocab_types::spm;
-		if (vocab_type_str == "minicpm3")
+		}
+		if (string_literal_comparitor<decltype(minicpm3), minicpm3>::impl(vocab_type_str.data())) {
 			return vocab_types::spm;
-		if (vocab_type_str == "rwkv")
+		}
+		if (string_literal_comparitor<decltype(rwkv), rwkv>::impl(vocab_type_str.data())) {
 			return vocab_types::rwkv;
-		if (vocab_type_str == "command")
+		}
+		if (string_literal_comparitor<decltype(command), command>::impl(vocab_type_str.data())) {
 			return vocab_types::bpe;
-		if (vocab_type_str == "deci")
+		}
+		if (string_literal_comparitor<decltype(deci), deci>::impl(vocab_type_str.data())) {
 			return vocab_types::bpe;
-		if (vocab_type_str == "granite")
+		}
+		if (string_literal_comparitor<decltype(granite), granite>::impl(vocab_type_str.data())) {
 			return vocab_types::bpe;
-		if (vocab_type_str == "chameleon")
+		}
+		if (string_literal_comparitor<decltype(chameleon), chameleon>::impl(vocab_type_str.data())) {
 			return vocab_types::bpe;
+		}
 
 		return vocab_types::none;
 	}
@@ -951,16 +1037,8 @@ namespace nihilus {
 
 			gather_scalar("tokenizer.ggml.model", tokenizer_model, metadata_kv);
 			gather_scalar("tokenizer.ggml.pre", tokenizer_pre, metadata_kv);
-			gather_scalar("tokenizer.ggml.token_type_count", tokenizer.n_token_types, metadata_kv);
 
 			if (tokenizer_model == "no_vocab" || tokenizer_model == "none") {
-				tokenizer.special_bos_id  = token_null;
-				tokenizer.special_eos_id  = token_null;
-				tokenizer.special_unk_id  = token_null;
-				tokenizer.special_sep_id  = token_null;
-				tokenizer.special_pad_id  = token_null;
-				tokenizer.special_mask_id = token_null;
-				tokenizer.linefeed_id	  = token_null;
 				uint32_t n_tokens		  = 0;
 				gather_scalar("general.vocab_size", n_tokens, metadata_kv);
 				if (n_tokens != 0) {
@@ -970,19 +1048,7 @@ namespace nihilus {
 			}
 
 			if (tokenizer_model == "llama") {
-				tokenizer.special_bos_id  = 1;
-				tokenizer.special_eos_id  = 2;
-				tokenizer.special_unk_id  = 0;
-				tokenizer.special_sep_id  = token_null;
-				tokenizer.special_pad_id  = token_null;
-				tokenizer.special_mask_id = token_null;
 			} else if (tokenizer_model == "bert") {
-				tokenizer.special_bos_id  = 101;
-				tokenizer.special_eos_id  = token_null;
-				tokenizer.special_unk_id  = 100;
-				tokenizer.special_sep_id  = 102;
-				tokenizer.special_pad_id  = 0;
-				tokenizer.special_mask_id = 103;
 			} else if (tokenizer_model == "gpt2") {
 				std::vector<std::string> merges;
 				gather_array("tokenizer.ggml.merges", merges, metadata_kv);
@@ -997,20 +1063,7 @@ namespace nihilus {
 						tokenizer.bpe_ranks.emplace(std::make_pair(first, second), static_cast<int32_t>(i));
 					}
 				}
-
-				tokenizer.special_bos_id  = 11;
-				tokenizer.special_eos_id  = 11;
-				tokenizer.special_unk_id  = token_null;
-				tokenizer.special_sep_id  = token_null;
-				tokenizer.special_pad_id  = token_null;
-				tokenizer.special_mask_id = token_null;
 			} else if (tokenizer_model == "t5") {
-				tokenizer.special_bos_id  = token_null;
-				tokenizer.special_eos_id  = 1;
-				tokenizer.special_unk_id  = 2;
-				tokenizer.special_sep_id  = token_null;
-				tokenizer.special_pad_id  = 0;
-				tokenizer.special_mask_id = token_null;
 
 				std::vector<uint8_t> precompiled_data;
 				gather_array("tokenizer.ggml.precompiled_charsmap", precompiled_data, metadata_kv);
@@ -1018,95 +1071,39 @@ namespace nihilus {
 					tokenizer.precompiled_charsmap.assign(precompiled_data.begin(), precompiled_data.end());
 				}
 			} else if (tokenizer_model == "rwkv") {
-				tokenizer.special_bos_id = token_null;
-				tokenizer.special_eos_id = token_null;
-				tokenizer.special_unk_id = token_null;
-				tokenizer.special_sep_id = token_null;
-				tokenizer.special_pad_id = token_null;
 			} else {
 				throw std::runtime_error("Unknown tokenizer model: " + tokenizer_model);
 			}
 
 			if (tokenizer_model == "gpt2" || tokenizer_model == "bert" || tokenizer_model == "t5") {
-				tokenizer.add_space_prefix = false;
-				tokenizer.clean_spaces	   = true;
 
 				if (tokenizer_pre.empty()) {
-					tokenizer.pre_type = vocab_pre_types::default_pre;
 				} else if (tokenizer_pre == "default") {
-					tokenizer.pre_type = vocab_pre_types::default_pre;
 				} else if (tokenizer_pre == "llama3" || tokenizer_pre == "llama-v3" || tokenizer_pre == "llama-bpe" || tokenizer_pre == "falcon3") {
-					tokenizer.pre_type		= vocab_pre_types::llama3;
-					tokenizer.ignore_merges = true;
-					tokenizer.add_bos		= true;
 				} else if (tokenizer_pre == "deepseek-llm") {
-					tokenizer.pre_type	   = vocab_pre_types::deepseek_llm;
-					tokenizer.clean_spaces = false;
 				} else if (tokenizer_pre == "deepseek-coder") {
-					tokenizer.pre_type	   = vocab_pre_types::deepseek_coder;
-					tokenizer.clean_spaces = false;
 				} else if (tokenizer_pre == "deepseek-v3") {
-					tokenizer.pre_type	   = vocab_pre_types::deepseek3_llm;
-					tokenizer.clean_spaces = false;
 				} else if (tokenizer_pre == "falcon") {
-					tokenizer.pre_type = vocab_pre_types::falcon;
 				} else if (tokenizer_pre == "mpt") {
-					tokenizer.pre_type = vocab_pre_types::mpt;
 				} else if (tokenizer_pre == "starcoder") {
-					tokenizer.pre_type = vocab_pre_types::starcoder;
 				} else if (tokenizer_pre == "gpt-2" || tokenizer_pre == "phi-2" || tokenizer_pre == "jina-es" || tokenizer_pre == "jina-de" || tokenizer_pre == "gigachat" ||
 					tokenizer_pre == "roberta-bpe") {
-					tokenizer.pre_type = vocab_pre_types::gpt2;
 				} else if (tokenizer_pre == "refact") {
-					tokenizer.pre_type = vocab_pre_types::refact;
 				} else if (tokenizer_pre == "command-r") {
-					tokenizer.pre_type	   = vocab_pre_types::command_r;
-					tokenizer.clean_spaces = false;
 				} else if (tokenizer_pre == "qwen2") {
-					tokenizer.pre_type	   = vocab_pre_types::qwen2;
-					tokenizer.clean_spaces = false;
 				} else if (tokenizer_pre == "tekken") {
-					tokenizer.pre_type		= vocab_pre_types::tekken;
-					tokenizer.clean_spaces	= false;
-					tokenizer.ignore_merges = true;
-					tokenizer.add_bos		= true;
 				} else if (tokenizer_pre == "smollm") {
-					tokenizer.pre_type	   = vocab_pre_types::smollm;
-					tokenizer.clean_spaces = false;
 				} else if (tokenizer_pre == "chameleon") {
-					tokenizer.pre_type	   = vocab_pre_types::chameleon;
-					tokenizer.add_bos	   = true;
-					tokenizer.clean_spaces = false;
 				} else {
 					throw std::runtime_error("Unknown pre-tokenizer type: " + tokenizer_pre);
 				}
 			} else {
-				tokenizer.pre_type = vocab_pre_types::default_pre;
 				if (tokenizer_model == "llama") {
-					tokenizer.add_space_prefix = true;
-					tokenizer.clean_spaces	   = false;
-					tokenizer.add_bos		   = true;
-					tokenizer.add_eos		   = false;
 				} else if (tokenizer_model == "bert") {
-					tokenizer.add_space_prefix = false;
-					tokenizer.clean_spaces	   = true;
-					tokenizer.add_bos		   = true;
-					tokenizer.add_eos		   = false;
 				} else if (tokenizer_model == "t5") {
-					tokenizer.add_bos = false;
-					tokenizer.add_eos = true;
 				} else if (tokenizer_model == "rwkv") {
-					tokenizer.add_space_prefix = false;
-					tokenizer.clean_spaces	   = false;
-					tokenizer.add_bos		   = false;
-					tokenizer.add_eos		   = false;
 				}
 			}
-
-			gather_scalar("tokenizer.ggml.add_space_prefix", tokenizer.add_space_prefix, metadata_kv);
-			gather_scalar("tokenizer.ggml.remove_extra_whitespace", tokenizer.remove_extra_whitespaces, metadata_kv);
-			gather_scalar("tokenizer.ggml.add_bos", tokenizer.add_bos, metadata_kv);
-			gather_scalar("tokenizer.ggml.add_eos", tokenizer.add_eos, metadata_kv);
 
 			std::vector<std::string> tokens;
 			gather_array("tokenizer.ggml.tokens", tokens, metadata_kv);
@@ -1127,7 +1124,6 @@ namespace nihilus {
 				}
 
 				tokenizer.token_to_id[word] = i;
-				tokenizer.max_token_len		= std::max(tokenizer.max_token_len, static_cast<int32_t>(word.size()));
 
 				auto& token_data = tokenizer.id_to_token[i];
 				token_data.text	 = std::move(word);
@@ -1161,43 +1157,32 @@ namespace nihilus {
 				}
 			}
 
-			gather_scalar("tokenizer.ggml.bos_token_id", tokenizer.special_bos_id, metadata_kv);
-			gather_scalar("tokenizer.ggml.eos_token_id", tokenizer.special_eos_id, metadata_kv);
-			gather_scalar("tokenizer.ggml.unknown_token_id", tokenizer.special_unk_id, metadata_kv);
-			gather_scalar("tokenizer.ggml.separator_token_id", tokenizer.special_sep_id, metadata_kv);
-			gather_scalar("tokenizer.ggml.padding_token_id", tokenizer.special_pad_id, metadata_kv);
-
 			for (const auto& [text, id]: tokenizer.token_to_id) {
 				if (tokenizer.special_eot_id == token_null) {
 					if (text == "<|eot_id|>" || text == "<|im_end|>" || text == "<|end|>" || text == "<end_of_turn>" || text == "<|endoftext|>" || text == "< EOT >" ||
 						text == "<｜end▁of▁sentence｜>") {
-						tokenizer.special_eot_id	  = id;
 						tokenizer.id_to_token[id].att = tokens::control;
 					}
 				}
 
 				if (tokenizer.special_eom_id == token_null && text == "<|eom_id|>") {
-					tokenizer.special_eom_id	  = id;
 					tokenizer.id_to_token[id].att = tokens::control;
 				}
 
 				if (tokenizer.special_fim_pre_id == token_null) {
 					if (text == "<|fim_prefix|>" || text == "<fim-prefix>" || text == "<｜fim▁begin｜>" || text == "<PRE>") {
-						tokenizer.special_fim_pre_id  = id;
 						tokenizer.id_to_token[id].att = tokens::control;
 					}
 				}
 
 				if (tokenizer.special_fim_suf_id == token_null) {
 					if (text == "<|fim_suffix|>" || text == "<fim-suffix>" || text == "<｜fim▁hole｜>" || text == "<SUF>") {
-						tokenizer.special_fim_suf_id  = id;
 						tokenizer.id_to_token[id].att = tokens::control;
 					}
 				}
 
 				if (tokenizer.special_fim_mid_id == token_null) {
 					if (text == "<|fim_middle|>" || text == "<fim-middle>" || text == "<｜fim▁end｜>" || text == "<MID>") {
-						tokenizer.special_fim_mid_id  = id;
 						tokenizer.id_to_token[id].att = tokens::control;
 					}
 				}
@@ -1441,6 +1426,7 @@ namespace nihilus {
 			return_value.cparams = value_reader<construction_parameters<model_arches::llama>, model_arches::llama>::gather_value(gguf_file.header.metadata_kv);
 			value_reader<tokenizer_type, model_arches::llama>::gather_value(gguf_file.header.metadata_kv, tokenizer);
 			value_reader<typename tokenizer_type::vocab_type>::gather_value(gguf_file.header.metadata_kv, *static_cast<typename tokenizer_type::vocab_type*>(&tokenizer));
+
 			sort_tensor_infos(gguf_file.tensor_infos);
 			for (uint64_t x = 0; x < gguf_file.header.tensor_count; ++x) {
 				uint64_t absolute_offset = tensor_data_start + gguf_file.tensor_infos[x].offset;

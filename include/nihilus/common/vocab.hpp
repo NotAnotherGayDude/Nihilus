@@ -37,11 +37,31 @@ namespace nihilus {
 	template<model_arches arch, vocab_types type> struct vocab_traits;
 
 	template<> struct vocab_traits<model_arches::llama, vocab_types::bpe> {
-		static constexpr token special_bos_id = 1;
-		static constexpr token special_eos_id = 2;
-		static constexpr bool add_bos		  = true;
-		static constexpr bool clean_spaces	  = true;
-		// All the constants!
+		static constexpr vocab_pre_types pre_type		 = vocab_pre_types::llama3;
+		static constexpr int32_t max_token_len			 = 256;
+		static constexpr token special_bos_id			 = 11;
+		static constexpr token special_eos_id			 = 11;
+		static constexpr token special_eot_id			 = 128009;
+		static constexpr token special_eom_id			 = 128008;
+		static constexpr token special_unk_id			 = -1;
+		static constexpr token special_sep_id			 = -1;
+		static constexpr token special_pad_id			 = -1;
+		static constexpr token special_mask_id			 = -1;
+		static constexpr token linefeed_id				 = 13;
+		static constexpr token special_fim_pre_id		 = -1;
+		static constexpr token special_fim_suf_id		 = -1;
+		static constexpr token special_fim_mid_id		 = -1;
+		static constexpr token special_fim_pad_id		 = -1;
+		static constexpr token special_fim_rep_id		 = -1;
+		static constexpr token special_fim_sep_id		 = -1;
+		static constexpr bool add_space_prefix			 = false;
+		static constexpr bool add_bos					 = true;
+		static constexpr bool add_eos					 = false;
+		static constexpr bool ignore_merges				 = false;
+		static constexpr bool clean_spaces				 = true;
+		static constexpr bool remove_extra_whitespaces	 = false;
+		static constexpr bool escape_whitespaces		 = true;
+		static constexpr bool treat_whitespace_as_suffix = false;
 	};
 	
 	struct token_data {
@@ -50,39 +70,7 @@ namespace nihilus {
 		tokens att;
 	};
 
-	template<model_arches arch, vocab_types type, typename derivd_type>
-	struct vocab {
-		uint32_t n_token_types = 0;
-		vocab_pre_types pre_type = vocab_pre_types::default_pre;
-
-		int32_t max_token_len = 0;
-
-		token special_bos_id	= 1;
-		token special_eos_id	= 2;
-		token special_eot_id	= token_null;
-		token special_eom_id	= token_null;
-		token special_unk_id	= 0;
-		token special_sep_id	= token_null;
-		token special_pad_id	= token_null;
-		token special_mask_id = token_null;
-
-		token linefeed_id = 13;
-
-		token special_fim_pre_id = token_null;
-		token special_fim_suf_id = token_null;
-		token special_fim_mid_id = token_null;
-		token special_fim_pad_id = token_null;
-		token special_fim_rep_id = token_null;
-		token special_fim_sep_id = token_null;
-
-		bool add_space_prefix			= false;
-		bool add_bos					= false;
-		bool add_eos					= false;
-		bool ignore_merges				= false;
-		bool clean_spaces				= false;
-		bool remove_extra_whitespaces	= false;
-		bool escape_whitespaces			= true;
-		bool treat_whitespace_as_suffix = false;
+	template<model_arches arch, vocab_types type, typename derivd_type> struct vocab : public vocab_traits<arch, type> {
 
 		std::unordered_map<std::string, token> token_to_id;
 		std::vector<token_data> id_to_token;

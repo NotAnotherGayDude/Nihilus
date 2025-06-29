@@ -34,6 +34,7 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE model_base(model_config config_new) : config{ config_new } {};
 		model_config config{};
 		virtual void execute_model(execution_parameters& params) = 0;
+		virtual bool process_input(const std::string& params)	 = 0;
 		virtual void init(cli_params params)					 = 0;
 		virtual ~model_base()									 = default;
 	};
@@ -63,6 +64,10 @@ namespace nihilus {
 		model& operator=(const model&) = delete;
 		model(const model&)			   = delete;
 
+		NIHILUS_FORCE_INLINE bool process_input(const std::string& input) {
+			return input_session<config_new, model>::process_input_impl(input);
+		}
+
 		NIHILUS_FORCE_INLINE void init(nihilus::cli_params params) {
 			memory.init(total_required_bytes);
 			weight_memory = nihilus::memory_mapped_file{ params.model_file };
@@ -82,18 +87,19 @@ namespace nihilus {
 
 		NIHILUS_FORCE_INLINE void execute_model(nihilus::execution_parameters& params) {
 			current_iteration = 0;
-			std::cout << "Nihilus model Load time: " << nihilus::stop_watch_val_nihilus.total_time_elapsed() << std::endl;
+			nihilus::stop_watch_val_nihilus.reset();
 			this->template impl<dim_updater>(2);
 #if defined(NIHILUS_DEBUG)
 			this->template impl<tensor_debugger_impl>();
 #endif
-			static_cast<thread_pool<config_new, model>*>(this)->execute_tasks();
 			++current_iteration;
 			this->template impl<dim_updater>(params.sequence_length);
 #if defined(NIHILUS_DEBUG)
 			this->template impl<tensor_debugger_impl>();
 #endif
+			nihilus::stop_watch_val_nihilus.reset();
 			static_cast<thread_pool<config_new, model>*>(this)->execute_tasks();
+			nihilus::stop_watch_val_nihilus.add_time();
 			++current_iteration;
 			this->template impl<dim_updater>(1);
 

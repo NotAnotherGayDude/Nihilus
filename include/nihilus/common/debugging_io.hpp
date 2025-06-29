@@ -20,7 +20,9 @@ RealTimeChris (Chris M.)
 
 #pragma once
 
-#include <jsonifier/Index.hpp>
+#if defined(NIHILUS_DEBUG)
+	#include <jsonifier/Index.hpp>
+
 #include <nihilus/common/common.hpp>
 #include <filesystem>
 #include <iostream>
@@ -578,3 +580,4 @@ namespace nihilus {
 	};
 
 }
+#endif

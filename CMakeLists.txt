@@ -24,14 +24,16 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(ENV{CMAKE_INSTALL_PREFIX} "${CMAKE_SOURCE_DIR}/../Install")
 
-include(FetchContent)
-FetchContent_Declare(
+if (NIHILUS_VS_LLAMA_DEV)
+    include(FetchContent)
+    FetchContent_Declare(
         Jsonifier
         GIT_REPOSITORY https://github.com/realtimechris/jsonifier.git
         GIT_TAG        dev-new
-)
+    )
 
-FetchContent_MakeAvailable(Jsonifier)
+    FetchContent_MakeAvailable(Jsonifier)
+endif()
 
 project(
     "${PROJECT_NAME}"
@@ -70,7 +72,7 @@ target_include_directories(
 )
 
 target_link_libraries(
-    "${PROJECT_NAME}" INTERFACE Jsonifier::Jsonifier
+    "${PROJECT_NAME}" INTERFACE $<$<STREQUAL:$<UPPER_CASE:${NIHILUS_VS_LLAMA_DEV}>,TRUE>:Jsonifier::Jsonifier>
 )
 
 include("cmake/nihilus_detect_architecture.cmake")
@@ -119,7 +121,6 @@ set(NIHILUS_COMMON_COMPILE_FLAGS
 	"$<$<CXX_COMPILER_ID:MSVC>:/Wall>"
 	"$<$<CXX_COMPILER_ID:GNU>:-Wall>"
 	"$<$<CXX_COMPILER_ID:MSVC>:/W4>"
-    "$<$<CXX_COMPILER_ID:MSVC>:/w4324>"
     "${SIMD_FLAG}"
 )
 
@@ -229,4 +230,6 @@ elseif (NIHILUS_VS_LLAMA_DEV)
     add_subdirectory("./tests/vs-llama-dev")
 elseif (NIHILUS_VS_LLAMA_BENCHMARK)
     add_subdirectory("./tests/vs-llama-benchmark")
+elseif (NIHILUS_NH_ONLY)
+    add_subdirectory("./tests/nihilus-only")
 endif()

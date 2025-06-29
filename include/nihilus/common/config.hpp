@@ -93,6 +93,8 @@ RealTimeChris (Chris M.)
 	#include <immintrin.h>
 #elif defined(__aarch64__) || defined(_M_ARM64)
 	#define NIHILUS_ARCH_ARM64 1
+	#include <arm_sve.h>
+	#include <arm_neon.h>
 #else
 	#error "Unsupported architecture"
 #endif
