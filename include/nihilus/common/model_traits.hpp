@@ -25,13 +25,13 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-	template<model_arch arch, auto model_size, auto model_generation> struct model_traits;
+	template<model_arches arch, auto model_size, auto model_generation> struct model_traits;
 
-	template<> struct model_traits<model_arch::llama, llama_model_size::llama_1B, llama_model_generation::v1_v2> {
-		using op_type_type = llama_op_types;
-		static constexpr auto arch{ model_arch::llama };
-		static constexpr auto model_generation{ llama_model_generation::v1_v2 };
-		static constexpr auto model_size{ llama_model_size::llama_1B };
+	template<> struct model_traits<model_arches::llama, model_sizes::llama_1B, model_generations::v1_v2> {
+		using op_type_type = op_types;
+		static constexpr auto arch{ model_arches::llama };
+		static constexpr auto model_generation{ model_generations::v1_v2 };
+		static constexpr auto model_size{ model_sizes::llama_1B };
 		static constexpr uint64_t vocab_size		   = 32000;
 		static constexpr uint64_t embedding_dim		   = 2048;
 		static constexpr uint64_t block_count		   = 16;
@@ -48,11 +48,11 @@ namespace nihilus {
 		static constexpr uint64_t n_embd_kv_gqa		   = n_embd_head_kv * head_count_kv;
 	};
 
-	template<> struct model_traits<model_arch::llama, llama_model_size::llama_3B, llama_model_generation::v1_v2> {
-		using op_type_type = llama_op_types;
-		static constexpr auto arch{ model_arch::llama };
-		static constexpr auto model_generation{ llama_model_generation::v1_v2 };
-		static constexpr auto model_size{ llama_model_size::llama_3B };
+	template<> struct model_traits<model_arches::llama, model_sizes::llama_3B, model_generations::v1_v2> {
+		using op_type_type = op_types;
+		static constexpr auto arch{ model_arches::llama };
+		static constexpr auto model_generation{ model_generations::v1_v2 };
+		static constexpr auto model_size{ model_sizes::llama_3B };
 		static constexpr uint64_t vocab_size		   = 32000;
 		static constexpr uint64_t embedding_dim		   = 3072;
 		static constexpr uint64_t block_count		   = 28;
@@ -69,11 +69,11 @@ namespace nihilus {
 		static constexpr uint64_t n_embd_kv_gqa		   = n_embd_head_kv * head_count_kv;
 	};
 
-	template<> struct model_traits<model_arch::llama, llama_model_size::llama_7B, llama_model_generation::v1_v2> {
-		using op_type_type = llama_op_types;
-		static constexpr auto arch{ model_arch::llama };
-		static constexpr auto model_generation{ llama_model_generation::v1_v2 };
-		static constexpr auto model_size{ llama_model_size::llama_7B };
+	template<> struct model_traits<model_arches::llama, model_sizes::llama_7B, model_generations::v1_v2> {
+		using op_type_type = op_types;
+		static constexpr auto arch{ model_arches::llama };
+		static constexpr auto model_generation{ model_generations::v1_v2 };
+		static constexpr auto model_size{ model_sizes::llama_7B };
 		static constexpr uint64_t vocab_size		   = 32000;
 		static constexpr uint64_t embedding_dim		   = 4096;
 		static constexpr uint64_t block_count		   = 32;
@@ -90,11 +90,11 @@ namespace nihilus {
 		static constexpr uint64_t n_embd_kv_gqa		   = n_embd_head_kv * head_count_kv;
 	};
 
-	template<> struct model_traits<model_arch::llama, llama_model_size::llama_8B, llama_model_generation::v1_v2> {
-		using op_type_type = llama_op_types;
-		static constexpr auto arch{ model_arch::llama };
-		static constexpr auto model_generation{ llama_model_generation::v1_v2 };
-		static constexpr auto model_size{ llama_model_size::llama_8B };
+	template<> struct model_traits<model_arches::llama, model_sizes::llama_8B, model_generations::v1_v2> {
+		using op_type_type = op_types;
+		static constexpr auto arch{ model_arches::llama };
+		static constexpr auto model_generation{ model_generations::v1_v2 };
+		static constexpr auto model_size{ model_sizes::llama_8B };
 		static constexpr uint64_t vocab_size		   = 32000;
 		static constexpr uint64_t embedding_dim		   = 4096;
 		static constexpr uint64_t block_count		   = 32;
@@ -111,11 +111,11 @@ namespace nihilus {
 		static constexpr uint64_t n_embd_kv_gqa		   = n_embd_head_kv * head_count_kv;
 	};
 
-	template<> struct model_traits<model_arch::llama, llama_model_size::llama_11B, llama_model_generation::v1_v2> {
-		using op_type_type = llama_op_types;
-		static constexpr auto arch{ model_arch::llama };
-		static constexpr auto model_generation{ llama_model_generation::v1_v2 };
-		static constexpr auto model_size{ llama_model_size::llama_11B };
+	template<> struct model_traits<model_arches::llama, model_sizes::llama_11B, model_generations::v1_v2> {
+		using op_type_type = op_types;
+		static constexpr auto arch{ model_arches::llama };
+		static constexpr auto model_generation{ model_generations::v1_v2 };
+		static constexpr auto model_size{ model_sizes::llama_11B };
 		static constexpr uint64_t vocab_size		   = 32000;
 		static constexpr uint64_t embedding_dim		   = 4096;
 		static constexpr uint64_t block_count		   = 32;
@@ -132,11 +132,11 @@ namespace nihilus {
 		static constexpr uint64_t n_embd_kv_gqa		   = n_embd_head_kv * head_count_kv;
 	};
 
-	template<> struct model_traits<model_arch::llama, llama_model_size::llama_13B, llama_model_generation::v1_v2> {
-		using op_type_type = llama_op_types;
-		static constexpr auto arch{ model_arch::llama };
-		static constexpr auto model_generation{ llama_model_generation::v1_v2 };
-		static constexpr auto model_size{ llama_model_size::llama_13B };
+	template<> struct model_traits<model_arches::llama, model_sizes::llama_13B, model_generations::v1_v2> {
+		using op_type_type = op_types;
+		static constexpr auto arch{ model_arches::llama };
+		static constexpr auto model_generation{ model_generations::v1_v2 };
+		static constexpr auto model_size{ model_sizes::llama_13B };
 		static constexpr uint64_t vocab_size		   = 32000;
 		static constexpr uint64_t embedding_dim		   = 5120;
 		static constexpr uint64_t block_count		   = 40;
@@ -153,11 +153,11 @@ namespace nihilus {
 		static constexpr uint64_t n_embd_kv_gqa		   = n_embd_head_kv * head_count_kv;
 	};
 
-	template<> struct model_traits<model_arch::llama, llama_model_size::llama_70B, llama_model_generation::v1_v2> {
-		using op_type_type = llama_op_types;
-		static constexpr auto arch{ model_arch::llama };
-		static constexpr auto model_generation{ llama_model_generation::v1_v2 };
-		static constexpr auto model_size{ llama_model_size::llama_70B };
+	template<> struct model_traits<model_arches::llama, model_sizes::llama_70B, model_generations::v1_v2> {
+		using op_type_type = op_types;
+		static constexpr auto arch{ model_arches::llama };
+		static constexpr auto model_generation{ model_generations::v1_v2 };
+		static constexpr auto model_size{ model_sizes::llama_70B };
 		static constexpr uint64_t vocab_size		   = 32000;
 		static constexpr uint64_t embedding_dim		   = 8192;
 		static constexpr uint64_t block_count		   = 80;
@@ -174,11 +174,11 @@ namespace nihilus {
 		static constexpr uint64_t n_embd_kv_gqa		   = n_embd_head_kv * head_count_kv;
 	};
 
-	template<> struct model_traits<model_arch::llama, llama_model_size::llama_90B, llama_model_generation::v1_v2> {
-		using op_type_type = llama_op_types;
-		static constexpr auto arch{ model_arch::llama };
-		static constexpr auto model_generation{ llama_model_generation::v1_v2 };
-		static constexpr auto model_size{ llama_model_size::llama_90B };
+	template<> struct model_traits<model_arches::llama, model_sizes::llama_90B, model_generations::v1_v2> {
+		using op_type_type = op_types;
+		static constexpr auto arch{ model_arches::llama };
+		static constexpr auto model_generation{ model_generations::v1_v2 };
+		static constexpr auto model_size{ model_sizes::llama_90B };
 		static constexpr uint64_t vocab_size		   = 32000;
 		static constexpr uint64_t embedding_dim		   = 8192;
 		static constexpr uint64_t block_count		   = 80;
@@ -195,11 +195,11 @@ namespace nihilus {
 		static constexpr uint64_t n_embd_kv_gqa		   = n_embd_head_kv * head_count_kv;
 	};
 
-	template<> struct model_traits<model_arch::llama, llama_model_size::llama_405B, llama_model_generation::v1_v2> {
-		using op_type_type = llama_op_types;
-		static constexpr auto arch{ model_arch::llama };
-		static constexpr auto model_generation{ llama_model_generation::v1_v2 };
-		static constexpr auto model_size{ llama_model_size::llama_405B };
+	template<> struct model_traits<model_arches::llama, model_sizes::llama_405B, model_generations::v1_v2> {
+		using op_type_type = op_types;
+		static constexpr auto arch{ model_arches::llama };
+		static constexpr auto model_generation{ model_generations::v1_v2 };
+		static constexpr auto model_size{ model_sizes::llama_405B };
 		static constexpr uint64_t vocab_size		   = 32000;
 		static constexpr uint64_t embedding_dim		   = 16384;
 		static constexpr uint64_t block_count		   = 126;
@@ -216,11 +216,11 @@ namespace nihilus {
 		static constexpr uint64_t n_embd_kv_gqa		   = n_embd_head_kv * head_count_kv;
 	};
 
-	template<> struct model_traits<model_arch::llama, llama_model_size::llama_1B, llama_model_generation::v3> {
-		using op_type_type = llama_op_types;
-		static constexpr auto arch{ model_arch::llama };
-		static constexpr auto model_generation{ llama_model_generation::v3 };
-		static constexpr auto model_size{ llama_model_size::llama_1B };
+	template<> struct model_traits<model_arches::llama, model_sizes::llama_1B, model_generations::v3> {
+		using op_type_type = op_types;
+		static constexpr auto arch{ model_arches::llama };
+		static constexpr auto model_generation{ model_generations::v3 };
+		static constexpr auto model_size{ model_sizes::llama_1B };
 		static constexpr uint64_t vocab_size		   = 128256;
 		static constexpr uint64_t embedding_dim		   = 2048;
 		static constexpr uint64_t block_count		   = 16;
@@ -237,11 +237,11 @@ namespace nihilus {
 		static constexpr uint64_t n_embd_kv_gqa		   = n_embd_head_kv * head_count_kv;
 	};
 
-	template<> struct model_traits<model_arch::llama, llama_model_size::llama_3B, llama_model_generation::v3> {
-		using op_type_type = llama_op_types;
-		static constexpr auto arch{ model_arch::llama };
-		static constexpr auto model_generation{ llama_model_generation::v3 };
-		static constexpr auto model_size{ llama_model_size::llama_3B };
+	template<> struct model_traits<model_arches::llama, model_sizes::llama_3B, model_generations::v3> {
+		using op_type_type = op_types;
+		static constexpr auto arch{ model_arches::llama };
+		static constexpr auto model_generation{ model_generations::v3 };
+		static constexpr auto model_size{ model_sizes::llama_3B };
 		static constexpr uint64_t vocab_size		   = 128256;
 		static constexpr uint64_t embedding_dim		   = 3072;
 		static constexpr uint64_t block_count		   = 28;
@@ -258,11 +258,11 @@ namespace nihilus {
 		static constexpr uint64_t n_embd_kv_gqa		   = n_embd_head_kv * head_count_kv;
 	};
 
-	template<> struct model_traits<model_arch::llama, llama_model_size::llama_7B, llama_model_generation::v3> {
-		using op_type_type = llama_op_types;
-		static constexpr auto arch{ model_arch::llama };
-		static constexpr auto model_generation{ llama_model_generation::v3 };
-		static constexpr auto model_size{ llama_model_size::llama_7B };
+	template<> struct model_traits<model_arches::llama, model_sizes::llama_7B, model_generations::v3> {
+		using op_type_type = op_types;
+		static constexpr auto arch{ model_arches::llama };
+		static constexpr auto model_generation{ model_generations::v3 };
+		static constexpr auto model_size{ model_sizes::llama_7B };
 		static constexpr uint64_t vocab_size		   = 128256;
 		static constexpr uint64_t embedding_dim		   = 4096;
 		static constexpr uint64_t block_count		   = 32;
@@ -279,11 +279,11 @@ namespace nihilus {
 		static constexpr uint64_t n_embd_kv_gqa		   = n_embd_head_kv * head_count_kv;
 	};
 
-	template<> struct model_traits<model_arch::llama, llama_model_size::llama_8B, llama_model_generation::v3> {
-		using op_type_type = llama_op_types;
-		static constexpr auto arch{ model_arch::llama };
-		static constexpr auto model_generation{ llama_model_generation::v3 };
-		static constexpr auto model_size{ llama_model_size::llama_8B };
+	template<> struct model_traits<model_arches::llama, model_sizes::llama_8B, model_generations::v3> {
+		using op_type_type = op_types;
+		static constexpr auto arch{ model_arches::llama };
+		static constexpr auto model_generation{ model_generations::v3 };
+		static constexpr auto model_size{ model_sizes::llama_8B };
 		static constexpr uint64_t vocab_size		   = 128256;
 		static constexpr uint64_t embedding_dim		   = 4096;
 		static constexpr uint64_t block_count		   = 32;
@@ -300,11 +300,11 @@ namespace nihilus {
 		static constexpr uint64_t n_embd_kv_gqa		   = n_embd_head_kv * head_count_kv;
 	};
 
-	template<> struct model_traits<model_arch::llama, llama_model_size::llama_11B, llama_model_generation::v3> {
-		using op_type_type = llama_op_types;
-		static constexpr auto arch{ model_arch::llama };
-		static constexpr auto model_generation{ llama_model_generation::v3 };
-		static constexpr auto model_size{ llama_model_size::llama_11B };
+	template<> struct model_traits<model_arches::llama, model_sizes::llama_11B, model_generations::v3> {
+		using op_type_type = op_types;
+		static constexpr auto arch{ model_arches::llama };
+		static constexpr auto model_generation{ model_generations::v3 };
+		static constexpr auto model_size{ model_sizes::llama_11B };
 		static constexpr uint64_t vocab_size		   = 128256;
 		static constexpr uint64_t embedding_dim		   = 4096;
 		static constexpr uint64_t block_count		   = 32;
@@ -321,11 +321,11 @@ namespace nihilus {
 		static constexpr uint64_t n_embd_kv_gqa		   = n_embd_head_kv * head_count_kv;
 	};
 
-	template<> struct model_traits<model_arch::llama, llama_model_size::llama_13B, llama_model_generation::v3> {
-		using op_type_type = llama_op_types;
-		static constexpr auto arch{ model_arch::llama };
-		static constexpr auto model_generation{ llama_model_generation::v3 };
-		static constexpr auto model_size{ llama_model_size::llama_13B };
+	template<> struct model_traits<model_arches::llama, model_sizes::llama_13B, model_generations::v3> {
+		using op_type_type = op_types;
+		static constexpr auto arch{ model_arches::llama };
+		static constexpr auto model_generation{ model_generations::v3 };
+		static constexpr auto model_size{ model_sizes::llama_13B };
 		static constexpr uint64_t vocab_size		   = 128256;
 		static constexpr uint64_t embedding_dim		   = 5120;
 		static constexpr uint64_t block_count		   = 40;
@@ -342,11 +342,11 @@ namespace nihilus {
 		static constexpr uint64_t n_embd_kv_gqa		   = n_embd_head_kv * head_count_kv;
 	};
 
-	template<> struct model_traits<model_arch::llama, llama_model_size::llama_70B, llama_model_generation::v3> {
-		using op_type_type = llama_op_types;
-		static constexpr auto arch{ model_arch::llama };
-		static constexpr auto model_generation{ llama_model_generation::v3 };
-		static constexpr auto model_size{ llama_model_size::llama_70B };
+	template<> struct model_traits<model_arches::llama, model_sizes::llama_70B, model_generations::v3> {
+		using op_type_type = op_types;
+		static constexpr auto arch{ model_arches::llama };
+		static constexpr auto model_generation{ model_generations::v3 };
+		static constexpr auto model_size{ model_sizes::llama_70B };
 		static constexpr uint64_t vocab_size		   = 128256;
 		static constexpr uint64_t embedding_dim		   = 8192;
 		static constexpr uint64_t block_count		   = 80;
@@ -363,11 +363,11 @@ namespace nihilus {
 		static constexpr uint64_t n_embd_kv_gqa		   = n_embd_head_kv * head_count_kv;
 	};
 
-	template<> struct model_traits<model_arch::llama, llama_model_size::llama_90B, llama_model_generation::v3> {
-		using op_type_type = llama_op_types;
-		static constexpr auto arch{ model_arch::llama };
-		static constexpr auto model_generation{ llama_model_generation::v3 };
-		static constexpr auto model_size{ llama_model_size::llama_90B };
+	template<> struct model_traits<model_arches::llama, model_sizes::llama_90B, model_generations::v3> {
+		using op_type_type = op_types;
+		static constexpr auto arch{ model_arches::llama };
+		static constexpr auto model_generation{ model_generations::v3 };
+		static constexpr auto model_size{ model_sizes::llama_90B };
 		static constexpr uint64_t vocab_size		   = 128256;
 		static constexpr uint64_t embedding_dim		   = 8192;
 		static constexpr uint64_t block_count		   = 80;
@@ -384,11 +384,11 @@ namespace nihilus {
 		static constexpr uint64_t n_embd_kv_gqa		   = n_embd_head_kv * head_count_kv;
 	};
 
-	template<> struct model_traits<model_arch::llama, llama_model_size::llama_405B, llama_model_generation::v3> {
-		using op_type_type = llama_op_types;
-		static constexpr auto arch{ model_arch::llama };
-		static constexpr auto model_generation{ llama_model_generation::v3 };
-		static constexpr auto model_size{ llama_model_size::llama_405B };
+	template<> struct model_traits<model_arches::llama, model_sizes::llama_405B, model_generations::v3> {
+		using op_type_type = op_types;
+		static constexpr auto arch{ model_arches::llama };
+		static constexpr auto model_generation{ model_generations::v3 };
+		static constexpr auto model_size{ model_sizes::llama_405B };
 		static constexpr uint64_t vocab_size		   = 128256;
 		static constexpr uint64_t embedding_dim		   = 16384;
 		static constexpr uint64_t block_count		   = 126;

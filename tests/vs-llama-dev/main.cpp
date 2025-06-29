@@ -941,8 +941,8 @@ int main(int argc, char** argv) {
 			return static_cast<int32_t>(token_count - 2);
 		});
 		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 2, 1, true, "Token">::runBenchmark<"nihilus">([&] {
-			static constexpr nihilus::model_config model_config = nihilus::generate_model_config(nihilus::llama_model_generation::v3, nihilus::llama_model_size::llama_8B,
-				nihilus::kernel_type_profile::q8_gqa, nihilus::model_arch::llama, false);
+			static constexpr nihilus::model_config model_config = nihilus::generate_model_config(nihilus::model_generations::v3, nihilus::model_sizes::llama_8B,
+				nihilus::kernel_type_profiles::q8_gqa, nihilus::model_arches::llama, false);
 			auto cli_args_final									= nihilus::harbinger<model_config>::parse_cli_arguments(argc, argv);
 			nihilus::model<model_config> model_graph_data{ cli_args_final };
 			while (model_graph_data.process_input(cli_args_final.prompt)) {

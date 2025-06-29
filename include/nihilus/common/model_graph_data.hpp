@@ -32,7 +32,7 @@ namespace nihilus {
 		mutable void* data{};
 		std::string name{};
 		uint64_t offset{};
-		data_type type{};
+		data_types type{};
 
 		NIHILUS_FORCE_INLINE uint64_t core_total_dims() const {
 			return dimensions[0] * dimensions[1] * dimensions[2] * dimensions[3];
@@ -59,9 +59,9 @@ namespace nihilus {
 		}
 	};
 
-	template<model_arch arch> struct construction_parameters;
+	template<model_arches arch> struct construction_parameters;
 
-	template<> struct construction_parameters<model_arch::llama> {
+	template<> struct construction_parameters<model_arches::llama> {
 		uint64_t rope_dimension_count{};
 		uint64_t feed_forward_length{};
 		uint64_t embedding_length{};
@@ -84,13 +84,12 @@ namespace nihilus {
 	};
 
 	template<model_config config> struct model_graph_data {
-		using op_type_type													= typename decltype(config)::op_type_type;
 		NIHILUS_INLINE model_graph_data()									= default;
 		NIHILUS_INLINE model_graph_data& operator=(model_graph_data&&)		= default;
 		NIHILUS_INLINE model_graph_data(model_graph_data&&)					= default;
 		NIHILUS_INLINE model_graph_data& operator=(const model_graph_data&) = delete;
 		NIHILUS_INLINE model_graph_data(const model_graph_data&)			= delete;
-		std::unordered_map<op_type_type, core_base_creation_data> cores{};
+		std::unordered_map<op_types, core_base_creation_data> cores{};
 		construction_parameters<config.arch> cparams{};
 	};
 

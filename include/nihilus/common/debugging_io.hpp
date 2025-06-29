@@ -129,6 +129,11 @@ namespace nihilus {
 		GGML_OP_COUNT,
 	};
 
+	enum class source_types {
+		ggml,
+		nihilus,
+	};
+
 	struct intermediary_ggml_tensor {
 		std::vector<uint64_t> dims{ [] {
 			std::vector<uint64_t> return_values{};
@@ -137,61 +142,61 @@ namespace nihilus {
 		}() };
 		std::string name{};
 		std::vector<uint8_t> data{};
-		data_type type{};
+		data_types type{};
 		ggml_op op{};
 	};
 
-	constexpr kernel_type convert_ggml_op_to_nihilus_kernel(ggml_op op) noexcept {
+	constexpr kernel_types convert_ggml_op_to_nihilus_kernel(ggml_op op) noexcept {
 		switch (op) {
 			// Direct mappings - perfect 1:1 correspondence
 			case GGML_OP_GET_ROWS:
-				return kernel_type::get_rows;
+				return kernel_types::get_rows;
 
 			case GGML_OP_RMS_NORM:
-				return kernel_type::rms_norm;
+				return kernel_types::rms_norm;
 
 			case GGML_OP_MUL:
-				return kernel_type::mul;
+				return kernel_types::mul;
 
 			case GGML_OP_MUL_MAT:
 			case GGML_OP_MUL_MAT_ID:// Matrix multiplication with ID - maps to mul_mat
-				return kernel_type::mul_mat;
+				return kernel_types::mul_mat;
 
 			case GGML_OP_RESHAPE:
-				return kernel_type::reshape;
+				return kernel_types::reshape;
 
 			case GGML_OP_PERMUTE:
-				return kernel_type::permute;
+				return kernel_types::permute;
 
 			case GGML_OP_TRANSPOSE:
-				return kernel_type::transpose;
+				return kernel_types::transpose;
 
 			case GGML_OP_VIEW:
-				return kernel_type::view;
+				return kernel_types::view;
 
 			case GGML_OP_CONT:
-				return kernel_type::cont;
+				return kernel_types::cont;
 
 			case GGML_OP_CPY:
 			case GGML_OP_DUP:// Duplicate is essentially a copy operation
-				return kernel_type::copy;
+				return kernel_types::copy;
 
 			case GGML_OP_ROPE:
-				return kernel_type::rope;
+				return kernel_types::rope;
 
 			case GGML_OP_SOFT_MAX:
-				return kernel_type::softmax;
+				return kernel_types::softmax;
 
 			case GGML_OP_ADD:
 			case GGML_OP_ADD1:// Add scalar - can be handled by add kernel
-				return kernel_type::add;
+				return kernel_types::add;
 
 			case GGML_OP_SUB:
-				return kernel_type::sub;
+				return kernel_types::sub;
 
 			// SILU-related operations
 			case GGML_OP_SILU_BACK:// SILU backward pass - maps to silu kernel
-				return kernel_type::silu;
+				return kernel_types::silu;
 
 			// Operations that don't have direct Nihilus equivalents or are unsupported
 			case GGML_OP_NONE:
@@ -256,7 +261,7 @@ namespace nihilus {
 			case GGML_OP_OPT_STEP_ADAMW:// AdamW optimizer step - not implemented
 			case GGML_OP_COUNT:// Count sentinel - not a real operation
 			default:
-				return kernel_type::none;
+				return kernel_types::none;
 		}
 	}
 
@@ -330,10 +335,11 @@ namespace nihilus {
 
 		template<core_traits_type tensor_type> NIHILUS_FORCE_INLINE intermediary_tensor(tensor_type& other, const std::string& name_new, uint64_t current_block) {
 			using output_type = typename tensor_type::output_type;
-			dims[0] = other[0];
-			dims[1] = other[1];
-			dims[2] = other[2];
-			dims[3] = other[3];
+			dims[0]			  = other[0];
+			dims[1]			  = other[1];
+			dims[2]			  = other[2];
+			dims[3]			  = other[3];
+			source_type		  = source_types::nihilus;
 			data.resize(128);
 			if constexpr (array_type<decltype(other.data)>) {
 				if (other.data[current_block]) {
@@ -350,24 +356,28 @@ namespace nihilus {
 		}
 		std::string name{};
 		std::vector<uint8_t> data{};
-		data_type type{};
-		kernel_type op{};
+		source_types source_type{ source_types::ggml };
+		data_types type{};
+		kernel_types op{};
 		NIHILUS_FORCE_INLINE bool operator==(intermediary_tensor& other) const {
 			if (op != other.op) {
-				std::cout << "Incorret op-types:, For Tensor: " << name << std::endl;
+				std::cout << "Incorret op-types:, For Tensor: " << name << ", LHS of source type: " << ( int32_t )source_type
+						  << ", RHS of source type: " << ( int32_t )other.source_type << std::endl;
 				std::cout << "LHS OP: " << ( int32_t )op << std::endl;
 				std::cout << "RHS OP: " << ( int32_t )other.op << std::endl;
 				return false;
 			}
 			if (type != other.type) {
-				std::cout << "Incorret Types:, For Tensor: " << name << std::endl;
+				std::cout << "Incorret Types:, For Tensor: " << name << ", LHS of source type: " << ( int32_t )source_type
+						  << ", RHS of source type: " << ( int32_t )other.source_type << std::endl;
 				std::cout << "LHS TYPE: " << ( int32_t )type << std::endl;
 				std::cout << "RHS TYPE: " << ( int32_t )other.type << std::endl;
 				return false;
 			}
 
 			if (dims != other.dims) {
-				std::cout << "Incorret Dims:, For Tensor: " << name << std::endl;
+				std::cout << "Incorret Dims:, For Tensor: " << name << ", LHS of source type: " << ( int32_t )source_type
+						  << ", RHS of source type: " << ( int32_t )other.source_type << std::endl;
 				std::cout << "LHS Dims: " << dims << std::endl;
 				std::cout << "RHS Dims: " << other.dims << std::endl;
 				return false;
@@ -380,7 +390,7 @@ namespace nihilus {
 			final_size		  = std::min(final_size, static_cast<size_t>(128ull));
 
 			int64_t equal_data = std ::memcmp(data.data(), other.data.data(), final_size);
-			for (int i = 0; i < final_size; i++) {
+			for (int32_t i = 0; i < final_size; i++) {
 				if (data.data()[i] != other.data.data()[i]) {
 					printf("Difference at %d: %d vs %d\n", i, data[i], other.data[i]);
 					equal_data = 1;
@@ -410,64 +420,64 @@ namespace jsonifier {
 
 namespace nihilus {
 
-	NIHILUS_FORCE_INLINE std::string convert_op_to_string(llama_op_types type, uint64_t current_block) {
+	NIHILUS_FORCE_INLINE std::string convert_op_to_string(op_types type, uint64_t current_block) {
 		std::string block{ std::to_string(current_block) };
 		switch (type) {
-			case llama_op_types::inp_embd: {
+			case op_types::inp_embd: {
 				return "inp_embd";
 			}
-			case llama_op_types::inp_pos: {
+			case op_types::inp_pos: {
 				return "inp_pos";
 			}
-			case llama_op_types::inp_tokens: {
+			case op_types::inp_tokens: {
 				return "inp_tokens";
 			}
-			case llama_op_types::inp_out_ids: {
+			case op_types::inp_out_ids: {
 				return "inp_out_ids";
 			}
-			case llama_op_types::attn_k_weight: {
+			case op_types::attn_k_weight: {
 				return "blk." + block + ".attn_k.weight";
 			}
-			case llama_op_types::attn_q_weight: {
+			case op_types::attn_q_weight: {
 				return "blk." + block + ".attn_q.weight";
 			}
-			case llama_op_types::attn_v_weight: {
+			case op_types::attn_v_weight: {
 				return "blk." + block + ".attn_v.weight";
 			}
-			case llama_op_types::attn_norm_weight: {
+			case op_types::attn_norm_weight: {
 				return "blk." + block + ".attn_norm.weight";
 			}
-			case llama_op_types::attn_output_weight: {
+			case op_types::attn_output_weight: {
 				return "blk." + block + ".attn_output.weight";
 			}
-			case llama_op_types::ffn_down_weight: {
+			case op_types::ffn_down_weight: {
 				return "blk." + block + ".ffn_down.weight";
 			}
-			case llama_op_types::ffn_gate_weight: {
+			case op_types::ffn_gate_weight: {
 				return "blk." + block + ".ffn_gate.weight";
 			}
-			case llama_op_types::ffn_norm_weight: {
+			case op_types::ffn_norm_weight: {
 				return "blk." + block + ".ffn_norm.weight";
 			}
-			case llama_op_types::ffn_up_weight: {
+			case op_types::ffn_up_weight: {
 				return "blk." + block + ".ffn_up.weight";
 			}
-			case llama_op_types::output_norm_weight: {
+			case op_types::output_norm_weight: {
 				return "output_norm.weight";
 			}
-			case llama_op_types::output_weight: {
+			case op_types::output_weight: {
 				return "output.weight";
 			}
-			case llama_op_types::rope_freqs_weight: {
+			case op_types::rope_freqs_weight: {
 				return "rope_freqs.weight";
 			}
-			case llama_op_types::token_embd_weight: {
+			case op_types::token_embd_weight: {
 				return "token_embd.weight";
 			}
-			case llama_op_types::cache_k: {
+			case op_types::cache_k: {
 				return "cache_k_l" + block;
 			}
-			case llama_op_types::cache_v: {
+			case op_types::cache_v: {
 				return "cache_v_l" + block;
 			}
 			default: {
@@ -480,7 +490,7 @@ namespace nihilus {
 		std::vector<std::map<std::string, intermediary_tensor>> return_values{};
 
 		// Try to load files with incrementing indices until we can't find any more
-		for (int iteration = 0;; ++iteration) {
+		for (int32_t iteration = 0;; ++iteration) {
 			// Construct the filename: "Node_Data_0.json", "Node_Data_1.json", etc.
 			std::string filename = std::string(base_path) + "/" + std::string(base_name) + "_" + std::to_string(iteration) + ".json";
 

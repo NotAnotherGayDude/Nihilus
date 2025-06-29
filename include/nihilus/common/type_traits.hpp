@@ -31,10 +31,10 @@ namespace nihilus {
 		uint64_t type_size{};
 		bool is_quantized{};
 		uint64_t n_rows{};
-		data_type type{};
+		data_types type{};
 	};
 
-	template<typename data_type> struct type_traits;
+	template<typename data_types> struct type_traits;
 
 	template<typename derived_type> struct total_bytes_size {
 		NIHILUS_FORCE_INLINE constexpr static uint64_t total_byte_size(const array<uint64_t, 4>& dims) {
@@ -49,7 +49,7 @@ namespace nihilus {
 			array<uint64_t, 4> return_values{};
 			return_values[0] = derived_type::type_size;
 			return_values[1] = return_values[0] * (dims[0] / derived_type::block_size);
-			for (int i = 2; i < 4; i++) {
+			for (int32_t i = 2; i < 4; i++) {
 				return_values[i] = return_values[i - 1] * dims[i - 1];
 			}
 			return return_values;
@@ -72,7 +72,7 @@ namespace nihilus {
 		: public total_bytes_size<type_traits<int8_t>>, public get_strides<type_traits<int8_t>>, public get_dynamic_type_traits<type_traits<int8_t>> {
 		using value_type = int8_t;
 		using quant_type = int8_t;
-		inline static constexpr data_type type{ data_type::i8 };
+		inline static constexpr data_types type{ data_types::i8 };
 		inline static constexpr uint64_t type_size{ sizeof(int8_t) };
 		inline static constexpr bool is_quantized{ false };
 		inline static constexpr uint64_t block_size{ 1 };
@@ -83,7 +83,7 @@ namespace nihilus {
 		: public total_bytes_size<type_traits<int32_t>>, public get_strides<type_traits<int32_t>>, public get_dynamic_type_traits<type_traits<int32_t>> {
 		using value_type = int32_t;
 		using quant_type = int32_t;
-		inline static constexpr data_type type{ data_type::i32 };
+		inline static constexpr data_types type{ data_types::i32 };
 		inline static constexpr uint64_t type_size{ sizeof(int32_t) };
 		inline static constexpr bool is_quantized{ false };
 		inline static constexpr uint64_t block_size{ 1 };
@@ -94,7 +94,7 @@ namespace nihilus {
 		: public total_bytes_size<type_traits<int64_t>>, public get_strides<type_traits<int64_t>>, public get_dynamic_type_traits<type_traits<int64_t>> {
 		using value_type = int64_t;
 		using quant_type = int64_t;
-		inline static constexpr data_type type{ data_type::i64 };
+		inline static constexpr data_types type{ data_types::i64 };
 		inline static constexpr uint64_t type_size{ sizeof(int64_t) };
 		inline static constexpr bool is_quantized{ false };
 		inline static constexpr uint64_t block_size{ 1 };
@@ -104,7 +104,7 @@ namespace nihilus {
 	template<> struct type_traits<float> : public total_bytes_size<type_traits<float>>, public get_strides<type_traits<float>>, public get_dynamic_type_traits<type_traits<float>> {
 		using value_type = float;
 		using quant_type = float;
-		inline static constexpr data_type type{ data_type::f32 };
+		inline static constexpr data_types type{ data_types::f32 };
 		inline static constexpr uint64_t type_size{ sizeof(float) };
 		inline static constexpr bool is_quantized{ false };
 		inline static constexpr uint64_t block_size{ 1 };
@@ -115,7 +115,7 @@ namespace nihilus {
 		: public total_bytes_size<type_traits<double>>, public get_strides<type_traits<double>>, public get_dynamic_type_traits<type_traits<double>> {
 		using value_type = double;
 		using quant_type = double;
-		inline static constexpr data_type type{ data_type::f32 };
+		inline static constexpr data_types type{ data_types::f32 };
 		inline static constexpr uint64_t type_size{ sizeof(double) };
 		inline static constexpr bool is_quantized{ false };
 		inline static constexpr uint64_t block_size{ 1 };
@@ -126,7 +126,7 @@ namespace nihilus {
 		: public total_bytes_size<type_traits<int16_t>>, public get_strides<type_traits<int16_t>>, public get_dynamic_type_traits<type_traits<int16_t>> {
 		using value_type = fp16_t;
 		using quant_type = fp16_t;
-		inline static constexpr data_type type{ data_type::f16 };
+		inline static constexpr data_types type{ data_types::f16 };
 		inline static constexpr uint64_t type_size{ sizeof(fp16_t) };
 		inline static constexpr bool is_quantized{ false };
 		inline static constexpr uint64_t block_size{ 1 };
@@ -137,7 +137,7 @@ namespace nihilus {
 		: public total_bytes_size<type_traits<block_q8_0<half>>>, public get_strides<type_traits<block_q8_0<half>>>, public get_dynamic_type_traits<type_traits<block_q8_0<half>>> {
 		using value_type = block_q8_0<half>;
 		using quant_type = block_q8_0<half>;
-		inline static constexpr data_type type{ data_type::q8_0 };
+		inline static constexpr data_types type{ data_types::q8_0 };
 		inline static constexpr uint64_t type_size{ sizeof(block_q8_0<half>) };
 		inline static constexpr bool is_quantized{ true };
 		inline static constexpr uint64_t block_size{ Q_SIZE };
@@ -145,40 +145,40 @@ namespace nihilus {
 	};
 
 	template<> struct type_traits<void> : public total_bytes_size<type_traits<void>>, public get_strides<type_traits<void>> {
-		inline static constexpr data_type type{ data_type::count };
+		inline static constexpr data_types type{ data_types::count };
 		inline static constexpr uint64_t type_size{ 0 };
 		inline static constexpr bool is_quantized{ true };
 		inline static constexpr uint64_t block_size{ 0 };
 		inline static constexpr uint64_t n_rows{ 0 };
 	};
 
-	NIHILUS_FORCE_INLINE type_traits_dynamic get_type_traits(data_type type) {
+	NIHILUS_FORCE_INLINE type_traits_dynamic get_type_traits(data_types type) {
 		switch (type) {
-			case data_type::f64: {
+			case data_types::f64: {
 				return type_traits<double>::get_dynamic_type_traits_impl();
 			}
-			case data_type::f32: {
+			case data_types::f32: {
 				return type_traits<float>::get_dynamic_type_traits_impl();
 			}
-			case data_type::f16: {
+			case data_types::f16: {
 				return type_traits<int16_t>::get_dynamic_type_traits_impl();
 			}
-			case data_type::q8_0: {
+			case data_types::q8_0: {
 				return type_traits<block_q8_0<half>>::get_dynamic_type_traits_impl();
 			}
-			case data_type::i64: {
+			case data_types::i64: {
 				return type_traits<int64_t>::get_dynamic_type_traits_impl();
 			}
-			case data_type::i32: {
+			case data_types::i32: {
 				return type_traits<int32_t>::get_dynamic_type_traits_impl();
 			}
-			case data_type::i16: {
+			case data_types::i16: {
 				return type_traits<int16_t>::get_dynamic_type_traits_impl();
 			}
-			case data_type::i8: {
+			case data_types::i8: {
 				return type_traits<int8_t>::get_dynamic_type_traits_impl();
 			}
-			case data_type::count: {
+			case data_types::count: {
 				return {};
 			}
 		}

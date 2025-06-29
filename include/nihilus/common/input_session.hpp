@@ -42,36 +42,17 @@ namespace nihilus {
 
 		NIHILUS_FORCE_INLINE input_session() noexcept = default;
 
-		NIHILUS_FORCE_INLINE input_session(const input_session_config& config_new) : stream{ &config_new.stream } {
-			exec_params.token_count = config_new.max_tokens;
-			//exec_params.thread_count = model.get_thread_count();// Assuming thread_pool has this method
+		NIHILUS_FORCE_INLINE input_session(const cli_params& config_new) {
+			exec_params.token_count = config_new.n_tokens;
 		};
 
 		NIHILUS_FORCE_INLINE bool process_input(const std::string& input) {
-			// Tokenize the input using the model's tokenizer
-			exec_params.token_count = tokenizer_type::tokenize(input, static_cast<model_type*>(this)->template get_core<model_type::op_type_type::inp_tokens>().data);
-			for (size_t x = 0; x < 8; ++x) {
-				std::cout << "CURRENT TOkEN: " << static_cast<model_type*>(this)->template get_core<model_type::op_type_type::inp_tokens>().data[x] << std::endl;
-			}
-
-			// Execute the model
+			exec_params.sequence_length = tokenizer_type::tokenize(input, static_cast<model_type*>(this)->template get_core<model_type::op_type_type::inp_tokens>().data);
 			static_cast<model_type*>(this)->execute_model(exec_params);
-			std::cout << "FOR " << exec_params.thread_count << " THREADS, WITH " << 500 << " NANOSECONDS OF SPINLOCK PER KERNEL, "
-					  << "NIHILUS AVERAGE COMPUTE TIME, OVER: " << std::setw(50 - std::size("NIHILUS AVERAGE COMPUTE TIME, OVER: ")) << nihilus::stop_watch_val_nihilus.get_count()
-					  << " TOKENS: " << nihilus::stop_watch_val_nihilus.get_average() << std::endl;
 			return false;
 		}
 
 		execution_parameters exec_params{};
-
-	  private:
-		std::istream* stream{};
-
-		NIHILUS_FORCE_INLINE std::string get_input_text() {
-			// For demo purposes, return the expected input
-			// In reality, you'd read from stdin, file, or network
-			return "\nWhat is the meaning of life?";
-		}
 	};
 
 }

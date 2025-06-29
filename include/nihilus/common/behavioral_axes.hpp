@@ -85,7 +85,7 @@ namespace nihilus {
 			using core_traits_type = base_type;
 			return static_cast<uint64_t>(core_traits_type::type) <= 12;
 		}
-		NIHILUS_FORCE_INLINE static void impl(base_type_new& core, nihilus::array<nihilus::array<void*, model_traits_type::block_count>, op_type_type::count>& data) {
+		NIHILUS_FORCE_INLINE static void impl(base_type_new& core, nihilus::array<nihilus::array<void*, model_traits_type::block_count>, op_types::count>& data) {
 			if constexpr (nihilus::array_type<decltype(core.data)>) {
 				for (uint64_t x = 0; x < model_traits_type::block_count; ++x) {
 					data[base_type::type][x] = reinterpret_cast<void*>(&core.data[x]);
@@ -158,7 +158,7 @@ namespace nihilus {
 		}
 	};
 
-	template<nihilus::model_config config, typename base_type_new> struct global_input_thread_function : public base_type_new {
+	template<nihilus::model_config config, typename base_type_new> struct global_input_thread_function {
 		NIHILUS_FORCE_INLINE global_input_thread_function() noexcept											   = default;
 		NIHILUS_FORCE_INLINE global_input_thread_function& operator=(const global_input_thread_function&) noexcept = delete;
 		NIHILUS_FORCE_INLINE global_input_thread_function(const global_input_thread_function&) noexcept			   = delete;
@@ -167,15 +167,15 @@ namespace nihilus {
 		using base_type																							   = base_type_new;
 		NIHILUS_FORCE_INLINE static constexpr bool filter() {
 			using core_traits_type = base_type;
-			return core_traits_type::layer_type == nihilus::thread_strategy_type::global_input && core_traits_type::krn_type != nihilus::kernel_type::none;
+			return core_traits_type::layer_type == nihilus::thread_strategy_type::global_input && core_traits_type::krn_type != nihilus::kernel_types::none;
 		}
 		NIHILUS_FORCE_INLINE static void impl(base_type& core, uint64_t thread_index, uint64_t thread_count) {
-			nihilus::kernel_dispatcher<config, nihilus::device_type::cpu, base_type>::impl(core, thread_index, thread_count);
+			nihilus::kernel_dispatcher<config, nihilus::device_types::cpu, base_type>::impl(core, thread_index, thread_count);
 			nihilus::spinlock_nanoseconds(spinlock_time);
 		}
 	};
 
-	template<nihilus::model_config config, nihilus::blocking base_type_new> struct global_input_thread_function<config, base_type_new> : public base_type_new {
+	template<nihilus::model_config config, nihilus::blocking base_type_new> struct global_input_thread_function<config, base_type_new> {
 		NIHILUS_FORCE_INLINE global_input_thread_function() noexcept											   = default;
 		NIHILUS_FORCE_INLINE global_input_thread_function& operator=(const global_input_thread_function&) noexcept = delete;
 		NIHILUS_FORCE_INLINE global_input_thread_function(const global_input_thread_function&) noexcept			   = delete;
@@ -184,18 +184,18 @@ namespace nihilus {
 		using base_type																							   = base_type_new;
 		NIHILUS_FORCE_INLINE static constexpr bool filter() {
 			using core_traits_type = base_type;
-			return core_traits_type::layer_type == nihilus::thread_strategy_type::global_input && core_traits_type::krn_type != nihilus::kernel_type::none;
+			return core_traits_type::layer_type == nihilus::thread_strategy_type::global_input && core_traits_type::krn_type != nihilus::kernel_types::none;
 		}
 
 		NIHILUS_FORCE_INLINE static void impl(base_type& core, uint64_t thread_index, uint64_t thread_count) {
 			core.sync_flag_start[0].arrive_and_wait(thread_index);
-			nihilus::kernel_dispatcher<config, nihilus::device_type::cpu, base_type>::impl(core, thread_index, thread_count);
+			nihilus::kernel_dispatcher<config, nihilus::device_types::cpu, base_type>::impl(core, thread_index, thread_count);
 			nihilus::spinlock_nanoseconds(spinlock_time);
 			core.sync_flag_end[0].arrive_and_wait(thread_index);
 		}
 	};
 
-	template<nihilus::model_config config, typename base_type_new> struct per_block_thread_function : public base_type_new {
+	template<nihilus::model_config config, typename base_type_new> struct per_block_thread_function {
 		NIHILUS_FORCE_INLINE per_block_thread_function() noexcept											 = default;
 		NIHILUS_FORCE_INLINE per_block_thread_function& operator=(const per_block_thread_function&) noexcept = delete;
 		NIHILUS_FORCE_INLINE per_block_thread_function(const per_block_thread_function&) noexcept			 = delete;
@@ -204,17 +204,17 @@ namespace nihilus {
 		using base_type																						 = base_type_new;
 		NIHILUS_FORCE_INLINE static constexpr bool filter() {
 			using core_traits_type = base_type;
-			return core_traits_type::layer_type == nihilus::thread_strategy_type::per_block && core_traits_type::krn_type != nihilus::kernel_type::transpose &&
-				core_traits_type::krn_type != nihilus::kernel_type::view && core_traits_type::krn_type != nihilus::kernel_type::permute &&
-				core_traits_type::krn_type != nihilus::kernel_type::reshape && core_traits_type::krn_type != nihilus::kernel_type::none;
+			return core_traits_type::layer_type == nihilus::thread_strategy_type::per_block && core_traits_type::krn_type != nihilus::kernel_types::transpose &&
+				core_traits_type::krn_type != nihilus::kernel_types::view && core_traits_type::krn_type != nihilus::kernel_types::permute &&
+				core_traits_type::krn_type != nihilus::kernel_types::reshape && core_traits_type::krn_type != nihilus::kernel_types::none;
 		}
 		NIHILUS_FORCE_INLINE static void impl(base_type& core, uint64_t thread_index, uint64_t thread_count, uint64_t current_block) {
-			nihilus::kernel_dispatcher<config, nihilus::device_type::cpu, base_type>::impl(core, thread_index, thread_count);
+			nihilus::kernel_dispatcher<config, nihilus::device_types::cpu, base_type>::impl(core, thread_index, thread_count);
 			nihilus::spinlock_nanoseconds(spinlock_time);
 		}
 	};
 
-	template<nihilus::model_config config, nihilus::blocking base_type_new> struct per_block_thread_function<config, base_type_new> : public base_type_new {
+	template<nihilus::model_config config, nihilus::blocking base_type_new> struct per_block_thread_function<config, base_type_new> {
 		NIHILUS_FORCE_INLINE per_block_thread_function() noexcept											 = default;
 		NIHILUS_FORCE_INLINE per_block_thread_function& operator=(const per_block_thread_function&) noexcept = delete;
 		NIHILUS_FORCE_INLINE per_block_thread_function(const per_block_thread_function&) noexcept			 = delete;
@@ -223,20 +223,20 @@ namespace nihilus {
 		using base_type																						 = base_type_new;
 		NIHILUS_FORCE_INLINE static constexpr bool filter() {
 			using core_traits_type = base_type;
-			return core_traits_type::layer_type == nihilus::thread_strategy_type::per_block && core_traits_type::krn_type != nihilus::kernel_type::transpose &&
-				core_traits_type::krn_type != nihilus::kernel_type::view && core_traits_type::krn_type != nihilus::kernel_type::permute &&
-				core_traits_type::krn_type != nihilus::kernel_type::reshape && core_traits_type::krn_type != nihilus::kernel_type::none;
+			return core_traits_type::layer_type == nihilus::thread_strategy_type::per_block && core_traits_type::krn_type != nihilus::kernel_types::transpose &&
+				core_traits_type::krn_type != nihilus::kernel_types::view && core_traits_type::krn_type != nihilus::kernel_types::permute &&
+				core_traits_type::krn_type != nihilus::kernel_types::reshape && core_traits_type::krn_type != nihilus::kernel_types::none;
 		}
 
 		NIHILUS_FORCE_INLINE static void impl(base_type& core, uint64_t thread_index, uint64_t thread_count, uint64_t current_block) {
 			core.sync_flag_start[current_block].arrive_and_wait(thread_index);
-			nihilus::kernel_dispatcher<config, nihilus::device_type::cpu, base_type>::impl(core, thread_index, thread_count);
+			nihilus::kernel_dispatcher<config, nihilus::device_types::cpu, base_type>::impl(core, thread_index, thread_count);
 			nihilus::spinlock_nanoseconds(spinlock_time);
 			core.sync_flag_end[current_block].arrive_and_wait(thread_index);
 		}
 	};
 
-	template<nihilus::model_config config, typename base_type_new> struct global_output_thread_function : public base_type_new {
+	template<nihilus::model_config config, typename base_type_new> struct global_output_thread_function {
 		NIHILUS_FORCE_INLINE global_output_thread_function() noexcept												 = default;
 		NIHILUS_FORCE_INLINE global_output_thread_function& operator=(const global_output_thread_function&) noexcept = delete;
 		NIHILUS_FORCE_INLINE global_output_thread_function(const global_output_thread_function&) noexcept			 = delete;
@@ -245,17 +245,17 @@ namespace nihilus {
 		using base_type																								 = base_type_new;
 		NIHILUS_FORCE_INLINE static constexpr bool filter() {
 			using core_traits_type = base_type;
-			return core_traits_type::layer_type == nihilus::thread_strategy_type::global_output && core_traits_type::krn_type != nihilus::kernel_type::transpose &&
-				core_traits_type::krn_type != nihilus::kernel_type::view && core_traits_type::krn_type != nihilus::kernel_type::permute &&
-				core_traits_type::krn_type != nihilus::kernel_type::reshape && core_traits_type::krn_type != nihilus::kernel_type::none;
+			return core_traits_type::layer_type == nihilus::thread_strategy_type::global_output && core_traits_type::krn_type != nihilus::kernel_types::transpose &&
+				core_traits_type::krn_type != nihilus::kernel_types::view && core_traits_type::krn_type != nihilus::kernel_types::permute &&
+				core_traits_type::krn_type != nihilus::kernel_types::reshape && core_traits_type::krn_type != nihilus::kernel_types::none;
 		}
 		NIHILUS_FORCE_INLINE static void impl(base_type& core, uint64_t thread_index, uint64_t thread_count) {
-			nihilus::kernel_dispatcher<config, nihilus::device_type::cpu, base_type>::impl(core, thread_index, thread_count);
+			nihilus::kernel_dispatcher<config, nihilus::device_types::cpu, base_type>::impl(core, thread_index, thread_count);
 			nihilus::spinlock_nanoseconds(spinlock_time);
 		}
 	};
 
-	template<nihilus::model_config config, nihilus::blocking base_type_new> struct global_output_thread_function<config, base_type_new> : public base_type_new {
+	template<nihilus::model_config config, nihilus::blocking base_type_new> struct global_output_thread_function<config, base_type_new> {
 		NIHILUS_FORCE_INLINE global_output_thread_function() noexcept												 = default;
 		NIHILUS_FORCE_INLINE global_output_thread_function& operator=(const global_output_thread_function&) noexcept = delete;
 		NIHILUS_FORCE_INLINE global_output_thread_function(const global_output_thread_function&) noexcept			 = delete;
@@ -264,14 +264,14 @@ namespace nihilus {
 		using base_type																								 = base_type_new;
 		NIHILUS_FORCE_INLINE static constexpr bool filter() {
 			using core_traits_type = base_type;
-			return core_traits_type::layer_type == nihilus::thread_strategy_type::global_output && core_traits_type::krn_type != nihilus::kernel_type::transpose &&
-				core_traits_type::krn_type != nihilus::kernel_type::view && core_traits_type::krn_type != nihilus::kernel_type::permute &&
-				core_traits_type::krn_type != nihilus::kernel_type::reshape && core_traits_type::krn_type != nihilus::kernel_type::none;
+			return core_traits_type::layer_type == nihilus::thread_strategy_type::global_output && core_traits_type::krn_type != nihilus::kernel_types::transpose &&
+				core_traits_type::krn_type != nihilus::kernel_types::view && core_traits_type::krn_type != nihilus::kernel_types::permute &&
+				core_traits_type::krn_type != nihilus::kernel_types::reshape && core_traits_type::krn_type != nihilus::kernel_types::none;
 		}
 
 		NIHILUS_FORCE_INLINE static void impl(base_type& core, uint64_t thread_index, uint64_t thread_count) {
 			core.sync_flag_start[0].arrive_and_wait(thread_index);
-			nihilus::kernel_dispatcher<config, nihilus::device_type::cpu, base_type>::impl(core, thread_index, thread_count);
+			nihilus::kernel_dispatcher<config, nihilus::device_types::cpu, base_type>::impl(core, thread_index, thread_count);
 			nihilus::spinlock_nanoseconds(spinlock_time);
 			core.sync_flag_end[0].arrive_and_wait(thread_index);
 		}
@@ -287,9 +287,9 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE static constexpr bool filter() {
 			using core_traits_type = base_type;
 			return nihilus::blocking<base_type_new> && core_traits_type::layer_type == nihilus::thread_strategy_type::per_block &&
-				core_traits_type::layer_type == nihilus::thread_strategy_type::per_block && core_traits_type::krn_type != nihilus::kernel_type::reshape &&
-				core_traits_type::krn_type != nihilus::kernel_type::transpose && core_traits_type::krn_type != nihilus::kernel_type::view &&
-				core_traits_type::krn_type != nihilus::kernel_type::permute && core_traits_type::krn_type != nihilus::kernel_type::none;
+				core_traits_type::layer_type == nihilus::thread_strategy_type::per_block && core_traits_type::krn_type != nihilus::kernel_types::reshape &&
+				core_traits_type::krn_type != nihilus::kernel_types::transpose && core_traits_type::krn_type != nihilus::kernel_types::view &&
+				core_traits_type::krn_type != nihilus::kernel_types::permute && core_traits_type::krn_type != nihilus::kernel_types::none;
 		}
 		NIHILUS_FORCE_INLINE static void impl(base_type& core, uint64_t current_block) {
 			core.sync_flag_start[current_block].main_wait();
@@ -307,9 +307,9 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE static constexpr bool filter() {
 			using core_traits_type = base_type;
 			return nihilus::blocking<base_type_new> && core_traits_type::layer_type == nihilus::thread_strategy_type::global_output &&
-				core_traits_type::krn_type != nihilus::kernel_type::transpose && core_traits_type::krn_type != nihilus::kernel_type::view &&
-				core_traits_type::krn_type != nihilus::kernel_type::permute && core_traits_type::krn_type != nihilus::kernel_type::reshape &&
-				core_traits_type::krn_type != nihilus::kernel_type::none;
+				core_traits_type::krn_type != nihilus::kernel_types::transpose && core_traits_type::krn_type != nihilus::kernel_types::view &&
+				core_traits_type::krn_type != nihilus::kernel_types::permute && core_traits_type::krn_type != nihilus::kernel_types::reshape &&
+				core_traits_type::krn_type != nihilus::kernel_types::none;
 		}
 		NIHILUS_FORCE_INLINE static void impl(base_type& core) {
 			core.sync_flag_start[0].main_wait();

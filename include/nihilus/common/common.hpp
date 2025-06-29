@@ -347,7 +347,7 @@ namespace nihilus {
 		}
 	};
 
-	enum class data_type : uint64_t {
+	enum class data_types : uint64_t {
 		f32	 = 0,
 		f16	 = 1,
 		q8_0 = 8,
@@ -359,39 +359,39 @@ namespace nihilus {
 		count,
 	};
 
-	NIHILUS_FORCE_INLINE constexpr const char* get_type_name(data_type type) {
+	NIHILUS_FORCE_INLINE constexpr const char* get_type_name(data_types type) {
 		switch (type) {
-			case data_type::f64: {
+			case data_types::f64: {
 				return "double";
 			}
-			case data_type::f32: {
+			case data_types::f32: {
 				return "float_32";
 			}
-			case data_type::f16: {
+			case data_types::f16: {
 				return "float_16";
 			}
-			case data_type::q8_0: {
+			case data_types::q8_0: {
 				return "q8_0";
 			}
-			case data_type::i64: {
+			case data_types::i64: {
 				return "int64_t";
 			}
-			case data_type::i32: {
+			case data_types::i32: {
 				return "int32_t";
 			}
-			case data_type::i16: {
+			case data_types::i16: {
 				return "int16_t";
 			}
-			case data_type::i8: {
+			case data_types::i8: {
 				return "int8_t";
 			}
-			case data_type::count: {
+			case data_types::count: {
 				return "count";
 			}
 		}
 	}
 
-	enum class kernel_type : uint8_t {
+	enum class kernel_types : uint8_t {
 		none,
 		add_rms_norm_mul,
 		get_rows,
@@ -413,10 +413,10 @@ namespace nihilus {
 		count,
 	};
 
-	static constexpr array<const char*, kernel_type::count> kernel_names{ { "none", "get_rows", "rms_norm", "mul", "mul_mat", "reshape", "permute", "transpose", "view", "cont",
+	static constexpr array<const char*, kernel_types::count> kernel_names{ { "none", "get_rows", "rms_norm", "mul", "mul_mat", "reshape", "permute", "transpose", "view", "cont",
 		"copy", "rope", "softmax", "silu", "add", "sub" } };
 
-	enum class llama_op_types : uint16_t {
+	enum class op_types : uint16_t {
 		token_embd_weight,
 		rope_freqs_weight,
 		output_weight,
@@ -477,107 +477,107 @@ namespace nihilus {
 		count
 	};
 
-	static constexpr array<const char*, llama_op_types::count> llama_op_names{ { "inp_embd", "token_embd_weight", "inp_tokens", "inp_pos", "inp_out_ids", "rope_freqs_weight",
+	static constexpr array<const char*, op_types::count> llama_op_names{ { "inp_embd", "token_embd_weight", "inp_tokens", "inp_pos", "inp_out_ids", "rope_freqs_weight",
 		"output_weight", "output_norm_weight", "attn_q_weight", "attn_k_weight", "attn_v_weight", "attn_output_weight", "attn_norm_weight", "ffn_gate_weight", "ffn_up_weight",
 		"ffn_down_weight", "ffn_norm_weight", "cache_k", "cache_v", "kq_mask", "norm", "attn_norm", "qcur", "qcur_reshaped", "qcur_rope", "kcur", "kcur_reshaped", "kcur_rope",
 		"vcur", "k_cache_view", "k_cache_view_copy", "vcur_transposed", "v_cache_view", "v_cache_view_copy", "v", "k", "q", "kq", "kq_soft_max", "kqv", "kqv_merged",
 		"kqv_merged_cont", "kqv_out", "ffn_inp", "norm_out", "ffn_norm", "ffn_gate", "ffn_silu", "ffn_up", "ffn_gate_par", "ffn_out", "l_out", "attn_residual", "prev_residual",
 		"final_norm", "result_norm", "result_output" } };
 
-	template<integral_or_enum value_type> constexpr kernel_type get_kernel_type_from_llama_op(value_type op) {
-		switch (static_cast<llama_op_types>(op)) {
-			case llama_op_types::inp_tokens:
-			case llama_op_types::inp_pos:
-			case llama_op_types::inp_out_ids:
-			case llama_op_types::token_embd_weight:
-			case llama_op_types::rope_freqs_weight:
-			case llama_op_types::output_weight:
-			case llama_op_types::output_norm_weight:
-			case llama_op_types::attn_q_weight:
-			case llama_op_types::attn_k_weight:
-			case llama_op_types::attn_v_weight:
-			case llama_op_types::attn_output_weight:
-			case llama_op_types::attn_norm_weight:
-			case llama_op_types::ffn_gate_weight:
-			case llama_op_types::ffn_up_weight:
-			case llama_op_types::ffn_down_weight:
-			case llama_op_types::ffn_norm_weight:
-			case llama_op_types::cache_k:
-			case llama_op_types::cache_v:
-			case llama_op_types::kq_mask:
-				return kernel_type::none;
-			case llama_op_types::inp_embd:
-			case llama_op_types::attn_residual:
-			case llama_op_types::prev_residual:
-				return kernel_type::get_rows;
-			case llama_op_types::norm_out:
-			case llama_op_types::ffn_norm:
-			case llama_op_types::final_norm:
-				return kernel_type::rms_norm;
-			case llama_op_types::ffn_gate_par:
-			case llama_op_types::result_norm:
-				return kernel_type::mul;
-			case llama_op_types::qcur:
-			case llama_op_types::kcur:
-			case llama_op_types::vcur:
-			case llama_op_types::kq:
-			case llama_op_types::kqv:
-			case llama_op_types::kqv_out:
-			case llama_op_types::ffn_gate:
-			case llama_op_types::ffn_up:
-			case llama_op_types::ffn_out:
-			case llama_op_types::result_output:
-				return kernel_type::mul_mat;
-			case llama_op_types::qcur_reshaped:
-			case llama_op_types::kcur_reshaped:
-				return kernel_type::reshape;
-			case llama_op_types::q:
-			case llama_op_types::kqv_merged:
-				return kernel_type::permute;
-			case llama_op_types::vcur_transposed:
-				return kernel_type::transpose;
-			case llama_op_types::k_cache_view:
-			case llama_op_types::v_cache_view:
-			case llama_op_types::v:
-			case llama_op_types::k:
-				return kernel_type::view;
-			case llama_op_types::kqv_merged_cont:
-				return kernel_type::cont;
-			case llama_op_types::k_cache_view_copy:
-			case llama_op_types::v_cache_view_copy:
-				return kernel_type::copy;
-			case llama_op_types::qcur_rope:
-			case llama_op_types::kcur_rope:
-				return kernel_type::rope;
-			case llama_op_types::kq_soft_max:
-				return kernel_type::softmax;
-			case llama_op_types::ffn_silu:
-				return kernel_type::silu;
-			case llama_op_types::ffn_inp:
-			case llama_op_types::l_out:
-				return kernel_type::add;
-			case llama_op_types::norm_attn_norm:
-				return kernel_type::rms_norm_mul;
-			case llama_op_types::ffn_inp_norm_out_ffn_norm:
-				return kernel_type::add_rms_norm_mul;
-			case llama_op_types::count:
+	template<integral_or_enum value_type> constexpr kernel_types get_kernel_type_from_llama_op(value_type op) {
+		switch (static_cast<op_types>(op)) {
+			case op_types::inp_tokens:
+			case op_types::inp_pos:
+			case op_types::inp_out_ids:
+			case op_types::token_embd_weight:
+			case op_types::rope_freqs_weight:
+			case op_types::output_weight:
+			case op_types::output_norm_weight:
+			case op_types::attn_q_weight:
+			case op_types::attn_k_weight:
+			case op_types::attn_v_weight:
+			case op_types::attn_output_weight:
+			case op_types::attn_norm_weight:
+			case op_types::ffn_gate_weight:
+			case op_types::ffn_up_weight:
+			case op_types::ffn_down_weight:
+			case op_types::ffn_norm_weight:
+			case op_types::cache_k:
+			case op_types::cache_v:
+			case op_types::kq_mask:
+				return kernel_types::none;
+			case op_types::inp_embd:
+			case op_types::attn_residual:
+			case op_types::prev_residual:
+				return kernel_types::get_rows;
+			case op_types::norm_out:
+			case op_types::ffn_norm:
+			case op_types::final_norm:
+				return kernel_types::rms_norm;
+			case op_types::ffn_gate_par:
+			case op_types::result_norm:
+				return kernel_types::mul;
+			case op_types::qcur:
+			case op_types::kcur:
+			case op_types::vcur:
+			case op_types::kq:
+			case op_types::kqv:
+			case op_types::kqv_out:
+			case op_types::ffn_gate:
+			case op_types::ffn_up:
+			case op_types::ffn_out:
+			case op_types::result_output:
+				return kernel_types::mul_mat;
+			case op_types::qcur_reshaped:
+			case op_types::kcur_reshaped:
+				return kernel_types::reshape;
+			case op_types::q:
+			case op_types::kqv_merged:
+				return kernel_types::permute;
+			case op_types::vcur_transposed:
+				return kernel_types::transpose;
+			case op_types::k_cache_view:
+			case op_types::v_cache_view:
+			case op_types::v:
+			case op_types::k:
+				return kernel_types::view;
+			case op_types::kqv_merged_cont:
+				return kernel_types::cont;
+			case op_types::k_cache_view_copy:
+			case op_types::v_cache_view_copy:
+				return kernel_types::copy;
+			case op_types::qcur_rope:
+			case op_types::kcur_rope:
+				return kernel_types::rope;
+			case op_types::kq_soft_max:
+				return kernel_types::softmax;
+			case op_types::ffn_silu:
+				return kernel_types::silu;
+			case op_types::ffn_inp:
+			case op_types::l_out:
+				return kernel_types::add;
+			case op_types::norm_attn_norm:
+				return kernel_types::rms_norm_mul;
+			case op_types::ffn_inp_norm_out_ffn_norm:
+				return kernel_types::add_rms_norm_mul;
+			case op_types::count:
 			default:
-				return kernel_type::none;
+				return kernel_types::none;
 		}
 	}
 
-	enum class device_type {
+	enum class device_types {
 		cpu,
 		gpu,
 		numa,
 	};
 
-	enum class model_arch {
+	enum class model_arches {
 		llama,
 		count,
 	};
 
-	enum class kernel_type_profile : uint64_t {
+	enum class kernel_type_profiles : uint64_t {
 		fp16_mha,
 		fp16_moe,
 		bf16_mha,
@@ -593,7 +593,7 @@ namespace nihilus {
 		count,
 	};
 
-	enum class norm_type : uint64_t {
+	enum class norm_types : uint64_t {
 		rms_standard,
 		rms_parallel,
 		rms_grouped,
@@ -604,7 +604,7 @@ namespace nihilus {
 		count,
 	};
 
-	enum class kv_cache_strategy : uint64_t {
+	enum class kv_cache_strategies : uint64_t {
 		contiguous,
 		paged,
 		compressed,
@@ -613,7 +613,7 @@ namespace nihilus {
 		count,
 	};
 
-	enum class rope_scaling_type : uint64_t {
+	enum class rope_scaling_types : uint64_t {
 		none,
 		linear,
 		dynamic,
@@ -622,13 +622,13 @@ namespace nihilus {
 		count,
 	};
 
-	enum class llama_model_generation : uint64_t {
+	enum class model_generations : uint64_t {
 		v1_v2,
 		v3,
 		count,
 	};
 
-	enum class llama_model_size {
+	enum class model_sizes {
 		llama_1B,
 		llama_3B,
 		llama_7B,
@@ -639,18 +639,6 @@ namespace nihilus {
 		llama_90B,
 		llama_405B,
 		count,
-	};
-
-	template<typename model_uint64_type> struct get_op_type_type {
-		static constexpr auto get_op_type_impl() {
-			if constexpr (std::is_same_v<llama_model_size, std::remove_cvref_t<model_uint64_type>>) {
-				return llama_op_types{};
-			} else {
-				return uint64_t{};
-			}
-		}
-
-		using type = decltype(get_op_type_impl());
 	};
 
 	static constexpr int32_t token_null{ -1 };
@@ -730,78 +718,26 @@ namespace nihilus {
 
 	enum class model_format { gguf = 1 };
 
-	template<typename model_generation_type_new, typename model_uint64_type_new> struct model_config;
-
 	template<auto> struct harbinger;
 
-	template<auto model_generation_new, auto model_size_new, kernel_type_profile kernel_profile_new, model_arch arch_new,
-		kv_cache_strategy cache_strategy_new = kv_cache_strategy::paged, bool use_gradient_checkpointing_new = false,
-		rope_scaling_type rope_scaling_new = rope_scaling_type::linear, bool use_rotary_embeddings_new = true, uint64_t kv_cache_block_size_new = 16,
-		bool use_flash_attention_new = true, norm_type rms_norm_type_new = norm_type::rms_standard, vocab_types vocab_type_new = vocab_types::bpe,
-		model_format format_new = model_format::gguf, auto norm_epsilon_new = 1e-6f, bool exceptions_new = false, bool benchmark_new = false>
-	struct model_config_new {
-		using model_generation_type = decltype(model_generation_new);
-		using model_size_type		= decltype(model_size_new);
-		using op_type_type			= typename get_op_type_type<model_size_type>::type;
-
-		static constexpr model_generation_type model_generation{ model_generation_new };
-		static constexpr model_size_type model_size{ model_size_new };
-		static constexpr kernel_type_profile kernel_profile{ kernel_profile_new };
-		static constexpr model_arch arch{ arch_new };
-		static constexpr kv_cache_strategy cache_strategy{ cache_strategy_new };
-		static constexpr bool use_gradient_checkpointing{ use_gradient_checkpointing_new };
-		static constexpr rope_scaling_type rope_scaling{ rope_scaling_new };
-		static constexpr bool use_rotary_embeddings{ use_rotary_embeddings_new };
-		static constexpr uint64_t kv_cache_block_size{ kv_cache_block_size_new };
-		static constexpr bool use_flash_attention{ use_flash_attention_new };
-		static constexpr norm_type rms_norm_type{ rms_norm_type_new };
-		static constexpr vocab_types vocab_type{ vocab_type_new };
-		static constexpr model_format format{ format_new };
-		static constexpr float norm_epsilon{ norm_epsilon_new };
-		static constexpr bool exceptions{ exceptions_new };
-		static constexpr bool benchmark{ benchmark_new };
-	};
-
-	template<typename model_generation_type_new, typename model_uint64_type_new> struct model_config {
-		using model_generation_type = model_generation_type_new;
-		using model_uint64_type		= model_uint64_type_new;
-		using op_type_type			= typename get_op_type_type<model_uint64_type>::type;
-		model_generation_type model_generation{};
-		model_uint64_type model_size{};
-		kernel_type_profile kernel_profile{};
-		model_arch arch{};
-		kv_cache_strategy cache_strategy{};
+	struct model_config {
+		model_generations model_generation{};
+		model_sizes model_size{};
+		kernel_type_profiles kernel_profile{};
+		model_arches arch{};
+		kv_cache_strategies cache_strategy{};
 		bool use_gradient_checkpointing{};
-		rope_scaling_type rope_scaling{};
+		rope_scaling_types rope_scaling{};
 		bool use_rotary_embeddings{};
 		uint64_t kv_cache_block_size{};
 		bool use_flash_attention{};
-		norm_type rms_norm_type{};
+		norm_types rms_norm_type{};
 		vocab_types vocab_type{};
 		model_format format{};
 		float norm_epsilon{};
 		bool exceptions{};
 		bool benchmark{};
-
-	  protected:
-		template<typename model_generateion_type_newer, typename model_uint64_type_newer> friend struct model_base;
-		NIHILUS_FORCE_INLINE friend consteval auto generate_model_config(auto model_generation, auto model_size, kernel_type_profile kernel_profile, model_arch arch,
-			bool exceptions, kv_cache_strategy cache_strategy, bool use_gradient_checkpointing, rope_scaling_type rope_scaling, bool use_rotary_embeddings,
-			uint64_t kv_cache_block_size, bool use_flash_attention, norm_type rms_norm_type, vocab_types vocab_type, model_format format, float norm_epsilon);
-
-		constexpr model_config(auto model_generation_new, auto model_size_new, kernel_type_profile kernel_profile_new, model_arch arch_new, bool exceptions_new,
-			kv_cache_strategy cache_strategy_new, bool use_gradient_checkpointing_new, rope_scaling_type rope_scaling_new, bool use_rotary_embeddings_new,
-			uint64_t kv_cache_block_size_new, bool use_flash_attention_new, norm_type rms_norm_type_new, vocab_types vocab_type_new, model_format format_new,
-			float norm_epsilon_new)
-			: model_generation(model_generation_new), model_size(model_size_new), kernel_profile(kernel_profile_new), arch(arch_new), cache_strategy(cache_strategy_new),
-			  use_gradient_checkpointing(use_gradient_checkpointing_new), rope_scaling(rope_scaling_new), use_rotary_embeddings(use_rotary_embeddings_new),
-			  kv_cache_block_size(kv_cache_block_size_new), use_flash_attention(use_flash_attention_new), rms_norm_type(rms_norm_type_new), vocab_type{ vocab_type_new },
-			  format{ format_new }, norm_epsilon(norm_epsilon_new), exceptions(exceptions_new) {};
-
-		constexpr model_config() = default;
 	};
-
-	template<model_config config> using get_op_type_type_t = get_op_type_type<typename decltype(config)::model_uint64_type>::type;
 
 	struct cli_params {
 		uint64_t thread_count{ std::thread::hardware_concurrency() };
@@ -823,6 +759,7 @@ namespace nihilus {
 		const int32_t* input_tokens{};
 		uint64_t kv_cache_seq_len{};
 		uint64_t position_offset{};
+		uint64_t sequence_length{};
 		uint64_t max_new_tokens{};
 		uint64_t thread_count{};
 		uint64_t token_count{};

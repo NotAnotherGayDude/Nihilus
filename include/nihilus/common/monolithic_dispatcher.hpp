@@ -27,14 +27,14 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-	template<model_config config, device_type dev_type, single_input core_type> struct kernel_dispatcher {
+	template<model_config config, device_types dev_type, single_input core_type> struct kernel_dispatcher {
 		NIHILUS_FORCE_INLINE static void impl(core_type& params, uint64_t thread_index, uint64_t thread_count) {
 			kernel_dispatcher_impl<cpu_arch_index, core_type::krn_type, typename core_type::transform_type, core_type, typename core_type::output_type,
 				typename core_type::input_type01::output_type>::impl(thread_index, thread_count, params, get_adjacent_value<config, core_type::type, 0>::impl(params));
 		}
 	};
 
-	template<model_config config, device_type dev_type, double_input core_type> struct kernel_dispatcher<config, dev_type, core_type> {
+	template<model_config config, device_types dev_type, double_input core_type> struct kernel_dispatcher<config, dev_type, core_type> {
 		NIHILUS_FORCE_INLINE static void impl(core_type& params, uint64_t thread_index, uint64_t thread_count) {
 			kernel_dispatcher_impl<cpu_arch_index, core_type::krn_type, typename core_type::transform_type, core_type, typename core_type::output_type,
 				typename core_type::input_type01::output_type, typename core_type::input_type02::output_type>::impl(thread_index, thread_count, params,
@@ -42,7 +42,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, device_type dev_type, triple_input core_type> struct kernel_dispatcher<config, dev_type, core_type>  {
+	template<model_config config, device_types dev_type, triple_input core_type> struct kernel_dispatcher<config, dev_type, core_type>  {
 		NIHILUS_FORCE_INLINE static void impl(core_type& params, uint64_t thread_index, uint64_t thread_count) {
 			kernel_dispatcher_impl<cpu_arch_index, core_type::krn_type, typename core_type::transform_type, core_type, typename core_type::output_type,
 				typename core_type::input_type01::output_type, typename core_type::input_type02::output_type, typename core_type::input_type03::output_type>::impl(thread_index,

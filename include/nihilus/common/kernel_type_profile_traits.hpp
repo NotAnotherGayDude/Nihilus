@@ -68,7 +68,7 @@ namespace nihilus {
 		using cache_k_type			  = cache_type;
 		using cache_v_type			  = cache_type;
 		using kq_mask_type			  = compute_type;
-		using norm_type				  = compute_type;
+		using norm_types				  = compute_type;
 		using attn_norm_type		  = compute_type;
 		using qcur_type				  = compute_type;
 		using qcur_reshaped_type	  = compute_type;
@@ -107,8 +107,8 @@ namespace nihilus {
 		using result_output_type	  = compute_type;
 	};
 
-	template<kernel_type_profile kernel_profile> struct kernel_type_profile_traits;
+	template<kernel_type_profiles kernel_profile> struct kernel_type_profile_traits;
 
-	template<> struct kernel_type_profile_traits<kernel_type_profile::q8_gqa> : public kernel_type_profile_traits_impl<block_q8_0<half>, float, float, int16_t, int32_t, float> {};
+	template<> struct kernel_type_profile_traits<kernel_type_profiles::q8_gqa> : public kernel_type_profile_traits_impl<block_q8_0<half>, float, float, int16_t, int32_t, float> {};
 
 }

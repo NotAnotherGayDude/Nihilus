@@ -28,9 +28,9 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-	template<model_arch arch> struct tokenizer_parameters;
+	template<model_arches arch> struct tokenizer_parameters;
 
-	template<> struct tokenizer_parameters<model_arch::llama> {
+	template<> struct tokenizer_parameters<model_arches::llama> {
 		std::vector<int64_t> token_types{};
 		std::vector<std::string> tokens{};
 		std::vector<std::string> merges{};
@@ -46,7 +46,7 @@ namespace nihilus {
 		float score;
 	};
 
-	template<model_config config, typename derived_type, model_arch arch, vocab_types> struct tokenizer;
+	template<model_config config, typename derived_type, model_arches arch, vocab_types> struct tokenizer;
 
 	struct nihilus_symbol {
 		int32_t prev;
@@ -78,9 +78,9 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename derived_type> struct tokenizer<config, derived_type, model_arch::llama, vocab_types::bpe>
-		: public tokenizer_parameters<model_arch::llama>, public vocab<model_arch::llama, vocab_types::bpe, tokenizer<config, derived_type, model_arch::llama, vocab_types::bpe>> {
-		using vocab_type = vocab<model_arch::llama, vocab_types::bpe, tokenizer<config, derived_type, model_arch::llama, vocab_types::bpe>>;
+	template<model_config config, typename derived_type> struct tokenizer<config, derived_type, model_arches::llama, vocab_types::bpe>
+		: public tokenizer_parameters<model_arches::llama>, public vocab<model_arches::llama, vocab_types::bpe, tokenizer<config, derived_type, model_arches::llama, vocab_types::bpe>> {
+		using vocab_type = vocab<model_arches::llama, vocab_types::bpe, tokenizer<config, derived_type, model_arches::llama, vocab_types::bpe>>;
 		NIHILUS_FORCE_INLINE tokenizer() noexcept = default;
 		using model_traits_type = model_traits<config.arch, config.model_size, config.model_generation>;
 		static constexpr std::string_view regex_exprs{ "'s|'t|'re|'ve|'m|'ll|'d| ?\\p{L}+| ?\\p{N}+| ?[^\\s\\p{L}\\p{N}]+|\\s+(?!\\S)" };
@@ -315,7 +315,7 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE void print_tokenization_debug(const std::string& input_text, const std::vector<int32_t>& tokens) {
 			std::cout << "=== NIHILUS BPE TOKENIZATION DEBUG ===" << std::endl;
 			std::cout << "system_info: n_threads = " << std::thread::hardware_concurrency() << " | NIHILUS ENGINE | BPE VOCAB | 432% FASTER |" << std::endl;
-			//std::cout << "vocab_type: " << static_cast<int>(vocab_type) << " (BPE)" << std::endl;
+			//std::cout << "vocab_type: " << static_cast<int32_t>(vocab_type) << " (BPE)" << std::endl;
 			std::cout << "pre_type: " << pre << std::endl;
 			std::cout << "Input text: \"" << input_text << "\"" << std::endl;
 			std::cout << "Token count: " << tokens.size() << std::endl;

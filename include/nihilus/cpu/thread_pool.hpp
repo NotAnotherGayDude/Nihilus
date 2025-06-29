@@ -30,7 +30,7 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-	NIHILUS_FORCE_INLINE bool pin_thread_to_core(int core_id) {
+	NIHILUS_FORCE_INLINE bool pin_thread_to_core(int32_t core_id) {
 #if defined(NIHILUS_PLATFORM_WINDOWS)
 		DWORD_PTR mask	 = 1ULL << core_id;
 		HANDLE thread	 = GetCurrentThread();
@@ -47,7 +47,7 @@ namespace nihilus {
 		CPU_SET(core_id, &cpuset);
 
 		pthread_t current_thread = pthread_self();
-		int result				 = pthread_setaffinity_np(current_thread, sizeof(cpu_set_t), &cpuset);
+		int32_t result				 = pthread_setaffinity_np(current_thread, sizeof(cpu_set_t), &cpuset);
 		if (result != 0) {
 			std::cerr << "Failed to set thread affinity on Linux. Error: " << result << std::endl;
 			return false;
@@ -83,13 +83,13 @@ namespace nihilus {
 		sched_param sch_params;
 		sch_params.sched_priority = 0;
 
-		int policy;
+		int32_t policy;
 		if (pthread_getschedparam(this_thread, &policy, &sch_params) != 0) {
 			std::cerr << "Failed to get thread sched param: " << strerror(errno) << std::endl;
 			return;
 		}
 
-		int max_priority = sched_get_priority_max(policy);
+		int32_t max_priority = sched_get_priority_max(policy);
 		if (max_priority == -1) {
 			std::cerr << "Failed to get max thread priority: " << strerror(errno) << std::endl;
 			return;
@@ -115,14 +115,14 @@ namespace nihilus {
 		pthread_t this_thread = pthread_self();
 
 		sched_param sch_params;
-		int policy;
+		int32_t policy;
 		if (pthread_getschedparam(this_thread, &policy, &sch_params) != 0) {
 			std::cerr << "Failed to get thread sched param: " << strerror(errno) << std::endl;
 			return;
 		}
 
-		int min_priority = sched_get_priority_min(policy);
-		int max_priority = sched_get_priority_max(policy);
+		int32_t min_priority = sched_get_priority_min(policy);
+		int32_t max_priority = sched_get_priority_max(policy);
 		if (min_priority == -1 || max_priority == -1) {
 			std::cerr << "Failed to get min/max priority: " << strerror(errno) << std::endl;
 			return;

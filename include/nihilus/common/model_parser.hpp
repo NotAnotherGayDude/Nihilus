@@ -194,7 +194,7 @@ namespace nihilus {
 		HANDLE file_handle_	   = INVALID_HANDLE_VALUE;
 		HANDLE mapping_handle_ = nullptr;
 #else
-		int file_descriptor_ = -1;
+		int32_t file_descriptor_ = -1;
 		std::vector<std::pair<uint64_t, uint64_t>> mapped_fragments_;
 #endif
 
@@ -283,7 +283,7 @@ namespace nihilus {
 				throw std::runtime_error("Cannot map empty file");
 			}
 
-			int flags = MAP_SHARED;
+			int32_t flags = MAP_SHARED;
 			if (numa_aware) {
 				prefetch_bytes = 0;
 			}
@@ -912,9 +912,9 @@ namespace nihilus {
 		return vocab_types::none;
 	}
 
-	template<> struct value_reader<construction_parameters<model_arch::llama>, model_arch::llama> {
-		NIHILUS_FORCE_INLINE static construction_parameters<model_arch::llama> gather_value(const std::map<std::string, gguf_metadata_kv_t>& metadata_kv) {
-			construction_parameters<model_arch::llama> value{};
+	template<> struct value_reader<construction_parameters<model_arches::llama>, model_arches::llama> {
+		NIHILUS_FORCE_INLINE static construction_parameters<model_arches::llama> gather_value(const std::map<std::string, gguf_metadata_kv_t>& metadata_kv) {
+			construction_parameters<model_arches::llama> value{};
 			std::string architecture{};
 			if (metadata_kv.contains("general.architecture")) {
 				architecture = metadata_kv.at("general.architecture").operator gguf_string_t();
@@ -943,9 +943,9 @@ namespace nihilus {
 		}
 	};
 
-	template<typename derived_type> struct value_reader<vocab<model_arch::llama, vocab_types::bpe, derived_type>> {
+	template<typename derived_type> struct value_reader<vocab<model_arches::llama, vocab_types::bpe, derived_type>> {
 		NIHILUS_FORCE_INLINE static void gather_value(const std::map<std::string, gguf_metadata_kv_t>& metadata_kv,
-			vocab<model_arch::llama, vocab_types::bpe, derived_type>& tokenizer) {
+			vocab<model_arches::llama, vocab_types::bpe, derived_type>& tokenizer) {
 			std::string tokenizer_model;
 			std::string tokenizer_pre;
 
@@ -994,7 +994,7 @@ namespace nihilus {
 						std::string first  = merge_str.substr(0, space_pos);
 						std::string second = merge_str.substr(space_pos + 1);
 
-						tokenizer.bpe_ranks.emplace(std::make_pair(first, second), static_cast<int>(i));
+						tokenizer.bpe_ranks.emplace(std::make_pair(first, second), static_cast<int32_t>(i));
 					}
 				}
 
@@ -1127,7 +1127,7 @@ namespace nihilus {
 				}
 
 				tokenizer.token_to_id[word] = i;
-				tokenizer.max_token_len		= std::max(tokenizer.max_token_len, static_cast<int>(word.size()));
+				tokenizer.max_token_len		= std::max(tokenizer.max_token_len, static_cast<int32_t>(word.size()));
 
 				auto& token_data = tokenizer.id_to_token[i];
 				token_data.text	 = std::move(word);
@@ -1247,9 +1247,9 @@ namespace nihilus {
 	};
 
 	template<model_config config, typename derived_type, vocab_types vocab_type>
-	struct value_reader<tokenizer<config, derived_type, model_arch::llama, vocab_type>, model_arch::llama> {
+	struct value_reader<tokenizer<config, derived_type, model_arches::llama, vocab_type>, model_arches::llama> {
 		NIHILUS_FORCE_INLINE static void gather_value(const std::map<std::string, gguf_metadata_kv_t>& metadata_kv,
-			tokenizer<config, derived_type, model_arch::llama, vocab_type>& tokenizer) {
+			tokenizer<config, derived_type, model_arches::llama, vocab_type>& tokenizer) {
 			gather_scalar("tokenizer.ggml.bos_token_id", tokenizer.bos_token_id, metadata_kv);
 			gather_scalar("tokenizer.ggml.eos_token_id", tokenizer.eos_token_id, metadata_kv);
 			gather_scalar("tokenizer.chat_template", tokenizer.chat_template, metadata_kv);
@@ -1290,23 +1290,23 @@ namespace nihilus {
 		}
 	};
 
-	template<model_arch arch> struct string_to_op_type;
+	template<model_arches arch> struct string_to_op_type;
 
-	template<> struct string_to_op_type<model_arch::llama> {
-		NIHILUS_FORCE_INLINE static llama_op_types impl(std::string_view input) noexcept {
+	template<> struct string_to_op_type<model_arches::llama> {
+		NIHILUS_FORCE_INLINE static op_types impl(std::string_view input) noexcept {
 			if (input == "token_embd.weight")
-				return llama_op_types::token_embd_weight;
+				return op_types::token_embd_weight;
 			if (input == "rope_freqs.weight")
-				return llama_op_types::rope_freqs_weight;
+				return op_types::rope_freqs_weight;
 			if (input == "output_norm.weight")
-				return llama_op_types::output_norm_weight;
+				return op_types::output_norm_weight;
 			if (input == "output.weight")
-				return llama_op_types::output_weight;
+				return op_types::output_weight;
 
 			if (input.find(".attn_q.weight") != std::string_view::npos)
-				return llama_op_types::attn_q_weight;
+				return op_types::attn_q_weight;
 			if (input.find(".attn_norm.weight") != std::string_view::npos)
-				return llama_op_types::attn_norm_weight;
+				return op_types::attn_norm_weight;
 
 			if (input.starts_with("blk.") && input.ends_with(".weight")) {
 				auto second_dot = input.find('.', 4);
@@ -1314,27 +1314,27 @@ namespace nihilus {
 					auto suffix = input.substr(second_dot + 1);
 
 					if (suffix == "attn_q.weight")
-						return llama_op_types::attn_q_weight;
+						return op_types::attn_q_weight;
 					if (suffix == "attn_norm.weight")
-						return llama_op_types::attn_norm_weight;
+						return op_types::attn_norm_weight;
 					if (suffix == "attn_k.weight")
-						return llama_op_types::attn_k_weight;
+						return op_types::attn_k_weight;
 					if (suffix == "attn_v.weight")
-						return llama_op_types::attn_v_weight;
+						return op_types::attn_v_weight;
 					if (suffix == "ffn_down.weight")
-						return llama_op_types::ffn_down_weight;
+						return op_types::ffn_down_weight;
 					if (suffix == "ffn_gate.weight")
-						return llama_op_types::ffn_gate_weight;
+						return op_types::ffn_gate_weight;
 					if (suffix == "attn_output.weight")
-						return llama_op_types::attn_output_weight;
+						return op_types::attn_output_weight;
 					if (suffix == "ffn_norm.weight")
-						return llama_op_types::ffn_norm_weight;
+						return op_types::ffn_norm_weight;
 					if (suffix == "ffn_up.weight")
-						return llama_op_types::ffn_up_weight;
+						return op_types::ffn_up_weight;
 				}
 			}
 
-			return llama_op_types::count;
+			return op_types::count;
 		}
 	};
 
@@ -1355,7 +1355,7 @@ namespace nihilus {
 				}
 				value.dimensions[x] = dim;
 			}
-			value.type	 = static_cast<data_type>(value_reader<uint32_t>::gather_value(input));
+			value.type	 = static_cast<data_types>(value_reader<uint32_t>::gather_value(input));
 			value.offset = value_reader<uint64_t>::gather_value(input);
 			return value;
 		}
@@ -1415,13 +1415,12 @@ namespace nihilus {
 	template<model_config config> struct model_parser_impl {};
 
 	template<model_config config>
-		requires((config.arch == model_arch::llama) && (config.format == model_format::gguf))
+		requires((config.arch == model_arches::llama) && (config.format == model_format::gguf))
 	struct model_parser_impl<config> {
 		using model_traits_type = model_traits<config.arch, config.model_size, config.model_generation>;
-		using op_type_type		= typename decltype(config)::op_type_type;
 		static_assert((std::endian::native == std::endian::little), "Sorry, but big-endian is not yet supported by the library");
 		template<typename tokenizer_type> NIHILUS_FORCE_INLINE static model_graph_data<config> parse_model(
-			array<array<void*, model_traits_type::block_count>, op_type_type::count>& data, memory_mapped_file* memory_file, tokenizer_type& tokenizer) {
+			array<array<void*, model_traits_type::block_count>, op_types::count>& data, memory_mapped_file* memory_file, tokenizer_type& tokenizer) {
 			model_graph_data<config> return_value{};
 			gguf_file_t gguf_file{};
 			stream_iterator ptr{ memory_file };
@@ -1439,13 +1438,13 @@ namespace nihilus {
 			uint64_t tensor_data_start = ptr.file->size() - max_tensor_end;
 			uint64_t alignment{ 0 };
 			gather_scalar("alignment", alignment, gguf_file.header.metadata_kv);
-			return_value.cparams = value_reader<construction_parameters<model_arch::llama>, model_arch::llama>::gather_value(gguf_file.header.metadata_kv);
-			value_reader<tokenizer_type, model_arch::llama>::gather_value(gguf_file.header.metadata_kv, tokenizer);
+			return_value.cparams = value_reader<construction_parameters<model_arches::llama>, model_arches::llama>::gather_value(gguf_file.header.metadata_kv);
+			value_reader<tokenizer_type, model_arches::llama>::gather_value(gguf_file.header.metadata_kv, tokenizer);
 			value_reader<typename tokenizer_type::vocab_type>::gather_value(gguf_file.header.metadata_kv, *static_cast<typename tokenizer_type::vocab_type*>(&tokenizer));
 			sort_tensor_infos(gguf_file.tensor_infos);
 			for (uint64_t x = 0; x < gguf_file.header.tensor_count; ++x) {
 				uint64_t absolute_offset = tensor_data_start + gguf_file.tensor_infos[x].offset;
-				ptr.map_pointer(data[string_to_op_type<model_arch::llama>::impl(gguf_file.tensor_infos[x].name)][extract_layer_number(gguf_file.tensor_infos[x].name)],
+				ptr.map_pointer(data[string_to_op_type<model_arches::llama>::impl(gguf_file.tensor_infos[x].name)][extract_layer_number(gguf_file.tensor_infos[x].name)],
 					align_offset(absolute_offset, alignment));
 			};
 			return return_value;
@@ -1454,10 +1453,9 @@ namespace nihilus {
 
 	template<model_config config> struct model_parser {
 		using model_traits_type = model_traits<config.arch, config.model_size, config.model_generation>;
-		using op_type_type		= typename decltype(config)::op_type_type;
 
 		template<typename tokenizer_type> NIHILUS_FORCE_INLINE static model_graph_data<config> parse_model(
-			array<array<void*, model_traits_type::block_count>, op_type_type::count>& data, memory_mapped_file* memory_file, tokenizer_type& tokenizer) {
+			array<array<void*, model_traits_type::block_count>, op_types::count>& data, memory_mapped_file* memory_file, tokenizer_type& tokenizer) {
 			return model_parser_impl<config>::parse_model(data, memory_file, tokenizer);
 		}
 	};

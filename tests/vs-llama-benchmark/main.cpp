@@ -77,25 +77,22 @@ static void sigint_handler(int signo) {
 
 int main(int argc, char** argv) {
 	try {
-		static constexpr auto model_config = nihilus::generate_model_config(nihilus::llama_model_generation::v3, nihilus::llama_model_size::llama_8B,
-			nihilus::kernel_type_profile::q8_gqa, nihilus::model_arch::llama, false);
-		auto cli_args_final				   = nihilus::harbinger<model_config>::parse_cli_arguments(argc, argv);
+		static constexpr auto model_config = nihilus::generate_model_config(nihilus::model_generations::v3, nihilus::model_sizes::llama_8B,
+			nihilus::kernel_type_profiles::q8_gqa, nihilus::model_arches::llama, false);
+		nihilus::cli_params cli_args_final{ nihilus::harbinger<model_config>::parse_cli_arguments(argc, argv) };
 		test::stop_watch stop_watch_val{ 0 };
-		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 2, 1, true, "Token">::runBenchmark<"nihilus">([&] {
-			static constexpr nihilus::model_config model_config = nihilus::generate_model_config(nihilus::llama_model_generation::v3, nihilus::llama_model_size::llama_8B,
-				nihilus::kernel_type_profile::q8_gqa, nihilus::model_arch::llama, false);
-			auto cli_args_final									= nihilus::harbinger<model_config>::parse_cli_arguments(argc, argv);
-			nihilus::model<model_config> model_graph_data{ cli_args_final };
-			while (model_graph_data.process_input(cli_args_final.prompt)) {
+		nihilus::model<model_config> model_new{ cli_args_final };
+		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 4, 2, true, "Token">::runBenchmark<"nihilus">([&] {
+			while (model_new.process_input(cli_args_final.prompt)) {
 			}
-			return model_graph_data.exec_params.token_count - 1;
+			return cli_args_final.n_tokens;
 		});
-		std::cout << return_value << std::endl;
 		std::string return_value{};
-		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 2, 1, true, "Token">::runBenchmark<"llama.cpp">([&] {
+		common_params params;
+		llama_context* ctx{};
+		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 4, 2, true, "Token">::runBenchmark<"llama.cpp">([&] {
 			return_value.clear();
-			uint64_t token_count{};
-			common_params params;
+			uint64_t token_count{ cli_args_final.n_tokens };
 			g_params = &params;
 			if (!common_params_parse(argc, argv, params, LLAMA_EXAMPLE_MAIN, print_usage)) {
 				return 1;
@@ -115,21 +112,19 @@ int main(int argc, char** argv) {
 			llama_numa_init(params.numa);
 
 			llama_model* model	 = nullptr;
-			llama_context* ctx						 = nullptr;
+			ctx	 = nullptr;
 			common_sampler* smpl = nullptr;
 
 			g_model = &model;
 			g_ctx	= &ctx;
 			g_smpl	= &smpl;
 			std::vector<common_chat_msg> chat_msgs;
-
 			// load the model and apply lora adapter, if any
 			LOG_INF("%s: load the model and apply lora adapter, if any\n", __func__);
 			common_init_result llama_init = common_init_from_params(params);
 
 			model = llama_init.model.get();
 			ctx	  = llama_init.context.get();
-
 			if (model == NULL) {
 				LOG_ERR("%s: error: unable to load model\n", __func__);
 				return 1;
@@ -186,7 +181,7 @@ int main(int argc, char** argv) {
 			std::vector<llama_token> session_tokens;
 
 			ctx->stop_watch_val = stop_watch_val;
-			const bool add_bos = llama_vocab_get_add_bos(vocab) && !params.use_jinja;
+			const bool add_bos	= llama_vocab_get_add_bos(vocab) && !params.use_jinja;
 			if (!llama_model_has_encoder(model)) {
 				GGML_ASSERT(!llama_vocab_get_add_eos(vocab));
 			}
@@ -589,19 +584,22 @@ int main(int argc, char** argv) {
 
 			common_sampler_free(smpl);
 
+			stop_watch_val = ctx->stop_watch_val;
 			llama_backend_free();
-
-
-			std::cout << "FOR " << params.n_threads_http << " THREADS, WITH " << spinlock_time << " NANOSECONDS OF SPINLOCK PER KERNEL, "
-					  << "LLAMA.CPP/GGML AVERAGE COMPUTE TIME, OVER: " << std::setw(50 - std::size("LLAMA.CPP/GGML AVERAGE COMPUTE TIME, OVER: "))
-					  << ctx->stop_watch_val.get_count() << " TOKENS: " << ctx->stop_watch_val.get_average() << std::endl;
 			ggml_threadpool_free_fn(threadpool);
 			ggml_threadpool_free_fn(threadpool_batch);
-			stop_watch_val = ctx->stop_watch_val;
-			return static_cast<int32_t>(token_count - 2);
+			return static_cast<int32_t>(cli_args_final.n_tokens);
 		});
+
 		std::cout << return_value << std::endl;
-		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 2, 1, true, "Token">::printResults();
+
+		std::cout << "FOR " << cli_args_final.thread_count << " THREADS, WITH " << spinlock_time << " NANOSECONDS OF SPINLOCK PER KERNEL, "
+				  << "LLAMA.CPP/GGML AVERAGE COMPUTE TIME, OVER: " << std::setw(50 - std::size("LLAMA.CPP/GGML AVERAGE COMPUTE TIME, OVER: ")) << stop_watch_val.get_count()
+				  << " TOKENS: " << stop_watch_val.get_average() << std::endl;
+		std::cout << "FOR " << cli_args_final.thread_count << " THREADS, WITH " << 500 << " NANOSECONDS OF SPINLOCK PER KERNEL, "
+				  << "NIHILUS AVERAGE COMPUTE TIME, OVER: " << std::setw(50 - std::size("NIHILUS AVERAGE COMPUTE TIME, OVER: ")) << nihilus::stop_watch_val_nihilus.get_count()
+				  << " TOKENS: " << nihilus::stop_watch_val_nihilus.get_average() << std::endl;
+		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 4, 2, true, "Token">::printResults();
 	} catch (const std::exception& error) {
 		std::cout << "Error: " << error.what() << std::endl;
 	}

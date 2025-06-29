@@ -28,96 +28,13 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-	template<auto model_generation, auto model_size, kernel_type_profile kernel_profile, model_arch arch, bool exceptions = false,
-		kv_cache_strategy cache_strategy = kv_cache_strategy::paged, bool use_gradient_checkpointing = false, rope_scaling_type rope_scaling = rope_scaling_type::linear,
-		bool use_rotary_embeddings = true, uint64_t kv_cache_block_size = 16, bool use_flash_attention = true, norm_type rms_norm_type = norm_type::rms_standard,
-		vocab_types vocab_type = vocab_types::bpe, model_format format = model_format::gguf, auto norm_epsilon = 1e-6f, bool benchmark = false>
-	NIHILUS_FORCE_INLINE static consteval auto generate_model_config() {
-		return model_config<decltype(model_generation), decltype(model_size), kernel_profile, arch, cache_strategy, use_gradient_checkpointing, rope_scaling, use_rotary_embeddings,
-			kv_cache_block_size, use_flash_attention, rms_norm_type, vocab_type, format, norm_epsilon, exceptions, benchmark>{};
-	}
-
-	NIHILUS_FORCE_INLINE static consteval auto generate_model_config(auto model_generation, auto model_size, kernel_type_profile kernel_profile, model_arch arch,
-		bool exceptions = false, kv_cache_strategy cache_strategy = kv_cache_strategy::paged, bool use_gradient_checkpointing = false,
-		rope_scaling_type rope_scaling = rope_scaling_type::linear, bool use_rotary_embeddings = true, uint64_t kv_cache_block_size = 16, bool use_flash_attention = true,
-		norm_type rms_norm_type = norm_type::rms_standard, vocab_types vocab_type = vocab_types::bpe, model_format format = model_format::gguf, float norm_epsilon = 1e-6f) {
-		model_config<decltype(model_generation), decltype(model_size)> config{ model_generation, model_size, kernel_profile, arch, exceptions, cache_strategy,
-			use_gradient_checkpointing, rope_scaling, use_rotary_embeddings, kv_cache_block_size, use_flash_attention, rms_norm_type, vocab_type, format, norm_epsilon };
+	NIHILUS_FORCE_INLINE static consteval auto generate_model_config(model_generations model_generation, model_sizes model_size, kernel_type_profiles kernel_profile,
+		model_arches arch, bool exceptions = false, kv_cache_strategies cache_strategy = kv_cache_strategies::paged, bool use_gradient_checkpointing = false,
+		rope_scaling_types rope_scaling = rope_scaling_types::linear, bool use_rotary_embeddings = true, uint64_t kv_cache_block_size = 16, bool use_flash_attention = true,
+		norm_types rms_norm_type = norm_types::rms_standard, vocab_types vocab_type = vocab_types::bpe, model_format format = model_format::gguf, float norm_epsilon = 1e-6f) {
+		model_config config{ model_generation, model_size, kernel_profile, arch, cache_strategy, use_gradient_checkpointing, rope_scaling, use_rotary_embeddings,
+			kv_cache_block_size, use_flash_attention, rms_norm_type, vocab_type, format, norm_epsilon, exceptions };
 		return config;
-	};
-
-	template<typename config> struct harbinger_new {
-		using model_type		 = model<config{}>;
-		using model_base_type	 = typename model<config{}>::base_type;
-		using input_session_type = nihilus::input_session<config{}, model_type>;
-
-		NIHILUS_FORCE_INLINE static auto parse_model_graph_data(nihilus::cli_params params) {
-			std::unique_ptr<model_base_type> return_value{};
-			model_base_type* new_model{ new model_type{ params } };
-			return_value.reset(new_model);
-			return return_value;
-		}
-
-		NIHILUS_FORCE_INLINE static nihilus::cli_params parse_cli_arguments(uint32_t argc, char** argv) {
-			std::vector<std::string> cli_args{};
-			for (uint64_t x = 0; x < argc; ++x) {
-				cli_args.emplace_back(argv[x]);
-			}
-			return parse_cli_arguments(cli_args);
-		}
-
-		NIHILUS_FORCE_INLINE static nihilus::cli_params parse_cli_arguments(const std::vector<std::string>& command_line) {
-			nihilus::cli_params result{};
-			std::string current_flag{};
-			bool expect_value = false;
-
-			for (const auto& token: command_line) {
-				if (token.empty())
-					continue;
-
-				if (token[0] == '-') {
-					current_flag = token;
-					if (token == "-m" || token == "-t" || token == "-p" || token == "-s" || token == "-n" || token == "-b") {
-						expect_value = true;
-					} else {
-						expect_value = false;
-					}
-				} else if (expect_value) {
-					if (current_flag == "-m") {
-						result.model_file = token;
-					} else if (current_flag == "-t") {
-						try {
-							result.thread_count = std::stoull(token);
-						} catch (const std::exception&) {
-							result.thread_count = 1;
-						}
-					} else if (current_flag == "-p") {
-						result.prompt = token;
-					} else if (current_flag == "-s") {
-						try {
-							result.seed = std::stoull(token);
-						} catch (const std::exception&) {
-							result.seed = 0;
-						}
-					} else if (current_flag == "-n") {
-						try {
-							result.n_tokens = std::stoull(token);
-						} catch (const std::exception&) {
-							result.n_tokens = 0;
-						}
-					} else if (current_flag == "-b") {
-						try {
-							result.batch_size = std::stoull(token);
-						} catch (const std::exception&) {
-							result.batch_size = 512;
-						}
-					}
-					expect_value = false;
-				}
-			}
-
-			return result;
-		}
 	};
 
 	template<auto config> struct harbinger {

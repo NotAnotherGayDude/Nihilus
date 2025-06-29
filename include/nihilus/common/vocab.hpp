@@ -33,6 +33,16 @@ RealTimeChris (Chris M.)
 #include <set>
 
 namespace nihilus {
+
+	template<model_arches arch, vocab_types type> struct vocab_traits;
+
+	template<> struct vocab_traits<model_arches::llama, vocab_types::bpe> {
+		static constexpr token special_bos_id = 1;
+		static constexpr token special_eos_id = 2;
+		static constexpr bool add_bos		  = true;
+		static constexpr bool clean_spaces	  = true;
+		// All the constants!
+	};
 	
 	struct token_data {
 		std::string text;
@@ -40,12 +50,12 @@ namespace nihilus {
 		tokens att;
 	};
 
-	template<model_arch arch, vocab_types type, typename derivd_type>
+	template<model_arches arch, vocab_types type, typename derivd_type>
 	struct vocab {
 		uint32_t n_token_types = 0;
 		vocab_pre_types pre_type = vocab_pre_types::default_pre;
 
-		int max_token_len = 0;
+		int32_t max_token_len = 0;
 
 		token special_bos_id	= 1;
 		token special_eos_id	= 2;
@@ -80,7 +90,7 @@ namespace nihilus {
 		std::vector<token> cache_special_tokens;
 		std::vector<std::string> cache_token_to_piece;
 
-		std::map<std::pair<std::string, std::string>, int> bpe_ranks;
+		std::map<std::pair<std::string, std::string>, int32_t> bpe_ranks;
 
 		std::set<token> special_eog_ids;
 
@@ -227,9 +237,9 @@ namespace nihilus {
 		bool get_escape_whitespaces() const;
 		bool get_treat_whitespace_as_suffix() const;
 
-		int max_token_len() const;
+		int32_t max_token_len() const;
 
-		int find_bpe_rank(const std::string& token_left, const std::string& token_right) const;
+		int32_t find_bpe_rank(const std::string& token_left, const std::string& token_right) const;
 
 		int32_t tokenize(const char* text, int32_t text_len, token* tokens, int32_t n_tokens_max, bool add_special, bool parse_special) const;
 
