@@ -30,12 +30,102 @@ namespace nihilus {
 
 	NIHILUS_FORCE_INLINE static consteval auto generate_model_config(model_generations model_generation, model_sizes model_size, kernel_type_profiles kernel_profile,
 		model_arches arch, bool exceptions = false, kv_cache_strategies cache_strategy = kv_cache_strategies::paged, bool use_gradient_checkpointing = false,
-		rope_scaling_types rope_scaling = rope_scaling_types::linear, bool use_rotary_embeddings = true, uint64_t kv_cache_block_size = 16, bool use_flash_attention = true,
-		norm_types rms_norm_type = norm_types::rms_standard, vocab_types vocab_type = vocab_types::bpe, model_format format = model_format::gguf, float norm_epsilon = 1e-6f) {
-		model_config config{ model_generation, model_size, kernel_profile, arch, cache_strategy, use_gradient_checkpointing, rope_scaling, use_rotary_embeddings,
-			kv_cache_block_size, use_flash_attention, rms_norm_type, vocab_type, format, norm_epsilon, exceptions };
+		rope_scaling_types rope_scaling = rope_scaling_types::linear, vocab_pre_types vocab_pre_type = vocab_pre_types::default_pre, uint64_t kv_cache_block_size = 16,
+		bool use_rotary_embeddings = true, bool use_flash_attention = true, norm_types rms_norm_type = norm_types::rms_standard, vocab_types vocab_type = vocab_types::bpe,
+		model_format format = model_format::gguf, float norm_epsilon = 1e-6f, bool benchmark = false) {
+		model_config config{ model_generation, model_size, kernel_profile, arch, exceptions, cache_strategy, use_gradient_checkpointing, rope_scaling, vocab_pre_type,
+			kv_cache_block_size, use_rotary_embeddings, use_flash_attention, rms_norm_type, vocab_type, format, norm_epsilon, benchmark };
 		return config;
-	};
+	}
+
+	NIHILUS_FORCE_INLINE static consteval auto update_model_config_generation(model_config config, model_generations model_generation) {
+		config.model_generation = model_generation;
+		return config;
+	}
+
+	NIHILUS_FORCE_INLINE static consteval auto update_model_config_size(model_config config, model_sizes model_size) {
+		config.model_size = model_size;
+		return config;
+	}
+
+	NIHILUS_FORCE_INLINE static consteval auto update_model_config_kernel_profile(model_config config, kernel_type_profiles kernel_profile) {
+		config.kernel_profile = kernel_profile;
+		return config;
+	}
+
+	NIHILUS_FORCE_INLINE static consteval auto update_model_config_arch(model_config config, model_arches arch) {
+		config.arch = arch;
+		return config;
+	}
+
+	NIHILUS_FORCE_INLINE static consteval auto update_model_config_exceptions(model_config config, bool exceptions) {
+		config.exceptions = exceptions;
+		return config;
+	}
+
+	NIHILUS_FORCE_INLINE static consteval auto update_model_config_cache_strategy(model_config config, kv_cache_strategies cache_strategy) {
+		config.cache_strategy = cache_strategy;
+		return config;
+	}
+
+	NIHILUS_FORCE_INLINE static consteval auto update_model_config_gradient_checkpointing(model_config config, bool use_gradient_checkpointing) {
+		config.use_gradient_checkpointing = use_gradient_checkpointing;
+		return config;
+	}
+
+	NIHILUS_FORCE_INLINE static consteval auto update_model_config_rope_scaling(model_config config, rope_scaling_types rope_scaling) {
+		config.rope_scaling = rope_scaling;
+		return config;
+	}
+
+	NIHILUS_FORCE_INLINE static consteval auto update_model_config_vocab_pre_type(model_config config, vocab_pre_types vocab_pre_type) {
+		config.vocab_pre_type = vocab_pre_type;
+		return config;
+	}
+
+	NIHILUS_FORCE_INLINE static consteval auto update_model_config_kv_cache_block_size(model_config config, uint64_t kv_cache_block_size) {
+		config.kv_cache_block_size = kv_cache_block_size;
+		return config;
+	}
+
+	NIHILUS_FORCE_INLINE static consteval auto update_model_config_rotary_embeddings(model_config config, bool use_rotary_embeddings) {
+		config.use_rotary_embeddings = use_rotary_embeddings;
+		return config;
+	}
+
+	NIHILUS_FORCE_INLINE static consteval auto update_model_config_flash_attention(model_config config, bool use_flash_attention) {
+		config.use_flash_attention = use_flash_attention;
+		return config;
+	}
+
+	NIHILUS_FORCE_INLINE static consteval auto update_model_config_rms_norm_type(model_config config, norm_types rms_norm_type) {
+		config.rms_norm_type = rms_norm_type;
+		return config;
+	}
+
+	NIHILUS_FORCE_INLINE static consteval auto update_model_config_vocab_type(model_config config, vocab_types vocab_type) {
+		config.vocab_type = vocab_type;
+		return config;
+	}
+
+	NIHILUS_FORCE_INLINE static consteval auto update_model_config_format(model_config config, model_format format) {
+		config.format = format;
+		return config;
+	}
+
+	NIHILUS_FORCE_INLINE static consteval auto update_model_config_norm_epsilon(model_config config, float norm_epsilon) {
+		config.norm_epsilon = norm_epsilon;
+		return config;
+	}
+
+	NIHILUS_FORCE_INLINE static consteval auto update_model_config_benchmark(model_config config, bool benchmark) {
+		config.benchmark = benchmark;
+		return config;
+	}
+
+	template<typename... UpdateFuncs> NIHILUS_FORCE_INLINE static consteval auto chain_model_config_updates(model_config config, UpdateFuncs... update_funcs) {
+		return (update_funcs(config), ...);
+	}
 
 	template<auto config> struct harbinger {
 		using model_type		 = model<config>;

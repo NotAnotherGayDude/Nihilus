@@ -725,17 +725,18 @@ namespace nihilus {
 		model_sizes model_size{};
 		kernel_type_profiles kernel_profile{};
 		model_arches arch{};
+		bool exceptions{};
 		kv_cache_strategies cache_strategy{};
 		bool use_gradient_checkpointing{};
 		rope_scaling_types rope_scaling{};
-		bool use_rotary_embeddings{};
+		vocab_pre_types vocab_pre_type{};
 		uint64_t kv_cache_block_size{};
+		bool use_rotary_embeddings{};
 		bool use_flash_attention{};
 		norm_types rms_norm_type{};
 		vocab_types vocab_type{};
 		model_format format{};
 		float norm_epsilon{};
-		bool exceptions{};
 		bool benchmark{};
 	};
 

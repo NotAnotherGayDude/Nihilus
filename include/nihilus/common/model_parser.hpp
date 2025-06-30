@@ -53,20 +53,20 @@ RealTimeChris (Chris M.)
 namespace nihilus {
 
 	enum class gguf_metadata_value_type : uint32_t {
-		GGUF_METADATA_VALUE_TYPE_UINT8	 = 0,
-		GGUF_METADATA_VALUE_TYPE_INT8	 = 1,
-		GGUF_METADATA_VALUE_TYPE_UINT16	 = 2,
-		GGUF_METADATA_VALUE_TYPE_INT16	 = 3,
-		GGUF_METADATA_VALUE_TYPE_UINT32	 = 4,
-		GGUF_METADATA_VALUE_TYPE_INT32	 = 5,
-		GGUF_METADATA_VALUE_TYPE_FLOAT32 = 6,
-		GGUF_METADATA_VALUE_TYPE_BOOL	 = 7,
-		GGUF_METADATA_VALUE_TYPE_STRING	 = 8,
-		GGUF_METADATA_VALUE_TYPE_ARRAY	 = 9,
-		GGUF_METADATA_VALUE_TYPE_UINT64	 = 10,
-		GGUF_METADATA_VALUE_TYPE_INT64	 = 11,
-		GGUF_METADATA_VALUE_TYPE_FLOAT64 = 12,
-		GGUF_METADATA_VALUE_TYPE_UNSET	 = 13,
+		uint8	= 0,
+		int8	= 1,
+		uint16	= 2,
+		int16	= 3,
+		uint32	= 4,
+		int32	= 5,
+		float32 = 6,
+		boolean = 7,
+		string	= 8,
+		array	= 9,
+		uint64	= 10,
+		int64	= 11,
+		float64 = 12,
+		unset	= 13,
 	};
 
 #ifdef NIHILUS_PLATFORM_WINDOWS
@@ -351,7 +351,7 @@ namespace nihilus {
 			}
 #else
 			for (const auto& frag: mapped_fragments_) {
-				if (munmap(static_cast<char*>(mapped_data_) + frag.first, frag.second - frag.first) != 0) {
+				if (munmap(static_cast<uint8_t*>(mapped_data_) + frag.first, frag.second - frag.first) != 0) {
 				}
 			}
 			mapped_fragments_.clear();
@@ -388,7 +388,7 @@ namespace nihilus {
 			if (last <= first)
 				return;
 
-			void* unmap_addr	= static_cast<char*>(mapped_data_) + first;
+			void* unmap_addr	= static_cast<uint8_t*>(mapped_data_) + first;
 			uint64_t unmap_size = last - first;
 
 			if (munmap(unmap_addr, unmap_size) != 0) {
@@ -549,7 +549,7 @@ namespace nihilus {
 	template<> struct value_reader<gguf_string_t> {
 		NIHILUS_FORCE_INLINE static std::string gather_value(stream_iterator& input) {
 			uint64_t length = value_reader<uint64_t>::gather_value(input);
-			if (!input.has_bytes<char>(length)) {
+			if (!input.has_bytes<uint8_t>(length)) {
 				throw std::runtime_error("Sorry, but that index is out of range!");
 			}
 			std::string result(length, '\0');
@@ -567,59 +567,59 @@ namespace nihilus {
 		NIHILUS_INLINE static gguf_metadata_value_variant gather_value(stream_iterator& input, gguf_metadata_value_type type) {
 			gguf_metadata_value_variant value{};
 			switch (type) {
-				case gguf_metadata_value_type::GGUF_METADATA_VALUE_TYPE_INT8: {
+				case gguf_metadata_value_type::int8: {
 					value.emplace<int64_t>(value_reader<int8_t>::gather_value(input));
 					break;
 				}
-				case gguf_metadata_value_type::GGUF_METADATA_VALUE_TYPE_INT16: {
+				case gguf_metadata_value_type::int16: {
 					value.emplace<int64_t>(value_reader<int16_t>::gather_value(input));
 					break;
 				}
-				case gguf_metadata_value_type::GGUF_METADATA_VALUE_TYPE_INT32: {
+				case gguf_metadata_value_type::int32: {
 					value.emplace<int64_t>(value_reader<int32_t>::gather_value(input));
 					break;
 				}
-				case gguf_metadata_value_type::GGUF_METADATA_VALUE_TYPE_INT64: {
+				case gguf_metadata_value_type::int64: {
 					value.emplace<int64_t>(value_reader<int64_t>::gather_value(input));
 					break;
 				}
-				case gguf_metadata_value_type::GGUF_METADATA_VALUE_TYPE_UINT8: {
+				case gguf_metadata_value_type::uint8: {
 					value.emplace<uint64_t>(value_reader<uint8_t>::gather_value(input));
 					break;
 				}
-				case gguf_metadata_value_type::GGUF_METADATA_VALUE_TYPE_UINT16: {
+				case gguf_metadata_value_type::uint16: {
 					value.emplace<uint64_t>(value_reader<uint16_t>::gather_value(input));
 					break;
 				}
-				case gguf_metadata_value_type::GGUF_METADATA_VALUE_TYPE_UINT32: {
+				case gguf_metadata_value_type::uint32: {
 					value.emplace<uint64_t>(value_reader<uint32_t>::gather_value(input));
 					break;
 				}
-				case gguf_metadata_value_type::GGUF_METADATA_VALUE_TYPE_UINT64: {
+				case gguf_metadata_value_type::uint64: {
 					value.emplace<uint64_t>(value_reader<uint64_t>::gather_value(input));
 					break;
 				}
-				case gguf_metadata_value_type::GGUF_METADATA_VALUE_TYPE_BOOL: {
+				case gguf_metadata_value_type::boolean: {
 					value.emplace<bool>(value_reader<bool>::gather_value(input));
 					break;
 				}
-				case gguf_metadata_value_type::GGUF_METADATA_VALUE_TYPE_FLOAT32: {
+				case gguf_metadata_value_type::float32: {
 					value.emplace<float>(value_reader<float>::gather_value(input));
 					break;
 				}
-				case gguf_metadata_value_type::GGUF_METADATA_VALUE_TYPE_FLOAT64: {
+				case gguf_metadata_value_type::float64: {
 					value.emplace<double>(value_reader<double>::gather_value(input));
 					break;
 				}
-				case gguf_metadata_value_type::GGUF_METADATA_VALUE_TYPE_STRING: {
+				case gguf_metadata_value_type::string: {
 					value.emplace<gguf_string_t>(value_reader<gguf_string_t>::gather_value(input));
 					break;
 				}
-				case gguf_metadata_value_type::GGUF_METADATA_VALUE_TYPE_ARRAY: {
+				case gguf_metadata_value_type::array: {
 					value.emplace<gguf_array_t*>(new gguf_array_t{ value_reader<gguf_array_t>::gather_value(input) });
 					break;
 				}
-				case gguf_metadata_value_type::GGUF_METADATA_VALUE_TYPE_UNSET: {
+				case gguf_metadata_value_type::unset: {
 					break;
 				}
 			}
@@ -689,126 +689,174 @@ namespace nihilus {
 	};
 
 	struct gguf_header_t {
-		std::map<std::string, gguf_metadata_kv_t> metadata_kv{};
+		std::unordered_map<std::string, gguf_metadata_kv_t> metadata_kv{};
 		uint64_t metadata_kv_count{};
 		uint64_t tensor_count{};
 		uint32_t version{};
 		uint32_t magic{};
 	};
 
-	template<typename value_type> NIHILUS_FORCE_INLINE void gather_scalar(const std::string& key, value_type& out, const std::map<std::string, gguf_metadata_kv_t>& metadata_kv) {
+	template<typename value_type>
+	NIHILUS_FORCE_INLINE bool gather_scalar(const std::string& key, value_type& out, const std::unordered_map<std::string, gguf_metadata_kv_t>& metadata_kv) {
 		auto it = metadata_kv.find(key);
 		if (it == metadata_kv.end())
-			return;
+			return false;
 		const auto& v = it->second.value.value;
 		if (std::holds_alternative<value_type>(v)) {
 			out = std::get<value_type>(v);
 		}
+		return true;
 	};
 
-	template<> NIHILUS_FORCE_INLINE void gather_scalar(const std::string& key, uint32_t& out, const std::map<std::string, gguf_metadata_kv_t>& metadata_kv) {
+	template<> NIHILUS_FORCE_INLINE bool gather_scalar(const std::string& key, uint32_t& out, const std::unordered_map<std::string, gguf_metadata_kv_t>& metadata_kv) {
 		auto it = metadata_kv.find(key);
 		if (it == metadata_kv.end())
-			return;
+			return false;
 		const auto& v = it->second.value.value;
 		if (std::holds_alternative<uint64_t>(v)) {
 			out = static_cast<uint32_t>(std::get<uint64_t>(v));
+			return true;
 		}
+		return false;
 	};
 
-	template<> NIHILUS_FORCE_INLINE void gather_scalar(const std::string& key, uint16_t& out, const std::map<std::string, gguf_metadata_kv_t>& metadata_kv) {
+	template<> NIHILUS_FORCE_INLINE bool gather_scalar(const std::string& key, uint16_t& out, const std::unordered_map<std::string, gguf_metadata_kv_t>& metadata_kv) {
 		auto it = metadata_kv.find(key);
 		if (it == metadata_kv.end())
-			return;
+			return false;
 		const auto& v = it->second.value.value;
 		if (std::holds_alternative<uint64_t>(v)) {
 			out = static_cast<uint16_t>(std::get<uint64_t>(v));
+			return true;
 		}
+		return false;
 	};
 
-	template<> NIHILUS_FORCE_INLINE void gather_scalar(const std::string& key, uint8_t& out, const std::map<std::string, gguf_metadata_kv_t>& metadata_kv) {
+	template<> NIHILUS_FORCE_INLINE bool gather_scalar(const std::string& key, uint8_t& out, const std::unordered_map<std::string, gguf_metadata_kv_t>& metadata_kv) {
 		auto it = metadata_kv.find(key);
 		if (it == metadata_kv.end())
-			return;
+			return false;
 		const auto& v = it->second.value.value;
 		if (std::holds_alternative<uint64_t>(v)) {
 			out = static_cast<uint8_t>(std::get<uint64_t>(v));
+			return true;
 		}
+		return false;
 	};
-	template<> NIHILUS_FORCE_INLINE void gather_scalar(const std::string& key, int32_t& out, const std::map<std::string, gguf_metadata_kv_t>& metadata_kv) {
+
+	template<> NIHILUS_FORCE_INLINE bool gather_scalar(const std::string& key, int32_t& out, const std::unordered_map<std::string, gguf_metadata_kv_t>& metadata_kv) {
 		auto it = metadata_kv.find(key);
 		if (it == metadata_kv.end())
-			return;
+			return false;
 		const auto& v = it->second.value.value;
 		if (std::holds_alternative<int64_t>(v)) {
 			out = static_cast<int32_t>(std::get<uint64_t>(v));
+			return true;
 		}
+		return false;
 	};
 
-	template<> NIHILUS_FORCE_INLINE void gather_scalar(const std::string& key, int16_t& out, const std::map<std::string, gguf_metadata_kv_t>& metadata_kv) {
+	template<> NIHILUS_FORCE_INLINE bool gather_scalar(const std::string& key, int16_t& out, const std::unordered_map<std::string, gguf_metadata_kv_t>& metadata_kv) {
 		auto it = metadata_kv.find(key);
 		if (it == metadata_kv.end())
-			return;
+			return false;
 		const auto& v = it->second.value.value;
 		if (std::holds_alternative<int64_t>(v)) {
 			out = static_cast<int16_t>(std::get<uint64_t>(v));
+			return true;
 		}
+		return false;
 	};
 
-	template<> NIHILUS_FORCE_INLINE void gather_scalar(const std::string& key, int8_t& out, const std::map<std::string, gguf_metadata_kv_t>& metadata_kv) {
+	template<> NIHILUS_FORCE_INLINE bool gather_scalar(const std::string& key, int8_t& out, const std::unordered_map<std::string, gguf_metadata_kv_t>& metadata_kv) {
 		auto it = metadata_kv.find(key);
 		if (it == metadata_kv.end())
-			return;
+			return false;
 		const auto& v = it->second.value.value;
 		if (std::holds_alternative<int64_t>(v)) {
 			out = static_cast<int8_t>(std::get<uint64_t>(v));
+			return true;
 		}
+		return false;
 	};
 
 	template<typename value_type>
-	NIHILUS_FORCE_INLINE void gather_array(const std::string& key, std::vector<value_type>& out, const std::map<std::string, gguf_metadata_kv_t>& metadata_kv);
+	NIHILUS_FORCE_INLINE bool gather_array(const std::string& key, std::vector<value_type>& out, const std::unordered_map<std::string, gguf_metadata_kv_t>& metadata_kv);
 
 	template<int_type value_type>
-	NIHILUS_FORCE_INLINE void gather_array(const std::string& key, std::vector<value_type>& out, const std::map<std::string, gguf_metadata_kv_t>& metadata_kv) {
+	NIHILUS_FORCE_INLINE bool gather_array(const std::string& key, std::vector<value_type>& out, const std::unordered_map<std::string, gguf_metadata_kv_t>& metadata_kv) {
 		auto it = metadata_kv.find(key);
 		if (it == metadata_kv.end())
-			return;
+			return false;
 		const auto& v = it->second.value.value;
 		if (std::holds_alternative<gguf_array_t*>(v)) {
 			gguf_array_t& new_array{ *std::get<gguf_array_t*>(v) };
 			for (auto& value: new_array.array) {
 				out.emplace_back(static_cast<value_type>(std::get<int64_t>(value.value)));
 			}
+			return true;
 		}
+		return false;
 	};
 
 	template<uint_type value_type>
-	NIHILUS_FORCE_INLINE void gather_array(const std::string& key, std::vector<value_type>& out, const std::map<std::string, gguf_metadata_kv_t>& metadata_kv) {
+	NIHILUS_FORCE_INLINE bool gather_array(const std::string& key, std::vector<value_type>& out, const std::unordered_map<std::string, gguf_metadata_kv_t>& metadata_kv) {
 		auto it = metadata_kv.find(key);
 		if (it == metadata_kv.end())
-			return;
+			return false;
 		const auto& v = it->second.value.value;
 		if (std::holds_alternative<gguf_array_t*>(v)) {
 			gguf_array_t& new_array{ *std::get<gguf_array_t*>(v) };
 			for (auto& value: new_array.array) {
 				out.emplace_back(static_cast<value_type>(std::get<uint64_t>(value.value)));
 			}
+			return true;
 		}
+		return false;
 	};
 
 	template<typename value_type>
-	NIHILUS_FORCE_INLINE void gather_array(const std::string& key, std::vector<value_type>& out, const std::map<std::string, gguf_metadata_kv_t>& metadata_kv) {
+	NIHILUS_FORCE_INLINE bool gather_array(const std::string& key, std::vector<value_type>& out, const std::unordered_map<std::string, gguf_metadata_kv_t>& metadata_kv) {
 		auto it = metadata_kv.find(key);
 		if (it == metadata_kv.end())
-			return;
+			return false;
 		const auto& v = it->second.value.value;
 		if (std::holds_alternative<gguf_array_t*>(v)) {
 			gguf_array_t& new_array{ *std::get<gguf_array_t*>(v) };
 			for (auto& value: new_array.array) {
 				out.emplace_back(std::get<value_type>(value.value));
 			}
+			return true;
 		}
+		return false;
 	};
+
+	template<typename map_type>
+	NIHILUS_FORCE_INLINE bool gather_map(const std::string& key, map_type& bpe_ranks, const std::unordered_map<std::string, gguf_metadata_kv_t>& metadata_kv) {
+		auto it = metadata_kv.find(key);
+		if NIHILUS_UNLIKELY (it == metadata_kv.end())
+			return false;
+
+		const auto& v = it->second.value.value;
+		if NIHILUS_UNLIKELY (!std::holds_alternative<gguf_array_t*>(v))
+			return false;
+
+		gguf_array_t& array = *std::get<gguf_array_t*>(v);
+
+		bpe_ranks.clear();
+		bpe_ranks.reserve(array.array.size());
+
+		for (size_t i = 0; i < array.array.size(); ++i) {
+			const std::string& merge_str = std::get<std::string>(array.array[i].value);
+			const std::string_view merge_view{ merge_str };
+			const size_t space_pos = merge_view.find(' ', 1);
+			if NIHILUS_LIKELY (space_pos != std::string_view::npos) {
+				bpe_ranks.emplace(std::make_pair(std::string{ merge_view.substr(0, space_pos) }, std::string{ merge_view.substr(space_pos + 1) }), static_cast<int32_t>(i));
+			}
+			return true;
+		}
+		return false;
+	}
 
 	NIHILUS_FORCE_INLINE void print_variant(auto variant) {
 		if (std::holds_alternative<float>(variant)) {
@@ -827,179 +875,42 @@ namespace nihilus {
 		}
 	}
 
-	// Static constexpr string literals for compile-time optimization
-	static constexpr string_literal llama{ "llama" };
-	static constexpr string_literal gpt2{ "gpt2" };
-	static constexpr string_literal bert{ "bert" };
-	static constexpr string_literal t5{ "t5" };
-	static constexpr string_literal gpt_neox{ "gpt-neox" };
-	static constexpr string_literal falcon{ "falcon" };
-	static constexpr string_literal mpt{ "mpt" };
-	static constexpr string_literal starcoder{ "starcoder" };
-	static constexpr string_literal gpt_j{ "gpt-j" };
-	static constexpr string_literal refact{ "refact" };
-	static constexpr string_literal command_r{ "command-r" };
-	static constexpr string_literal qwen2{ "qwen2" };
-	static constexpr string_literal olmo{ "olmo" };
-	static constexpr string_literal dbrx{ "dbrx" };
-	static constexpr string_literal minicp{ "minicp" };
-	static constexpr string_literal tekken{ "tekken" };
-	static constexpr string_literal smollm{ "smollm" };
-	static constexpr string_literal viking{ "viking" };
-	static constexpr string_literal jais{ "jais" };
-	static constexpr string_literal chatglm{ "chatglm" };
-	static constexpr string_literal baichuan{ "baichuan" };
-	static constexpr string_literal xverse{ "xverse" };
-	static constexpr string_literal internlm2{ "internlm2" };
-	static constexpr string_literal minicpm{ "minicpm" };
-	static constexpr string_literal gemma{ "gemma" };
-	static constexpr string_literal gemma2{ "gemma2" };
-	static constexpr string_literal phi3{ "phi3" };
-	static constexpr string_literal paligemma{ "paligemma" };
-	static constexpr string_literal bloom{ "bloom" };
-	static constexpr string_literal stablelm{ "stablelm" };
-	static constexpr string_literal qwen{ "qwen" };
-	static constexpr string_literal plamo{ "plamo" };
-	static constexpr string_literal codeshell{ "codeshell" };
-	static constexpr string_literal orion{ "orion" };
-	static constexpr string_literal internlm{ "internlm" };
-	static constexpr string_literal minicpm3{ "minicpm3" };
-	static constexpr string_literal rwkv{ "rwkv" };
-	static constexpr string_literal command{ "command" };
-	static constexpr string_literal deci{ "deci" };
-	static constexpr string_literal granite{ "granite" };
-	static constexpr string_literal chameleon{ "chameleon" };
+	static constexpr string_literal vocab_type_none{ "no vocab" };
+	static constexpr string_literal vocab_type_spm{ "llama" };
+	static constexpr string_literal vocab_type_bpe{ "gpt2" };
+	static constexpr string_literal vocab_type_wpm{ "bert" };
+	static constexpr string_literal vocab_type_ugm{ "t5" };
+	static constexpr string_literal vocab_type_rwkv{ "rwkv" };
 
-	NIHILUS_FORCE_INLINE vocab_types string_to_vocab_type(const std::string& vocab_type_str) {
-		if (string_literal_comparitor<decltype(llama), llama>::impl(vocab_type_str.data())) {
-			return vocab_types::spm;
+	template<vocab_types vocab_type> NIHILUS_FORCE_INLINE bool compare_vocab_type(std::string_view string) {
+		if constexpr (vocab_type == vocab_types::none) {
+			return (vocab_type_none.size() <= string.size()) ? string_literal_comparison<vocab_type_none>(string.data()) : false;
+		} else if constexpr (vocab_type == vocab_types::spm) {
+			return (vocab_type_spm.size() <= string.size()) ? string_literal_comparison<vocab_type_spm>(string.data()) : false;
+		} else if constexpr (vocab_type == vocab_types::bpe) {
+			return (vocab_type_bpe.size() <= string.size()) ? string_literal_comparison<vocab_type_bpe>(string.data()) : false;
+		} else if constexpr (vocab_type == vocab_types::wpm) {
+			return (vocab_type_wpm.size() <= string.size()) ? string_literal_comparison<vocab_type_wpm>(string.data()) : false;
+		} else if constexpr (vocab_type == vocab_types::ugm) {
+			return (vocab_type_ugm.size() <= string.size()) ? string_literal_comparison<vocab_type_ugm>(string.data()) : false;
+		} else if constexpr (vocab_type == vocab_types::rwkv) {
+			return (vocab_type_rwkv.size() <= string.size()) ? string_literal_comparison<vocab_type_rwkv>(string.data()) : false;
 		}
-		if (string_literal_comparitor<decltype(gpt2), gpt2>::impl(vocab_type_str.data())) {
-			return vocab_types::bpe;
-		}
-		if (string_literal_comparitor<decltype(bert), bert>::impl(vocab_type_str.data())) {
-			return vocab_types::wpm;
-		}
-		if (string_literal_comparitor<decltype(t5), t5>::impl(vocab_type_str.data())) {
-			return vocab_types::spm;
-		}
-		if (string_literal_comparitor<decltype(gpt_neox), gpt_neox>::impl(vocab_type_str.data())) {
-			return vocab_types::bpe;
-		}
-		if (string_literal_comparitor<decltype(falcon), falcon>::impl(vocab_type_str.data())) {
-			return vocab_types::bpe;
-		}
-		if (string_literal_comparitor<decltype(mpt), mpt>::impl(vocab_type_str.data())) {
-			return vocab_types::bpe;
-		}
-		if (string_literal_comparitor<decltype(starcoder), starcoder>::impl(vocab_type_str.data())) {
-			return vocab_types::bpe;
-		}
-		if (string_literal_comparitor<decltype(gpt_j), gpt_j>::impl(vocab_type_str.data())) {
-			return vocab_types::bpe;
-		}
-		if (string_literal_comparitor<decltype(refact), refact>::impl(vocab_type_str.data())) {
-			return vocab_types::bpe;
-		}
-		if (string_literal_comparitor<decltype(command_r), command_r>::impl(vocab_type_str.data())) {
-			return vocab_types::bpe;
-		}
-		if (string_literal_comparitor<decltype(qwen2), qwen2>::impl(vocab_type_str.data())) {
-			return vocab_types::bpe;
-		}
-		if (string_literal_comparitor<decltype(olmo), olmo>::impl(vocab_type_str.data())) {
-			return vocab_types::bpe;
-		}
-		if (string_literal_comparitor<decltype(dbrx), dbrx>::impl(vocab_type_str.data())) {
-			return vocab_types::bpe;
-		}
-		if (string_literal_comparitor<decltype(minicp), minicp>::impl(vocab_type_str.data())) {
-			return vocab_types::bpe;
-		}
-		if (string_literal_comparitor<decltype(tekken), tekken>::impl(vocab_type_str.data())) {
-			return vocab_types::bpe;
-		}
-		if (string_literal_comparitor<decltype(smollm), smollm>::impl(vocab_type_str.data())) {
-			return vocab_types::bpe;
-		}
-		if (string_literal_comparitor<decltype(viking), viking>::impl(vocab_type_str.data())) {
-			return vocab_types::bpe;
-		}
-		if (string_literal_comparitor<decltype(jais), jais>::impl(vocab_type_str.data())) {
-			return vocab_types::bpe;
-		}
-		if (string_literal_comparitor<decltype(chatglm), chatglm>::impl(vocab_type_str.data())) {
-			return vocab_types::spm;
-		}
-		if (string_literal_comparitor<decltype(baichuan), baichuan>::impl(vocab_type_str.data())) {
-			return vocab_types::spm;
-		}
-		if (string_literal_comparitor<decltype(xverse), xverse>::impl(vocab_type_str.data())) {
-			return vocab_types::spm;
-		}
-		if (string_literal_comparitor<decltype(internlm2), internlm2>::impl(vocab_type_str.data())) {
-			return vocab_types::spm;
-		}
-		if (string_literal_comparitor<decltype(minicpm), minicpm>::impl(vocab_type_str.data())) {
-			return vocab_types::spm;
-		}
-		if (string_literal_comparitor<decltype(gemma), gemma>::impl(vocab_type_str.data())) {
-			return vocab_types::spm;
-		}
-		if (string_literal_comparitor<decltype(gemma2), gemma2>::impl(vocab_type_str.data())) {
-			return vocab_types::spm;
-		}
-		if (string_literal_comparitor<decltype(phi3), phi3>::impl(vocab_type_str.data())) {
-			return vocab_types::spm;
-		}
-		if (string_literal_comparitor<decltype(paligemma), paligemma>::impl(vocab_type_str.data())) {
-			return vocab_types::spm;
-		}
-		if (string_literal_comparitor<decltype(bloom), bloom>::impl(vocab_type_str.data())) {
-			return vocab_types::bpe;
-		}
-		if (string_literal_comparitor<decltype(stablelm), stablelm>::impl(vocab_type_str.data())) {
-			return vocab_types::bpe;
-		}
-		if (string_literal_comparitor<decltype(qwen), qwen>::impl(vocab_type_str.data())) {
-			return vocab_types::bpe;
-		}
-		if (string_literal_comparitor<decltype(plamo), plamo>::impl(vocab_type_str.data())) {
-			return vocab_types::spm;
-		}
-		if (string_literal_comparitor<decltype(codeshell), codeshell>::impl(vocab_type_str.data())) {
-			return vocab_types::bpe;
-		}
-		if (string_literal_comparitor<decltype(orion), orion>::impl(vocab_type_str.data())) {
-			return vocab_types::spm;
-		}
-		if (string_literal_comparitor<decltype(internlm), internlm>::impl(vocab_type_str.data())) {
-			return vocab_types::spm;
-		}
-		if (string_literal_comparitor<decltype(minicpm3), minicpm3>::impl(vocab_type_str.data())) {
-			return vocab_types::spm;
-		}
-		if (string_literal_comparitor<decltype(rwkv), rwkv>::impl(vocab_type_str.data())) {
-			return vocab_types::rwkv;
-		}
-		if (string_literal_comparitor<decltype(command), command>::impl(vocab_type_str.data())) {
-			return vocab_types::bpe;
-		}
-		if (string_literal_comparitor<decltype(deci), deci>::impl(vocab_type_str.data())) {
-			return vocab_types::bpe;
-		}
-		if (string_literal_comparitor<decltype(granite), granite>::impl(vocab_type_str.data())) {
-			return vocab_types::bpe;
-		}
-		if (string_literal_comparitor<decltype(chameleon), chameleon>::impl(vocab_type_str.data())) {
-			return vocab_types::bpe;
-		}
-
-		return vocab_types::none;
 	}
 
+	static constexpr string_literal vocab_pre_type_llama_01{ "llama-bpe" };
+
+	template<vocab_pre_types vocab_type> NIHILUS_FORCE_INLINE bool compare_vocab_pre_type(std::string_view string) {
+		if constexpr (vocab_type == vocab_pre_types::llama3) {
+			return (vocab_pre_type_llama_01.size() <= string.size()) ? string_literal_comparison<vocab_pre_type_llama_01>(string.data()) : false;
+		}
+	}
+
+	static constexpr array<const char*, 6> type_names{ vocab_type_none.data(), vocab_type_spm.data(), vocab_type_bpe.data(), vocab_type_wpm.data(), vocab_type_ugm.data(),
+		vocab_type_rwkv.data() };
+
 	template<> struct value_reader<construction_parameters<model_arches::llama>, model_arches::llama> {
-		NIHILUS_FORCE_INLINE static construction_parameters<model_arches::llama> gather_value(const std::map<std::string, gguf_metadata_kv_t>& metadata_kv) {
+		NIHILUS_FORCE_INLINE static construction_parameters<model_arches::llama> gather_value(const std::unordered_map<std::string, gguf_metadata_kv_t>& metadata_kv) {
 			construction_parameters<model_arches::llama> value{};
 			std::string architecture{};
 			if (metadata_kv.contains("general.architecture")) {
@@ -1029,82 +940,82 @@ namespace nihilus {
 		}
 	};
 
-	template<typename derived_type> struct value_reader<vocab<model_arches::llama, vocab_types::bpe, derived_type>> {
-		NIHILUS_FORCE_INLINE static void gather_value(const std::map<std::string, gguf_metadata_kv_t>& metadata_kv,
-			vocab<model_arches::llama, vocab_types::bpe, derived_type>& tokenizer) {
+	template<model_config config, typename derived_type> struct value_reader<vocab<config, vocab_types::bpe, derived_type>> {
+		NIHILUS_FORCE_INLINE static bool gather_value(const std::unordered_map<std::string, gguf_metadata_kv_t>& metadata_kv,
+			vocab<config, vocab_types::bpe, derived_type>& tokenizer) {
+			using vocab_traits_type = vocab_traits<config.arch, config.vocab_type, config.vocab_pre_type>;
+
+			// Validate tokenizer model type
 			std::string tokenizer_model;
-			std::string tokenizer_pre;
-
 			gather_scalar("tokenizer.ggml.model", tokenizer_model, metadata_kv);
-			gather_scalar("tokenizer.ggml.pre", tokenizer_pre, metadata_kv);
-
-			if (tokenizer_model == "no_vocab" || tokenizer_model == "none") {
-				uint32_t n_tokens		  = 0;
-				gather_scalar("general.vocab_size", n_tokens, metadata_kv);
-				if (n_tokens != 0) {
-					tokenizer.id_to_token.resize(n_tokens);
-				}
-				return;
+			if (!compare_vocab_type<vocab_types::bpe>(tokenizer_model)) {
+				throw std::runtime_error{ "Sorry, but you have selected an incorrect vocab type." };
 			}
 
-			if (tokenizer_model == "llama") {
-			} else if (tokenizer_model == "bert") {
-			} else if (tokenizer_model == "gpt2") {
-				std::vector<std::string> merges;
-				gather_array("tokenizer.ggml.merges", merges, metadata_kv);
+			// Validate vocab pre-processing type
+			std::string tokenizer_pre;
+			gather_scalar("tokenizer.ggml.pre", tokenizer_pre, metadata_kv);
+			if (!compare_vocab_pre_type<vocab_traits_type::pre_type>(tokenizer_pre)) {
+				throw std::runtime_error{ "Sorry, but you have selected an incorrect vocab-pre type." };
+			}
 
-				for (size_t i = 0; i < merges.size(); ++i) {
-					const std::string& merge_str = merges[i];
-					size_t space_pos			 = merge_str.find(' ', 1);
-					if (space_pos != std::string::npos) {
-						std::string first  = merge_str.substr(0, space_pos);
-						std::string second = merge_str.substr(space_pos + 1);
-
-						tokenizer.bpe_ranks.emplace(std::make_pair(first, second), static_cast<int32_t>(i));
+			// Validate special token IDs against constexpr traits
+			auto validate_special_token = [&](const std::string& key, token constexpr_value, const std::string& token_name) {
+				if (constexpr_value != token_null) {
+					token parsed_value = token_null;
+					if (gather_scalar(key, parsed_value, metadata_kv)) {
+						if (parsed_value != constexpr_value) {
+							throw std::runtime_error{ "Mismatch in " + token_name + " token ID: expected " + std::to_string(constexpr_value) + ", got " +
+								std::to_string(parsed_value) };
+						}
+					} else {
+						throw std::runtime_error{ "Missing required " + token_name + " token ID in model metadata" };
 					}
 				}
-			} else if (tokenizer_model == "t5") {
+			};
 
-				std::vector<uint8_t> precompiled_data;
-				gather_array("tokenizer.ggml.precompiled_charsmap", precompiled_data, metadata_kv);
-				if (!precompiled_data.empty()) {
-					tokenizer.precompiled_charsmap.assign(precompiled_data.begin(), precompiled_data.end());
+			// Validate all special token IDs
+			validate_special_token("tokenizer.ggml.bos_token_id", vocab_traits_type::special_bos_id, "BOS");
+			validate_special_token("tokenizer.ggml.eos_token_id", vocab_traits_type::special_eos_id, "EOS");
+			validate_special_token("tokenizer.ggml.eot_token_id", vocab_traits_type::special_eot_id, "EOT");
+			validate_special_token("tokenizer.ggml.eom_token_id", vocab_traits_type::special_eom_id, "EOM");
+			validate_special_token("tokenizer.ggml.unk_token_id", vocab_traits_type::special_unk_id, "UNK");
+			validate_special_token("tokenizer.ggml.sep_token_id", vocab_traits_type::special_sep_id, "SEP");
+			validate_special_token("tokenizer.ggml.pad_token_id", vocab_traits_type::special_pad_id, "PAD");
+			validate_special_token("tokenizer.ggml.mask_token_id", vocab_traits_type::special_mask_id, "MASK");
+			validate_special_token("tokenizer.ggml.linefeed_id", vocab_traits_type::linefeed_id, "LINEFEED");
+			validate_special_token("tokenizer.ggml.fim_pre_token_id", vocab_traits_type::special_fim_pre_id, "FIM_PRE");
+			validate_special_token("tokenizer.ggml.fim_suf_token_id", vocab_traits_type::special_fim_suf_id, "FIM_SUF");
+			validate_special_token("tokenizer.ggml.fim_mid_token_id", vocab_traits_type::special_fim_mid_id, "FIM_MID");
+			validate_special_token("tokenizer.ggml.fim_pad_token_id", vocab_traits_type::special_fim_pad_id, "FIM_PAD");
+			validate_special_token("tokenizer.ggml.fim_rep_token_id", vocab_traits_type::special_fim_rep_id, "FIM_REP");
+			validate_special_token("tokenizer.ggml.fim_sep_token_id", vocab_traits_type::special_fim_sep_id, "FIM_SEP");
+
+			// Validate boolean configuration flags
+			auto validate_bool_config = [&](const std::string& key, bool constexpr_value, const std::string& config_name) {
+				bool parsed_value = false;
+				if (gather_scalar(key, parsed_value, metadata_kv)) {
+					if (parsed_value != constexpr_value) {
+						throw std::runtime_error{ "Mismatch in " + config_name + " configuration: expected " + (constexpr_value ? "true" : "false") + ", got " +
+							(parsed_value ? "true" : "false") };
+					}
 				}
-			} else if (tokenizer_model == "rwkv") {
-			} else {
-				throw std::runtime_error("Unknown tokenizer model: " + tokenizer_model);
-			}
+				// Note: Optional validation - some models may not specify these flags
+			};
 
-			if (tokenizer_model == "gpt2" || tokenizer_model == "bert" || tokenizer_model == "t5") {
+			validate_bool_config("tokenizer.ggml.add_space_prefix", vocab_traits_type::add_space_prefix, "add_space_prefix");
+			validate_bool_config("tokenizer.ggml.add_bos_token", vocab_traits_type::add_bos, "add_bos");
+			validate_bool_config("tokenizer.ggml.add_eos_token", vocab_traits_type::add_eos, "add_eos");
+			validate_bool_config("tokenizer.ggml.ignore_merges", vocab_traits_type::ignore_merges, "ignore_merges");
+			validate_bool_config("tokenizer.ggml.clean_spaces", vocab_traits_type::clean_spaces, "clean_spaces");
+			validate_bool_config("tokenizer.ggml.remove_extra_whitespaces", vocab_traits_type::remove_extra_whitespaces, "remove_extra_whitespaces");
+			validate_bool_config("tokenizer.ggml.escape_whitespaces", vocab_traits_type::escape_whitespaces, "escape_whitespaces");
+			validate_bool_config("tokenizer.ggml.treat_whitespace_as_suffix", vocab_traits_type::treat_whitespace_as_suffix, "treat_whitespace_as_suffix");
 
-				if (tokenizer_pre.empty()) {
-				} else if (tokenizer_pre == "default") {
-				} else if (tokenizer_pre == "llama3" || tokenizer_pre == "llama-v3" || tokenizer_pre == "llama-bpe" || tokenizer_pre == "falcon3") {
-				} else if (tokenizer_pre == "deepseek-llm") {
-				} else if (tokenizer_pre == "deepseek-coder") {
-				} else if (tokenizer_pre == "deepseek-v3") {
-				} else if (tokenizer_pre == "falcon") {
-				} else if (tokenizer_pre == "mpt") {
-				} else if (tokenizer_pre == "starcoder") {
-				} else if (tokenizer_pre == "gpt-2" || tokenizer_pre == "phi-2" || tokenizer_pre == "jina-es" || tokenizer_pre == "jina-de" || tokenizer_pre == "gigachat" ||
-					tokenizer_pre == "roberta-bpe") {
-				} else if (tokenizer_pre == "refact") {
-				} else if (tokenizer_pre == "command-r") {
-				} else if (tokenizer_pre == "qwen2") {
-				} else if (tokenizer_pre == "tekken") {
-				} else if (tokenizer_pre == "smollm") {
-				} else if (tokenizer_pre == "chameleon") {
-				} else {
-					throw std::runtime_error("Unknown pre-tokenizer type: " + tokenizer_pre);
-				}
-			} else {
-				if (tokenizer_model == "llama") {
-				} else if (tokenizer_model == "bert") {
-				} else if (tokenizer_model == "t5") {
-				} else if (tokenizer_model == "rwkv") {
-				}
-			}
+			// Gather BPE merges and validate
+			gather_map("tokenizer.ggml.merges", tokenizer.bpe_ranks, metadata_kv);
 
+			// Gather token arrays
 			std::vector<std::string> tokens;
 			gather_array("tokenizer.ggml.tokens", tokens, metadata_kv);
 
@@ -1114,16 +1025,26 @@ namespace nihilus {
 			std::vector<int32_t> token_types;
 			gather_array("tokenizer.ggml.token_type", token_types, metadata_kv);
 
+			// Validate token count against max_token_len if specified
 			uint32_t n_tokens = static_cast<uint32_t>(tokens.size());
-			tokenizer.id_to_token.resize(n_tokens);
 
+			// Process tokens with validation
+			tokenizer.id_to_token.resize(n_tokens);
 			for (uint32_t i = 0; i < n_tokens; i++) {
 				std::string word = tokens[i];
 				if (word.empty()) {
 					word = "[EMPTY_" + std::to_string(i) + "]";
 				}
 
-				tokenizer.token_to_id[word] = i;
+				// Validate token length against max_token_len
+				if constexpr (vocab_traits_type::max_token_len > 0) {
+					if (word.length() > static_cast<size_t>(vocab_traits_type::max_token_len)) {
+						throw std::runtime_error{ "Token length exceeds maximum: token '" + word + "' has length " + std::to_string(word.length()) + ", max allowed is " +
+							std::to_string(vocab_traits_type::max_token_len) };
+					}
+				}
+
+				tokenizer.token_to_id[word] = static_cast<int32_t>(i);
 
 				auto& token_data = tokenizer.id_to_token[i];
 				token_data.text	 = std::move(word);
@@ -1157,48 +1078,81 @@ namespace nihilus {
 				}
 			}
 
+			// Cross-validate special tokens found in vocabulary against constexpr traits
+			auto cross_validate_special_token = [&](token expected_id, const std::vector<std::string>& possible_texts, const std::string& token_name) {
+				if (expected_id != token_null) {
+					bool found = false;
+					for (const auto& text: possible_texts) {
+						auto it = tokenizer.token_to_id.find(text);
+						if (it != tokenizer.token_to_id.end()) {
+							if (it->second != expected_id) {
+								throw std::runtime_error{ "Cross-validation failed for " + token_name + ": found text '" + text + "' with ID " + std::to_string(it->second) +
+									", but constexpr traits specify ID " + std::to_string(expected_id) };
+							}
+							found = true;
+							break;
+						}
+					}
+					if (!found) {
+						// Warning: Could add logging here if needed
+					}
+				}
+			};
+
+			// Cross-validate special tokens with their text representations
+			cross_validate_special_token(vocab_traits_type::special_eot_id,
+				{ "<|eot_id|>", "<|im_end|>", "<|end|>", "<end_of_turn>", "<|endoftext|>", "< EOT >", "<｜end▁of▁sentence｜>" }, "EOT");
+			cross_validate_special_token(vocab_traits_type::special_eom_id, { "<|eom_id|>" }, "EOM");
+			cross_validate_special_token(vocab_traits_type::special_fim_pre_id, { "<|fim_prefix|>", "<fim-prefix>", "<｜fim▁begin｜>", "<PRE>" }, "FIM_PRE");
+			cross_validate_special_token(vocab_traits_type::special_fim_suf_id, { "<|fim_suffix|>", "<fim-suffix>", "<｜fim▁hole｜>", "<SUF>" }, "FIM_SUF");
+			cross_validate_special_token(vocab_traits_type::special_fim_mid_id, { "<|fim_middle|>", "<fim-middle>", "<｜fim▁end｜>", "<MID>" }, "FIM_MID");
+
+			// Mark special tokens based on constexpr traits
 			for (const auto& [text, id]: tokenizer.token_to_id) {
-				if (tokenizer.special_eot_id == token_null) {
+				if constexpr (vocab_traits_type::special_eot_id == token_null) {
 					if (text == "<|eot_id|>" || text == "<|im_end|>" || text == "<|end|>" || text == "<end_of_turn>" || text == "<|endoftext|>" || text == "< EOT >" ||
 						text == "<｜end▁of▁sentence｜>") {
-						tokenizer.id_to_token[id].att = tokens::control;
+						tokenizer.id_to_token[static_cast<uint64_t>(id)].att = tokens::control;
 					}
 				}
 
-				if (tokenizer.special_eom_id == token_null && text == "<|eom_id|>") {
-					tokenizer.id_to_token[id].att = tokens::control;
+				if constexpr (vocab_traits_type::special_eom_id == token_null && text == "<|eom_id|>") {
+					tokenizer.id_to_token[static_cast<uint64_t>(id)].att = tokens::control;
 				}
 
-				if (tokenizer.special_fim_pre_id == token_null) {
+				if constexpr (vocab_traits_type::special_fim_pre_id == token_null) {
 					if (text == "<|fim_prefix|>" || text == "<fim-prefix>" || text == "<｜fim▁begin｜>" || text == "<PRE>") {
-						tokenizer.id_to_token[id].att = tokens::control;
+						tokenizer.id_to_token[static_cast<uint64_t>(id)].att = tokens::control;
 					}
 				}
 
-				if (tokenizer.special_fim_suf_id == token_null) {
+				if constexpr (vocab_traits_type::special_fim_suf_id == token_null) {
 					if (text == "<|fim_suffix|>" || text == "<fim-suffix>" || text == "<｜fim▁hole｜>" || text == "<SUF>") {
-						tokenizer.id_to_token[id].att = tokens::control;
+						tokenizer.id_to_token[static_cast<uint64_t>(id)].att = tokens::control;
 					}
 				}
 
-				if (tokenizer.special_fim_mid_id == token_null) {
+				if constexpr (vocab_traits_type::special_fim_mid_id == token_null) {
 					if (text == "<|fim_middle|>" || text == "<fim-middle>" || text == "<｜fim▁end｜>" || text == "<MID>") {
-						tokenizer.id_to_token[id].att = tokens::control;
+						tokenizer.id_to_token[static_cast<uint64_t>(id)].att = tokens::control;
 					}
 				}
 			}
 
+			// Build special token cache
+			tokenizer.cache_special_tokens.reserve(n_tokens);
 			for (token id = 0; id < static_cast<token>(n_tokens); ++id) {
-				if (static_cast<size_t>(tokenizer.id_to_token[id].att) &
+				if (static_cast<size_t>(tokenizer.id_to_token[static_cast<uint64_t>(id)].att) &
 					(static_cast<size_t>(tokens::control) | static_cast<size_t>(tokens::user_defined) | static_cast<size_t>(tokens::unused))) {
-					tokenizer.cache_special_tokens.push_back(id);
+					tokenizer.cache_special_tokens.emplace_back(id);
 				}
 			}
 
 			std::sort(tokenizer.cache_special_tokens.begin(), tokenizer.cache_special_tokens.end(), [&](token a, token b) {
-				return tokenizer.id_to_token[a].text.size() > tokenizer.id_to_token[b].text.size();
+				return tokenizer.id_to_token[static_cast<uint64_t>(a)].text.size() > tokenizer.id_to_token[static_cast<uint64_t>(b)].text.size();
 			});
 
+			// Build EOG token set with validation
 			tokenizer.special_eog_ids.clear();
 			for (const auto& [text, id]: tokenizer.token_to_id) {
 				if (text == "<|eot_id|>" || text == "<|im_end|>" || text == "<|end|>" || text == "<end_of_turn>" || text == "<|endoftext|>" || text == "<|eom_id|>" ||
@@ -1207,47 +1161,35 @@ namespace nihilus {
 				}
 			}
 
-			if (tokenizer.special_eos_id != token_null) {
-				tokenizer.special_eog_ids.insert(tokenizer.special_eos_id);
+			// Add constexpr special tokens to EOG set
+			if constexpr (vocab_traits_type::special_eos_id != token_null) {
+				tokenizer.special_eog_ids.insert(vocab_traits_type::special_eos_id);
 			}
-			if (tokenizer.special_eot_id != token_null) {
-				tokenizer.special_eog_ids.insert(tokenizer.special_eot_id);
+			if constexpr (vocab_traits_type::special_eot_id != token_null) {
+				tokenizer.special_eog_ids.insert(vocab_traits_type::special_eot_id);
 			}
-			if (tokenizer.special_eom_id != token_null) {
-				tokenizer.special_eog_ids.insert(tokenizer.special_eom_id);
+			if constexpr (vocab_traits_type::special_eom_id != token_null) {
+				tokenizer.special_eog_ids.insert(vocab_traits_type::special_eom_id);
 			}
 
-			if (tokenizer_model == "llama") {
-				tokenizer.init_tokenizer(vocab_types::spm);
-			} else if (tokenizer_model == "gpt2") {
-				tokenizer.init_tokenizer(vocab_types::bpe);
-			} else if (tokenizer_model == "bert") {
-				tokenizer.init_tokenizer(vocab_types::wpm);
-			} else if (tokenizer_model == "t5") {
-				tokenizer.init_tokenizer(vocab_types::ugm);
-			} else if (tokenizer_model == "rwkv") {
-				tokenizer.init_tokenizer(vocab_types::rwkv);
+			// Final validation summary
+			if constexpr (config.exceptions) {
+				// Could add comprehensive validation summary logging here
 			}
 		}
 	};
 
-	template<model_config config, typename derived_type, vocab_types vocab_type>
-	struct value_reader<tokenizer<config, derived_type, model_arches::llama, vocab_type>, model_arches::llama> {
-		NIHILUS_FORCE_INLINE static void gather_value(const std::map<std::string, gguf_metadata_kv_t>& metadata_kv,
-			tokenizer<config, derived_type, model_arches::llama, vocab_type>& tokenizer) {
-			gather_scalar("tokenizer.ggml.bos_token_id", tokenizer.bos_token_id, metadata_kv);
-			gather_scalar("tokenizer.ggml.eos_token_id", tokenizer.eos_token_id, metadata_kv);
-			gather_scalar("tokenizer.chat_template", tokenizer.chat_template, metadata_kv);
-			std::string vocab_type_str{};
-			gather_scalar("tokenizer.ggml.model", vocab_type_str, metadata_kv);
-			//tokenizer.vocab_type = string_to_vocab_type(vocab_type_str);
-			gather_array("tokenizer.ggml.merges", tokenizer.merges, metadata_kv);
-			gather_scalar("tokenizer.ggml.pre", tokenizer.pre, metadata_kv);
-			gather_array("tokenizer.ggml.tokens", tokenizer.tokens, metadata_kv);
-			gather_array("tokenizer.ggml.token_type", tokenizer.token_types, metadata_kv);
-			return;
+	// Helper function for optional scalar gathering (you may need to implement this)
+	template<typename T>
+	NIHILUS_FORCE_INLINE bool gather_scalar_optional(const std::string& key, T& value, const std::unordered_map<std::string, gguf_metadata_kv_t>& metadata_kv) {
+		auto it = metadata_kv.find(key);
+		if (it != metadata_kv.end()) {
+			// Implementation depends on your gguf_metadata_kv_t structure
+			// This should extract the value and return true if successful
+			return extract_value(it->second, value);
 		}
-	};
+		return false;
+	}
 
 	template<> struct value_reader<gguf_header_t> {
 		NIHILUS_FORCE_INLINE static gguf_header_t gather_value(stream_iterator& input) {
@@ -1279,43 +1221,58 @@ namespace nihilus {
 
 	template<> struct string_to_op_type<model_arches::llama> {
 		NIHILUS_FORCE_INLINE static op_types impl(std::string_view input) noexcept {
-			if (input == "token_embd.weight")
+			if (string_literal_comparison<"token_embd.weight">(input.data())) {
 				return op_types::token_embd_weight;
-			if (input == "rope_freqs.weight")
+			}
+			if (string_literal_comparison<"rope_freqs.weight">(input.data())) {
 				return op_types::rope_freqs_weight;
-			if (input == "output_norm.weight")
+			}
+			if (string_literal_comparison<"output_norm.weight">(input.data())) {
 				return op_types::output_norm_weight;
-			if (input == "output.weight")
+			}
+			if (string_literal_comparison<"output.weight">(input.data())) {
 				return op_types::output_weight;
+			}
 
-			if (input.find(".attn_q.weight") != std::string_view::npos)
+			if (string_literal_comparison<".attn_q.weight">(input.data() + input.find(".attn_q.weight"))) {
 				return op_types::attn_q_weight;
-			if (input.find(".attn_norm.weight") != std::string_view::npos)
+			}
+			if (string_literal_comparison<".attn_norm.weight">(input.data() + input.find(".attn_norm.weight"))) {
 				return op_types::attn_norm_weight;
+			}
 
-			if (input.starts_with("blk.") && input.ends_with(".weight")) {
+			if (string_literal_comparison<"blk.">(input.data()) && string_literal_comparison<".weight">(input.data() + input.size() - 7)) {
 				auto second_dot = input.find('.', 4);
 				if (second_dot != std::string_view::npos) {
 					auto suffix = input.substr(second_dot + 1);
 
-					if (suffix == "attn_q.weight")
+					if (string_literal_comparison<"attn_q.weight">(suffix.data())) {
 						return op_types::attn_q_weight;
-					if (suffix == "attn_norm.weight")
+					}
+					if (string_literal_comparison<"attn_norm.weight">(suffix.data())) {
 						return op_types::attn_norm_weight;
-					if (suffix == "attn_k.weight")
+					}
+					if (string_literal_comparison<"attn_k.weight">(suffix.data())) {
 						return op_types::attn_k_weight;
-					if (suffix == "attn_v.weight")
+					}
+					if (string_literal_comparison<"attn_v.weight">(suffix.data())) {
 						return op_types::attn_v_weight;
-					if (suffix == "ffn_down.weight")
-						return op_types::ffn_down_weight;
-					if (suffix == "ffn_gate.weight")
-						return op_types::ffn_gate_weight;
-					if (suffix == "attn_output.weight")
+					}
+					if (string_literal_comparison<"attn_output.weight">(suffix.data())) {
 						return op_types::attn_output_weight;
-					if (suffix == "ffn_norm.weight")
-						return op_types::ffn_norm_weight;
-					if (suffix == "ffn_up.weight")
+					}
+					if (string_literal_comparison<"ffn_down.weight">(suffix.data())) {
+						return op_types::ffn_down_weight;
+					}
+					if (string_literal_comparison<"ffn_gate.weight">(suffix.data())) {
+						return op_types::ffn_gate_weight;
+					}
+					if (string_literal_comparison<"ffn_up.weight">(suffix.data())) {
 						return op_types::ffn_up_weight;
+					}
+					if (string_literal_comparison<"ffn_norm.weight">(suffix.data())) {
+						return op_types::ffn_norm_weight;
+					}
 				}
 			}
 
@@ -1424,7 +1381,6 @@ namespace nihilus {
 			uint64_t alignment{ 0 };
 			gather_scalar("alignment", alignment, gguf_file.header.metadata_kv);
 			return_value.cparams = value_reader<construction_parameters<model_arches::llama>, model_arches::llama>::gather_value(gguf_file.header.metadata_kv);
-			value_reader<tokenizer_type, model_arches::llama>::gather_value(gguf_file.header.metadata_kv, tokenizer);
 			value_reader<typename tokenizer_type::vocab_type>::gather_value(gguf_file.header.metadata_kv, *static_cast<typename tokenizer_type::vocab_type*>(&tokenizer));
 
 			sort_tensor_infos(gguf_file.tensor_infos);

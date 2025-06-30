@@ -34,9 +34,9 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-	template<model_arches arch, vocab_types type> struct vocab_traits;
+	template<model_arches arch, vocab_types type, vocab_pre_types pre> struct vocab_traits;
 
-	template<> struct vocab_traits<model_arches::llama, vocab_types::bpe> {
+	template<> struct vocab_traits<model_arches::llama, vocab_types::bpe, vocab_pre_types::llama3> {
 		static constexpr vocab_pre_types pre_type		 = vocab_pre_types::llama3;
 		static constexpr int32_t max_token_len			 = 256;
 		static constexpr token special_bos_id			 = 11;
@@ -63,47 +63,51 @@ namespace nihilus {
 		static constexpr bool escape_whitespaces		 = true;
 		static constexpr bool treat_whitespace_as_suffix = false;
 	};
-	
+
 	struct token_data {
 		std::string text;
 		float score;
 		tokens att;
 	};
 
-	template<model_arches arch, vocab_types type, typename derivd_type> struct vocab : public vocab_traits<arch, type> {
+	struct pair_hash {
+		NIHILUS_FORCE_INLINE size_t operator()(const std::pair<std::string_view, std::string_view>& p) const {
+			return std::hash<std::string_view>{}(p.first) ^ (std::hash<std::string_view>{}(p.second) << 1);
+		}
+	};
 
-		std::unordered_map<std::string, token> token_to_id;
+	template<model_config config, vocab_types type, typename derivd_type> struct vocab : public vocab_traits<config.arch, type, config.vocab_pre_type> {
+		std::unordered_map<std::string_view, token> token_to_id;
 		std::vector<token_data> id_to_token;
 
 		std::vector<token> cache_special_tokens;
 		std::vector<std::string> cache_token_to_piece;
 
-		std::map<std::pair<std::string, std::string>, int32_t> bpe_ranks;
+		std::unordered_map<std::pair<std::string_view, std::string_view>, int32_t, pair_hash> bpe_ranks;
 
 		std::set<token> special_eog_ids;
 
-		std::vector<char> precompiled_charsmap;
+		std::vector<uint8_t> precompiled_charsmap;
 
 		enum vocab_types get_type() const {
 			return type;
 		}
 
-		std::string type_name() const {
-			switch (type) {
-				case vocab_types::none:
-					return "no vocab";
-				case vocab_types::spm:
-					return "SPM";
-				case vocab_types::bpe:
-					return "BPE";
-				case vocab_types::wpm:
-					return "WPM";
-				case vocab_types::ugm:
-					return "UGM";
-				case vocab_types::rwkv:
-					return "RWKV";
-				default:
-					return "unknown";
+		NIHILUS_FORCE_INLINE consteval std::string_view type_name() const {
+			if constexpr (type == vocab_types::none) {
+				return "no vocab";
+			} else if constexpr (type == vocab_types::spm) {
+				return "SPM";
+			} else if constexpr (type == vocab_types::bpe) {
+				return "BPE";
+			} else if constexpr (type == vocab_types::wpm) {
+				return "WPM";
+			} else if constexpr (type == vocab_types::ugm) {
+				return "UGM";
+			} else if constexpr (type == vocab_types::rwkv) {
+				return "RWKV";
+			} else {
+				return "unknown";
 			}
 		}
 
@@ -136,30 +140,14 @@ namespace nihilus {
 		}
 
 		uint8_t token_to_byte(token id) const;
-
 		tokens token_get(token id) const;
-
-		void init_tokenizer(enum vocab_types type_new) {};
-
-		//void tokenizer_st_partition(std::forward_list<fragment_buffer_variant>& buffer, bool parse_special) const;
-
 		std::string token_to_piece_for_cache(token token, bool special) const;
-
 		std::vector<token> tokenize(const std::string& raw_text, bool add_special, bool parse_special = false) const;
-
 		int32_t tokenize(const char* text, int32_t text_len, token* tokens, int32_t n_tokens_max, bool add_special, bool parse_special) const;
-
-		// does not write null-terminator to buf
 		int32_t token_to_piece(token token, char* buf, int32_t length, int32_t lstrip, bool special) const;
-
-		// use cached data
 		const std::string& token_to_piece(token token) const;
-
 		int32_t detokenize(const token* tokens, int32_t n_tokens, char* text, int32_t text_len_max, bool remove_special, bool unparse_special) const;
-
 		std::string detokenize(const std::vector<token>& tokens, bool special) const;
-
-		void print_info() const;
 	};
 	/*
 	struct llama_vocab {
@@ -171,7 +159,7 @@ namespace nihilus {
 
 		enum llama_vocab_type get_type() const;
 		enum llama_vocab_pre_type get_pre_type() const;
-
+		f
 		uint32_t n_tokens() const;
 		uint32_t n_token_types() const;
 

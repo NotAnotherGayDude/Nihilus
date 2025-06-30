@@ -46,15 +46,15 @@ namespace nihilus {
 			return num_blocks * type_size;
 		}
 
-		NIHILUS_INLINE uint64_t core_block_size() const {
+		NIHILUS_FORCE_INLINE uint64_t core_block_size() const {
 			return get_type_traits(type).block_size;
 		}
 
-		NIHILUS_INLINE uint64_t core_type_size() const {
+		NIHILUS_FORCE_INLINE uint64_t core_type_size() const {
 			return get_type_traits(type).type_size;
 		}
 
-		NIHILUS_INLINE uint64_t core_row_size(int64_t dims_new) const {
+		NIHILUS_FORCE_INLINE uint64_t core_row_size(int64_t dims_new) const {
 			return core_type_size() * dims_new / core_block_size();
 		}
 	};
@@ -84,11 +84,11 @@ namespace nihilus {
 	};
 
 	template<model_config config> struct model_graph_data {
-		NIHILUS_INLINE model_graph_data()									= default;
-		NIHILUS_INLINE model_graph_data& operator=(model_graph_data&&)		= default;
-		NIHILUS_INLINE model_graph_data(model_graph_data&&)					= default;
-		NIHILUS_INLINE model_graph_data& operator=(const model_graph_data&) = delete;
-		NIHILUS_INLINE model_graph_data(const model_graph_data&)			= delete;
+		NIHILUS_FORCE_INLINE model_graph_data()									= default;
+		NIHILUS_FORCE_INLINE model_graph_data& operator=(model_graph_data&&)		= default;
+		NIHILUS_FORCE_INLINE model_graph_data(model_graph_data&&)					= default;
+		NIHILUS_FORCE_INLINE model_graph_data& operator=(const model_graph_data&) = delete;
+		NIHILUS_FORCE_INLINE model_graph_data(const model_graph_data&)			= delete;
 		std::unordered_map<op_types, core_base_creation_data> cores{};
 		construction_parameters<config.arch> cparams{};
 	};

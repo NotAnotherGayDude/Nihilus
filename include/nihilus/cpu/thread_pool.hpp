@@ -47,7 +47,7 @@ namespace nihilus {
 		CPU_SET(core_id, &cpuset);
 
 		pthread_t current_thread = pthread_self();
-		int32_t result				 = pthread_setaffinity_np(current_thread, sizeof(cpu_set_t), &cpuset);
+		int32_t result			 = pthread_setaffinity_np(current_thread, sizeof(cpu_set_t), &cpuset);
 		if (result != 0) {
 			std::cerr << "Failed to set thread affinity on Linux. Error: " << result << std::endl;
 			return false;

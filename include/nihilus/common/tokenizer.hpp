@@ -35,8 +35,6 @@ namespace nihilus {
 		std::vector<std::string> tokens{};
 		std::vector<std::string> merges{};
 		std::string chat_template{};
-		uint64_t bos_token_id{};
-		uint64_t eos_token_id{};
 		std::string pre{};
 	};
 
@@ -72,23 +70,21 @@ namespace nihilus {
 		size_t size;
 	};
 
-	struct pair_hash {
-		NIHILUS_FORCE_INLINE size_t operator()(const std::pair<std::string, std::string>& p) const {
-			return std::hash<std::string>{}(p.first) ^ (std::hash<std::string>{}(p.second) << 1);
-		}
-	};
-
-	template<model_config config, typename derived_type> struct tokenizer<config, derived_type, model_arches::llama, vocab_types::bpe>
-		: public tokenizer_parameters<model_arches::llama>, public vocab<model_arches::llama, vocab_types::bpe, tokenizer<config, derived_type, model_arches::llama, vocab_types::bpe>> {
-		using vocab_type = vocab<model_arches::llama, vocab_types::bpe, tokenizer<config, derived_type, model_arches::llama, vocab_types::bpe>>;
+	template<model_config config, typename derived_type, vocab_types vocab_type_new> struct tokenizer<config, derived_type, model_arches::llama, vocab_type_new>
+		: public tokenizer_parameters<model_arches::llama>, public vocab<config, vocab_type_new, tokenizer<config, derived_type, model_arches::llama, vocab_type_new>> {
+		using vocab_type						  = vocab<config, vocab_type_new, tokenizer<config, derived_type, model_arches::llama, vocab_type_new>>;
 		NIHILUS_FORCE_INLINE tokenizer() noexcept = default;
-		using model_traits_type = model_traits<config.arch, config.model_size, config.model_generation>;
-		static constexpr std::string_view regex_exprs{ "'s|'t|'re|'ve|'m|'ll|'d| ?\\p{L}+| ?\\p{N}+| ?[^\\s\\p{L}\\p{N}]+|\\s+(?!\\S)" };
+		using model_traits_type					  = model_traits<config.arch, config.model_size, config.model_generation>;
+		static constexpr std::string_view regex_exprs{ [] {
+			if constexpr (vocab_type::pre_type == vocab_pre_types::llama3) {
+				return "(?:'[sS]|'[tT]|'[rR][eE]|'[vV][eE]|'[mM]|'[lL][lL]|'[dD])|[^\\r\\n\\p{L}\\p{N}]?\\p{L}+|\\p{N}{1,3}| "
+					   "?[^\\s\\p{L}\\p{N}]+[\\r\\n]*|\\s*[\\r\\n]+|\\s+(?!\\S)|\\s+";
+			} else {
+				return std::string_view{};
+			}
+		}() };
 		std::unordered_map<std::string, int32_t> token_to_id;
-		std::unordered_map<std::pair<std::string, std::string>, int32_t, pair_hash> bpe_ranks;
-		bool ignore_merges = false;
-		bool add_bos	   = true;
-		bool add_eos	   = false;
+		std::unordered_map<std::pair<std::string_view, std::string_view>, int32_t, pair_hash> bpe_ranks;
 
 		NIHILUS_FORCE_INLINE void load_vocabulary() {
 			token_to_id.clear();
@@ -109,24 +105,24 @@ namespace nihilus {
 
 		NIHILUS_FORCE_INLINE uint64_t tokenize(const std::string& input_text, int32_t* output_tokens) {
 			std::vector<int32_t> temp_tokens;
-			if (add_bos && bos_token_id > 0) {
-				temp_tokens.push_back(static_cast<int32_t>(bos_token_id));
+			if constexpr (vocab_type::add_bos && vocab_type::special_bos_id > 0) {
+				temp_tokens.push_back(static_cast<int32_t>(vocab_type::special_bos_id));
 			}
 
-			std::vector<std::string> word_collection = gpt2_style_split(input_text); 
+			std::vector<std::string> word_collection = gpt2_style_split(input_text);
 
 			for (const auto& word: word_collection) {
 				tokenize_word(word, temp_tokens);
 			}
 
-			if (add_eos && eos_token_id > 0) {
-				temp_tokens.push_back(static_cast<int32_t>(eos_token_id));
+			if constexpr (vocab_type::add_eos && vocab_type::special_eos_id > 0) {
+				temp_tokens.push_back(static_cast<int32_t>(vocab_type::special_eos_id));
 			}
-			std::cout << "TEMP TOKENS SIZE: " << temp_tokens.size() << std::endl;
+
 			for (size_t i = 0; i < temp_tokens.size(); ++i) {
 				output_tokens[i] = temp_tokens[i];
 			}
-			uint8_t* ptr = reinterpret_cast<uint8_t*>(output_tokens);
+
 #if defined(NIHILUS_DEBUG)
 			print_tokenization_debug(input_text, temp_tokens);
 #endif
@@ -139,7 +135,7 @@ namespace nihilus {
 
 		NIHILUS_FORCE_INLINE std::vector<std::string> gpt2_style_split(std::string_view text) {
 			std::vector<std::string> result;
-			size_t start		= text.find_first_not_of(" \t\n\r");
+			size_t start = text.find_first_not_of(" \t\n\r");
 			if (start == std::string::npos)
 				return result;
 			text = text.substr(start);
@@ -170,7 +166,6 @@ namespace nihilus {
 
 					if (i < text.length()) {
 						if (std::isalpha(text[i])) {
-
 							while (i < text.length() && std::isalpha(text[i])) {
 								token += text[i];
 								i++;
@@ -231,8 +226,8 @@ namespace nihilus {
 				auto bigram = work_queue.top();
 				work_queue.pop();
 
-				auto& left_symbol  = symbols[bigram.left];
-				auto& right_symbol = symbols[bigram.right];
+				auto& left_symbol  = symbols[static_cast<uint64_t>(bigram.left)];
+				auto& right_symbol = symbols[static_cast<uint64_t>(bigram.right)];
 
 				if (left_symbol.n == 0 || right_symbol.n == 0) {
 					continue;
@@ -250,15 +245,15 @@ namespace nihilus {
 
 				left_symbol.next = right_symbol.next;
 				if (right_symbol.next >= 0) {
-					symbols[right_symbol.next].prev = bigram.left;
+					symbols[static_cast<uint64_t>(right_symbol.next)].prev = bigram.left;
 				}
 
 				add_new_bigram(left_symbol.prev, bigram.left);
 				add_new_bigram(bigram.left, left_symbol.next);
 			}
 
-			for (int32_t i = 0; i != -1; i = symbols[i].next) {
-				auto& symbol = symbols[i];
+			for (int64_t i = 0; i != -1; i = symbols[static_cast<uint64_t>(i)].next) {
+				auto& symbol = symbols[static_cast<uint64_t>(i)];
 				if (symbol.n == 0)
 					continue;
 
@@ -283,8 +278,8 @@ namespace nihilus {
 			if (left == -1 || right == -1)
 				return;
 
-			std::string left_token(symbols[left].text, symbols[left].n);
-			std::string right_token(symbols[right].text, symbols[right].n);
+			std::string_view left_token(symbols[static_cast<uint64_t>(left)].text, symbols[static_cast<uint64_t>(left)].n);
+			std::string_view right_token(symbols[static_cast<uint64_t>(right)].text, symbols[static_cast<uint64_t>(right)].n);
 
 			auto it = bpe_ranks.find({ left_token, right_token });
 			if (it == bpe_ranks.end())
@@ -293,7 +288,7 @@ namespace nihilus {
 			nihilus_bigram_bpe bigram;
 			bigram.left	 = left;
 			bigram.right = right;
-			bigram.text	 = left_token + right_token;
+			bigram.text	 = static_cast<std::string>(left_token) + static_cast<std::string>(right_token);
 			bigram.size	 = left_token.size() + right_token.size();
 			bigram.rank	 = it->second;
 

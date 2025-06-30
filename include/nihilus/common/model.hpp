@@ -88,7 +88,7 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE void execute_model(nihilus::execution_parameters& params) {
 			current_iteration = 0;
 			nihilus::stop_watch_val_nihilus.reset();
-			this->template impl<dim_updater>(2);
+			this->template impl<dim_updater>(2ull);
 #if defined(NIHILUS_DEBUG)
 			this->template impl<tensor_debugger_impl>();
 #endif
@@ -101,7 +101,7 @@ namespace nihilus {
 			static_cast<thread_pool<config_new, model>*>(this)->execute_tasks();
 			nihilus::stop_watch_val_nihilus.add_time();
 			++current_iteration;
-			this->template impl<dim_updater>(1);
+			this->template impl<dim_updater>(1ull);
 
 			for (uint64_t x = 0; x < params.token_count - 1; ++x) {
 				nihilus::stop_watch_val_nihilus.reset();

@@ -250,4 +250,9 @@ namespace nihilus {
 		}
 	};
 
+	template<string_literal string_literal> NIHILUS_FORCE_INLINE bool string_literal_comparison(const char* string) {
+		using sl_type = decltype(string_literal);
+		return string_literal_comparitor<sl_type, string_literal>::impl(string);
+	}
+
 }
