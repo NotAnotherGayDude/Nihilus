@@ -41,7 +41,7 @@ namespace nihilus {
 		auto end   = std::chrono::high_resolution_clock::now();
 		do {
 			end = std::chrono::high_resolution_clock::now();
-		} while ((end - start).count() < nanoseconds);
+		} while ((end - start).count() < static_cast<int64_t>(nanoseconds));
 #else
 		// Linux/Unix implementation
 		auto start	= std::chrono::high_resolution_clock::now();
@@ -66,9 +66,8 @@ namespace nihilus {
 		}
 		NIHILUS_FORCE_INLINE static void impl(base_type_new& core, uint64_t thread_count) {
 			for (uint64_t x = 0; x < base_type::model_traits_type::block_count; ++x) {
-				core.sync_flag_start[x].init(thread_count);
-				core.sync_flag_end[x].init(thread_count);
-				core.remaining_thread_count.store(thread_count, std::memory_order_release);
+				//core.sync_flag_start[x].init(thread_count);
+				core.sync_flag[x].init(thread_count);
 			}
 		}
 	};
@@ -171,31 +170,11 @@ namespace nihilus {
 			return core_traits_type::layer_type == nihilus::thread_strategy_type::global_input && core_traits_type::krn_type != nihilus::kernel_types::none;
 		}
 		NIHILUS_FORCE_INLINE static void impl(base_type& core, uint64_t thread_index, uint64_t thread_count) {
-			if (core.remaining_thread_count.load(std::memory_order_acquire) > 0) {
-				//core.fetch_sub(1, std::memory_order_release);
-				nihilus::kernel_dispatcher<config, nihilus::device_types::cpu, base_type>::impl(core, thread_index, thread_count);
+			uint64_t work_slot;
+			//if (core.remaining_thread_count.try_claim_work(work_slot)) {
+				nihilus::kernel_dispatcher<config, nihilus::device_types::cpu, base_type>::impl(core, work_slot - 1, thread_count);
 				nihilus::spinlock_nanoseconds(spinlock_time);
-			}
-		}
-	};
-
-	template<nihilus::model_config config, nihilus::blocking base_type_new> struct global_input_thread_function<config, base_type_new> {
-		NIHILUS_FORCE_INLINE global_input_thread_function() noexcept											   = default;
-		NIHILUS_FORCE_INLINE global_input_thread_function& operator=(const global_input_thread_function&) noexcept = delete;
-		NIHILUS_FORCE_INLINE global_input_thread_function(const global_input_thread_function&) noexcept			   = delete;
-		NIHILUS_FORCE_INLINE global_input_thread_function& operator=(global_input_thread_function&&) noexcept	   = delete;
-		NIHILUS_FORCE_INLINE global_input_thread_function(global_input_thread_function&&) noexcept				   = delete;
-		using base_type																							   = base_type_new;
-		NIHILUS_FORCE_INLINE static constexpr bool filter() {
-			using core_traits_type = base_type;
-			return core_traits_type::layer_type == nihilus::thread_strategy_type::global_input && core_traits_type::krn_type != nihilus::kernel_types::none;
-		}
-
-		NIHILUS_FORCE_INLINE static void impl(base_type& core, uint64_t thread_index, uint64_t thread_count) {
-			core.sync_flag_start[0].arrive_and_wait(thread_index);
-			nihilus::kernel_dispatcher<config, nihilus::device_types::cpu, base_type>::impl(core, thread_index, thread_count);
-			nihilus::spinlock_nanoseconds(spinlock_time);
-			core.sync_flag_end[0].arrive_and_wait(thread_index);
+				//}
 		}
 	};
 
@@ -213,8 +192,11 @@ namespace nihilus {
 				core_traits_type::krn_type != nihilus::kernel_types::reshape && core_traits_type::krn_type != nihilus::kernel_types::none;
 		}
 		NIHILUS_FORCE_INLINE static void impl(base_type& core, uint64_t thread_index, uint64_t thread_count, uint64_t current_block) {
-			nihilus::kernel_dispatcher<config, nihilus::device_types::cpu, base_type>::impl(core, thread_index, thread_count);
-			nihilus::spinlock_nanoseconds(spinlock_time);
+			uint64_t work_slot;
+			//if (core.remaining_thread_count[current_block].try_claim_work(work_slot)) {
+				nihilus::kernel_dispatcher<config, nihilus::device_types::cpu, base_type>::impl(core, work_slot - 1, thread_count);
+				nihilus::spinlock_nanoseconds(spinlock_time);
+				//}
 		}
 	};
 
@@ -233,10 +215,11 @@ namespace nihilus {
 		}
 
 		NIHILUS_FORCE_INLINE static void impl(base_type& core, uint64_t thread_index, uint64_t thread_count, uint64_t current_block) {
-			core.sync_flag_start[current_block].arrive_and_wait(thread_index);
+			//core.sync_flag[current_block].arrive_and_wait(thread_index);
 			nihilus::kernel_dispatcher<config, nihilus::device_types::cpu, base_type>::impl(core, thread_index, thread_count);
 			nihilus::spinlock_nanoseconds(spinlock_time);
-			core.sync_flag_end[current_block].arrive_and_wait(thread_index);
+
+			//core.sync_flag[current_block].arrive_and_wait_down(thread_index);
 		}
 	};
 
@@ -274,10 +257,10 @@ namespace nihilus {
 		}
 
 		NIHILUS_FORCE_INLINE static void impl(base_type& core, uint64_t thread_index, uint64_t thread_count) {
-			core.sync_flag_start[0].arrive_and_wait(thread_index);
+			//core.sync_flag[0].arrive_and_wait_down(thread_index);
 			nihilus::kernel_dispatcher<config, nihilus::device_types::cpu, base_type>::impl(core, thread_index, thread_count);
 			nihilus::spinlock_nanoseconds(spinlock_time);
-			core.sync_flag_end[0].arrive_and_wait(thread_index);
+			//core.sync_flag[0].arrive_and_wait_up(thread_index);
 		}
 	};
 
@@ -296,8 +279,8 @@ namespace nihilus {
 				core_traits_type::krn_type != nihilus::kernel_types::permute && core_traits_type::krn_type != nihilus::kernel_types::none;
 		}
 		NIHILUS_FORCE_INLINE static void impl(base_type& core, uint64_t current_block) {
-			core.sync_flag_start[current_block].main_wait();
-			core.sync_flag_end[current_block].main_wait();
+			//core.sync_flag[current_block].main_wait_down();
+			//core.sync_flag[current_block].main_wait_up();
 		}
 	};
 
@@ -316,8 +299,8 @@ namespace nihilus {
 				core_traits_type::krn_type != nihilus::kernel_types::none;
 		}
 		NIHILUS_FORCE_INLINE static void impl(base_type& core) {
-			core.sync_flag_start[0].main_wait();
-			core.sync_flag_end[0].main_wait();
+			//core.sync_flag[0].main_wait_down();
+			//core.sync_flag[0].main_wait_up();
 		}
 	};
 

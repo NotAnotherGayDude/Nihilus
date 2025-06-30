@@ -351,7 +351,7 @@ namespace nihilus {
 			}
 #else
 			for (const auto& frag: mapped_fragments_) {
-				if (munmap(static_cast<char*>(mapped_data_) + frag.first, frag.second - frag.first) != 0) {
+				if (munmap(static_cast<uint8_t*>(mapped_data_) + frag.first, frag.second - frag.first) != 0) {
 				}
 			}
 			mapped_fragments_.clear();
@@ -388,7 +388,7 @@ namespace nihilus {
 			if (last <= first)
 				return;
 
-			void* unmap_addr	= static_cast<char*>(mapped_data_) + first;
+			void* unmap_addr	= static_cast<uint8_t*>(mapped_data_) + first;
 			uint64_t unmap_size = last - first;
 
 			if (munmap(unmap_addr, unmap_size) != 0) {
@@ -549,7 +549,7 @@ namespace nihilus {
 	template<> struct value_reader<gguf_string_t> {
 		NIHILUS_FORCE_INLINE static std::string gather_value(stream_iterator& input) {
 			uint64_t length = value_reader<uint64_t>::gather_value(input);
-			if (!input.has_bytes<char>(length)) {
+			if (!input.has_bytes<uint8_t>(length)) {
 				throw std::runtime_error("Sorry, but that index is out of range!");
 			}
 			std::string result(length, '\0');
@@ -564,7 +564,7 @@ namespace nihilus {
 	};
 
 	template<> struct value_reader<gguf_metadata_value_variant> {
-		NIHILUS_INLINE static gguf_metadata_value_variant gather_value(stream_iterator& input, gguf_metadata_value_type type) {
+		NIHILUS_FORCE_INLINE static gguf_metadata_value_variant gather_value(stream_iterator& input, gguf_metadata_value_type type) {
 			gguf_metadata_value_variant value{};
 			switch (type) {
 				case gguf_metadata_value_type::GGUF_METADATA_VALUE_TYPE_INT8: {
@@ -689,14 +689,14 @@ namespace nihilus {
 	};
 
 	struct gguf_header_t {
-		std::map<std::string, gguf_metadata_kv_t> metadata_kv{};
+		std::unordered_map<std::string, gguf_metadata_kv_t> metadata_kv{};
 		uint64_t metadata_kv_count{};
 		uint64_t tensor_count{};
 		uint32_t version{};
 		uint32_t magic{};
 	};
 
-	template<typename value_type> NIHILUS_FORCE_INLINE void gather_scalar(const std::string& key, value_type& out, const std::map<std::string, gguf_metadata_kv_t>& metadata_kv) {
+	template<typename value_type> NIHILUS_FORCE_INLINE void gather_scalar(const std::string& key, value_type& out, const std::unordered_map<std::string, gguf_metadata_kv_t>& metadata_kv) {
 		auto it = metadata_kv.find(key);
 		if (it == metadata_kv.end())
 			return;
@@ -706,7 +706,7 @@ namespace nihilus {
 		}
 	};
 
-	template<> NIHILUS_FORCE_INLINE void gather_scalar(const std::string& key, uint32_t& out, const std::map<std::string, gguf_metadata_kv_t>& metadata_kv) {
+	template<> NIHILUS_FORCE_INLINE void gather_scalar(const std::string& key, uint32_t& out, const std::unordered_map<std::string, gguf_metadata_kv_t>& metadata_kv) {
 		auto it = metadata_kv.find(key);
 		if (it == metadata_kv.end())
 			return;
@@ -716,7 +716,7 @@ namespace nihilus {
 		}
 	};
 
-	template<> NIHILUS_FORCE_INLINE void gather_scalar(const std::string& key, uint16_t& out, const std::map<std::string, gguf_metadata_kv_t>& metadata_kv) {
+	template<> NIHILUS_FORCE_INLINE void gather_scalar(const std::string& key, uint16_t& out, const std::unordered_map<std::string, gguf_metadata_kv_t>& metadata_kv) {
 		auto it = metadata_kv.find(key);
 		if (it == metadata_kv.end())
 			return;
@@ -726,7 +726,7 @@ namespace nihilus {
 		}
 	};
 
-	template<> NIHILUS_FORCE_INLINE void gather_scalar(const std::string& key, uint8_t& out, const std::map<std::string, gguf_metadata_kv_t>& metadata_kv) {
+	template<> NIHILUS_FORCE_INLINE void gather_scalar(const std::string& key, uint8_t& out, const std::unordered_map<std::string, gguf_metadata_kv_t>& metadata_kv) {
 		auto it = metadata_kv.find(key);
 		if (it == metadata_kv.end())
 			return;
@@ -735,7 +735,7 @@ namespace nihilus {
 			out = static_cast<uint8_t>(std::get<uint64_t>(v));
 		}
 	};
-	template<> NIHILUS_FORCE_INLINE void gather_scalar(const std::string& key, int32_t& out, const std::map<std::string, gguf_metadata_kv_t>& metadata_kv) {
+	template<> NIHILUS_FORCE_INLINE void gather_scalar(const std::string& key, int32_t& out, const std::unordered_map<std::string, gguf_metadata_kv_t>& metadata_kv) {
 		auto it = metadata_kv.find(key);
 		if (it == metadata_kv.end())
 			return;
@@ -745,7 +745,7 @@ namespace nihilus {
 		}
 	};
 
-	template<> NIHILUS_FORCE_INLINE void gather_scalar(const std::string& key, int16_t& out, const std::map<std::string, gguf_metadata_kv_t>& metadata_kv) {
+	template<> NIHILUS_FORCE_INLINE void gather_scalar(const std::string& key, int16_t& out, const std::unordered_map<std::string, gguf_metadata_kv_t>& metadata_kv) {
 		auto it = metadata_kv.find(key);
 		if (it == metadata_kv.end())
 			return;
@@ -755,7 +755,7 @@ namespace nihilus {
 		}
 	};
 
-	template<> NIHILUS_FORCE_INLINE void gather_scalar(const std::string& key, int8_t& out, const std::map<std::string, gguf_metadata_kv_t>& metadata_kv) {
+	template<> NIHILUS_FORCE_INLINE void gather_scalar(const std::string& key, int8_t& out, const std::unordered_map<std::string, gguf_metadata_kv_t>& metadata_kv) {
 		auto it = metadata_kv.find(key);
 		if (it == metadata_kv.end())
 			return;
@@ -766,10 +766,10 @@ namespace nihilus {
 	};
 
 	template<typename value_type>
-	NIHILUS_FORCE_INLINE void gather_array(const std::string& key, std::vector<value_type>& out, const std::map<std::string, gguf_metadata_kv_t>& metadata_kv);
+	NIHILUS_FORCE_INLINE void gather_array(const std::string& key, std::vector<value_type>& out, const std::unordered_map<std::string, gguf_metadata_kv_t>& metadata_kv);
 
 	template<int_type value_type>
-	NIHILUS_FORCE_INLINE void gather_array(const std::string& key, std::vector<value_type>& out, const std::map<std::string, gguf_metadata_kv_t>& metadata_kv) {
+	NIHILUS_FORCE_INLINE void gather_array(const std::string& key, std::vector<value_type>& out, const std::unordered_map<std::string, gguf_metadata_kv_t>& metadata_kv) {
 		auto it = metadata_kv.find(key);
 		if (it == metadata_kv.end())
 			return;
@@ -783,7 +783,7 @@ namespace nihilus {
 	};
 
 	template<uint_type value_type>
-	NIHILUS_FORCE_INLINE void gather_array(const std::string& key, std::vector<value_type>& out, const std::map<std::string, gguf_metadata_kv_t>& metadata_kv) {
+	NIHILUS_FORCE_INLINE void gather_array(const std::string& key, std::vector<value_type>& out, const std::unordered_map<std::string, gguf_metadata_kv_t>& metadata_kv) {
 		auto it = metadata_kv.find(key);
 		if (it == metadata_kv.end())
 			return;
@@ -797,7 +797,7 @@ namespace nihilus {
 	};
 
 	template<typename value_type>
-	NIHILUS_FORCE_INLINE void gather_array(const std::string& key, std::vector<value_type>& out, const std::map<std::string, gguf_metadata_kv_t>& metadata_kv) {
+	NIHILUS_FORCE_INLINE void gather_array(const std::string& key, std::vector<value_type>& out, const std::unordered_map<std::string, gguf_metadata_kv_t>& metadata_kv) {
 		auto it = metadata_kv.find(key);
 		if (it == metadata_kv.end())
 			return;
@@ -809,6 +809,31 @@ namespace nihilus {
 			}
 		}
 	};
+
+	template<typename map_type>
+	NIHILUS_FORCE_INLINE void get_map(const std::string& key, map_type& bpe_ranks, const std::unordered_map<std::string, gguf_metadata_kv_t>& metadata_kv) {
+		auto it = metadata_kv.find(key);
+		if NIHILUS_UNLIKELY (it == metadata_kv.end())
+			return;
+
+		const auto& v = it->second.value.value;
+		if NIHILUS_UNLIKELY (!std::holds_alternative<gguf_array_t*>(v))
+			return;
+
+		gguf_array_t& array = *std::get<gguf_array_t*>(v);
+
+		bpe_ranks.clear();
+		bpe_ranks.reserve(array.array.size());
+
+		for (size_t i = 0; i < array.array.size(); ++i) {
+			const std::string& merge_str = std::get<std::string>(array.array[i].value);
+			const std::string_view merge_view{ merge_str };
+			const size_t space_pos = merge_view.find(' ', 1);
+			if NIHILUS_LIKELY (space_pos != std::string_view::npos) {
+				bpe_ranks.emplace(std::make_pair(std::string{ merge_view.substr(0, space_pos) }, std::string{ merge_view.substr(space_pos + 1) }), static_cast<int32_t>(i));
+			}
+		}
+	}
 
 	NIHILUS_FORCE_INLINE void print_variant(auto variant) {
 		if (std::holds_alternative<float>(variant)) {
@@ -829,7 +854,7 @@ namespace nihilus {
 
 	// Static constexpr string literals for compile-time optimization
 	static constexpr string_literal llama{ "llama" };
-	static constexpr string_literal gpt2{ "gpt2" };
+	static constexpr string_literal gpt2{ "gpt-2" };
 	static constexpr string_literal bert{ "bert" };
 	static constexpr string_literal t5{ "t5" };
 	static constexpr string_literal gpt_neox{ "gpt-neox" };
@@ -999,7 +1024,7 @@ namespace nihilus {
 	}
 
 	template<> struct value_reader<construction_parameters<model_arches::llama>, model_arches::llama> {
-		NIHILUS_FORCE_INLINE static construction_parameters<model_arches::llama> gather_value(const std::map<std::string, gguf_metadata_kv_t>& metadata_kv) {
+		NIHILUS_FORCE_INLINE static construction_parameters<model_arches::llama> gather_value(const std::unordered_map<std::string, gguf_metadata_kv_t>& metadata_kv) {
 			construction_parameters<model_arches::llama> value{};
 			std::string architecture{};
 			if (metadata_kv.contains("general.architecture")) {
@@ -1030,14 +1055,14 @@ namespace nihilus {
 	};
 
 	template<typename derived_type> struct value_reader<vocab<model_arches::llama, vocab_types::bpe, derived_type>> {
-		NIHILUS_FORCE_INLINE static void gather_value(const std::map<std::string, gguf_metadata_kv_t>& metadata_kv,
+		NIHILUS_FORCE_INLINE static void gather_value(const std::unordered_map<std::string, gguf_metadata_kv_t>& metadata_kv,
 			vocab<model_arches::llama, vocab_types::bpe, derived_type>& tokenizer) {
 			std::string tokenizer_model;
 			std::string tokenizer_pre;
-
+			
 			gather_scalar("tokenizer.ggml.model", tokenizer_model, metadata_kv);
 			gather_scalar("tokenizer.ggml.pre", tokenizer_pre, metadata_kv);
-
+			
 			if (tokenizer_model == "no_vocab" || tokenizer_model == "none") {
 				uint32_t n_tokens		  = 0;
 				gather_scalar("general.vocab_size", n_tokens, metadata_kv);
@@ -1047,62 +1072,12 @@ namespace nihilus {
 				return;
 			}
 
-			if (tokenizer_model == "llama") {
-			} else if (tokenizer_model == "bert") {
-			} else if (tokenizer_model == "gpt2") {
-				std::vector<std::string> merges;
-				gather_array("tokenizer.ggml.merges", merges, metadata_kv);
-
-				for (size_t i = 0; i < merges.size(); ++i) {
-					const std::string& merge_str = merges[i];
-					size_t space_pos			 = merge_str.find(' ', 1);
-					if (space_pos != std::string::npos) {
-						std::string first  = merge_str.substr(0, space_pos);
-						std::string second = merge_str.substr(space_pos + 1);
-
-						tokenizer.bpe_ranks.emplace(std::make_pair(first, second), static_cast<int32_t>(i));
-					}
-				}
+			if (tokenizer_model == "gpt2") {
+				get_map("tokenizer.ggml.merges", tokenizer.bpe_ranks, metadata_kv);
 			} else if (tokenizer_model == "t5") {
-
-				std::vector<uint8_t> precompiled_data;
-				gather_array("tokenizer.ggml.precompiled_charsmap", precompiled_data, metadata_kv);
-				if (!precompiled_data.empty()) {
-					tokenizer.precompiled_charsmap.assign(precompiled_data.begin(), precompiled_data.end());
-				}
-			} else if (tokenizer_model == "rwkv") {
+				gather_array("tokenizer.ggml.precompiled_charsmap", tokenizer.precompiled_charsmap, metadata_kv);
 			} else {
 				throw std::runtime_error("Unknown tokenizer model: " + tokenizer_model);
-			}
-
-			if (tokenizer_model == "gpt2" || tokenizer_model == "bert" || tokenizer_model == "t5") {
-
-				if (tokenizer_pre.empty()) {
-				} else if (tokenizer_pre == "default") {
-				} else if (tokenizer_pre == "llama3" || tokenizer_pre == "llama-v3" || tokenizer_pre == "llama-bpe" || tokenizer_pre == "falcon3") {
-				} else if (tokenizer_pre == "deepseek-llm") {
-				} else if (tokenizer_pre == "deepseek-coder") {
-				} else if (tokenizer_pre == "deepseek-v3") {
-				} else if (tokenizer_pre == "falcon") {
-				} else if (tokenizer_pre == "mpt") {
-				} else if (tokenizer_pre == "starcoder") {
-				} else if (tokenizer_pre == "gpt-2" || tokenizer_pre == "phi-2" || tokenizer_pre == "jina-es" || tokenizer_pre == "jina-de" || tokenizer_pre == "gigachat" ||
-					tokenizer_pre == "roberta-bpe") {
-				} else if (tokenizer_pre == "refact") {
-				} else if (tokenizer_pre == "command-r") {
-				} else if (tokenizer_pre == "qwen2") {
-				} else if (tokenizer_pre == "tekken") {
-				} else if (tokenizer_pre == "smollm") {
-				} else if (tokenizer_pre == "chameleon") {
-				} else {
-					throw std::runtime_error("Unknown pre-tokenizer type: " + tokenizer_pre);
-				}
-			} else {
-				if (tokenizer_model == "llama") {
-				} else if (tokenizer_model == "bert") {
-				} else if (tokenizer_model == "t5") {
-				} else if (tokenizer_model == "rwkv") {
-				}
 			}
 
 			std::vector<std::string> tokens;
@@ -1116,14 +1091,14 @@ namespace nihilus {
 
 			uint32_t n_tokens = static_cast<uint32_t>(tokens.size());
 			tokenizer.id_to_token.resize(n_tokens);
-
+			std::cout << "N-TOKENS: " << n_tokens << std::endl;
 			for (uint32_t i = 0; i < n_tokens; i++) {
-				std::string word = tokens[i];
+				std::string_view word = tokens[i];
 				if (word.empty()) {
 					word = "[EMPTY_" + std::to_string(i) + "]";
 				}
 
-				tokenizer.token_to_id[word] = i;
+				tokenizer.token_to_id[word] = static_cast<int32_t>(i);
 
 				auto& token_data = tokenizer.id_to_token[i];
 				token_data.text	 = std::move(word);
@@ -1156,47 +1131,47 @@ namespace nihilus {
 					}
 				}
 			}
-
+			
 			for (const auto& [text, id]: tokenizer.token_to_id) {
-				if (tokenizer.special_eot_id == token_null) {
+				if constexpr (vocab<model_arches::llama, vocab_types::bpe, derived_type>::special_eot_id == token_null) {
 					if (text == "<|eot_id|>" || text == "<|im_end|>" || text == "<|end|>" || text == "<end_of_turn>" || text == "<|endoftext|>" || text == "< EOT >" ||
 						text == "<｜end▁of▁sentence｜>") {
-						tokenizer.id_to_token[id].att = tokens::control;
+						tokenizer.id_to_token[static_cast<uint64_t>(id)].att = tokens::control;
 					}
 				}
 
-				if (tokenizer.special_eom_id == token_null && text == "<|eom_id|>") {
-					tokenizer.id_to_token[id].att = tokens::control;
+				if constexpr (vocab<model_arches::llama, vocab_types::bpe, derived_type>::special_eom_id == token_null && text == "<|eom_id|>") {
+					tokenizer.id_to_token[static_cast<uint64_t>(id)].att = tokens::control;
 				}
 
-				if (tokenizer.special_fim_pre_id == token_null) {
+				if constexpr (vocab<model_arches::llama, vocab_types::bpe, derived_type>::special_fim_pre_id == token_null) {
 					if (text == "<|fim_prefix|>" || text == "<fim-prefix>" || text == "<｜fim▁begin｜>" || text == "<PRE>") {
-						tokenizer.id_to_token[id].att = tokens::control;
+						tokenizer.id_to_token[static_cast<uint64_t>(id)].att = tokens::control;
 					}
 				}
 
-				if (tokenizer.special_fim_suf_id == token_null) {
+				if constexpr (vocab<model_arches::llama, vocab_types::bpe, derived_type>::special_fim_suf_id == token_null) {
 					if (text == "<|fim_suffix|>" || text == "<fim-suffix>" || text == "<｜fim▁hole｜>" || text == "<SUF>") {
-						tokenizer.id_to_token[id].att = tokens::control;
+						tokenizer.id_to_token[static_cast<uint64_t>(id)].att = tokens::control;
 					}
 				}
 
-				if (tokenizer.special_fim_mid_id == token_null) {
+				if constexpr (vocab<model_arches::llama, vocab_types::bpe, derived_type>::special_fim_mid_id == token_null) {
 					if (text == "<|fim_middle|>" || text == "<fim-middle>" || text == "<｜fim▁end｜>" || text == "<MID>") {
-						tokenizer.id_to_token[id].att = tokens::control;
+						tokenizer.id_to_token[static_cast<uint64_t>(id)].att = tokens::control;
 					}
 				}
 			}
 
 			for (token id = 0; id < static_cast<token>(n_tokens); ++id) {
-				if (static_cast<size_t>(tokenizer.id_to_token[id].att) &
+				if (static_cast<size_t>(tokenizer.id_to_token[static_cast<uint64_t>(id)].att) &
 					(static_cast<size_t>(tokens::control) | static_cast<size_t>(tokens::user_defined) | static_cast<size_t>(tokens::unused))) {
 					tokenizer.cache_special_tokens.push_back(id);
 				}
 			}
 
 			std::sort(tokenizer.cache_special_tokens.begin(), tokenizer.cache_special_tokens.end(), [&](token a, token b) {
-				return tokenizer.id_to_token[a].text.size() > tokenizer.id_to_token[b].text.size();
+				return tokenizer.id_to_token[static_cast<uint64_t>(a)].text.size() > tokenizer.id_to_token[static_cast<uint64_t>(b)].text.size();
 			});
 
 			tokenizer.special_eog_ids.clear();
@@ -1207,45 +1182,15 @@ namespace nihilus {
 				}
 			}
 
-			if (tokenizer.special_eos_id != token_null) {
+			if constexpr (vocab<model_arches::llama, vocab_types::bpe, derived_type>::special_eos_id != token_null) {
 				tokenizer.special_eog_ids.insert(tokenizer.special_eos_id);
 			}
-			if (tokenizer.special_eot_id != token_null) {
+			if constexpr (vocab<model_arches::llama, vocab_types::bpe, derived_type>::special_eot_id != token_null) {
 				tokenizer.special_eog_ids.insert(tokenizer.special_eot_id);
 			}
-			if (tokenizer.special_eom_id != token_null) {
+			if constexpr (vocab<model_arches::llama, vocab_types::bpe, derived_type>::special_eom_id != token_null) {
 				tokenizer.special_eog_ids.insert(tokenizer.special_eom_id);
 			}
-
-			if (tokenizer_model == "llama") {
-				tokenizer.init_tokenizer(vocab_types::spm);
-			} else if (tokenizer_model == "gpt2") {
-				tokenizer.init_tokenizer(vocab_types::bpe);
-			} else if (tokenizer_model == "bert") {
-				tokenizer.init_tokenizer(vocab_types::wpm);
-			} else if (tokenizer_model == "t5") {
-				tokenizer.init_tokenizer(vocab_types::ugm);
-			} else if (tokenizer_model == "rwkv") {
-				tokenizer.init_tokenizer(vocab_types::rwkv);
-			}
-		}
-	};
-
-	template<model_config config, typename derived_type, vocab_types vocab_type>
-	struct value_reader<tokenizer<config, derived_type, model_arches::llama, vocab_type>, model_arches::llama> {
-		NIHILUS_FORCE_INLINE static void gather_value(const std::map<std::string, gguf_metadata_kv_t>& metadata_kv,
-			tokenizer<config, derived_type, model_arches::llama, vocab_type>& tokenizer) {
-			gather_scalar("tokenizer.ggml.bos_token_id", tokenizer.bos_token_id, metadata_kv);
-			gather_scalar("tokenizer.ggml.eos_token_id", tokenizer.eos_token_id, metadata_kv);
-			gather_scalar("tokenizer.chat_template", tokenizer.chat_template, metadata_kv);
-			std::string vocab_type_str{};
-			gather_scalar("tokenizer.ggml.model", vocab_type_str, metadata_kv);
-			//tokenizer.vocab_type = string_to_vocab_type(vocab_type_str);
-			gather_array("tokenizer.ggml.merges", tokenizer.merges, metadata_kv);
-			gather_scalar("tokenizer.ggml.pre", tokenizer.pre, metadata_kv);
-			gather_array("tokenizer.ggml.tokens", tokenizer.tokens, metadata_kv);
-			gather_array("tokenizer.ggml.token_type", tokenizer.token_types, metadata_kv);
-			return;
 		}
 	};
 
@@ -1424,7 +1369,6 @@ namespace nihilus {
 			uint64_t alignment{ 0 };
 			gather_scalar("alignment", alignment, gguf_file.header.metadata_kv);
 			return_value.cparams = value_reader<construction_parameters<model_arches::llama>, model_arches::llama>::gather_value(gguf_file.header.metadata_kv);
-			value_reader<tokenizer_type, model_arches::llama>::gather_value(gguf_file.header.metadata_kv, tokenizer);
 			value_reader<typename tokenizer_type::vocab_type>::gather_value(gguf_file.header.metadata_kv, *static_cast<typename tokenizer_type::vocab_type*>(&tokenizer));
 
 			sort_tensor_infos(gguf_file.tensor_infos);

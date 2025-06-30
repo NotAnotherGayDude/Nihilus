@@ -167,19 +167,58 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE op_latch()							  = default;
 		NIHILUS_FORCE_INLINE op_latch& operator=(const op_latch&) = delete;
 		NIHILUS_FORCE_INLINE op_latch(const op_latch&)			  = delete;
-		alignas(64) std::vector<atomic_flag_wrapper> finish_flags{};
-		char padding01[32];
-		alignas(64) std::vector<atomic_flag_wrapper> start_flags{};
-		char padding02[32];
-		alignas(64) std::atomic_signed_lock_free global_counter{};
-		char padding03[56];
-		alignas(64) size_t thread_count{};
+
+		alignas(64) std::atomic_uint64_t remaining_thread_count{};
+		char padding01[56]{};
+
+		alignas(64) std::atomic_bool operation_complete{ false };
+		char padding02[63]{};
+
+		alignas(64) size_t required_thread_count{};
+		char padding03[56]{};
 
 		NIHILUS_FORCE_INLINE void init(size_t thread_count_new) {
-			thread_count = thread_count_new;
-			start_flags.resize(thread_count);
-			finish_flags.resize(thread_count);
-			global_counter.store(static_cast<int64_t>(thread_count), std::memory_order_release);
+			required_thread_count = thread_count_new;
+			remaining_thread_count.store(thread_count_new, std::memory_order_release);
+			operation_complete.store(false, std::memory_order_release);
+		}
+
+		NIHILUS_FORCE_INLINE bool try_claim_work(uint64_t& work_slot) {
+			work_slot = remaining_thread_count.fetch_sub(1, std::memory_order_acq_rel);
+			return work_slot > 0;
+		}
+
+		NIHILUS_FORCE_INLINE bool is_operation_complete() const {
+			return remaining_thread_count.load(std::memory_order_acquire) == 0;
+		}
+
+		NIHILUS_FORCE_INLINE void reset_for_next_iteration() {
+			remaining_thread_count.store(required_thread_count, std::memory_order_release);
+			operation_complete.store(false, std::memory_order_release);
+		}
+	};
+
+	struct alignas(64) blocking_op_latch {
+		NIHILUS_FORCE_INLINE blocking_op_latch()					  = default;
+		NIHILUS_FORCE_INLINE blocking_op_latch& operator=(const blocking_op_latch&) = delete;
+		NIHILUS_FORCE_INLINE blocking_op_latch(const blocking_op_latch&)			  = delete;
+
+		alignas(64) size_t required_thread_count{};
+		char padding03[56]{};
+
+		alignas(64) std::vector<atomic_flag_wrapper> finish_flags{};
+		char padding04[32]{};
+		alignas(64) std::vector<atomic_flag_wrapper> start_flags{};
+		char padding05[32]{};
+		alignas(64) std::atomic_signed_lock_free global_counter{};
+		char padding06[56]{};
+
+		NIHILUS_FORCE_INLINE void init(size_t thread_count_new) {
+			required_thread_count = thread_count_new;
+
+			start_flags.resize(thread_count_new);
+			finish_flags.resize(thread_count_new);
+			global_counter.store(static_cast<int64_t>(thread_count_new), std::memory_order_release);
 		}
 
 		NIHILUS_FORCE_INLINE void worker_wait(size_t thread_index) {
@@ -192,7 +231,24 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE void arrive_and_wait(size_t thread_index) {
 			global_counter.fetch_sub(1, std::memory_order_acq_rel);
 			global_counter.notify_one();
+			while (!finish_flags[thread_index].test()) {
+				nihilus_pause();
+			}
+			finish_flags[thread_index].clear();
+		}
 
+		NIHILUS_FORCE_INLINE void arrive_and_wait_down(size_t thread_index) {
+			global_counter.fetch_sub(1, std::memory_order_acq_rel);
+			global_counter.notify_one();
+			while (!finish_flags[thread_index].test()) {
+				nihilus_pause();
+			}
+			finish_flags[thread_index].clear();
+		}
+
+		NIHILUS_FORCE_INLINE void arrive_and_wait_up(size_t thread_index) {
+			global_counter.fetch_sub(1, std::memory_order_acq_rel);
+			global_counter.notify_one();
 			while (!finish_flags[thread_index].test()) {
 				nihilus_pause();
 			}
@@ -200,21 +256,33 @@ namespace nihilus {
 		}
 
 		NIHILUS_FORCE_INLINE void count_down() {
-			for (size_t x = 0; x < thread_count; ++x) {
+			for (size_t x = 0; x < required_thread_count; ++x) {
 				start_flags[x].test_and_set();
 				start_flags[x].notify_one();
 			}
 		}
 
-		NIHILUS_FORCE_INLINE void main_wait() {
+		NIHILUS_FORCE_INLINE void main_wait_up() {
 			int64_t current_value = global_counter.load(std::memory_order_acquire);
 			while (current_value > 0) {
 				current_value = global_counter.load(std::memory_order_acquire);
 				nihilus_pause();
 			}
+			global_counter.store(static_cast<int64_t>(required_thread_count), std::memory_order_release);
+			for (size_t x = 0; x < required_thread_count; ++x) {
+				finish_flags[x].test_and_set();
+				finish_flags[x].notify_one();
+			}
+		}
 
-			global_counter.store(static_cast<int64_t>(thread_count), std::memory_order_release);
-			for (size_t x = 0; x < thread_count; ++x) {
+		NIHILUS_FORCE_INLINE void main_wait_down() {
+			int64_t current_value = global_counter.load(std::memory_order_acquire);
+			while (current_value > 0) {
+				current_value = global_counter.load(std::memory_order_acquire);
+				nihilus_pause();
+			}
+			global_counter.store(static_cast<int64_t>(required_thread_count), std::memory_order_release);
+			for (size_t x = 0; x < required_thread_count; ++x) {
 				finish_flags[x].test_and_set();
 				finish_flags[x].notify_one();
 			}

@@ -181,6 +181,9 @@ namespace nihilus {
 			case data_types::count: {
 				return {};
 			}
+			default: {
+				return {};
+			}
 		}
 	}
 

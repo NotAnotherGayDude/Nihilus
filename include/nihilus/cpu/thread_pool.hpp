@@ -180,7 +180,7 @@ namespace nihilus {
 				core_base_type::template impl<main_thread_per_block_function>(x);
 			}
 			core_base_type::template impl<main_thread_global_output_function>();
-			thread_latch.main_wait();
+			thread_latch.main_wait_up();
 		}
 
 		NIHILUS_FORCE_INLINE ~thread_pool() {
@@ -195,11 +195,11 @@ namespace nihilus {
 
 	  protected:
 		std::vector<std::thread> threads{};
-		char padding[32]{};
+		char padding[40]{};
 		alignas(64) std::atomic_bool stop{};
 		char padding02[63]{};
 		alignas(64) uint64_t thread_count{};
-		nihilus::op_latch thread_latch;
+		nihilus::blocking_op_latch thread_latch;
 	};
 
 }

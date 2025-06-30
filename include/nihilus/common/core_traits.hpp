@@ -85,7 +85,7 @@ namespace nihilus {
 		static constexpr kernel_types krn_type{ kernel_types::none };
 		static constexpr op_types type{ op_types::token_embd_weight };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		std::atomic_uint64_t remaining_thread_count{};
+		array<op_latch, model_traits_type::block_count> remaining_thread_count{};
 		output_type* data{};
 		int32_t value{};
 	};
@@ -110,7 +110,7 @@ namespace nihilus {
 		static constexpr op_types type{ op_types::inp_tokens };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		uint64_t dim00{ model_traits_type::max_sequence_length };
-		std::atomic_uint64_t remaining_thread_count{};
+		array<op_latch, model_traits_type::block_count> remaining_thread_count{};
 		output_type* data{};
 		int32_t value{};
 	};
@@ -135,7 +135,7 @@ namespace nihilus {
 		static constexpr op_types type{ op_types::inp_pos };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		uint64_t dim00{ model_traits_type::max_sequence_length };
-		std::atomic_uint64_t remaining_thread_count{};
+		array<op_latch, model_traits_type::block_count> remaining_thread_count{};
 		output_type* data{};
 		int32_t value{};
 	};
@@ -159,7 +159,7 @@ namespace nihilus {
 		static constexpr kernel_types krn_type{ kernel_types::none };
 		static constexpr op_types type{ op_types::inp_out_ids };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		std::atomic_uint64_t remaining_thread_count{};
+		array<op_latch, model_traits_type::block_count> remaining_thread_count{};
 		output_type* data{};
 		int32_t value{};
 	};
@@ -184,7 +184,7 @@ namespace nihilus {
 		static constexpr kernel_types krn_type{ kernel_types::none };
 		static constexpr op_types type{ op_types::rope_freqs_weight };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		std::atomic_uint64_t remaining_thread_count{};
+		array<op_latch, model_traits_type::block_count> remaining_thread_count{};
 		output_type* data{};
 		int32_t value{};
 	};
@@ -209,7 +209,7 @@ namespace nihilus {
 		static constexpr kernel_types krn_type{ kernel_types::none };
 		static constexpr op_types type{ op_types::output_weight };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		std::atomic_uint64_t remaining_thread_count{};
+		array<op_latch, model_traits_type::block_count> remaining_thread_count{};
 		output_type* data{};
 		int32_t value{};
 	};
@@ -233,7 +233,7 @@ namespace nihilus {
 		static constexpr kernel_types krn_type{ kernel_types::none };
 		static constexpr op_types type{ op_types::output_norm_weight };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		std::atomic_uint64_t remaining_thread_count{};
+		array<op_latch, model_traits_type::block_count> remaining_thread_count{};
 		output_type* data{};
 		int32_t value{};
 	};
@@ -258,7 +258,7 @@ namespace nihilus {
 		static constexpr kernel_types krn_type{ kernel_types::none };
 		static constexpr op_types type{ op_types::attn_q_weight };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		std::atomic_uint64_t remaining_thread_count{};
+		array<op_latch, model_traits_type::block_count> remaining_thread_count{};
 		array<output_type*, model_traits_type::block_count> data{};
 		int32_t value{};
 	};
@@ -285,7 +285,7 @@ namespace nihilus {
 		static constexpr kernel_types krn_type{ kernel_types::none };
 		static constexpr op_types type{ op_types::attn_k_weight };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		std::atomic_uint64_t remaining_thread_count{};
+		array<op_latch, model_traits_type::block_count> remaining_thread_count{};
 		array<output_type*, model_traits_type::block_count> data{};
 		int32_t value{};
 	};
@@ -312,7 +312,7 @@ namespace nihilus {
 		static constexpr kernel_types krn_type{ kernel_types::none };
 		static constexpr op_types type{ op_types::attn_v_weight };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		std::atomic_uint64_t remaining_thread_count{};
+		array<op_latch, model_traits_type::block_count> remaining_thread_count{};
 		array<output_type*, model_traits_type::block_count> data{};
 		int32_t value{};
 	};
@@ -338,7 +338,7 @@ namespace nihilus {
 		static constexpr kernel_types krn_type{ kernel_types::none };
 		static constexpr op_types type{ op_types::attn_output_weight };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		std::atomic_uint64_t remaining_thread_count{};
+		array<op_latch, model_traits_type::block_count> remaining_thread_count{};
 		array<output_type*, model_traits_type::block_count> data{};
 		int32_t value{};
 	};
@@ -362,7 +362,7 @@ namespace nihilus {
 		static constexpr kernel_types krn_type{ kernel_types::none };
 		static constexpr op_types type{ op_types::attn_norm_weight };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		std::atomic_uint64_t remaining_thread_count{};
+		array<op_latch, model_traits_type::block_count> remaining_thread_count{};
 		array<output_type*, model_traits_type::block_count> data{};
 		int32_t value{};
 	};
@@ -389,7 +389,7 @@ namespace nihilus {
 		static constexpr kernel_types krn_type{ kernel_types::none };
 		static constexpr op_types type{ op_types::ffn_gate_weight };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		std::atomic_uint64_t remaining_thread_count{};
+		array<op_latch, model_traits_type::block_count> remaining_thread_count{};
 		array<output_type*, model_traits_type::block_count> data{};
 		int32_t value{};
 	};
@@ -416,7 +416,7 @@ namespace nihilus {
 		static constexpr kernel_types krn_type{ kernel_types::none };
 		static constexpr op_types type{ op_types::ffn_up_weight };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		std::atomic_uint64_t remaining_thread_count{};
+		array<op_latch, model_traits_type::block_count> remaining_thread_count{};
 		array<output_type*, model_traits_type::block_count> data{};
 		int32_t value{};
 	};
@@ -443,7 +443,7 @@ namespace nihilus {
 		static constexpr kernel_types krn_type{ kernel_types::none };
 		static constexpr op_types type{ op_types::ffn_down_weight };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		std::atomic_uint64_t remaining_thread_count{};
+		array<op_latch, model_traits_type::block_count> remaining_thread_count{};
 		array<output_type*, model_traits_type::block_count> data{};
 		int32_t value{};
 	};
@@ -467,7 +467,7 @@ namespace nihilus {
 		static constexpr kernel_types krn_type{ kernel_types::none };
 		static constexpr op_types type{ op_types::ffn_norm_weight };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		std::atomic_uint64_t remaining_thread_count{};
+		array<op_latch, model_traits_type::block_count> remaining_thread_count{};
 		array<output_type*, model_traits_type::block_count> data{};
 		int32_t value{};
 	};
@@ -492,7 +492,7 @@ namespace nihilus {
 		static constexpr kernel_types krn_type{ kernel_types::none };
 		static constexpr op_types type{ op_types::cache_k };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		std::atomic_uint64_t remaining_thread_count{};
+		array<op_latch, model_traits_type::block_count> remaining_thread_count{};
 		array<output_type*, model_traits_type::block_count> data{};
 		int32_t value{};
 	};
@@ -517,7 +517,7 @@ namespace nihilus {
 		static constexpr kernel_types krn_type{ kernel_types::none };
 		static constexpr op_types type{ op_types::cache_v };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		std::atomic_uint64_t remaining_thread_count{};
+		array<op_latch, model_traits_type::block_count> remaining_thread_count{};
 		array<output_type*, model_traits_type::block_count> data{};
 		int32_t value{};
 	};
@@ -545,7 +545,7 @@ namespace nihilus {
 		static constexpr op_types type{ op_types::kq_mask };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		uint64_t dim00{ model_traits_type::max_sequence_length };
-		std::atomic_uint64_t remaining_thread_count{};
+		array<op_latch, model_traits_type::block_count> remaining_thread_count{};
 		output_type* data{};
 		int32_t value{};
 	};
@@ -577,7 +577,7 @@ namespace nihilus {
 		static constexpr op_types type{ op_types::inp_embd };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		uint64_t dim01{ model_traits_type::max_sequence_length };
-		std::atomic_uint64_t remaining_thread_count{};
+		op_latch remaining_thread_count{};
 		output_type* data{};
 		int32_t value{};
 	};
@@ -610,7 +610,7 @@ namespace nihilus {
 		static constexpr op_types type{ op_types::norm_attn_norm };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		uint64_t dim01{ model_traits_type::max_sequence_length };
-		std::atomic_uint64_t remaining_thread_count{};
+		array<op_latch, model_traits_type::block_count> remaining_thread_count{};
 		output_type* data{};
 		int32_t value{};
 	};
@@ -642,10 +642,8 @@ namespace nihilus {
 		static constexpr kernel_types krn_type{ kernel_types::mul_mat };
 		static constexpr op_types type{ op_types::qcur };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		array<op_latch, model_traits_type::block_count> sync_flag_start{};
-		array<op_latch, model_traits_type::block_count> sync_flag_end{};
+		array<blocking_op_latch, model_traits_type::block_count> sync_flag{};
 		uint64_t dim01{ model_traits_type::max_sequence_length };
-		std::atomic_uint64_t remaining_thread_count{};
 		output_type* data{};
 		int32_t value{};
 	};
@@ -675,7 +673,7 @@ namespace nihilus {
 		static constexpr op_types type{ op_types::qcur_reshaped };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		uint64_t dim01{ model_traits_type::max_sequence_length };
-		std::atomic_uint64_t remaining_thread_count{};
+		array<op_latch, model_traits_type::block_count> remaining_thread_count{};
 		output_type* data{};
 		int32_t value{};
 	};
@@ -709,7 +707,7 @@ namespace nihilus {
 		static constexpr op_types type{ op_types::qcur_rope };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		uint64_t dim01{ model_traits_type::max_sequence_length };
-		std::atomic_uint64_t remaining_thread_count{};
+		array<op_latch, model_traits_type::block_count> remaining_thread_count{};
 		output_type* data{};
 		int32_t value{};
 	};
@@ -740,10 +738,8 @@ namespace nihilus {
 		static constexpr kernel_types krn_type{ kernel_types::mul_mat };
 		static constexpr op_types type{ op_types::kcur };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		array<op_latch, model_traits_type::block_count> sync_flag_start{};
-		array<op_latch, model_traits_type::block_count> sync_flag_end{};
+		array<blocking_op_latch, model_traits_type::block_count> sync_flag{};
 		uint64_t dim01{ model_traits_type::max_sequence_length };
-		std::atomic_uint64_t remaining_thread_count{};
 		output_type* data{};
 		int32_t value{};
 	};
@@ -773,7 +769,7 @@ namespace nihilus {
 		static constexpr op_types type{ op_types::kcur_reshaped };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		uint64_t dim01{ model_traits_type::max_sequence_length };
-		std::atomic_uint64_t remaining_thread_count{};
+		array<op_latch, model_traits_type::block_count> remaining_thread_count{};
 		output_type* data{};
 		int32_t value{};
 	};
@@ -807,7 +803,7 @@ namespace nihilus {
 		static constexpr op_types type{ op_types::kcur_rope };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		uint64_t dim01{ model_traits_type::max_sequence_length };
-		std::atomic_uint64_t remaining_thread_count{};
+		array<op_latch, model_traits_type::block_count> remaining_thread_count{};
 		output_type* data{};
 		int32_t value{};
 	};
@@ -839,10 +835,8 @@ namespace nihilus {
 		static constexpr kernel_types krn_type{ kernel_types::mul_mat };
 		static constexpr op_types type{ op_types::vcur };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		array<op_latch, model_traits_type::block_count> sync_flag_start{};
-		array<op_latch, model_traits_type::block_count> sync_flag_end{};
+		array<blocking_op_latch, model_traits_type::block_count> sync_flag{};
 		uint64_t dim01{ model_traits_type::max_sequence_length };
-		std::atomic_uint64_t remaining_thread_count{};
 		output_type* data{};
 		int32_t value{};
 	};
@@ -871,7 +865,7 @@ namespace nihilus {
 		static constexpr op_types type{ op_types::k_cache_view };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		uint64_t dim01{ model_traits_type::max_sequence_length };
-		std::atomic_uint64_t remaining_thread_count{};
+		array<op_latch, model_traits_type::block_count> remaining_thread_count{};
 		output_type* data{};
 		int32_t value{};
 	};
@@ -901,7 +895,7 @@ namespace nihilus {
 		static constexpr op_types type{ op_types::k_cache_view_copy };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		uint64_t dim01{ model_traits_type::max_sequence_length };
-		std::atomic_uint64_t remaining_thread_count{};
+		array<op_latch, model_traits_type::block_count> remaining_thread_count{};
 		output_type* data{};
 		int32_t value{};
 	};
@@ -931,7 +925,7 @@ namespace nihilus {
 		static constexpr op_types type{ op_types::vcur_transposed };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		uint64_t dim00{ model_traits_type::max_sequence_length };
-		std::atomic_uint64_t remaining_thread_count{};
+		array<op_latch, model_traits_type::block_count> remaining_thread_count{};
 		output_type* data{};
 		int32_t value{};
 	};
@@ -960,7 +954,7 @@ namespace nihilus {
 		static constexpr op_types type{ op_types::v_cache_view };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		uint64_t dim01{ model_traits_type::max_sequence_length };
-		std::atomic_uint64_t remaining_thread_count{};
+		array<op_latch, model_traits_type::block_count> remaining_thread_count{};
 		output_type* data{};
 		int32_t value{};
 	};
@@ -990,7 +984,7 @@ namespace nihilus {
 		static constexpr op_types type{ op_types::v_cache_view_copy };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		uint64_t dim00{ model_traits_type::max_sequence_length };
-		std::atomic_uint64_t remaining_thread_count{};
+		array<op_latch, model_traits_type::block_count> remaining_thread_count{};
 		output_type* data{};
 		int32_t value{};
 	};
@@ -1019,7 +1013,7 @@ namespace nihilus {
 		static constexpr op_types type{ op_types::v };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		uint64_t dim01{ model_traits_type::max_sequence_length };
-		std::atomic_uint64_t remaining_thread_count{};
+		array<op_latch, model_traits_type::block_count> remaining_thread_count{};
 		output_type* data{};
 		int32_t value{};
 	};
@@ -1048,7 +1042,7 @@ namespace nihilus {
 		static constexpr op_types type{ op_types::k };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		uint64_t dim01{ model_traits_type::max_sequence_length };
-		std::atomic_uint64_t remaining_thread_count{};
+		array<op_latch, model_traits_type::block_count> remaining_thread_count{};
 		output_type* data{};
 		int32_t value{};
 	};
@@ -1077,7 +1071,7 @@ namespace nihilus {
 		static constexpr op_types type{ op_types::q };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		uint64_t dim01{ model_traits_type::max_sequence_length };
-		std::atomic_uint64_t remaining_thread_count{};
+		array<op_latch, model_traits_type::block_count> remaining_thread_count{};
 		output_type* data{};
 		int32_t value{};
 	};
@@ -1107,10 +1101,8 @@ namespace nihilus {
 		static constexpr kernel_types krn_type{ kernel_types::mul_mat };
 		static constexpr op_types type{ op_types::kq };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		array<op_latch, model_traits_type::block_count> sync_flag_start{};
-		array<op_latch, model_traits_type::block_count> sync_flag_end{};
+		array<blocking_op_latch, model_traits_type::block_count> sync_flag{};
 		uint64_t dim00{ model_traits_type::max_sequence_length };
-		std::atomic_uint64_t remaining_thread_count{};
 		output_type* data{};
 		int32_t value{};
 	};
@@ -1142,7 +1134,7 @@ namespace nihilus {
 		static constexpr op_types type{ op_types::kq_soft_max };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		uint64_t dim00{ model_traits_type::max_sequence_length };
-		std::atomic_uint64_t remaining_thread_count{};
+		array<op_latch, model_traits_type::block_count> remaining_thread_count{};
 		output_type* data{};
 		int32_t value{};
 	};
@@ -1172,9 +1164,8 @@ namespace nihilus {
 		static constexpr kernel_types krn_type{ kernel_types::mul_mat };
 		static constexpr op_types type{ op_types::kqv };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		array<op_latch, model_traits_type::block_count> sync_flag_start{};
-		array<op_latch, model_traits_type::block_count> sync_flag_end{};
-		std::atomic_uint64_t remaining_thread_count{};
+		array<blocking_op_latch, model_traits_type::block_count> sync_flag{};
+		array<op_latch, model_traits_type::block_count> remaining_thread_count{};
 		output_type* data{};
 		int32_t value{};
 	};
@@ -1201,7 +1192,7 @@ namespace nihilus {
 		static constexpr kernel_types krn_type{ kernel_types::permute };
 		static constexpr op_types type{ op_types::kqv_merged };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		std::atomic_uint64_t remaining_thread_count{};
+		array<op_latch, model_traits_type::block_count> remaining_thread_count{};
 		output_type* data{};
 		int32_t value{};
 	};
@@ -1227,7 +1218,7 @@ namespace nihilus {
 		static constexpr kernel_types krn_type{ kernel_types::cont };
 		static constexpr op_types type{ op_types::kqv_merged_cont };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		std::atomic_uint64_t remaining_thread_count{};
+		array<op_latch, model_traits_type::block_count> remaining_thread_count{};
 		output_type* data{};
 		int32_t value{};
 	};
@@ -1258,10 +1249,8 @@ namespace nihilus {
 		static constexpr kernel_types krn_type{ kernel_types::mul_mat };
 		static constexpr op_types type{ op_types::kqv_out };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		array<op_latch, model_traits_type::block_count> sync_flag_start{};
-		array<op_latch, model_traits_type::block_count> sync_flag_end{};
+		array<blocking_op_latch, model_traits_type::block_count> sync_flag{};
 		uint64_t dim01{ model_traits_type::max_sequence_length };
-		std::atomic_uint64_t remaining_thread_count{};
 		output_type* data{};
 		int32_t value{};
 	};
@@ -1294,7 +1283,7 @@ namespace nihilus {
 		static constexpr op_types type{ op_types::ffn_inp_norm_out_ffn_norm };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		uint64_t dim01{ model_traits_type::max_sequence_length };
-		std::atomic_uint64_t remaining_thread_count{};
+		array<op_latch, model_traits_type::block_count> remaining_thread_count{};
 		output_type* data{};
 		int32_t value{};
 	};
@@ -1326,7 +1315,7 @@ namespace nihilus {
 		static constexpr op_types type{ op_types::ffn_inp };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		uint64_t dim01{ model_traits_type::max_sequence_length };
-		std::atomic_uint64_t remaining_thread_count{};
+		array<op_latch, model_traits_type::block_count> remaining_thread_count{};
 		output_type* data{};
 		int32_t value{};
 	};
@@ -1357,7 +1346,7 @@ namespace nihilus {
 		static constexpr op_types type{ op_types::norm_out };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		uint64_t dim01{ model_traits_type::max_sequence_length };
-		std::atomic_uint64_t remaining_thread_count{};
+		array<op_latch, model_traits_type::block_count> remaining_thread_count{};
 		output_type* data{};
 		int32_t value{};
 	};
@@ -1389,7 +1378,7 @@ namespace nihilus {
 		static constexpr op_types type{ op_types::ffn_norm };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		uint64_t dim01{ model_traits_type::max_sequence_length };
-		std::atomic_uint64_t remaining_thread_count{};
+		array<op_latch, model_traits_type::block_count> remaining_thread_count{};
 		output_type* data{};
 		int32_t value{};
 	};
@@ -1421,10 +1410,8 @@ namespace nihilus {
 		static constexpr kernel_types krn_type{ kernel_types::mul_mat };
 		static constexpr op_types type{ op_types::ffn_gate };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		array<op_latch, model_traits_type::block_count> sync_flag_start{};
-		array<op_latch, model_traits_type::block_count> sync_flag_end{};
+		array<blocking_op_latch, model_traits_type::block_count> sync_flag{};
 		uint64_t dim01{ model_traits_type::max_sequence_length };
-		std::atomic_uint64_t remaining_thread_count{};
 		output_type* data{};
 		int32_t value{};
 	};
@@ -1456,7 +1443,7 @@ namespace nihilus {
 		static constexpr op_types type{ op_types::ffn_silu };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		uint64_t dim01{ model_traits_type::max_sequence_length };
-		std::atomic_uint64_t remaining_thread_count{};
+		array<op_latch, model_traits_type::block_count> remaining_thread_count{};
 		output_type* data{};
 		int32_t value{};
 	};
@@ -1488,10 +1475,8 @@ namespace nihilus {
 		static constexpr kernel_types krn_type{ kernel_types::mul_mat };
 		static constexpr op_types type{ op_types::ffn_up };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		array<op_latch, model_traits_type::block_count> sync_flag_start{};
-		array<op_latch, model_traits_type::block_count> sync_flag_end{};
+		array<blocking_op_latch, model_traits_type::block_count> sync_flag{};
 		uint64_t dim01{ model_traits_type::max_sequence_length };
-		std::atomic_uint64_t remaining_thread_count{};
 		output_type* data{};
 		int32_t value{};
 	};
@@ -1524,7 +1509,7 @@ namespace nihilus {
 		static constexpr op_types type{ op_types::ffn_gate_par };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		uint64_t dim01{ model_traits_type::max_sequence_length };
-		std::atomic_uint64_t remaining_thread_count{};
+		array<op_latch, model_traits_type::block_count> remaining_thread_count{};
 		output_type* data{};
 		int32_t value{};
 	};
@@ -1555,10 +1540,8 @@ namespace nihilus {
 		static constexpr kernel_types krn_type{ kernel_types::mul_mat };
 		static constexpr op_types type{ op_types::ffn_out };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		array<op_latch, model_traits_type::block_count> sync_flag_start{};
-		array<op_latch, model_traits_type::block_count> sync_flag_end{};
+		array<blocking_op_latch, model_traits_type::block_count> sync_flag{};
 		uint64_t dim01{ model_traits_type::max_sequence_length };
-		std::atomic_uint64_t remaining_thread_count{};
 		output_type* data{};
 		int32_t value{};
 	};
@@ -1589,7 +1572,7 @@ namespace nihilus {
 		static constexpr op_types type{ op_types::l_out };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		uint64_t dim01{ model_traits_type::max_sequence_length };
-		std::atomic_uint64_t remaining_thread_count{};
+		array<op_latch, model_traits_type::block_count> remaining_thread_count{};
 		output_type* data{};
 		int32_t value{};
 	};
@@ -1622,7 +1605,7 @@ namespace nihilus {
 		static constexpr op_types type{ op_types::attn_residual };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		uint64_t dim01{ model_traits_type::max_sequence_length };
-		std::atomic_uint64_t remaining_thread_count{};
+		array<op_latch, model_traits_type::block_count> remaining_thread_count{};
 		output_type* data{};
 		int32_t value{};
 	};
@@ -1655,7 +1638,7 @@ namespace nihilus {
 		static constexpr op_types type{ op_types::prev_residual };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		uint64_t dim01{ model_traits_type::max_sequence_length };
-		std::atomic_uint64_t remaining_thread_count{};
+		array<op_latch, model_traits_type::block_count> remaining_thread_count{};
 		output_type* data{};
 		int32_t value{};
 	};
@@ -1687,7 +1670,7 @@ namespace nihilus {
 		static constexpr op_types type{ op_types::final_norm };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		uint64_t dim01{ model_traits_type::max_sequence_length };
-		std::atomic_uint64_t remaining_thread_count{};
+		array<op_latch, model_traits_type::block_count> remaining_thread_count{};
 		output_type* data{};
 		int32_t value{};
 	};
@@ -1720,7 +1703,7 @@ namespace nihilus {
 		static constexpr op_types type{ op_types::result_norm };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		uint64_t dim01{ model_traits_type::max_sequence_length };
-		std::atomic_uint64_t remaining_thread_count{};
+		array<op_latch, model_traits_type::block_count> remaining_thread_count{};
 		output_type* data{};
 		int32_t value{};
 	};
@@ -1752,10 +1735,8 @@ namespace nihilus {
 		static constexpr kernel_types krn_type{ kernel_types::mul_mat };
 		static constexpr op_types type{ op_types::result_output };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		array<op_latch, model_traits_type::block_count> sync_flag_start{};
-		array<op_latch, model_traits_type::block_count> sync_flag_end{};
+		array<blocking_op_latch, model_traits_type::block_count> sync_flag{};
 		uint64_t dim01{ model_traits_type::max_sequence_length };
-		std::atomic_uint64_t remaining_thread_count{};
 		output_type* data{};
 		int32_t value{};
 	};
@@ -1779,6 +1760,11 @@ namespace nihilus {
 	};
 
 	template<nihilus::model_config config, typename... bases> struct core_bases : public bases... {
+		NIHILUS_FORCE_INLINE core_bases() noexcept = default;
+		core_bases& operator=(core_bases&&) = delete;
+		core_bases(core_bases&&)			 = delete;
+		core_bases& operator=(const core_bases&) = delete;
+		core_bases(const core_bases&) = delete;
 		template<template<nihilus::model_config, typename> typename mixin_type, typename... arg_types> NIHILUS_FORCE_INLINE constexpr void impl(arg_types&&... args) {
 			(impl_internal_filtered<mixin_type, bases>(std::forward<arg_types>(args)...), ...);
 		}
@@ -1790,6 +1776,7 @@ namespace nihilus {
 	  protected:
 		template<template<nihilus::model_config, typename> typename mixin_type, typename base_type, typename... arg_types>
 		NIHILUS_FORCE_INLINE constexpr void impl_internal_filtered(arg_types&&... args) {
+			( void )(args, ...);
 			if constexpr (mixin_type<config, base_type>::filter()) {
 				mixin_type<config, base_type>::impl(*static_cast<base_type*>(this), std::forward<arg_types>(args)...);
 			}
@@ -1797,6 +1784,7 @@ namespace nihilus {
 
 		template<template<nihilus::model_config, typename> typename mixin_type, typename base_type, typename... arg_types>
 		NIHILUS_FORCE_INLINE static constexpr void impl_internal_filtered_static(arg_types&&... args) {
+			( void )(args,...);
 			if constexpr (mixin_type<config, base_type>::filter()) {
 				mixin_type<config, base_type>::impl(std::forward<arg_types>(args)...);
 			}

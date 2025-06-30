@@ -488,8 +488,8 @@ namespace nihilus {
 		}
 	}
 
-	std::vector<std::map<std::string, intermediary_tensor>> get_tensors_multi_iteration(std::string_view base_path, std::string_view base_name) {
-		std::vector<std::map<std::string, intermediary_tensor>> return_values{};
+	std::vector<std::unordered_map<std::string, intermediary_tensor>> get_tensors_multi_iteration(std::string_view base_path, std::string_view base_name) {
+		std::vector<std::unordered_map<std::string, intermediary_tensor>> return_values{};
 
 		// Try to load files with incrementing indices until we can't find any more
 		for (int32_t iteration = 0;; ++iteration) {
@@ -503,8 +503,8 @@ namespace nihilus {
 			}
 			test_file.close();
 
-			std::map<std::string, intermediary_ggml_tensor> iteration_ggml{};
-			std::map<std::string, intermediary_tensor> iteration_tensors{};
+			std::unordered_map<std::string, intermediary_ggml_tensor> iteration_ggml{};
+			std::unordered_map<std::string, intermediary_tensor> iteration_tensors{};
 
 			try {
 				file_loader<false> file_loader{ filename };
@@ -533,18 +533,18 @@ namespace nihilus {
 	}
 
 	struct tensor_debugger {
-		inline static std::vector<std::map<std::string, intermediary_tensor>> leaf_iterations{ get_tensors_multi_iteration("C:/users/chris/source/repos/ft-tl", "Leaf_Data") };
+		inline static std::vector<std::unordered_map<std::string, intermediary_tensor>> leaf_iterations{ get_tensors_multi_iteration("C:/users/chris/source/repos/ft-tl", "Leaf_Data") };
 
-		inline static std::vector<std::map<std::string, intermediary_tensor>> node_iterations{ get_tensors_multi_iteration("C:/users/chris/source/repos/ft-tl", "Node_Data") };
+		inline static std::vector<std::unordered_map<std::string, intermediary_tensor>> node_iterations{ get_tensors_multi_iteration("C:/users/chris/source/repos/ft-tl", "Node_Data") };
 
 		// Helper methods to access specific iterations
-		static const std::map<std::string, intermediary_tensor>& get_leaf_iteration(size_t iteration) {
-			static const std::map<std::string, intermediary_tensor> empty{};
+		static const std::unordered_map<std::string, intermediary_tensor>& get_leaf_iteration(size_t iteration) {
+			static const std::unordered_map<std::string, intermediary_tensor> empty{};
 			return (iteration < leaf_iterations.size()) ? leaf_iterations[iteration] : empty;
 		}
 
-		static const std::map<std::string, intermediary_tensor>& get_node_iteration(size_t iteration) {
-			static const std::map<std::string, intermediary_tensor> empty{};
+		static const std::unordered_map<std::string, intermediary_tensor>& get_node_iteration(size_t iteration) {
+			static const std::unordered_map<std::string, intermediary_tensor> empty{};
 			return (iteration < node_iterations.size()) ? node_iterations[iteration] : empty;
 		}
 

@@ -47,7 +47,7 @@ namespace nihilus {
 		static_assert(integral_or_enum<decltype(size_new)>, "Sorry, but the size val passed to array must be integral or enum!");
 		static constexpr uint64_t size_val{ static_cast<uint64_t>(size_new) };
 		using value_type			 = value_type_new;
-		using uint64_type				 = decltype(size_new);
+		using uint64_type			 = decltype(size_new);
 		using difference_type		 = ptrdiff_t;
 		using pointer				 = value_type*;
 		using const_pointer			 = const value_type*;
@@ -57,6 +57,65 @@ namespace nihilus {
 		using const_iterator		 = const array_iterator<value_type, static_cast<uint64_t>(size_new)>;
 		using reverse_iterator		 = std::reverse_iterator<iterator>;
 		using const_reverse_iterator = std::reverse_iterator<const_iterator>;
+
+		NIHILUS_FORCE_INLINE constexpr array() = default;
+
+		NIHILUS_FORCE_INLINE constexpr array(std::initializer_list<value_type> values) {
+			for (size_t x = 0; x < values.size(); ++x) {
+				data_val[x] = values.begin()[x];
+			}
+		};
+
+		NIHILUS_FORCE_INLINE constexpr array(const array& other)
+			requires(std::is_copy_constructible_v<value_type>)
+		{
+			for (uint64_t i = 0; i < size_val; ++i) {
+				data_val[i] = other.data_val[i];
+			}
+		}
+
+		NIHILUS_FORCE_INLINE array(const array& other)
+			requires(!std::is_copy_constructible_v<value_type>)
+		= delete;
+
+		NIHILUS_FORCE_INLINE constexpr array& operator=(const array& other)
+			requires(std::is_copy_assignable_v<value_type>)
+		{
+			if (this != &other) {
+				for (uint64_t i = 0; i < size_val; ++i) {
+					data_val[i] = other.data_val[i];
+				}
+			}
+			return *this;
+		}
+
+		NIHILUS_FORCE_INLINE array& operator=(const array& other)
+			requires(!std::is_copy_assignable_v<value_type>)
+		= delete;
+
+		NIHILUS_FORCE_INLINE constexpr array(array&& other) noexcept
+			requires(std::is_move_constructible_v<value_type>)
+		{
+			for (uint64_t i = 0; i < size_val; ++i) {
+				data_val[i] = std::move(other.data_val[i]);
+			}
+		}
+
+		NIHILUS_FORCE_INLINE constexpr array& operator=(array&& other) noexcept
+			requires(std::is_move_assignable_v<value_type>)
+		{
+			if (this != &other) {
+				for (uint64_t i = 0; i < size_val; ++i) {
+					data_val[i] = std::move(other.data_val[i]);
+				}
+			}
+			return *this;
+		}
+
+		template<typename... Args> NIHILUS_FORCE_INLINE constexpr array(Args&&... args)
+			requires(sizeof...(Args) == size_val && (std::is_constructible_v<value_type, Args> && ...) && std::is_copy_constructible_v<value_type>)
+			: data_val{ static_cast<value_type>(std::forward<Args>(args))... } {
+		}
 
 		NIHILUS_FORCE_INLINE constexpr void fill(const value_type& _Value) {
 			std::fill_n(data_val, size_new, _Value);
@@ -205,7 +264,7 @@ namespace nihilus {
 	template<class value_type_new> class array<value_type_new, 0> {
 	  public:
 		using value_type			 = value_type_new;
-		using uint64_type				 = uint64_t;
+		using uint64_type			 = uint64_t;
 		using difference_type		 = ptrdiff_t;
 		using pointer				 = value_type*;
 		using const_pointer			 = const value_type*;

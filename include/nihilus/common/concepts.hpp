@@ -108,8 +108,7 @@ namespace nihilus {
 
 	template<typename value_type>
 	concept blocking = requires(std::remove_cvref_t<value_type> value) {
-		std::remove_cvref_t<value_type>::sync_flag_end;
-		std::remove_cvref_t<value_type>::sync_flag_start;
+		std::remove_cvref_t<value_type>::sync_flag;
 	};
 
 	template<typename value_type>

@@ -116,6 +116,7 @@ set(NIHILUS_COMMON_COMPILE_FLAGS
 	"$<$<CXX_COMPILER_ID:GNU>:-Wconversion>"
     "$<$<CXX_COMPILER_ID:MSVC>:/Zc:lambda>"
 	"$<$<CXX_COMPILER_ID:GNU>:-Wpedantic>"
+    "$<$<CXX_COMPILER_ID:MSVC>:/wd5045>"
 	"$<$<CXX_COMPILER_ID:GNU>:-Wshadow>"
 	"$<$<CXX_COMPILER_ID:GNU>:-Wextra>"
 	"$<$<CXX_COMPILER_ID:MSVC>:/Wall>"
