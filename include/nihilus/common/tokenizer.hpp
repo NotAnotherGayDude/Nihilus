@@ -31,11 +31,11 @@ namespace nihilus {
 	template<model_arches arch> struct tokenizer_parameters;
 
 	template<> struct tokenizer_parameters<model_arches::llama> {
-		std::vector<int64_t> token_types{};
-		std::vector<std::string> tokens{};
-		std::vector<std::string> merges{};
-		std::string chat_template{};
-		std::string pre{};
+		std::vector<std::string_view> tokens{};
+		std::vector<std::string_view> merges{};
+		std::vector<int32_t> token_types{};
+		std::string_view chat_template{};
+		std::string_view pre{};
 	};
 
 	struct bpe_token {
@@ -68,11 +68,17 @@ namespace nihilus {
 		std::string text;
 		int32_t rank;
 		size_t size;
+	};	
+
+	struct pair_hash {
+		NIHILUS_FORCE_INLINE size_t operator()(const std::pair<std::string_view, std::string_view>& p) const {
+			return std::hash<std::string_view>{}(p.first) ^ (std::hash<std::string_view>{}(p.second) << 1);
+		}
 	};
 
 	template<model_config config, typename derived_type, vocab_types vocab_type_new> struct tokenizer<config, derived_type, model_arches::llama, vocab_type_new>
-		: public tokenizer_parameters<model_arches::llama>, public vocab<config, vocab_type_new, tokenizer<config, derived_type, model_arches::llama, vocab_type_new>> {
-		using vocab_type						  = vocab<config, vocab_type_new, tokenizer<config, derived_type, model_arches::llama, vocab_type_new>>;
+		: public tokenizer_parameters<model_arches::llama>, public vocab_traits<config.arch, vocab_type_new, config.vocab_pre_type> {
+		using vocab_type						  = vocab_traits<config.arch, vocab_type_new, config.vocab_pre_type>;
 		NIHILUS_FORCE_INLINE tokenizer() noexcept = default;
 		using model_traits_type					  = model_traits<config.arch, config.model_size, config.model_generation>;
 		static constexpr std::string_view regex_exprs{ [] {
@@ -83,23 +89,14 @@ namespace nihilus {
 				return std::string_view{};
 			}
 		}() };
-		std::unordered_map<std::string, int32_t> token_to_id;
 		std::unordered_map<std::pair<std::string_view, std::string_view>, int32_t, pair_hash> bpe_ranks;
+		std::unordered_map<std::string_view, token> token_to_id;
 
 		NIHILUS_FORCE_INLINE void load_vocabulary() {
+
 			token_to_id.clear();
 			for (size_t i = 0; i < tokens.size(); ++i) {
 				token_to_id[tokens[i]] = static_cast<int32_t>(i);
-			}
-			bpe_ranks.clear();
-			for (size_t i = 0; i < merges.size(); ++i) {
-				const std::string& merge_str = merges[i];
-				size_t space_pos			 = merge_str.find(' ');
-				if (space_pos != std::string::npos) {
-					std::string left		   = merge_str.substr(0, space_pos);
-					std::string right		   = merge_str.substr(space_pos + 1);
-					bpe_ranks[{ left, right }] = static_cast<int32_t>(i);
-				}
 			}
 		}
 
@@ -145,40 +142,50 @@ namespace nihilus {
 				text = text.substr(0, end + 1);
 			}
 
-
 			bool is_first_word = true;
 			size_t i		   = 0;
 
 			while (i < text.length()) {
 				std::string token;
+				while (i < text.length() && is_space(text[i])) {
+					i++;
+				}
+
+				if (i >= text.length())
+					break;
 
 				if (is_first_word) {
-					while (i < text.length() && std::isalpha(text[i])) {
+					if (is_alpha(text[i])) {
+						while (i < text.length() && is_alpha(text[i])) {
+							token += text[i];
+							i++;
+						}
+					} else if (is_digit(text[i])) {
+						while (i < text.length() && is_digit(text[i])) {
+							token += text[i];
+							i++;
+						}
+					} else {
 						token += text[i];
 						i++;
 					}
 					is_first_word = false;
 				} else {
-					if (i < text.length() && std::isspace(text[i])) {
+					if (is_alpha(text[i])) {
 						token += "Ġ";
-						i++;
-					}
-
-					if (i < text.length()) {
-						if (std::isalpha(text[i])) {
-							while (i < text.length() && std::isalpha(text[i])) {
-								token += text[i];
-								i++;
-							}
-						} else if (std::isdigit(text[i])) {
-							while (i < text.length() && std::isdigit(text[i])) {
-								token += text[i];
-								i++;
-							}
-						} else if (!std::isspace(text[i])) {
+						while (i < text.length() && is_alpha(text[i])) {
 							token += text[i];
 							i++;
 						}
+					} else if (is_digit(text[i])) {
+						token += "Ġ";
+						while (i < text.length() && is_digit(text[i])) {
+							token += text[i];
+							i++;
+						}
+					} else {
+						token += text[i];
+						i++;
 					}
 				}
 
@@ -296,14 +303,15 @@ namespace nihilus {
 		}
 
 		NIHILUS_FORCE_INLINE size_t unicode_len_utf8(char c) {
-			if ((c & 0x80) == 0)
-				return 1;
-			if ((c & 0xE0) == 0xC0)
+			if ((c & 0xE0) == 0xC0) {
 				return 2;
-			if ((c & 0xF0) == 0xE0)
+			}
+			if ((c & 0xF0) == 0xE0) {
 				return 3;
-			if ((c & 0xF8) == 0xF0)
+			}
+			if ((c & 0xF8) == 0xF0) {
 				return 4;
+			}
 			return 1;
 		}
 

@@ -24,8 +24,6 @@ RealTimeChris (Chris M.)
 #include <nihilus/common/model_parser.hpp>
 #include <nihilus/common/input_session.hpp>
 #include <nihilus/cpu/thread_pool.hpp>
-#include <nihilus/common/h_params.hpp>
-#include <nihilus/common/memory.hpp>
 #include <nihilus/common/tuple.hpp>
 
 namespace nihilus {
@@ -75,10 +73,11 @@ namespace nihilus {
 			this->template impl<weight_mapper>(data);
 			this->template impl<memory_mapper>(memory);
 			nihilus::stop_watch_val_nihilus.reset();
-			nihilus::model_graph_data<config_new> model_construction_data =
+			gguf_metadata<config_new.arch, config_new.vocab_type, config_new.vocab_pre_type> model_construction_data =
 				nihilus::model_parser<config_new>::parse_model(data, &weight_memory, *static_cast<tokenizer_type*>(this));
+			int64_t total_time{ nihilus::stop_watch_val_nihilus.total_time_elapsed().count() };
 			this->load_vocabulary();
-			std::cout << "Nihilus model Load time: " << nihilus::stop_watch_val_nihilus.total_time_elapsed() << std::endl;
+			std::cout << "Nihilus model Load time: " << total_time << std::endl;
 		}
 
 		NIHILUS_FORCE_INLINE void deinit(nihilus::cli_params params) {
@@ -93,7 +92,7 @@ namespace nihilus {
 			this->template impl<tensor_debugger_impl>();
 #endif
 			++current_iteration;
-			this->template impl<dim_updater>(params.sequence_length);
+			this->template impl<dim_updater>(12);
 #if defined(NIHILUS_DEBUG)
 			this->template impl<tensor_debugger_impl>();
 #endif

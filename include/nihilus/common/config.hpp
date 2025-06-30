@@ -21,6 +21,7 @@ RealTimeChris (Chris M.)
 #pragma once
 
 #include <source_location>
+#include <cstring>
 #include <cstdint>
 #include <utility>
 #include <atomic>

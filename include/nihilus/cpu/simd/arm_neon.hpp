@@ -28,23 +28,23 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-	template<simd_int_128_type simd_int_type_new> NIHILUS_FORCE_INLINE static simd_int_type_new gatherValues(const void* str) noexcept {
+	template<simd_int_128_type simd_int_type_new> NIHILUS_FORCE_INLINE static simd_int_type_new gather_values(const void* str) noexcept {
 		return vld1q_u8(static_cast<const uint8_t*>(str));
 	}
 
-	template<simd_int_128_type simd_int_type_new> NIHILUS_FORCE_INLINE static simd_int_type_new gatherValuesU(const void* str, void*) noexcept {
+	template<simd_int_128_type simd_int_type_new> NIHILUS_FORCE_INLINE static simd_int_type_new gather_valuesU(const void* str, void*) noexcept {
 		return vld1q_u8(static_cast<const uint8_t*>(str));
 	}
 
 	template<simd_int_128_type simd_int_type_new, typename char_t>
 		requires(sizeof(char_t) == 8)
-	NIHILUS_FORCE_INLINE static simd_int_type_new gatherValue(char_t str) noexcept {
+	NIHILUS_FORCE_INLINE static simd_int_type_new gather_value(char_t str) noexcept {
 		return vdupq_n_u64(str);
 	}
 
 	template<simd_int_128_type simd_int_type_new, typename char_t>
 		requires(sizeof(char_t) == 1)
-	NIHILUS_FORCE_INLINE static simd_int_type_new gatherValue(char_t str) noexcept {
+	NIHILUS_FORCE_INLINE static simd_int_type_new gather_value(char_t str) noexcept {
 		return vdupq_n_u8(str);
 	}
 
@@ -56,7 +56,7 @@ namespace nihilus {
 		vst1q_u8(static_cast<uint8_t*>(storageLocation), value);
 	}
 
-	template<simd_int_128_type simd_int_t01, simd_int_128_type simd_int_t02> NIHILUS_FORCE_INLINE static auto opCmpEq(const simd_int_t01& value, const simd_int_t02& other) noexcept {
+	template<simd_int_128_type simd_int_t01, simd_int_128_type simd_int_t02> NIHILUS_FORCE_INLINE static auto op_cmp_eq(const simd_int_t01& value, const simd_int_t02& other) noexcept {
 		return vget_lane_u64(vreinterpret_u64_u8(vshrn_n_u16(vceqq_u8(value, other), 4)), 0);
 	}
 
@@ -65,7 +65,7 @@ namespace nihilus {
 	}
 
 	template<simd_int_128_type simd_int_t01, simd_int_128_type simd_int_t02>
-	NIHILUS_FORCE_INLINE static auto opCmpEqRaw(const simd_int_t01& value, const simd_int_t02& other) noexcept {
+	NIHILUS_FORCE_INLINE static auto op_cmp_eqRaw(const simd_int_t01& value, const simd_int_t02& other) noexcept {
 		return vceqq_u8(value, other);
 	}
 
@@ -88,7 +88,7 @@ namespace nihilus {
 	}
 
 	template<simd_int_128_type simd_int_t01, simd_int_128_type simd_int_t02>
-	NIHILUS_FORCE_INLINE static auto opCmpEqBitMask(const simd_int_t01& value, const simd_int_t02& other) noexcept {
+	NIHILUS_FORCE_INLINE static auto op_cmp_eqBitMask(const simd_int_t01& value, const simd_int_t02& other) noexcept {
 		return opBitMask(vceqq_u8(value, other));
 	}
 
@@ -125,9 +125,9 @@ namespace nihilus {
 		return vmvnq_u8(value);
 	}
 
-	template<simd_int_128_type simd_int_t01> NIHILUS_FORCE_INLINE static nihilus_simd_int_128 opSetLSB(const simd_int_t01& value, bool valueNew) noexcept {
+	template<simd_int_128_type simd_int_t01> NIHILUS_FORCE_INLINE static nihilus_simd_int_128 opSetLSB(const simd_int_t01& value, bool value_new) noexcept {
 		constexpr uint8x16_t mask{ 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-		return valueNew ? vorrq_u8(value, mask) : vbicq_u8(value, mask);
+		return value_new ? vorrq_u8(value, mask) : vbicq_u8(value, mask);
 	}
 
 	template<simd_int_128_type simd_int_t01> NIHILUS_FORCE_INLINE static bool opGetMSB(const simd_int_t01& value) noexcept {

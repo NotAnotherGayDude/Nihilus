@@ -75,11 +75,11 @@ jobs:
     
     - name: Build Project
       run: |
-        cmake --build ./Build --config=Release
+        cmake --build ./Build --config=Release -v
     
     - name: Install Project
       run: |
-        cmake --install ./Build --config=Release
+        cmake --install ./Build --config=Release -v
     
     - name: Create Models Directory
       run: |
@@ -113,19 +113,3 @@ jobs:
       if: runner.os == 'Windows'
       run: |
         & "${env:GITHUB_WORKSPACE}\..\Install\bin\nihilus_performance.exe" -m installed-to/Meta-Llama-3.1-8B-Instruct-Q8_0.gguf -p "What is the meaning of life?" -s 0 -n 8 -no-cnv -t 1 
-
-    - name: Copy Install Directory to Workspace
-      if: success() || failure()
-      shell: bash
-      run: |
-        if [ -d "../Install" ]; then
-          cp -r ../Install ./Install-Backup
-        fi
-
-    - name: Upload Nihilus Binaries
-      if: success() || failure()
-      uses: actions/upload-artifact@v4
-      with:
-        name: "nihilus-binaries-${{ matrix.name }}"
-        path: "Install-Backup/"
-        retention-days: 30

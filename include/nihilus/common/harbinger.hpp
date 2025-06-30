@@ -30,7 +30,7 @@ namespace nihilus {
 
 	NIHILUS_FORCE_INLINE static consteval auto generate_model_config(model_generations model_generation, model_sizes model_size, kernel_type_profiles kernel_profile,
 		model_arches arch, bool exceptions = false, kv_cache_strategies cache_strategy = kv_cache_strategies::paged, bool use_gradient_checkpointing = false,
-		rope_scaling_types rope_scaling = rope_scaling_types::linear, vocab_pre_types vocab_pre_type = vocab_pre_types::default_pre, uint64_t kv_cache_block_size = 16,
+		rope_scaling_types rope_scaling = rope_scaling_types::linear, vocab_pre_types vocab_pre_type = vocab_pre_types::llama3, uint64_t kv_cache_block_size = 16,
 		bool use_rotary_embeddings = true, bool use_flash_attention = true, norm_types rms_norm_type = norm_types::rms_standard, vocab_types vocab_type = vocab_types::bpe,
 		model_format format = model_format::gguf, float norm_epsilon = 1e-6f, bool benchmark = false) {
 		model_config config{ model_generation, model_size, kernel_profile, arch, exceptions, cache_strategy, use_gradient_checkpointing, rope_scaling, vocab_pre_type,

@@ -36,7 +36,6 @@ namespace nihilus {
 
 	enum ggml_op {
 		GGML_OP_NONE = 0,
-
 		GGML_OP_DUP,
 		GGML_OP_ADD,
 		GGML_OP_ADD1,
@@ -58,15 +57,13 @@ namespace nihilus {
 		GGML_OP_REPEAT_BACK,
 		GGML_OP_CONCAT,
 		GGML_OP_SILU_BACK,
-		GGML_OP_NORM,// normalize
+		GGML_OP_NORM,
 		GGML_OP_RMS_NORM,
 		GGML_OP_RMS_NORM_BACK,
 		GGML_OP_GROUP_NORM,
-
 		GGML_OP_MUL_MAT,
 		GGML_OP_MUL_MAT_ID,
 		GGML_OP_OUT_PROD,
-
 		GGML_OP_SCALE,
 		GGML_OP_SET,
 		GGML_OP_CPY,
@@ -92,14 +89,13 @@ namespace nihilus {
 		GGML_OP_POOL_1D,
 		GGML_OP_POOL_2D,
 		GGML_OP_POOL_2D_BACK,
-		GGML_OP_UPSCALE,// nearest interpolate
+		GGML_OP_UPSCALE,
 		GGML_OP_PAD,
 		GGML_OP_PAD_REFLECT_1D,
 		GGML_OP_ARANGE,
 		GGML_OP_TIMESTEP_EMBEDDING,
 		GGML_OP_ARGSORT,
 		GGML_OP_LEAKY_RELU,
-
 		GGML_OP_FLASH_ATTN_EXT,
 		GGML_OP_FLASH_ATTN_BACK,
 		GGML_OP_SSM_CONV,
@@ -110,24 +106,18 @@ namespace nihilus {
 		GGML_OP_ADD_REL_POS,
 		GGML_OP_RWKV_WKV6,
 		GGML_OP_GATED_LINEAR_ATTN,
-
 		GGML_OP_UNARY,
-
 		GGML_OP_MAP_UNARY,
 		GGML_OP_MAP_BINARY,
-
 		GGML_OP_MAP_CUSTOM1_F32,
 		GGML_OP_MAP_CUSTOM2_F32,
 		GGML_OP_MAP_CUSTOM3_F32,
-
 		GGML_OP_MAP_CUSTOM1,
 		GGML_OP_MAP_CUSTOM2,
 		GGML_OP_MAP_CUSTOM3,
-
 		GGML_OP_CROSS_ENTROPY_LOSS,
 		GGML_OP_CROSS_ENTROPY_LOSS_BACK,
 		GGML_OP_OPT_STEP_ADAMW,
-
 		GGML_OP_COUNT,
 	};
 
@@ -150,71 +140,53 @@ namespace nihilus {
 
 	constexpr kernel_types convert_ggml_op_to_nihilus_kernel(ggml_op op) noexcept {
 		switch (op) {
-			// Direct mappings - perfect 1:1 correspondence
 			case GGML_OP_GET_ROWS:
 				return kernel_types::get_rows;
-
 			case GGML_OP_RMS_NORM:
 				return kernel_types::rms_norm;
-
 			case GGML_OP_MUL:
 				return kernel_types::mul;
-
 			case GGML_OP_MUL_MAT:
-			case GGML_OP_MUL_MAT_ID:// Matrix multiplication with ID - maps to mul_mat
+			case GGML_OP_MUL_MAT_ID:
 				return kernel_types::mul_mat;
-
 			case GGML_OP_RESHAPE:
 				return kernel_types::reshape;
-
 			case GGML_OP_PERMUTE:
 				return kernel_types::permute;
-
 			case GGML_OP_TRANSPOSE:
 				return kernel_types::transpose;
-
 			case GGML_OP_VIEW:
 				return kernel_types::view;
-
 			case GGML_OP_CONT:
 				return kernel_types::cont;
-
 			case GGML_OP_CPY:
-			case GGML_OP_DUP:// Duplicate is essentially a copy operation
+			case GGML_OP_DUP:
 				return kernel_types::copy;
-
 			case GGML_OP_ROPE:
 				return kernel_types::rope;
-
 			case GGML_OP_SOFT_MAX:
 				return kernel_types::softmax;
-
 			case GGML_OP_ADD:
-			case GGML_OP_ADD1:// Add scalar - can be handled by add kernel
+			case GGML_OP_ADD1:
 				return kernel_types::add;
-
 			case GGML_OP_SUB:
 				return kernel_types::sub;
-
-			// SILU-related operations
-			case GGML_OP_SILU_BACK:// SILU backward pass - maps to silu kernel
+			case GGML_OP_SILU_BACK:
 				return kernel_types::silu;
-
-			// Operations that don't have direct Nihilus equivalents or are unsupported
 			case GGML_OP_NONE:
-			case GGML_OP_ACC:// Accumulate - could potentially map to add
-			case GGML_OP_DIV:// Division - not implemented in Nihilus yet
-			case GGML_OP_SQR:// Square - not implemented
-			case GGML_OP_SQRT:// Square root - not implemented
-			case GGML_OP_LOG:// Logarithm - not implemented
-			case GGML_OP_SIN:// Sine - not implemented
-			case GGML_OP_COS:// Cosine - not implemented
-			case GGML_OP_SUM:// Sum reduction - not implemented
-			case GGML_OP_SUM_ROWS:// Row-wise sum - not implemented
-			case GGML_OP_MEAN:// Mean - not implemented
-			case GGML_OP_ARGMAX:// Argmax - not implemented
-			case GGML_OP_COUNT_EQUAL:// Count equal elements - not implemented
-			case GGML_OP_REPEAT:// Repeat tensor - not implemented
+			case GGML_OP_ACC:
+			case GGML_OP_DIV:
+			case GGML_OP_SQR:
+			case GGML_OP_SQRT:
+			case GGML_OP_LOG:
+			case GGML_OP_SIN:
+			case GGML_OP_COS:
+			case GGML_OP_SUM:
+			case GGML_OP_SUM_ROWS:
+			case GGML_OP_MEAN:
+			case GGML_OP_ARGMAX:
+			case GGML_OP_COUNT_EQUAL:
+			case GGML_OP_REPEAT:
 			case GGML_OP_REPEAT_BACK:// Repeat backward - not implemented
 			case GGML_OP_CONCAT:// Concatenation - not implemented
 			case GGML_OP_NORM:// Layer norm - could potentially map to rms_norm
@@ -416,7 +388,7 @@ namespace nihilus {
 namespace jsonifier {
 	template<> struct core<nihilus::intermediary_ggml_tensor> {
 		using value_type				 = nihilus::intermediary_ggml_tensor;
-		static constexpr auto parseValue = createValue<&value_type::dims, &value_type::name, &value_type::op, &value_type::type, &value_type::data>();
+		static constexpr auto parseValue = jsonifier::createValue<&value_type::dims, &value_type::name, &value_type::op, &value_type::type, &value_type::data>();
 	};
 }
 
@@ -491,15 +463,12 @@ namespace nihilus {
 	std::vector<std::unordered_map<std::string, intermediary_tensor>> get_tensors_multi_iteration(std::string_view base_path, std::string_view base_name) {
 		std::vector<std::unordered_map<std::string, intermediary_tensor>> return_values{};
 
-		// Try to load files with incrementing indices until we can't find any more
 		for (int32_t iteration = 0;; ++iteration) {
-			// Construct the filename: "Node_Data_0.json", "Node_Data_1.json", etc.
 			std::string filename = std::string(base_path) + "/" + std::string(base_name) + "_" + std::to_string(iteration) + ".json";
 
-			// Check if file exists
 			std::ifstream test_file(filename);
 			if (!test_file.good()) {
-				break;// No more files found, stop iteration
+				break;
 			}
 			test_file.close();
 
@@ -507,18 +476,16 @@ namespace nihilus {
 			std::unordered_map<std::string, intermediary_tensor> iteration_tensors{};
 
 			try {
-				file_loader<false> file_loader{ filename };
+				file_loader<true> file_loader{ filename };
 				jsonifier::jsonifier_core parser{};
 				parser.parseJson<jsonifier::parse_options{ .minified = true }>(iteration_ggml, file_loader.operator const std::string&());
 
 				for (auto& [key, value]: iteration_ggml) {
 					iteration_tensors[key] = value;
-					//std::cout << "Iteration " << iteration << " - " << key << std::endl;
-					//std::cout << value << std::endl;
 				}
 
 				for (auto& value: parser.getErrors()) {
-					//std::cout << "Iteration " << iteration << " - Error: " << value << std::endl;
+					std::cout << "Iteration " << iteration << " - Error: " << value << std::endl;
 				}
 
 				return_values.push_back(std::move(iteration_tensors));
@@ -537,7 +504,6 @@ namespace nihilus {
 
 		inline static std::vector<std::unordered_map<std::string, intermediary_tensor>> node_iterations{ get_tensors_multi_iteration("C:/users/chris/source/repos/ft-tl", "Node_Data") };
 
-		// Helper methods to access specific iterations
 		static const std::unordered_map<std::string, intermediary_tensor>& get_leaf_iteration(size_t iteration) {
 			static const std::unordered_map<std::string, intermediary_tensor> empty{};
 			return (iteration < leaf_iterations.size()) ? leaf_iterations[iteration] : empty;
@@ -548,14 +514,12 @@ namespace nihilus {
 			return (iteration < node_iterations.size()) ? node_iterations[iteration] : empty;
 		}
 
-		// Get total number of iterations available
 		static size_t get_iteration_count() {
 			return std::max(leaf_iterations.size(), node_iterations.size());
 		}
 
 		template<typename tensor_type> static bool compare_tensor_data(tensor_type& tensor, uint64_t current_block, uint64_t iteration) {
 			std::string tensor_name{ convert_op_to_string(tensor.type, current_block) };
-			// Get the appropriate iteration data
 			const auto& current_leafs = get_leaf_iteration(iteration);
 			const auto& current_nodes = get_node_iteration(iteration);
 			intermediary_tensor tensor_new{ tensor, tensor_name, current_block };

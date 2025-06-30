@@ -26,24 +26,24 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-	template<simd_int_512_type simd_int_type_new> NIHILUS_FORCE_INLINE static simd_int_type_new gatherValues(const void* str) noexcept {
+	template<simd_int_512_type simd_int_type_new> NIHILUS_FORCE_INLINE static simd_int_type_new gather_values(const void* str) noexcept {
 		return _mm512_load_si512(static_cast<const __m512i*>(str));
 	}
 
-	template<simd_int_512_type simd_int_type_new> NIHILUS_FORCE_INLINE static simd_int_type_new gatherValuesU(const void* str, void* str2) noexcept {
+	template<simd_int_512_type simd_int_type_new> NIHILUS_FORCE_INLINE static simd_int_type_new gather_valuesU(const void* str, void* str2) noexcept {
 		std::memcpy(str2, str, sizeof(simd_int_type_new));
 		return _mm512_load_si512(static_cast<const __m512i*>(str2));
 	}
 
 	template<simd_int_512_type simd_int_type_new, typename char_t>
 		requires(sizeof(char_t) == 8)
-	NIHILUS_FORCE_INLINE static simd_int_type_new gatherValue(const char_t value) noexcept {
+	NIHILUS_FORCE_INLINE static simd_int_type_new gather_value(const char_t value) noexcept {
 		return _mm512_set1_epi64(static_cast<const int64_t>(value));
 	}
 
 	template<simd_int_512_type simd_int_type_new, typename char_t>
 		requires(sizeof(char_t) == 1)
-	NIHILUS_FORCE_INLINE static simd_int_type_new gatherValue(const char_t value) noexcept {
+	NIHILUS_FORCE_INLINE static simd_int_type_new gather_value(const char_t value) noexcept {
 		return _mm512_set1_epi8(static_cast<const char>(value));
 	}
 
@@ -56,7 +56,7 @@ namespace nihilus {
 		std::memcpy(storageLocation02, storageLocation, sizeof(simd_int_type_new));
 	}
 
-	template<simd_int_512_type simd_int_t01, simd_int_512_type simd_int_t02> NIHILUS_FORCE_INLINE static auto opCmpEq(const simd_int_t01& value, const simd_int_t02& other) noexcept {
+	template<simd_int_512_type simd_int_t01, simd_int_512_type simd_int_t02> NIHILUS_FORCE_INLINE static auto op_cmp_eq(const simd_int_t01& value, const simd_int_t02& other) noexcept {
 		return static_cast<uint64_t>(_mm512_cmpeq_epi8_mask(value, other));
 	}
 
@@ -65,7 +65,7 @@ namespace nihilus {
 	}
 
 	template<simd_int_512_type simd_int_t01, simd_int_512_type simd_int_t02>
-	NIHILUS_FORCE_INLINE static auto opCmpEqRaw(const simd_int_t01& value, const simd_int_t02& other) noexcept {
+	NIHILUS_FORCE_INLINE static auto op_cmp_eqRaw(const simd_int_t01& value, const simd_int_t02& other) noexcept {
 		return _mm512_maskz_set1_epi8(_mm512_cmpeq_epi8_mask(value, other), 0xFF);
 	}
 
@@ -79,7 +79,7 @@ namespace nihilus {
 	}
 
 	template<simd_int_512_type simd_int_t01, simd_int_512_type simd_int_t02>
-	NIHILUS_FORCE_INLINE static auto opCmpEqBitMask(const simd_int_t01& value, const simd_int_t02& other) noexcept {
+	NIHILUS_FORCE_INLINE static auto op_cmp_eqBitMask(const simd_int_t01& value, const simd_int_t02& other) noexcept {
 		return static_cast<uint64_t>(_mm512_cmpeq_epi8_mask(value, other));
 	}
 
@@ -111,9 +111,9 @@ namespace nihilus {
 		return !_mm512_test_epi64_mask(value, value);
 	}
 
-	template<simd_int_512_type simd_type> NIHILUS_FORCE_INLINE static nihilus_simd_int_512 opSetLSB(const simd_type& value, bool valueNew) noexcept {
+	template<simd_int_512_type simd_type> NIHILUS_FORCE_INLINE static nihilus_simd_int_512 opSetLSB(const simd_type& value, bool value_new) noexcept {
 		const nihilus_simd_int_512 mask{ _mm512_set_epi64(0, 0, 0, 0, 0, 0, 0, 0x01u) };
-		return valueNew ? _mm512_or_si512(value, mask) : _mm512_andnot_si512(mask, value);
+		return value_new ? _mm512_or_si512(value, mask) : _mm512_andnot_si512(mask, value);
 	}
 
 	template<simd_int_512_type simd_type> NIHILUS_FORCE_INLINE static bool opGetMSB(const simd_type& value) noexcept {

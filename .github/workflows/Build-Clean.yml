@@ -75,11 +75,11 @@ jobs:
     
     - name: Build Project
       run: |
-        cmake --build ./Build --config=Release
+        cmake --build ./Build --config=Release -v
     
     - name: Install Project
       run: |
-        cmake --install ./Build --config=Release
+        cmake --install ./Build --config=Release -v
     
     - name: Create Models Directory
       run: |

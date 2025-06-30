@@ -25,6 +25,7 @@ RealTimeChris (Chris M.)
 #include <nihilus/common/data_types.hpp>
 #include <nihilus/common/concepts.hpp>
 #include <nihilus/common/array.hpp>
+#include <filesystem>
 #include <iostream>
 #include <cstdint>
 #include <chrono>
@@ -34,6 +35,45 @@ RealTimeChris (Chris M.)
 #include <cmath>
 
 namespace nihilus {
+
+	static constexpr array<bool, 256> alpha_table{ [] {
+		array<bool, 256> return_values{};
+
+		for (int i = 'A'; i <= 'Z'; ++i) {
+			return_values[static_cast<uint64_t>(i)] = true;
+		}
+
+		for (int i = 'a'; i <= 'z'; ++i) {
+			return_values[static_cast<uint64_t>(i)] = true;
+		}
+
+		return return_values;
+	}() };
+
+	template<typename value_type> NIHILUS_FORCE_INLINE static constexpr bool is_alpha(value_type c) noexcept {
+		return alpha_table[static_cast<uint8_t>(c)];
+	}
+	
+	static constexpr array<bool, 256> space_table{ [] {
+		array<bool, 256> return_values{};
+		return_values[static_cast<uint64_t>('\r')] = true;
+		return_values[static_cast<uint64_t>('\n')] = true;
+		return_values[static_cast<uint64_t>(' ')]  = true;
+		return_values[static_cast<uint64_t>('\t')] = true;
+		return_values[static_cast<uint64_t>('\v')] = true;
+		return_values[static_cast<uint64_t>('\f')] = true;
+		return return_values;
+	}() };
+
+	template<typename value_type> NIHILUS_FORCE_INLINE static constexpr bool is_space(value_type c) noexcept {
+		return space_table[static_cast<uint8_t>(c)];
+	}
+
+	template<typename value_type> NIHILUS_FORCE_INLINE static constexpr bool is_digit(value_type c) noexcept {
+		return static_cast<uint8_t>(c - '0') < 10;
+	}
+	
+	template<typename value_type> struct core;
 
 	template<bool exceptions> class file_loader {
 	  public:
@@ -161,6 +201,7 @@ namespace nihilus {
 
 	  protected:
 		alignas(64) std::atomic_signed_lock_free flag{};
+		char padding[56]{};
 	};
 
 	struct alignas(64) op_latch {
@@ -168,12 +209,13 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE op_latch& operator=(const op_latch&) = delete;
 		NIHILUS_FORCE_INLINE op_latch(const op_latch&)			  = delete;
 		alignas(64) std::vector<atomic_flag_wrapper> finish_flags{};
-		char padding01[32];
+		char padding01[40];
 		alignas(64) std::vector<atomic_flag_wrapper> start_flags{};
-		char padding02[32];
+		char padding02[40];
 		alignas(64) std::atomic_signed_lock_free global_counter{};
 		char padding03[56];
 		alignas(64) size_t thread_count{};
+		char padding[56]{};
 
 		NIHILUS_FORCE_INLINE void init(size_t thread_count_new) {
 			thread_count = thread_count_new;
@@ -477,14 +519,7 @@ namespace nihilus {
 		count
 	};
 
-	static constexpr array<const char*, op_types::count> llama_op_names{ { "inp_embd", "token_embd_weight", "inp_tokens", "inp_pos", "inp_out_ids", "rope_freqs_weight",
-		"output_weight", "output_norm_weight", "attn_q_weight", "attn_k_weight", "attn_v_weight", "attn_output_weight", "attn_norm_weight", "ffn_gate_weight", "ffn_up_weight",
-		"ffn_down_weight", "ffn_norm_weight", "cache_k", "cache_v", "kq_mask", "norm", "attn_norm", "qcur", "qcur_reshaped", "qcur_rope", "kcur", "kcur_reshaped", "kcur_rope",
-		"vcur", "k_cache_view", "k_cache_view_copy", "vcur_transposed", "v_cache_view", "v_cache_view_copy", "v", "k", "q", "kq", "kq_soft_max", "kqv", "kqv_merged",
-		"kqv_merged_cont", "kqv_out", "ffn_inp", "norm_out", "ffn_norm", "ffn_gate", "ffn_silu", "ffn_up", "ffn_gate_par", "ffn_out", "l_out", "attn_residual", "prev_residual",
-		"final_norm", "result_norm", "result_output" } };
-
-	template<integral_or_enum value_type> constexpr kernel_types get_kernel_type_from_llama_op(value_type op) {
+	template<integral_or_enum value_type> constexpr kernel_types get_kernel_type_from_llm_op(value_type op) {
 		switch (static_cast<op_types>(op)) {
 			case op_types::inp_tokens:
 			case op_types::inp_pos:
@@ -574,6 +609,63 @@ namespace nihilus {
 
 	enum class model_arches {
 		llama,
+		deci,
+		falcon,
+		baichuan,
+		grok,
+		gpt2,
+		gptj,
+		gptneox,
+		mpt,
+		starcoder,
+		refact,
+		bert,
+		nomic_bert,
+		jina_bert_v2,
+		bloom,
+		stablelm,
+		qwen,
+		qwen2,
+		qwen2moe,
+		qwen2vl,
+		phi2,
+		phi3,
+		phimoe,
+		plamo,
+		codeshell,
+		orion,
+		internlm2,
+		minicpm,
+		minicpm3,
+		gemma,
+		gemma2,
+		starcoder2,
+		mamba,
+		xverse,
+		command_r,
+		cohere2,
+		dbrx,
+		olmo,
+		olmo2,
+		olmoe,
+		openelm,
+		arctic,
+		deepseek,
+		deepseek2,
+		chatglm,
+		bitnet,
+		t5,
+		t5encoder,
+		jais,
+		nemotron,
+		exaone,
+		rwkv6,
+		rwkv6qwen2,
+		granite,
+		granite_moe,
+		chameleon,
+		wavtokenizer_dec,
+		unknown,
 		count,
 	};
 
@@ -629,15 +721,70 @@ namespace nihilus {
 	};
 
 	enum class model_sizes {
-		llama_1B,
-		llama_3B,
-		llama_7B,
-		llama_8B,
-		llama_11B,
-		llama_13B,
-		llama_70B,
-		llama_90B,
-		llama_405B,
+		llm_unknown,
+		llm_14M,
+		llm_17M,
+		llm_22M,
+		llm_33M,
+		llm_60M,
+		llm_70M,
+		llm_80M,
+		llm_109M,
+		llm_137M,
+		llm_160M,
+		llm_220M,
+		llm_250M,
+		llm_270M,
+		llm_335M,
+		llm_410M,
+		llm_450M,
+		llm_770M,
+		llm_780M,
+		llm_0_5B,
+		llm_1B,
+		llm_1_3B,
+		llm_1_4B,
+		llm_1_5B,
+		llm_1_6B,
+		llm_2B,
+		llm_2_8B,
+		llm_3B,
+		llm_4B,
+		llm_6B,
+		llm_6_9B,
+		llm_7B,
+		llm_8B,
+		llm_9B,
+		llm_11B,
+		llm_12B,
+		llm_13B,
+		llm_14B,
+		llm_15B,
+		llm_16B,
+		llm_20B,
+		llm_30B,
+		llm_32B,
+		llm_34B,
+		llm_35B,
+		llm_40B,
+		llm_65B,
+		llm_70B,
+		llm_236B,
+		llm_314B,
+		llm_671B,
+		llm_SMALL,
+		llm_MEDIUM,
+		llm_LARGE,
+		llm_XL,
+		llm_A1_7B,
+		llm_A2_7B,
+		llm_8x7B,
+		llm_8x22B,
+		llm_16x12B,
+		llm_16x3_8B,
+		llm_10B_128x3_66B,
+		llm_57B_A14B,
+		llm_27B,
 		count,
 	};
 

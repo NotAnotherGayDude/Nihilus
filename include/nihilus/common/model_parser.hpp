@@ -19,14 +19,14 @@ RealTimeChris (Chris M.)
 */
 #pragma once
 
-#include <nihilus/common/type_traits.hpp>
-#include <nihilus/common/model_graph_data.hpp>
-#include <nihilus/common/compare.hpp>
+#include <nihilus/common/parse_entity.hpp>
 #include <nihilus/common/tokenizer.hpp>
-#include <nihilus/common/debugging_io.hpp>
-#include <nihilus/common/model_traits.hpp>
 
 #if defined(NIHILUS_PLATFORM_WINDOWS)
+	#if !defined(NOMINMAX)
+		#define NOMINMAX
+	#endif
+	#include <Windows.h>
 	#include <io.h>
 	#ifndef PATH_MAX
 		#define PATH_MAX MAX_PATH
@@ -103,12 +103,10 @@ namespace nihilus {
 		}
 
 		NIHILUS_FORCE_INLINE memory_mapped_file(memory_mapped_file&& other) noexcept
-			: file_path_(other.file_path_), mapped_data_(other.mapped_data_), file_size_(other.file_size_)
+			: file_path_(other.file_path_), mapped_data_(other.mapped_data_), file_size_(other.file_size_),
 #ifdef NIHILUS_PLATFORM_WINDOWS
-			  ,
 			  file_handle_(other.file_handle_), mapping_handle_(other.mapping_handle_)
 #else
-			  ,
 			  file_descriptor_(other.file_descriptor_), mapped_fragments_(std::move(other.mapped_fragments_))
 #endif
 		{
@@ -202,9 +200,9 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE void map_file(std::string_view file_path, uint64_t prefetch_bytes, bool numa_aware) {
 #ifdef NIHILUS_PLATFORM_WINDOWS
 			( void )numa_aware;
-			std::string file_path_str(file_path);
+			std::string_view file_path_str(file_path);
 
-			file_handle_ = CreateFileA(file_path_str.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+			file_handle_ = CreateFileA(file_path_str.data(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
 
 			if (file_handle_ == INVALID_HANDLE_VALUE) {
 				throw std::runtime_error(std::string{ "Failed to open file: " } + format_win_error(GetLastError()));
@@ -227,7 +225,7 @@ namespace nihilus {
 
 			if (mapping_handle_ == nullptr) {
 				CloseHandle(file_handle_);
-				throw std::runtime_error(std::string{ "Failed to create file mapping: " } + format_win_error(GetLastError()));
+				throw std::runtime_error("Failed to create file mapping: " + format_win_error(GetLastError()));
 			}
 
 			mapped_data_ = MapViewOfFile(mapping_handle_, FILE_MAP_READ, 0, 0, 0);
@@ -265,9 +263,9 @@ namespace nihilus {
 			}
 
 #else
-			std::string file_path_str(file_path);
+			std::string_view file_path_str(file_path);
 
-			file_descriptor_ = open(file_path_str.c_str(), O_RDONLY);
+			file_descriptor_ = open(file_path_str.data(), O_RDONLY);
 			if (file_descriptor_ == -1) {
 				throw std::runtime_error("Failed to open file: " + std::string(std::strerror(errno)));
 			}
@@ -449,11 +447,6 @@ namespace nihilus {
 			return true;
 		}
 
-		NIHILUS_FORCE_INLINE bool read_bytes_to_pointer(void* dst, const uint64_t size, uint64_t offset) {
-			std::memcpy(dst, static_cast<uint8_t*>(file->data()) + offset, size);
-			return true;
-		}
-
 		NIHILUS_FORCE_INLINE bool map_pointer(void* dst, const uint64_t offset) {
 			*reinterpret_cast<void**>(dst) = reinterpret_cast<uint8_t*>(file->data()) + offset;
 			return true;
@@ -464,7 +457,11 @@ namespace nihilus {
 		}
 	};
 
-	template<typename value_type, auto...> struct value_reader {
+	template<typename value_type, auto...> struct value_reader;
+
+	template<typename value_type>
+		requires(std::is_pod_v<value_type>)
+	struct value_reader<value_type> {
 		NIHILUS_FORCE_INLINE static value_type gather_value(stream_iterator& input) {
 			if (input.has_bytes<value_type>()) {
 				return input.read<value_type>();
@@ -474,406 +471,158 @@ namespace nihilus {
 		}
 	};
 
-	using gguf_string_t = std::string;
-
-	struct gguf_array_t;
-
-	using gguf_metadata_value_variant = std::variant<float, uint64_t, int64_t, double, bool, gguf_string_t, gguf_array_t*>;
-
-	struct gguf_metadata_value_t {
-		gguf_metadata_value_t() noexcept = default;
-		gguf_metadata_value_t& operator=(const gguf_metadata_value_t& other) noexcept;
-		gguf_metadata_value_t(const gguf_metadata_value_t& other) noexcept {
-			*this = other;
-		};
-		gguf_metadata_value_t(const gguf_metadata_value_variant& other) noexcept;
-		gguf_metadata_value_variant value{};
-		~gguf_metadata_value_t();
-	};
-
-	struct gguf_array_t {
-		std::vector<gguf_metadata_value_t> array{};
-		gguf_metadata_value_type type{};
-	};
-
-	gguf_metadata_value_t::~gguf_metadata_value_t() {
-		if (std::holds_alternative<gguf_array_t*>(value)) {
-			if (std::get<gguf_array_t*>(value)) {
-				delete std::get<gguf_array_t*>(value);
+	template<typename value_type>
+		requires(is_specialization_v<value_type, std::vector>)
+	struct value_reader<value_type> {
+		NIHILUS_FORCE_INLINE static value_type gather_value(stream_iterator& input) {
+			gguf_metadata_value_type type{ value_reader<gguf_metadata_value_type>::gather_value(input) };
+			uint64_t length{ value_reader<uint64_t>::gather_value(input) };
+			constexpr uint64_t MAX_ARRAY_LENGTH = 1024 * 1024;
+			if (length > MAX_ARRAY_LENGTH) {
+				throw std::runtime_error{ "Array length exceeds maximum allowed size!" };
 			}
-		}
-	}
-
-	gguf_metadata_value_t& gguf_metadata_value_t::operator=(const gguf_metadata_value_t& other) noexcept {
-		if (std::holds_alternative<float>(other.value)) {
-			value.emplace<float>(std::get<float>(other.value));
-		} else if (std::holds_alternative<uint64_t>(other.value)) {
-			value.emplace<uint64_t>(std::get<uint64_t>(other.value));
-		} else if (std::holds_alternative<int64_t>(other.value)) {
-			value.emplace<int64_t>(std::get<int64_t>(other.value));
-		} else if (std::holds_alternative<double>(other.value)) {
-			value.emplace<double>(std::get<double>(other.value));
-		} else if (std::holds_alternative<bool>(other.value)) {
-			value.emplace<bool>(std::get<bool>(other.value));
-		} else if (std::holds_alternative<gguf_string_t>(other.value)) {
-			value.emplace<gguf_string_t>(std::get<gguf_string_t>(other.value));
-		} else if (std::holds_alternative<gguf_array_t*>(other.value)) {
-			if (std::holds_alternative<gguf_array_t*>(value)) {
-				if (std::get<gguf_array_t*>(value)) {
-					delete std::get<gguf_array_t*>(value);
-				}
+			value_type value{};
+			value.reserve(length);
+			for (uint64_t x = 0; x < length; ++x) {
+				value.emplace_back(value_reader<typename value_type::value_type>::gather_value(input));
 			}
-			value.emplace<gguf_array_t*>(new gguf_array_t{ *std::get<gguf_array_t*>(other.value) });
+			return value;
 		}
-		return *this;
 	};
 
-	gguf_metadata_value_t::gguf_metadata_value_t(const gguf_metadata_value_variant& other) noexcept {
-		if (std::holds_alternative<float>(other)) {
-			value.emplace<float>(std::get<float>(other));
-		} else if (std::holds_alternative<uint64_t>(other)) {
-			value.emplace<uint64_t>(std::get<uint64_t>(other));
-		} else if (std::holds_alternative<int64_t>(other)) {
-			value.emplace<int64_t>(std::get<int64_t>(other));
-		} else if (std::holds_alternative<double>(other)) {
-			value.emplace<double>(std::get<double>(other));
-		} else if (std::holds_alternative<bool>(other)) {
-			value.emplace<bool>(std::get<bool>(other));
-		} else if (std::holds_alternative<gguf_string_t>(other)) {
-			value.emplace<gguf_string_t>(std::get<gguf_string_t>(other));
-		} else if (std::holds_alternative<gguf_array_t*>(other)) {
-			value.emplace<gguf_array_t*>(new gguf_array_t{ *std::get<gguf_array_t*>(other) });
-		}
-	};
+	using gguf_string_t = std::string_view;
 
 	template<> struct value_reader<gguf_string_t> {
-		NIHILUS_FORCE_INLINE static std::string gather_value(stream_iterator& input) {
+		NIHILUS_FORCE_INLINE static std::string_view gather_value(stream_iterator& input) {
 			uint64_t length = value_reader<uint64_t>::gather_value(input);
 			if (!input.has_bytes<uint8_t>(length)) {
 				throw std::runtime_error("Sorry, but that index is out of range!");
 			}
-			std::string result(length, '\0');
-			result.resize(length);
-			input.read_bytes_to_pointer(result.data(), length);
+			const char* string_ptr{ static_cast<const char*>(input.file->data()) + input.current_index };
+			input.current_index += length;
+			std::string_view result(string_ptr, length);
 			return result;
 		}
 	};
 
-	template<> struct value_reader<gguf_array_t> {
-		NIHILUS_FORCE_INLINE static gguf_array_t gather_value(stream_iterator& input);
+	struct gguf_metadata_base {
+		uint64_t tensor_count;
+		std::string_view general_name;
+		std::string_view general_architecture;
+		std::string_view general_type;
+		std::string_view general_basename;
+		std::string_view general_finetune;
+		std::string_view general_size_label;
+		uint64_t metadata_kv_count;
+		std::string_view general_license;
+		std::vector<std::string_view> general_tags;
+		std::vector<std::string_view> general_languages;
+		uint32_t alignment{};
+		uint32_t general_file_type;
+		uint32_t general_quantization_version;
+		std::string_view tokenizer_ggml_model;
+		std::string_view tokenizer_ggml_pre;
+		std::string_view tokenizer_chat_template;
+		std::vector<std::string_view> tokenizer_ggml_tokens;
+		std::vector<int32_t> tokenizer_ggml_token_type;
+		std::vector<std::string_view> tokenizer_ggml_merges;
+		int32_t quantize_imatrix_entries_count;
+		int32_t quantize_imatrix_chunks_count;
+		std::string_view quantize_imatrix_file;
+		std::string_view quantize_imatrix_dataset;
 	};
 
-	template<> struct value_reader<gguf_metadata_value_variant> {
-		NIHILUS_INLINE static gguf_metadata_value_variant gather_value(stream_iterator& input, gguf_metadata_value_type type) {
-			gguf_metadata_value_variant value{};
-			switch (type) {
-				case gguf_metadata_value_type::int8: {
-					value.emplace<int64_t>(value_reader<int8_t>::gather_value(input));
-					break;
-				}
-				case gguf_metadata_value_type::int16: {
-					value.emplace<int64_t>(value_reader<int16_t>::gather_value(input));
-					break;
-				}
-				case gguf_metadata_value_type::int32: {
-					value.emplace<int64_t>(value_reader<int32_t>::gather_value(input));
-					break;
-				}
-				case gguf_metadata_value_type::int64: {
-					value.emplace<int64_t>(value_reader<int64_t>::gather_value(input));
-					break;
-				}
-				case gguf_metadata_value_type::uint8: {
-					value.emplace<uint64_t>(value_reader<uint8_t>::gather_value(input));
-					break;
-				}
-				case gguf_metadata_value_type::uint16: {
-					value.emplace<uint64_t>(value_reader<uint16_t>::gather_value(input));
-					break;
-				}
-				case gguf_metadata_value_type::uint32: {
-					value.emplace<uint64_t>(value_reader<uint32_t>::gather_value(input));
-					break;
-				}
-				case gguf_metadata_value_type::uint64: {
-					value.emplace<uint64_t>(value_reader<uint64_t>::gather_value(input));
-					break;
-				}
-				case gguf_metadata_value_type::boolean: {
-					value.emplace<bool>(value_reader<bool>::gather_value(input));
-					break;
-				}
-				case gguf_metadata_value_type::float32: {
-					value.emplace<float>(value_reader<float>::gather_value(input));
-					break;
-				}
-				case gguf_metadata_value_type::float64: {
-					value.emplace<double>(value_reader<double>::gather_value(input));
-					break;
-				}
-				case gguf_metadata_value_type::string: {
-					value.emplace<gguf_string_t>(value_reader<gguf_string_t>::gather_value(input));
-					break;
-				}
-				case gguf_metadata_value_type::array: {
-					value.emplace<gguf_array_t*>(new gguf_array_t{ value_reader<gguf_array_t>::gather_value(input) });
-					break;
-				}
-				case gguf_metadata_value_type::unset: {
-					break;
+	template<model_arches arch, vocab_types type, vocab_pre_types pre> struct gguf_metadata;
+
+	template<vocab_types type, vocab_pre_types pre> struct gguf_metadata<model_arches::llama, type, pre> : public gguf_metadata_base,
+																										   public vocab_traits<model_arches::llama, type, pre> {
+		uint32_t llama_rope_dimension_count;
+		uint32_t llama_block_count;
+		uint32_t llama_context_length;
+		uint32_t llama_embedding_length;
+		uint32_t llama_feed_forward_length;
+		uint32_t llama_attention_head_count;
+		uint32_t llama_attention_head_count_kv;
+		uint32_t llama_vocab_size;
+		float llama_rope_freq_base;
+		float llama_attention_layer_norm_rms_epsilon;
+	};
+
+	template<model_arches arch, vocab_types type, vocab_pre_types pre> struct core<gguf_metadata<arch, type, pre>> {
+		using value_type				  = gguf_metadata<arch, type, pre>;
+		static constexpr auto parse_value = create_value<make_parse_entity<&value_type::general_basename, "general.basename">(),
+			make_parse_entity<&value_type::alignment, "general.alignment">(), make_parse_entity<&value_type::general_architecture, "general.architecture">(),
+			make_parse_entity<&value_type::general_file_type, "general.filetype">(), make_parse_entity<&value_type::general_finetune, "general.finetune">(),
+			make_parse_entity<&value_type::general_languages, "general.languages">(), make_parse_entity<&value_type::general_license, "general.license">(),
+			make_parse_entity<&value_type::general_name, "general.name">(), make_parse_entity<&value_type::general_quantization_version, "general.quantization_version">(),
+			make_parse_entity<&value_type::general_size_label, "general.size_label">(), make_parse_entity<&value_type::general_tags, "general.tags">(),
+			make_parse_entity<&value_type::general_type, "general.type">(), make_parse_entity<&value_type::special_bos_id, "tokenizer.ggml.bos_token_id">(),
+			make_parse_entity<&value_type::special_eos_id, "tokenizer.ggml.eos_token_id">(), make_parse_entity<&value_type::special_eot_id, "tokenizer.ggml.eot_token_id">(),
+			make_parse_entity<&value_type::special_eom_id, "tokenizer.ggml.eom_token_id">(), make_parse_entity<&value_type::special_unk_id, "tokenizer.ggml.unknown_token_id">(),
+			make_parse_entity<&value_type::special_sep_id, "tokenizer.ggml.separator_token_id">(),
+			make_parse_entity<&value_type::special_pad_id, "tokenizer.ggml.padding_token_id">(), make_parse_entity<&value_type::special_mask_id, "tokenizer.ggml.mask_token_id">(),
+			make_parse_entity<&value_type::linefeed_id, "tokenizer.ggml.linefeed_id">(), make_parse_entity<&value_type::special_fim_pre_id, "tokenizer.ggml.fim_prefix_token_id">(),
+			make_parse_entity<&value_type::special_fim_suf_id, "tokenizer.ggml.fim_suffix_token_id">(),
+			make_parse_entity<&value_type::special_fim_mid_id, "tokenizer.ggml.fim_middle_token_id">(),
+			make_parse_entity<&value_type::special_fim_pad_id, "tokenizer.ggml.fim_pad_token_id">(),
+			make_parse_entity<&value_type::special_fim_rep_id, "tokenizer.ggml.fim_repo_token_id">(),
+			make_parse_entity<&value_type::special_fim_sep_id, "tokenizer.ggml.fim_sep_token_id">(),
+			make_parse_entity<&value_type::max_token_len, "tokenizer.ggml.max_token_length">(),
+			make_parse_entity<&value_type::add_space_prefix, "tokenizer.ggml.add_space_prefix">(), make_parse_entity<&value_type::add_bos, "tokenizer.ggml.add_bos_token">(),
+			make_parse_entity<&value_type::add_eos, "tokenizer.ggml.add_eos_token">(), make_parse_entity<&value_type::ignore_merges, "tokenizer.ggml.ignore_merges">(),
+			make_parse_entity<&value_type::clean_spaces, "tokenizer.ggml.clean_up_tokenization_spaces">(),
+			make_parse_entity<&value_type::remove_extra_whitespaces, "tokenizer.ggml.remove_extra_whitespaces">(),
+			make_parse_entity<&value_type::escape_whitespaces, "tokenizer.ggml.escape_whitespaces">(),
+			make_parse_entity<&value_type::treat_whitespace_as_suffix, "tokenizer.ggml.treat_whitespace_as_suffix">(),
+			make_parse_entity<&value_type::quantize_imatrix_entries_count, "quantize.imatrix.entries_count">(),
+			make_parse_entity<&value_type::quantize_imatrix_chunks_count, "quantize.imatrix.chunks_count">(),
+			make_parse_entity<&value_type::quantize_imatrix_file, "quantize.imatrix.file">(),
+			make_parse_entity<&value_type::quantize_imatrix_dataset, "quantize.imatrix.dataset">(),
+			make_parse_entity<&value_type::llama_rope_dimension_count, "llama.rope.dimension_count">(), make_parse_entity<&value_type::llama_block_count, "llama.block_count">(),
+			make_parse_entity<&value_type::llama_context_length, "llama.context_length">(), make_parse_entity<&value_type::llama_embedding_length, "llama.embedding_length">(),
+			make_parse_entity<&value_type::llama_feed_forward_length, "llama.feed_forward_length">(),
+			make_parse_entity<&value_type::llama_attention_head_count, "llama.attention.head_count">(),
+			make_parse_entity<&value_type::llama_attention_head_count_kv, "llama.attention.head_count_kv">(),
+			make_parse_entity<&value_type::llama_vocab_size, "llama.vocab_size">(), make_parse_entity<&value_type::llama_rope_freq_base, "llama.rope.freq_base">(),
+			make_parse_entity<&value_type::llama_attention_layer_norm_rms_epsilon, "llama.attention.layer_norm_rms_epsilon">()>();
+	};
+
+	template<typename stream_type, typename value_type> struct parse_types_impl {
+		inline static constexpr auto memberCount = core_tuple_size<value_type>;
+
+		template<uint64_t index> using member_type_t =
+			std::remove_reference_t<decltype(get_member<value_type>(get<index>(core<value_type>::parse_value).member_ptr, std::declval<value_type&>()))>;
+
+		template<uint64_t index> NIHILUS_FORCE_INLINE static bool processIndex(value_type& value, std::string_view string, stream_type& stream) {
+			static constexpr auto tupleElem	 = get<index>(core<value_type>::parse_value);
+			static constexpr auto string_lit = tupleElem.name;
+			static constexpr auto ptrNew	 = tupleElem.member_ptr;
+			static constexpr auto keySize	 = string_lit.size();
+			static constexpr auto keySizeNew = keySize + 1;
+			if NIHILUS_LIKELY ((string.size() <= keySize) && string_literal_comparitor<decltype(string_lit), string_lit>::impl(string.data())) {
+				auto& ref = get_member<value_type>(ptrNew, value);
+				if constexpr (!std::is_const_v<std::remove_reference_t<decltype(ref)>>) {
+					ref = value_reader<member_type_t<index>>::gather_value(stream);
+				} else {
+					member_type_t<index> value_new{ value_reader<std::remove_const_t<member_type_t<index>>>::gather_value(stream) };
+					if (value_new != ref) {
+						std::string error_string{ std::string{ "Sorry, but member of name: " } + std::string{ string_lit.data(), string_lit.size() } + " was not equal!" };
+						throw std::runtime_error{ error_string };
+					}
 				}
 			}
-			return value;
+			return false;
 		}
 	};
 
-	gguf_array_t value_reader<gguf_array_t>::gather_value(stream_iterator& input) {
-		gguf_metadata_value_type type{ value_reader<gguf_metadata_value_type>::gather_value(input) };
-		uint64_t length{ value_reader<uint64_t>::gather_value(input) };
-		constexpr uint64_t MAX_ARRAY_LENGTH = 1024 * 1024;
-		if (length > MAX_ARRAY_LENGTH) {
-			throw std::runtime_error{ "Array length exceeds maximum allowed size!" };
-		}
-		gguf_array_t value{};
-		value.type = type;
-		value.array.reserve(length);
-		for (uint64_t x = 0; x < length; ++x) {
-			value.array.emplace_back(value_reader<gguf_metadata_value_variant>::gather_value(input, type));
-		}
-		return value;
+	template<template<typename, typename> typename parsing_type, typename stream_type, typename value_type, size_t... indices>
+	inline static constexpr auto generateFunctionPtrs(std::index_sequence<indices...>) noexcept {
+		using function_type = decltype(&parse_types_impl<stream_type, value_type>::template processIndex<0>);
+		return array<function_type, sizeof...(indices)>{ { &parsing_type<stream_type, value_type>::template processIndex<indices>... } };
 	}
 
-	struct gguf_metadata_kv_t;
-
-	struct gguf_metadata_kv_t {
-		gguf_metadata_value_type value_type{};
-
-		gguf_metadata_value_t value{};
-
-		NIHILUS_FORCE_INLINE operator bool() const {
-			return std::get<bool>(value.value);
-		}
-
-		NIHILUS_FORCE_INLINE operator int64_t() const {
-			return std::get<int64_t>(value.value);
-		}
-
-		NIHILUS_FORCE_INLINE operator uint64_t() const {
-			return std::get<uint64_t>(value.value);
-		}
-
-		NIHILUS_FORCE_INLINE operator gguf_string_t() const {
-			return std::get<gguf_string_t>(value.value);
-		}
-
-		NIHILUS_FORCE_INLINE operator gguf_array_t() const {
-			return *std::get<gguf_array_t*>(value.value);
-		}
-
-		NIHILUS_FORCE_INLINE operator float() const {
-			return std::get<float>(value.value);
-		}
-
-		NIHILUS_FORCE_INLINE operator double() const {
-			return std::get<double>(value.value);
-		}
-	};
-
-	template<> struct value_reader<gguf_metadata_kv_t> {
-		NIHILUS_FORCE_INLINE static gguf_metadata_kv_t gather_value(stream_iterator& input) {
-			gguf_metadata_kv_t value{};
-			value.value_type  = value_reader<gguf_metadata_value_type>::gather_value(input);
-			value.value.value = value_reader<gguf_metadata_value_variant>::gather_value(input, value.value_type);
-			return value;
-		}
-	};
-
-	struct gguf_header_t {
-		std::unordered_map<std::string, gguf_metadata_kv_t> metadata_kv{};
-		uint64_t metadata_kv_count{};
-		uint64_t tensor_count{};
-		uint32_t version{};
-		uint32_t magic{};
-	};
-
-	template<typename value_type>
-	NIHILUS_FORCE_INLINE bool gather_scalar(const std::string& key, value_type& out, const std::unordered_map<std::string, gguf_metadata_kv_t>& metadata_kv) {
-		auto it = metadata_kv.find(key);
-		if (it == metadata_kv.end())
-			return false;
-		const auto& v = it->second.value.value;
-		if (std::holds_alternative<value_type>(v)) {
-			out = std::get<value_type>(v);
-		}
-		return true;
-	};
-
-	template<> NIHILUS_FORCE_INLINE bool gather_scalar(const std::string& key, uint32_t& out, const std::unordered_map<std::string, gguf_metadata_kv_t>& metadata_kv) {
-		auto it = metadata_kv.find(key);
-		if (it == metadata_kv.end())
-			return false;
-		const auto& v = it->second.value.value;
-		if (std::holds_alternative<uint64_t>(v)) {
-			out = static_cast<uint32_t>(std::get<uint64_t>(v));
-			return true;
-		}
-		return false;
-	};
-
-	template<> NIHILUS_FORCE_INLINE bool gather_scalar(const std::string& key, uint16_t& out, const std::unordered_map<std::string, gguf_metadata_kv_t>& metadata_kv) {
-		auto it = metadata_kv.find(key);
-		if (it == metadata_kv.end())
-			return false;
-		const auto& v = it->second.value.value;
-		if (std::holds_alternative<uint64_t>(v)) {
-			out = static_cast<uint16_t>(std::get<uint64_t>(v));
-			return true;
-		}
-		return false;
-	};
-
-	template<> NIHILUS_FORCE_INLINE bool gather_scalar(const std::string& key, uint8_t& out, const std::unordered_map<std::string, gguf_metadata_kv_t>& metadata_kv) {
-		auto it = metadata_kv.find(key);
-		if (it == metadata_kv.end())
-			return false;
-		const auto& v = it->second.value.value;
-		if (std::holds_alternative<uint64_t>(v)) {
-			out = static_cast<uint8_t>(std::get<uint64_t>(v));
-			return true;
-		}
-		return false;
-	};
-
-	template<> NIHILUS_FORCE_INLINE bool gather_scalar(const std::string& key, int32_t& out, const std::unordered_map<std::string, gguf_metadata_kv_t>& metadata_kv) {
-		auto it = metadata_kv.find(key);
-		if (it == metadata_kv.end())
-			return false;
-		const auto& v = it->second.value.value;
-		if (std::holds_alternative<int64_t>(v)) {
-			out = static_cast<int32_t>(std::get<uint64_t>(v));
-			return true;
-		}
-		return false;
-	};
-
-	template<> NIHILUS_FORCE_INLINE bool gather_scalar(const std::string& key, int16_t& out, const std::unordered_map<std::string, gguf_metadata_kv_t>& metadata_kv) {
-		auto it = metadata_kv.find(key);
-		if (it == metadata_kv.end())
-			return false;
-		const auto& v = it->second.value.value;
-		if (std::holds_alternative<int64_t>(v)) {
-			out = static_cast<int16_t>(std::get<uint64_t>(v));
-			return true;
-		}
-		return false;
-	};
-
-	template<> NIHILUS_FORCE_INLINE bool gather_scalar(const std::string& key, int8_t& out, const std::unordered_map<std::string, gguf_metadata_kv_t>& metadata_kv) {
-		auto it = metadata_kv.find(key);
-		if (it == metadata_kv.end())
-			return false;
-		const auto& v = it->second.value.value;
-		if (std::holds_alternative<int64_t>(v)) {
-			out = static_cast<int8_t>(std::get<uint64_t>(v));
-			return true;
-		}
-		return false;
-	};
-
-	template<typename value_type>
-	NIHILUS_FORCE_INLINE bool gather_array(const std::string& key, std::vector<value_type>& out, const std::unordered_map<std::string, gguf_metadata_kv_t>& metadata_kv);
-
-	template<int_type value_type>
-	NIHILUS_FORCE_INLINE bool gather_array(const std::string& key, std::vector<value_type>& out, const std::unordered_map<std::string, gguf_metadata_kv_t>& metadata_kv) {
-		auto it = metadata_kv.find(key);
-		if (it == metadata_kv.end())
-			return false;
-		const auto& v = it->second.value.value;
-		if (std::holds_alternative<gguf_array_t*>(v)) {
-			gguf_array_t& new_array{ *std::get<gguf_array_t*>(v) };
-			for (auto& value: new_array.array) {
-				out.emplace_back(static_cast<value_type>(std::get<int64_t>(value.value)));
-			}
-			return true;
-		}
-		return false;
-	};
-
-	template<uint_type value_type>
-	NIHILUS_FORCE_INLINE bool gather_array(const std::string& key, std::vector<value_type>& out, const std::unordered_map<std::string, gguf_metadata_kv_t>& metadata_kv) {
-		auto it = metadata_kv.find(key);
-		if (it == metadata_kv.end())
-			return false;
-		const auto& v = it->second.value.value;
-		if (std::holds_alternative<gguf_array_t*>(v)) {
-			gguf_array_t& new_array{ *std::get<gguf_array_t*>(v) };
-			for (auto& value: new_array.array) {
-				out.emplace_back(static_cast<value_type>(std::get<uint64_t>(value.value)));
-			}
-			return true;
-		}
-		return false;
-	};
-
-	template<typename value_type>
-	NIHILUS_FORCE_INLINE bool gather_array(const std::string& key, std::vector<value_type>& out, const std::unordered_map<std::string, gguf_metadata_kv_t>& metadata_kv) {
-		auto it = metadata_kv.find(key);
-		if (it == metadata_kv.end())
-			return false;
-		const auto& v = it->second.value.value;
-		if (std::holds_alternative<gguf_array_t*>(v)) {
-			gguf_array_t& new_array{ *std::get<gguf_array_t*>(v) };
-			for (auto& value: new_array.array) {
-				out.emplace_back(std::get<value_type>(value.value));
-			}
-			return true;
-		}
-		return false;
-	};
-
-	template<typename map_type>
-	NIHILUS_FORCE_INLINE bool gather_map(const std::string& key, map_type& bpe_ranks, const std::unordered_map<std::string, gguf_metadata_kv_t>& metadata_kv) {
-		auto it = metadata_kv.find(key);
-		if NIHILUS_UNLIKELY (it == metadata_kv.end())
-			return false;
-
-		const auto& v = it->second.value.value;
-		if NIHILUS_UNLIKELY (!std::holds_alternative<gguf_array_t*>(v))
-			return false;
-
-		gguf_array_t& array = *std::get<gguf_array_t*>(v);
-
-		bpe_ranks.clear();
-		bpe_ranks.reserve(array.array.size());
-
-		for (size_t i = 0; i < array.array.size(); ++i) {
-			const std::string& merge_str = std::get<std::string>(array.array[i].value);
-			const std::string_view merge_view{ merge_str };
-			const size_t space_pos = merge_view.find(' ', 1);
-			if NIHILUS_LIKELY (space_pos != std::string_view::npos) {
-				bpe_ranks.emplace(std::make_pair(std::string{ merge_view.substr(0, space_pos) }, std::string{ merge_view.substr(space_pos + 1) }), static_cast<int32_t>(i));
-			}
-			return true;
-		}
-		return false;
-	}
-
-	NIHILUS_FORCE_INLINE void print_variant(auto variant) {
-		if (std::holds_alternative<float>(variant)) {
-			std::cout << "Value: " << std::get<float>(variant) << std::endl;
-		} else if (std::holds_alternative<uint64_t>(variant)) {
-			std::cout << "Value: " << std::get<uint64_t>(variant) << std::endl;
-		} else if (std::holds_alternative<int64_t>(variant)) {
-			std::cout << "Value: " << std::get<int64_t>(variant) << std::endl;
-		} else if (std::holds_alternative<double>(variant)) {
-			std::cout << "Value: " << std::get<double>(variant) << std::endl;
-		} else if (std::holds_alternative<bool>(variant)) {
-			std::cout << "Value: " << std::get<bool>(variant) << std::endl;
-		} else if (std::holds_alternative<gguf_string_t>(variant)) {
-			std::cout << "Value: " << std::get<gguf_string_t>(variant) << std::endl;
-		} else if (std::holds_alternative<gguf_array_t*>(variant)) {
-		}
-	}
+	template<template<typename, typename> typename parsing_type, typename stream_type, typename value_type>
+	static constexpr auto function_ptrs{ generateFunctionPtrs<parsing_type, stream_type, value_type>(std::make_index_sequence<core_tuple_size<value_type>>{}) };
 
 	static constexpr string_literal vocab_type_none{ "no vocab" };
 	static constexpr string_literal vocab_type_spm{ "llama" };
@@ -906,312 +655,113 @@ namespace nihilus {
 		}
 	}
 
-	static constexpr array<const char*, 6> type_names{ vocab_type_none.data(), vocab_type_spm.data(), vocab_type_bpe.data(), vocab_type_wpm.data(), vocab_type_ugm.data(),
-		vocab_type_rwkv.data() };
+	NIHILUS_INLINE uint64_t calculate_and_skip_unknown_value(stream_iterator& input, gguf_metadata_value_type type) {
+		uint64_t bytes_skipped = 0;
 
-	template<> struct value_reader<construction_parameters<model_arches::llama>, model_arches::llama> {
-		NIHILUS_FORCE_INLINE static construction_parameters<model_arches::llama> gather_value(const std::unordered_map<std::string, gguf_metadata_kv_t>& metadata_kv) {
-			construction_parameters<model_arches::llama> value{};
-			std::string architecture{};
-			if (metadata_kv.contains("general.architecture")) {
-				architecture = metadata_kv.at("general.architecture").operator gguf_string_t();
+		switch (type) {
+			case gguf_metadata_value_type::uint8:
+			case gguf_metadata_value_type::int8:
+			case gguf_metadata_value_type::boolean: {
+				bytes_skipped = 1;
+				input.current_index += bytes_skipped;
+				break;
 			}
-			gather_scalar(architecture + ".rope.dimension_count", value.rope_dimension_count, metadata_kv);
-			gather_scalar(architecture + ".feed_forward_length", value.feed_forward_length, metadata_kv);
-			gather_scalar(architecture + ".embedding_length", value.embedding_length, metadata_kv);
-			gather_scalar(architecture + ".context_length", value.context_length, metadata_kv);
-			gather_scalar(architecture + ".attention.head_count_kv", value.head_count_kv, metadata_kv);
-			gather_scalar(architecture + ".block_count", value.block_count, metadata_kv);
-			gather_scalar(architecture + ".attention.head_count", value.head_count, metadata_kv);
-			gather_scalar(architecture + ".vocab_size", value.vocab_size, metadata_kv);
-			gather_scalar(architecture + ".rope.type", value.rope_type, metadata_kv);
-			gather_scalar(architecture + ".expert_count", value.n_expert, metadata_kv);
-			gather_scalar(architecture + ".expert_used_count", value.n_expert_used, metadata_kv);
-			gather_scalar(architecture + ".rope.freq_base", value.rope_freq_base, metadata_kv);
-			gather_scalar(architecture + ".rope.scaling.factor", value.rope_freq_scale, metadata_kv);
-			gather_scalar(architecture + ".rope.scaling.attn_factor", value.rope_attn_factor, metadata_kv);
-			gather_scalar(architecture + ".rope.scaling.beta_fast", value.rope_beta_fast, metadata_kv);
-			gather_scalar(architecture + ".rope.scaling.beta_slow", value.rope_beta_slow, metadata_kv);
-			gather_scalar(architecture + ".attention.layer_norm_rms_epsilon", value.rms_norm_epsilon, metadata_kv);
-			gather_scalar(architecture + ".attention.scale", value.f_attention_scale, metadata_kv);
-			gather_scalar(architecture + ".rope.scaling.ext_factor", value.rope_ext_factor, metadata_kv);
-
-			return value;
-		}
-	};
-
-	template<model_config config, typename derived_type> struct value_reader<vocab<config, vocab_types::bpe, derived_type>> {
-		NIHILUS_FORCE_INLINE static bool gather_value(const std::unordered_map<std::string, gguf_metadata_kv_t>& metadata_kv,
-			vocab<config, vocab_types::bpe, derived_type>& tokenizer) {
-			using vocab_traits_type = vocab_traits<config.arch, config.vocab_type, config.vocab_pre_type>;
-
-			// Validate tokenizer model type
-			std::string tokenizer_model;
-			gather_scalar("tokenizer.ggml.model", tokenizer_model, metadata_kv);
-			if (!compare_vocab_type<vocab_types::bpe>(tokenizer_model)) {
-				throw std::runtime_error{ "Sorry, but you have selected an incorrect vocab type." };
+			case gguf_metadata_value_type::uint16:
+			case gguf_metadata_value_type::int16: {
+				bytes_skipped = 2;
+				input.current_index += bytes_skipped;
+				break;
 			}
-
-			// Validate vocab pre-processing type
-			std::string tokenizer_pre;
-			gather_scalar("tokenizer.ggml.pre", tokenizer_pre, metadata_kv);
-			if (!compare_vocab_pre_type<vocab_traits_type::pre_type>(tokenizer_pre)) {
-				throw std::runtime_error{ "Sorry, but you have selected an incorrect vocab-pre type." };
+			case gguf_metadata_value_type::uint32:
+			case gguf_metadata_value_type::int32:
+			case gguf_metadata_value_type::float32: {
+				bytes_skipped = 4;
+				input.current_index += bytes_skipped;
+				break;
 			}
-
-			// Validate special token IDs against constexpr traits
-			auto validate_special_token = [&](const std::string& key, token constexpr_value, const std::string& token_name) {
-				if (constexpr_value != token_null) {
-					token parsed_value = token_null;
-					if (gather_scalar(key, parsed_value, metadata_kv)) {
-						if (parsed_value != constexpr_value) {
-							throw std::runtime_error{ "Mismatch in " + token_name + " token ID: expected " + std::to_string(constexpr_value) + ", got " +
-								std::to_string(parsed_value) };
-						}
-					} else {
-						throw std::runtime_error{ "Missing required " + token_name + " token ID in model metadata" };
-					}
-				}
-			};
-
-			// Validate all special token IDs
-			validate_special_token("tokenizer.ggml.bos_token_id", vocab_traits_type::special_bos_id, "BOS");
-			validate_special_token("tokenizer.ggml.eos_token_id", vocab_traits_type::special_eos_id, "EOS");
-			validate_special_token("tokenizer.ggml.eot_token_id", vocab_traits_type::special_eot_id, "EOT");
-			validate_special_token("tokenizer.ggml.eom_token_id", vocab_traits_type::special_eom_id, "EOM");
-			validate_special_token("tokenizer.ggml.unk_token_id", vocab_traits_type::special_unk_id, "UNK");
-			validate_special_token("tokenizer.ggml.sep_token_id", vocab_traits_type::special_sep_id, "SEP");
-			validate_special_token("tokenizer.ggml.pad_token_id", vocab_traits_type::special_pad_id, "PAD");
-			validate_special_token("tokenizer.ggml.mask_token_id", vocab_traits_type::special_mask_id, "MASK");
-			validate_special_token("tokenizer.ggml.linefeed_id", vocab_traits_type::linefeed_id, "LINEFEED");
-			validate_special_token("tokenizer.ggml.fim_pre_token_id", vocab_traits_type::special_fim_pre_id, "FIM_PRE");
-			validate_special_token("tokenizer.ggml.fim_suf_token_id", vocab_traits_type::special_fim_suf_id, "FIM_SUF");
-			validate_special_token("tokenizer.ggml.fim_mid_token_id", vocab_traits_type::special_fim_mid_id, "FIM_MID");
-			validate_special_token("tokenizer.ggml.fim_pad_token_id", vocab_traits_type::special_fim_pad_id, "FIM_PAD");
-			validate_special_token("tokenizer.ggml.fim_rep_token_id", vocab_traits_type::special_fim_rep_id, "FIM_REP");
-			validate_special_token("tokenizer.ggml.fim_sep_token_id", vocab_traits_type::special_fim_sep_id, "FIM_SEP");
-
-			// Validate boolean configuration flags
-			auto validate_bool_config = [&](const std::string& key, bool constexpr_value, const std::string& config_name) {
-				bool parsed_value = false;
-				if (gather_scalar(key, parsed_value, metadata_kv)) {
-					if (parsed_value != constexpr_value) {
-						throw std::runtime_error{ "Mismatch in " + config_name + " configuration: expected " + (constexpr_value ? "true" : "false") + ", got " +
-							(parsed_value ? "true" : "false") };
-					}
-				}
-				// Note: Optional validation - some models may not specify these flags
-			};
-
-			validate_bool_config("tokenizer.ggml.add_space_prefix", vocab_traits_type::add_space_prefix, "add_space_prefix");
-			validate_bool_config("tokenizer.ggml.add_bos_token", vocab_traits_type::add_bos, "add_bos");
-			validate_bool_config("tokenizer.ggml.add_eos_token", vocab_traits_type::add_eos, "add_eos");
-			validate_bool_config("tokenizer.ggml.ignore_merges", vocab_traits_type::ignore_merges, "ignore_merges");
-			validate_bool_config("tokenizer.ggml.clean_spaces", vocab_traits_type::clean_spaces, "clean_spaces");
-			validate_bool_config("tokenizer.ggml.remove_extra_whitespaces", vocab_traits_type::remove_extra_whitespaces, "remove_extra_whitespaces");
-			validate_bool_config("tokenizer.ggml.escape_whitespaces", vocab_traits_type::escape_whitespaces, "escape_whitespaces");
-			validate_bool_config("tokenizer.ggml.treat_whitespace_as_suffix", vocab_traits_type::treat_whitespace_as_suffix, "treat_whitespace_as_suffix");
-
-			// Gather BPE merges and validate
-			gather_map("tokenizer.ggml.merges", tokenizer.bpe_ranks, metadata_kv);
-
-			// Gather token arrays
-			std::vector<std::string> tokens;
-			gather_array("tokenizer.ggml.tokens", tokens, metadata_kv);
-
-			std::vector<float> scores;
-			gather_array("tokenizer.ggml.scores", scores, metadata_kv);
-
-			std::vector<int32_t> token_types;
-			gather_array("tokenizer.ggml.token_type", token_types, metadata_kv);
-
-			// Validate token count against max_token_len if specified
-			uint32_t n_tokens = static_cast<uint32_t>(tokens.size());
-
-			// Process tokens with validation
-			tokenizer.id_to_token.resize(n_tokens);
-			for (uint32_t i = 0; i < n_tokens; i++) {
-				std::string word = tokens[i];
-				if (word.empty()) {
-					word = "[EMPTY_" + std::to_string(i) + "]";
-				}
-
-				// Validate token length against max_token_len
-				if constexpr (vocab_traits_type::max_token_len > 0) {
-					if (word.length() > static_cast<size_t>(vocab_traits_type::max_token_len)) {
-						throw std::runtime_error{ "Token length exceeds maximum: token '" + word + "' has length " + std::to_string(word.length()) + ", max allowed is " +
-							std::to_string(vocab_traits_type::max_token_len) };
-					}
-				}
-
-				tokenizer.token_to_id[word] = static_cast<int32_t>(i);
-
-				auto& token_data = tokenizer.id_to_token[i];
-				token_data.text	 = std::move(word);
-				token_data.score = (i < scores.size()) ? scores[i] : 0.0f;
-				token_data.att	 = tokens::normal;
-
-				if (i < token_types.size()) {
-					switch (token_types[i]) {
-						case 0:
-							token_data.att = tokens::unknown;
-							break;
-						case 1:
-							token_data.att = tokens::unused;
-							break;
-						case 2:
-							token_data.att = tokens::normal;
-							break;
-						case 3:
-							token_data.att = tokens::control;
-							break;
-						case 4:
-							token_data.att = tokens::user_defined;
-							break;
-						case 5:
-							token_data.att = tokens::byte;
-							break;
-						default:
-							token_data.att = tokens::undefined;
-							break;
-					}
-				}
+			case gguf_metadata_value_type::uint64:
+			case gguf_metadata_value_type::int64:
+			case gguf_metadata_value_type::float64: {
+				bytes_skipped = 8;
+				input.current_index += bytes_skipped;
+				break;
 			}
-
-			// Cross-validate special tokens found in vocabulary against constexpr traits
-			auto cross_validate_special_token = [&](token expected_id, const std::vector<std::string>& possible_texts, const std::string& token_name) {
-				if (expected_id != token_null) {
-					bool found = false;
-					for (const auto& text: possible_texts) {
-						auto it = tokenizer.token_to_id.find(text);
-						if (it != tokenizer.token_to_id.end()) {
-							if (it->second != expected_id) {
-								throw std::runtime_error{ "Cross-validation failed for " + token_name + ": found text '" + text + "' with ID " + std::to_string(it->second) +
-									", but constexpr traits specify ID " + std::to_string(expected_id) };
-							}
-							found = true;
-							break;
-						}
-					}
-					if (!found) {
-						// Warning: Could add logging here if needed
-					}
+			case gguf_metadata_value_type::string: {
+				if (!input.has_bytes<uint64_t>()) {
+					throw std::runtime_error("Insufficient bytes for string length!");
 				}
-			};
+				uint64_t string_length = input.read<uint64_t>();
+				bytes_skipped		   = sizeof(uint64_t) + string_length;
 
-			// Cross-validate special tokens with their text representations
-			cross_validate_special_token(vocab_traits_type::special_eot_id,
-				{ "<|eot_id|>", "<|im_end|>", "<|end|>", "<end_of_turn>", "<|endoftext|>", "< EOT >", "<｜end▁of▁sentence｜>" }, "EOT");
-			cross_validate_special_token(vocab_traits_type::special_eom_id, { "<|eom_id|>" }, "EOM");
-			cross_validate_special_token(vocab_traits_type::special_fim_pre_id, { "<|fim_prefix|>", "<fim-prefix>", "<｜fim▁begin｜>", "<PRE>" }, "FIM_PRE");
-			cross_validate_special_token(vocab_traits_type::special_fim_suf_id, { "<|fim_suffix|>", "<fim-suffix>", "<｜fim▁hole｜>", "<SUF>" }, "FIM_SUF");
-			cross_validate_special_token(vocab_traits_type::special_fim_mid_id, { "<|fim_middle|>", "<fim-middle>", "<｜fim▁end｜>", "<MID>" }, "FIM_MID");
-
-			// Mark special tokens based on constexpr traits
-			for (const auto& [text, id]: tokenizer.token_to_id) {
-				if constexpr (vocab_traits_type::special_eot_id == token_null) {
-					if (text == "<|eot_id|>" || text == "<|im_end|>" || text == "<|end|>" || text == "<end_of_turn>" || text == "<|endoftext|>" || text == "< EOT >" ||
-						text == "<｜end▁of▁sentence｜>") {
-						tokenizer.id_to_token[static_cast<uint64_t>(id)].att = tokens::control;
-					}
+				if (!input.has_bytes<uint8_t>(string_length)) {
+					throw std::runtime_error("Insufficient bytes for string content!");
 				}
-
-				if constexpr (vocab_traits_type::special_eom_id == token_null && text == "<|eom_id|>") {
-					tokenizer.id_to_token[static_cast<uint64_t>(id)].att = tokens::control;
-				}
-
-				if constexpr (vocab_traits_type::special_fim_pre_id == token_null) {
-					if (text == "<|fim_prefix|>" || text == "<fim-prefix>" || text == "<｜fim▁begin｜>" || text == "<PRE>") {
-						tokenizer.id_to_token[static_cast<uint64_t>(id)].att = tokens::control;
-					}
-				}
-
-				if constexpr (vocab_traits_type::special_fim_suf_id == token_null) {
-					if (text == "<|fim_suffix|>" || text == "<fim-suffix>" || text == "<｜fim▁hole｜>" || text == "<SUF>") {
-						tokenizer.id_to_token[static_cast<uint64_t>(id)].att = tokens::control;
-					}
-				}
-
-				if constexpr (vocab_traits_type::special_fim_mid_id == token_null) {
-					if (text == "<|fim_middle|>" || text == "<fim-middle>" || text == "<｜fim▁end｜>" || text == "<MID>") {
-						tokenizer.id_to_token[static_cast<uint64_t>(id)].att = tokens::control;
-					}
-				}
+				input.current_index += string_length;
+				break;
 			}
-
-			// Build special token cache
-			tokenizer.cache_special_tokens.reserve(n_tokens);
-			for (token id = 0; id < static_cast<token>(n_tokens); ++id) {
-				if (static_cast<size_t>(tokenizer.id_to_token[static_cast<uint64_t>(id)].att) &
-					(static_cast<size_t>(tokens::control) | static_cast<size_t>(tokens::user_defined) | static_cast<size_t>(tokens::unused))) {
-					tokenizer.cache_special_tokens.emplace_back(id);
+			case gguf_metadata_value_type::array: {
+				if (!input.has_bytes<gguf_metadata_value_type>()) {
+					throw std::runtime_error("Insufficient bytes for array type!");
 				}
-			}
+				gguf_metadata_value_type array_type = input.read<gguf_metadata_value_type>();
+				bytes_skipped += sizeof(gguf_metadata_value_type);
 
-			std::sort(tokenizer.cache_special_tokens.begin(), tokenizer.cache_special_tokens.end(), [&](token a, token b) {
-				return tokenizer.id_to_token[static_cast<uint64_t>(a)].text.size() > tokenizer.id_to_token[static_cast<uint64_t>(b)].text.size();
-			});
-
-			// Build EOG token set with validation
-			tokenizer.special_eog_ids.clear();
-			for (const auto& [text, id]: tokenizer.token_to_id) {
-				if (text == "<|eot_id|>" || text == "<|im_end|>" || text == "<|end|>" || text == "<end_of_turn>" || text == "<|endoftext|>" || text == "<|eom_id|>" ||
-					text == "< EOT >") {
-					tokenizer.special_eog_ids.insert(id);
+				if (!input.has_bytes<uint64_t>()) {
+					throw std::runtime_error("Insufficient bytes for array length!");
 				}
-			}
+				uint64_t array_length = input.read<uint64_t>();
+				bytes_skipped += sizeof(uint64_t);
 
-			// Add constexpr special tokens to EOG set
-			if constexpr (vocab_traits_type::special_eos_id != token_null) {
-				tokenizer.special_eog_ids.insert(vocab_traits_type::special_eos_id);
-			}
-			if constexpr (vocab_traits_type::special_eot_id != token_null) {
-				tokenizer.special_eog_ids.insert(vocab_traits_type::special_eot_id);
-			}
-			if constexpr (vocab_traits_type::special_eom_id != token_null) {
-				tokenizer.special_eog_ids.insert(vocab_traits_type::special_eom_id);
-			}
+				constexpr uint64_t MAX_ARRAY_LENGTH = 1024 * 1024;
+				if (array_length > MAX_ARRAY_LENGTH) {
+					throw std::runtime_error("Array length exceeds maximum allowed size during skip!");
+				}
 
-			// Final validation summary
-			if constexpr (config.exceptions) {
-				// Could add comprehensive validation summary logging here
+				for (uint64_t i = 0; i < array_length; ++i) {
+					uint64_t element_bytes = calculate_and_skip_unknown_value(input, array_type);
+					bytes_skipped += element_bytes;
+				}
+				break;
+			}
+			case gguf_metadata_value_type::unset:
+			default: {
+				break;
 			}
 		}
-	};
 
-	// Helper function for optional scalar gathering (you may need to implement this)
-	template<typename T>
-	NIHILUS_FORCE_INLINE bool gather_scalar_optional(const std::string& key, T& value, const std::unordered_map<std::string, gguf_metadata_kv_t>& metadata_kv) {
-		auto it = metadata_kv.find(key);
-		if (it != metadata_kv.end()) {
-			// Implementation depends on your gguf_metadata_kv_t structure
-			// This should extract the value and return true if successful
-			return extract_value(it->second, value);
-		}
-		return false;
+		return bytes_skipped;
 	}
 
-	template<> struct value_reader<gguf_header_t> {
-		NIHILUS_FORCE_INLINE static gguf_header_t gather_value(stream_iterator& input) {
-			gguf_header_t value{};
-			value.magic = value_reader<uint32_t>::gather_value(input);
-			if (value.magic != 0x46554747) {
+	template<model_arches arch, vocab_types type, vocab_pre_types pre> struct value_reader<gguf_metadata<arch, type, pre>> {
+		NIHILUS_FORCE_INLINE static gguf_metadata<arch, type, pre> gather_value(stream_iterator& input) {
+			gguf_metadata<arch, type, pre> value{};
+			uint32_t magic = value_reader<uint32_t>::gather_value(input);
+			if (magic != 0x46554747) {
 				throw std::runtime_error{ "Sorry, but that magic value was incorrect!" };
 			}
-			value.version						  = value_reader<uint32_t>::gather_value(input);
-			value.tensor_count					  = value_reader<uint64_t>::gather_value(input);
-			value.metadata_kv_count				  = value_reader<uint64_t>::gather_value(input);
-			constexpr uint64_t MAX_TENSOR_COUNT	  = 100000;
-			constexpr uint64_t MAX_METADATA_COUNT = 10000;
+			uint64_t version		= value_reader<uint32_t>::gather_value(input);
+			value.tensor_count		= value_reader<uint64_t>::gather_value(input);
+			value.metadata_kv_count = value_reader<uint64_t>::gather_value(input);
+
+			static constexpr uint64_t MAX_TENSOR_COUNT	 = 100000;
+			static constexpr uint64_t MAX_METADATA_COUNT = 10000;
+
 			if (value.tensor_count > MAX_TENSOR_COUNT) {
 				throw std::runtime_error{ "Tensor count exceeds reasonable maximum!" };
 			}
 			if (value.metadata_kv_count > MAX_METADATA_COUNT) {
 				throw std::runtime_error{ "Metadata count exceeds reasonable maximum!" };
 			}
+
 			for (uint64_t x = 0; x < value.metadata_kv_count; ++x) {
-				std::string new_string		  = value_reader<gguf_string_t>::gather_value(input);
-				value.metadata_kv[new_string] = value_reader<gguf_metadata_kv_t>::gather_value(input);
+				std::string_view new_string			= value_reader<gguf_string_t>::gather_value(input);
+				gguf_metadata_value_type value_type = value_reader<gguf_metadata_value_type>::gather_value(input);
+				auto index							= hash_map<gguf_metadata<arch, type, pre>, const char*>::findIndex(new_string.data(), new_string.data() + new_string.size());
+				if (index < function_ptrs<parse_types_impl, stream_iterator, gguf_metadata<arch, type, pre>>.size()) {
+					function_ptrs<parse_types_impl, stream_iterator, gguf_metadata<arch, type, pre>>[index](value, new_string, input);
+				} else {
+					calculate_and_skip_unknown_value(input, value_type);
+				}
 			}
 			return value;
 		}
@@ -1280,26 +830,36 @@ namespace nihilus {
 		}
 	};
 
-	template<> struct value_reader<core_base_creation_data> {
-		NIHILUS_FORCE_INLINE static core_base_creation_data gather_value(stream_iterator& input) {
-			core_base_creation_data value{};
-			value.name						  = value_reader<gguf_string_t>::gather_value(input);
-			value.n_dimensions				  = value_reader<uint32_t>::gather_value(input);
-			constexpr uint32_t MAX_DIMENSIONS = 8;
-			if (value.n_dimensions > MAX_DIMENSIONS) {
-				throw std::runtime_error{ "Tensor dimensions exceed maximum!" };
-			}
-			for (uint64_t x = 0; x < value.n_dimensions; ++x) {
-				uint64_t dim					= value_reader<uint64_t>::gather_value(input);
-				constexpr uint64_t MAX_DIM_SIZE = 1ULL << 32;
-				if (dim > MAX_DIM_SIZE) {
-					throw std::runtime_error{ "Tensor dimension size too large!" };
-				}
-				value.dimensions[x] = dim;
-			}
-			value.type	 = static_cast<data_types>(value_reader<uint32_t>::gather_value(input));
-			value.offset = value_reader<uint64_t>::gather_value(input);
-			return value;
+	struct core_base_creation_data {
+		array<uint64_t, 4> dimensions{ { 1, 1, 1, 1 } };
+		uint32_t n_dimensions{};
+		uint64_t layer_number{};
+		op_types op_type{};
+		uint64_t offset{};
+		data_types type{};
+
+		NIHILUS_FORCE_INLINE uint64_t core_total_dims() const {
+			return dimensions[0] * dimensions[1] * dimensions[2] * dimensions[3];
+		}
+
+		NIHILUS_FORCE_INLINE uint64_t core_total_byte_size() const {
+			uint64_t total_elements = core_total_dims();
+			uint64_t block_size		= core_block_size();
+			uint64_t type_size		= core_type_size();
+			uint64_t num_blocks		= (total_elements + block_size - 1) / block_size;
+			return num_blocks * type_size;
+		}
+
+		NIHILUS_FORCE_INLINE uint64_t core_block_size() const {
+			return get_type_traits(type).block_size;
+		}
+
+		NIHILUS_FORCE_INLINE uint64_t core_type_size() const {
+			return get_type_traits(type).type_size;
+		}
+
+		NIHILUS_FORCE_INLINE uint64_t core_row_size(int64_t dims_new) const {
+			return core_type_size() * dims_new / core_block_size();
 		}
 	};
 
@@ -1335,19 +895,38 @@ namespace nihilus {
 		return 0;
 	}
 
+	template<model_arches arch> struct value_reader<core_base_creation_data, arch> {
+		NIHILUS_FORCE_INLINE static core_base_creation_data gather_value(stream_iterator& input) {
+			core_base_creation_data value{};
+			std::string_view name{ value_reader<std::string_view>::gather_value(input) };
+			value.op_type					  = string_to_op_type<arch>::impl(name);
+			value.n_dimensions				  = value_reader<uint32_t>::gather_value(input);
+			value.layer_number				  = extract_layer_number(name);
+			constexpr uint32_t MAX_DIMENSIONS = 8;
+			if (value.n_dimensions > MAX_DIMENSIONS) {
+				throw std::runtime_error{ "Tensor dimensions exceed maximum!" };
+			}
+			for (uint64_t x = 0; x < value.n_dimensions; ++x) {
+				uint64_t dim					= value_reader<uint64_t>::gather_value(input);
+				constexpr uint64_t MAX_DIM_SIZE = 1ULL << 32;
+				if (dim > MAX_DIM_SIZE) {
+					throw std::runtime_error{ "Tensor dimension size too large!" };
+				}
+				value.dimensions[x] = dim;
+			}
+			value.type	 = static_cast<data_types>(value_reader<uint32_t>::gather_value(input));
+			value.offset = value_reader<uint64_t>::gather_value(input);
+			return value;
+		}
+	};
+
 	NIHILUS_FORCE_INLINE bool operator<(const core_base_creation_data& lhs, const core_base_creation_data& rhs) noexcept {
-		const uint64_t lhs_number{ extract_layer_number(lhs.name) };
-		const uint64_t rhs_number{ extract_layer_number(rhs.name) };
-		return lhs_number < rhs_number;
+		return lhs.layer_number < rhs.layer_number;
 	}
+
 	NIHILUS_FORCE_INLINE void sort_tensor_infos(std::vector<core_base_creation_data>& tensor_infos) noexcept {
 		std::sort(tensor_infos.begin(), tensor_infos.end(), std::less<core_base_creation_data>{});
 	}
-
-	struct gguf_file_t {
-		std::vector<core_base_creation_data> tensor_infos{};
-		gguf_header_t header{};
-	};
 
 	NIHILUS_FORCE_INLINE uint64_t align_offset(uint64_t offset, uint64_t alignment) {
 		alignment = alignment == 0 ? 1 : alignment;
@@ -1361,42 +940,45 @@ namespace nihilus {
 	struct model_parser_impl<config> {
 		using model_traits_type = model_traits<config.arch, config.model_size, config.model_generation>;
 		static_assert((std::endian::native == std::endian::little), "Sorry, but big-endian is not yet supported by the library");
-		template<typename tokenizer_type> NIHILUS_FORCE_INLINE static model_graph_data<config> parse_model(
+		template<typename tokenizer_type> NIHILUS_FORCE_INLINE static gguf_metadata<config.arch, config.vocab_type, config.vocab_pre_type> parse_model(
 			array<array<void*, model_traits_type::block_count>, op_types::count>& data, memory_mapped_file* memory_file, tokenizer_type& tokenizer) {
-			model_graph_data<config> return_value{};
-			gguf_file_t gguf_file{};
 			stream_iterator ptr{ memory_file };
-			gguf_file.header = value_reader<gguf_header_t>::gather_value(ptr);
-			for (uint64_t x = 0; x < gguf_file.header.tensor_count; ++x) {
-				gguf_file.tensor_infos.emplace_back(value_reader<core_base_creation_data>::gather_value(ptr));
+			gguf_metadata<config.arch, config.vocab_type, config.vocab_pre_type> gguf_file{
+				value_reader<gguf_metadata<config.arch, config.vocab_type, config.vocab_pre_type>>::gather_value(ptr)
+			};
+			tokenizer.tokens		= std::move(gguf_file.tokenizer_ggml_tokens);
+			tokenizer.merges		= std::move(gguf_file.tokenizer_ggml_merges);
+			tokenizer.token_types	= std::move(gguf_file.tokenizer_ggml_token_type);
+			tokenizer.chat_template = std::move(gguf_file.tokenizer_chat_template);
+			tokenizer.pre			= std::move(gguf_file.tokenizer_ggml_pre);
+			std::vector<core_base_creation_data> tensor_infos{};
+			tensor_infos.reserve(gguf_file.tensor_count);
+			for (uint64_t x = 0; x < gguf_file.tensor_count; ++x) {
+				auto new_tensor{ value_reader<core_base_creation_data, model_arches::llama>::gather_value(ptr) };
+				tensor_infos.emplace_back(new_tensor);
 			}
 			uint64_t max_tensor_end = 0;
-			for (const auto& tensor: gguf_file.tensor_infos) {
+			for (const auto& tensor: tensor_infos) {
 				uint64_t tensor_size = tensor.core_total_byte_size();
 				uint64_t tensor_end	 = tensor.offset + tensor_size;
 				max_tensor_end		 = std::max(max_tensor_end, tensor_end);
 			}
 
 			uint64_t tensor_data_start = ptr.file->size() - max_tensor_end;
-			uint64_t alignment{ 0 };
-			gather_scalar("alignment", alignment, gguf_file.header.metadata_kv);
-			return_value.cparams = value_reader<construction_parameters<model_arches::llama>, model_arches::llama>::gather_value(gguf_file.header.metadata_kv);
-			value_reader<typename tokenizer_type::vocab_type>::gather_value(gguf_file.header.metadata_kv, *static_cast<typename tokenizer_type::vocab_type*>(&tokenizer));
 
-			sort_tensor_infos(gguf_file.tensor_infos);
-			for (uint64_t x = 0; x < gguf_file.header.tensor_count; ++x) {
-				uint64_t absolute_offset = tensor_data_start + gguf_file.tensor_infos[x].offset;
-				ptr.map_pointer(data[string_to_op_type<model_arches::llama>::impl(gguf_file.tensor_infos[x].name)][extract_layer_number(gguf_file.tensor_infos[x].name)],
-					align_offset(absolute_offset, alignment));
+			sort_tensor_infos(tensor_infos);
+			for (uint64_t x = 0; x < gguf_file.tensor_count; ++x) {
+				uint64_t absolute_offset = tensor_data_start + tensor_infos[x].offset;
+				ptr.map_pointer(data[tensor_infos[x].op_type][tensor_infos[x].layer_number], absolute_offset);
 			};
-			return return_value;
+			return gguf_file;
 		}
 	};
 
 	template<model_config config> struct model_parser {
 		using model_traits_type = model_traits<config.arch, config.model_size, config.model_generation>;
 
-		template<typename tokenizer_type> NIHILUS_FORCE_INLINE static model_graph_data<config> parse_model(
+		template<typename tokenizer_type> NIHILUS_FORCE_INLINE static gguf_metadata<config.arch, config.vocab_type, config.vocab_pre_type> parse_model(
 			array<array<void*, model_traits_type::block_count>, op_types::count>& data, memory_mapped_file* memory_file, tokenizer_type& tokenizer) {
 			return model_parser_impl<config>::parse_model(data, memory_file, tokenizer);
 		}

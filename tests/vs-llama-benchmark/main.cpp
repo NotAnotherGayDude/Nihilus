@@ -77,14 +77,13 @@ static void sigint_handler(int signo) {
 
 int main(int argc, char** argv) {
 	try {
-		static constexpr auto model_config = nihilus::generate_model_config(nihilus::model_generations::v3, nihilus::model_sizes::llama_8B,
+		static constexpr auto model_config = nihilus::generate_model_config(nihilus::model_generations::v3, nihilus::model_sizes::llm_8B,
 			nihilus::kernel_type_profiles::q8_gqa, nihilus::model_arches::llama, false);
-		static constexpr auto model_config_new = nihilus::update_model_config_vocab_pre_type(model_config, nihilus::vocab_pre_types::llama3);
 		test::stop_watch stop_watch_val{ 0 };
 		nihilus::cli_params cli_args_final;
+		cli_args_final = nihilus::harbinger<model_config>::parse_cli_arguments(argc, argv);
+		auto model_new{ nihilus::harbinger<model_config>::parse_model_graph_data(cli_args_final) };
 		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 4, 2, true, "Token">::runBenchmark<"nihilus">([&] {
-			cli_args_final = { nihilus::harbinger<model_config_new>::parse_cli_arguments(argc, argv) };
-			auto model_new{ nihilus::harbinger<model_config_new>::parse_model_graph_data(cli_args_final) };
 			while (model_new->process_input(cli_args_final.prompt)) {
 			}
 			return cli_args_final.n_tokens;

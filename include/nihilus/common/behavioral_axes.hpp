@@ -171,11 +171,8 @@ namespace nihilus {
 			return core_traits_type::layer_type == nihilus::thread_strategy_type::global_input && core_traits_type::krn_type != nihilus::kernel_types::none;
 		}
 		NIHILUS_FORCE_INLINE static void impl(base_type& core, uint64_t thread_index, uint64_t thread_count) {
-			if (core.remaining_thread_count.load(std::memory_order_acquire) > 0) {
-				//core.fetch_sub(1, std::memory_order_release);
-				nihilus::kernel_dispatcher<config, nihilus::device_types::cpu, base_type>::impl(core, thread_index, thread_count);
-				nihilus::spinlock_nanoseconds(spinlock_time);
-			}
+			nihilus::kernel_dispatcher<config, nihilus::device_types::cpu, base_type>::impl(core, thread_index, thread_count);
+			nihilus::spinlock_nanoseconds(spinlock_time);
 		}
 	};
 
@@ -189,13 +186,6 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE static constexpr bool filter() {
 			using core_traits_type = base_type;
 			return core_traits_type::layer_type == nihilus::thread_strategy_type::global_input && core_traits_type::krn_type != nihilus::kernel_types::none;
-		}
-
-		NIHILUS_FORCE_INLINE static void impl(base_type& core, uint64_t thread_index, uint64_t thread_count) {
-			core.sync_flag_start[0].arrive_and_wait(thread_index);
-			nihilus::kernel_dispatcher<config, nihilus::device_types::cpu, base_type>::impl(core, thread_index, thread_count);
-			nihilus::spinlock_nanoseconds(spinlock_time);
-			core.sync_flag_end[0].arrive_and_wait(thread_index);
 		}
 	};
 

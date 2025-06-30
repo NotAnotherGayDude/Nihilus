@@ -331,7 +331,7 @@ int main(int argc, char** argv) {
 
 						// push the prompt in the sampling context in order to apply repetition penalties later
 						// for the prompt, we don't apply grammar rules
-						common_sampler_accept(smpl, embd_inp[n_consumed], /* accept_grammar= */ false);
+						common_sampler_accept(smpl, embd_inp[n_consumed], /* accept_grammar=  */ false);
 
 						++n_consumed;
 						if (( int )embd.size() >= params.n_batch) {
@@ -578,9 +578,10 @@ int main(int argc, char** argv) {
 			ggml_threadpool_free_fn(threadpool);
 			ggml_threadpool_free_fn(threadpool_batch);
 			return static_cast<int32_t>(token_count - 2);
-		});
+			});
+			
 		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 2, 1, true, "Token">::runBenchmark<"nihilus">([&] {
-			static constexpr auto model_config	   = nihilus::generate_model_config(nihilus::model_generations::v3, nihilus::model_sizes::llama_8B,
+			static constexpr auto model_config = nihilus::generate_model_config(nihilus::model_generations::v3, nihilus::model_sizes::llm_8B,
 					nihilus::kernel_type_profiles::q8_gqa, nihilus::model_arches::llama, false);
 			static constexpr auto model_config_new = nihilus::update_model_config_vocab_pre_type(model_config, nihilus::vocab_pre_types::llama3);
 			nihilus::cli_params cli_args_final{ nihilus::harbinger<model_config_new>::parse_cli_arguments(argc, argv) };

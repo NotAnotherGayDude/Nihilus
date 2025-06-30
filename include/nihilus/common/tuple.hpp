@@ -17,7 +17,6 @@ Signed,
 RealTimeChris (Chris M.)
 2025
 */
-
 /// Taken mostly from: https://github.com/codeinred/tuplet
 /// https://github.com/RealTimeChris/nihilus
 /// Feb 3, 2023
@@ -143,28 +142,28 @@ namespace nihilus {
 		return static_cast<tup&&>(tupleVal)[tag<index>()];
 	}
 
-	template<typename... types> static constexpr auto makeTuple(types&&... args) {
+	template<typename... types> static constexpr auto make_tuple(types&&... args) {
 		return tuple<std::remove_cvref_t<types>...>{ { { static_cast<types&&>(args) }... } };
 	}
 
-	template<typename value_type, typename... Q> static constexpr auto repeatType(type_list<Q...>) {
+	template<typename value_type, typename... Q> static constexpr auto repeat_type(type_list<Q...>) {
 		return type_list<first_t<value_type, Q>...>{};
 	}
 
 	template<typename... outer> static constexpr auto getOuterBases(type_list<outer...>) {
-		return (repeatType<outer>(base_list_t<type_t<outer>>{}) + ...);
+		return (repeat_type<outer>(base_list_t<type_t<outer>>{}) + ...);
 	}
 
 	template<typename... inner> static constexpr auto getInnerBases(type_list<inner...>) {
 		return (base_list_t<type_t<inner>>{} + ...);
 	}
 
-	template<typename value_type, typename... outer, typename... inner>
-	static constexpr auto tupleCatImpl(value_type tupleVal, type_list<outer...>, type_list<inner...>) -> tuple<type_t<inner>...> {
+	template<typename value_type, typename... outer, typename... inner> static constexpr auto tuple_catImpl(value_type tupleVal, type_list<outer...>, type_list<inner...>)
+		-> tuple<type_t<inner>...> {
 		return { { { static_cast<forward_as_t<type_t<outer>&&, inner>>(tupleVal.identity_t<outer>::value).value }... } };
 	}
 
-	template<base_list_tuple... value_type> static constexpr auto tupleCat(value_type&&... ts) {
+	template<base_list_tuple... value_type> static constexpr auto tuple_cat(value_type&&... ts) {
 		if constexpr (sizeof...(value_type) == 0) {
 			return tuple<>{};
 		} else {
@@ -183,7 +182,7 @@ namespace nihilus {
 			using outer_bases	 = base_list_t<big_tuple>;
 			constexpr auto outer = getOuterBases(outer_bases{});
 			constexpr auto inner = getInnerBases(outer_bases{});
-			return tupleCatImpl(big_tuple{ { { static_cast<value_type&&>(ts) }... } }, outer, inner);
+			return tuple_catImpl(big_tuple{ { { static_cast<value_type&&>(ts) }... } }, outer, inner);
 		}
 	}
 

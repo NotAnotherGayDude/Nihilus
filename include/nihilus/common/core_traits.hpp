@@ -251,7 +251,7 @@ namespace nihilus {
 		using core_traits_dims_type = core_trait_dims<core_traits<config_new, op_types::attn_q_weight>, model_traits_type::embedding_dim, model_traits_type::embedding_dim, 1, 1>;
 		static constexpr uint64_t depth{ 0 };
 		static constexpr auto config{ config_holder<config_new>::config };
-		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
+		static constexpr alloc_type alc_type{ alloc_type::per_block_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ 0 };
 		static constexpr thread_strategy_type layer_type{ thread_strategy_type::none };
@@ -278,7 +278,7 @@ namespace nihilus {
 			(model_traits_type::head_dim * model_traits_type::head_count_kv), 1, 1>;
 		static constexpr uint64_t depth{ 0 };
 		static constexpr auto config{ config_holder<config_new>::config };
-		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
+		static constexpr alloc_type alc_type{ alloc_type::per_block_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ 0 };
 		static constexpr thread_strategy_type layer_type{ thread_strategy_type::none };
@@ -305,7 +305,7 @@ namespace nihilus {
 			(model_traits_type::head_dim * model_traits_type::head_count_kv), 1, 1>;
 		static constexpr uint64_t depth{ 0 };
 		static constexpr auto config{ config_holder<config_new>::config };
-		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
+		static constexpr alloc_type alc_type{ alloc_type::per_block_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ 0 };
 		static constexpr thread_strategy_type layer_type{ thread_strategy_type::none };
@@ -331,7 +331,7 @@ namespace nihilus {
 			core_trait_dims<core_traits<config_new, op_types::attn_output_weight>, model_traits_type::embedding_dim, model_traits_type::embedding_dim, 1, 1>;
 		static constexpr uint64_t depth{ 0 };
 		static constexpr auto config{ config_holder<config_new>::config };
-		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
+		static constexpr alloc_type alc_type{ alloc_type::per_block_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ 0 };
 		static constexpr thread_strategy_type layer_type{ thread_strategy_type::none };
@@ -355,7 +355,7 @@ namespace nihilus {
 		using core_traits_dims_type = core_trait_dims<core_traits<config_new, op_types::attn_norm_weight>, model_traits_type::embedding_dim, 1, 1, 1>;
 		static constexpr uint64_t depth{ 0 };
 		static constexpr auto config{ config_holder<config_new>::config };
-		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
+		static constexpr alloc_type alc_type{ alloc_type::per_block_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ 0 };
 		static constexpr thread_strategy_type layer_type{ thread_strategy_type::none };
@@ -382,7 +382,7 @@ namespace nihilus {
 			core_trait_dims<core_traits<config_new, op_types::ffn_gate_weight>, model_traits_type::embedding_dim, model_traits_type::feed_forward_length, 1, 1>;
 		static constexpr uint64_t depth{ 0 };
 		static constexpr auto config{ config_holder<config_new>::config };
-		static constexpr alloc_type alc_type{ alloc_type::single_alloc };
+		static constexpr alloc_type alc_type{ alloc_type::per_block_alloc };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ 0 };
 		static constexpr thread_strategy_type layer_type{ thread_strategy_type::none };
