@@ -161,9 +161,7 @@ namespace nihilus {
 
 		template<bool raise_priority> NIHILUS_FORCE_INLINE void thread_function(uint64_t thread_index) {
 			while (!stop.load(std::memory_order_acquire)) {
-				//std::cout << "CURRENT COUNT-0101: " << current_count.load(std::memory_order_acquire) << std::endl;
 				thread_latch.worker_wait(thread_index);
-				//std::cout << "CURRENT COUNT-0202: " << current_count.load(std::memory_order_acquire) << std::endl;
 				if (!stop.load(std::memory_order_acquire)) {
 					core_base_type::template impl<global_input_thread_function>(thread_index, thread_count);
 					for (uint64_t x = 0; x < model_type::model_traits_type::block_count; ++x) {
@@ -171,7 +169,6 @@ namespace nihilus {
 					}
 					core_base_type::template impl<global_output_thread_function>(thread_index, thread_count);
 					thread_latch.arrive_and_wait(thread_index);
-					//std::cout << "CURRENT COUNT-0303: " << current_count.load(std::memory_order_acquire) << std::endl;
 				}
 			}
 		}
@@ -202,7 +199,7 @@ namespace nihilus {
 		alignas(64) std::atomic_bool stop{};
 		char padding02[63]{};
 		alignas(64) uint64_t thread_count{};
-		nihilus::main_gate_latch thread_latch;
+		nihilus::op_latch thread_latch;
 	};
 
 }
