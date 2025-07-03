@@ -91,8 +91,57 @@ template<model_sizes size, model_arches arch> NIHILUS_FORCE_INLINE static conste
 	return get_model_config<combination_index>();
 }
 */
+
+struct alignas(64) atomic_flag_wrapper {
+	NIHILUS_FORCE_INLINE atomic_flag_wrapper() noexcept = default;
+	NIHILUS_FORCE_INLINE atomic_flag_wrapper& operator=(const atomic_flag_wrapper&) noexcept {
+		return *this;
+	}
+
+	NIHILUS_FORCE_INLINE atomic_flag_wrapper(const atomic_flag_wrapper&) noexcept {
+	}
+
+	NIHILUS_FORCE_INLINE void clear() {
+		flag.store(0, std::memory_order_release);
+	}
+
+	NIHILUS_FORCE_INLINE void test_and_set() {
+		flag.store(1, std::memory_order_release);
+	}
+
+	NIHILUS_FORCE_INLINE void notify_one() {
+		flag.notify_one();
+	}
+
+	NIHILUS_FORCE_INLINE bool test() {
+		return flag.load(std::memory_order_acquire) == 1;
+	}
+
+	NIHILUS_FORCE_INLINE void wait(bool value) {
+		flag.wait(value, std::memory_order_acquire);
+	}
+
+  protected:
+	alignas(64) std::atomic_signed_lock_free flag{};
+	char padding[56]{};
+};
+
+struct op_latch {
+	op_latch() noexcept = default;
+	void init(uint64_t thread_count_new) {
+		thread_count = thread_count_new;
+	}
+
+	void arrive_and_wait() {
+		flag.
+	}
+	::atomic_flag_wrapper flag{};
+	int64_t thread_count{};
+};
+
 int main(int argc, char** argv) {
 	try {
+		std::cout << "CURRENT VALUES: " << argc << std::endl;
 		nihilus::stop_watch stop_watch_val{ 0 };
 		static constexpr auto model_config = nihilus::generate_model_config(nihilus::model_generations::v3, nihilus::model_sizes::llm_8B, nihilus::kernel_type_profiles::q8_gqa,
 			nihilus::model_arches::llama, false);

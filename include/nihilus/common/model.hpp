@@ -29,6 +29,7 @@ RealTimeChris (Chris M.)
 namespace nihilus {
 
 	struct model_base {
+		NIHILUS_FORCE_INLINE model_base() noexcept = default;
 		NIHILUS_FORCE_INLINE model_base(model_config config_new) : config{ config_new } {};
 		model_config config{};
 		virtual void execute_model(execution_parameters& params) = 0;
@@ -53,6 +54,8 @@ namespace nihilus {
 		template<auto op_type> auto& get_core() {
 			return *static_cast<nihilus::core_traits<config_new, op_type>*>(static_cast<get_core_bases_t<config_new>*>(this));
 		}
+
+		NIHILUS_FORCE_INLINE model() noexcept = default;
 
 		NIHILUS_FORCE_INLINE model(nihilus::cli_params params)
 			: thread_pool<config_new, model>{ params.thread_count }, model_base{ config_new }, input_session<config_new, model<config_new>>{ params } {

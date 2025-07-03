@@ -25,7 +25,26 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-	template<model_arches arch, auto model_size, auto model_generation> struct model_traits;
+	template<model_arches arch, auto model_size, auto model_generation> struct model_traits {
+		using op_type_type = op_types;
+		static constexpr auto arch{ model_arches::llama };
+		static constexpr auto model_generation{ model_generations::v1_v2 };
+		static constexpr auto model_size{ model_sizes::llm_1B };
+		static constexpr uint64_t vocab_size		   = 32000;
+		static constexpr uint64_t embedding_dim		   = 2048;
+		static constexpr uint64_t block_count		   = 16;
+		static constexpr uint64_t feed_forward_length  = 8192;
+		static constexpr uint64_t head_count		   = 32;
+		static constexpr uint64_t head_count_kv		   = 8;
+		static constexpr uint64_t head_dim			   = 64;
+		static constexpr uint64_t rope_dimension_count = 64;
+		static constexpr uint64_t total_parameters	   = 1000000000;
+		static constexpr uint64_t kv_cache_layers	   = 16;
+		static constexpr uint64_t intermediate_size	   = 8192;
+		static constexpr uint64_t max_sequence_length  = 2048;
+		static constexpr uint64_t n_embd_head_kv	   = embedding_dim / head_count;
+		static constexpr uint64_t n_embd_kv_gqa		   = n_embd_head_kv * head_count_kv;
+	};
 
 	template<> struct model_traits<model_arches::llama, model_sizes::llm_1B, model_generations::v1_v2> {
 		using op_type_type = op_types;

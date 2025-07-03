@@ -312,7 +312,7 @@ target_compile_options(${PROJECT_NAME} "${NIHILUS_PRIVATE_DEFINITION}"
     >
 
     $<$<CXX_COMPILER_ID:MSVC>:
-        /O2
+        $<$<CONFIG:Release>:/O2>        
         /Ob3
         /Ot
         /Oy

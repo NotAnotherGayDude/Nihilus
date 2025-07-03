@@ -139,6 +139,13 @@ namespace nihilus {
 			return return_value;
 		}
 
+		NIHILUS_FORCE_INLINE static auto parse_model_graph_data() {
+			std::unique_ptr<model_base_type> return_value{};
+			model_base_type* new_model{ new model_type{} };
+			return_value.reset(new_model);
+			return return_value;
+		}
+
 		NIHILUS_FORCE_INLINE static nihilus::cli_params parse_cli_arguments(uint32_t argc, char** argv) {
 			std::vector<std::string> cli_args{};
 			for (uint64_t x = 0; x < argc; ++x) {
