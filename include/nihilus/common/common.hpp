@@ -152,7 +152,7 @@ namespace nihilus {
 		}
 	};
 
-	static constexpr auto spinlock_time{ 500 };
+	static constexpr auto spinlock_time{ 105000 };
 
 	inline std::mutex mutex{};
 
@@ -170,6 +170,35 @@ namespace nihilus {
 		}
 	}
 
+	struct alignas(64) op_latch_branchless_real {
+		NIHILUS_FORCE_INLINE op_latch_branchless_real() noexcept = default;
+		NIHILUS_FORCE_INLINE op_latch_branchless_real& operator=(const op_latch_branchless_real&) noexcept {
+			return *this;
+		}
+
+		NIHILUS_FORCE_INLINE op_latch_branchless_real(const op_latch_branchless_real&) noexcept {};
+
+		NIHILUS_FORCE_INLINE void init(uint64_t thread_count_new) {
+			thread_count = thread_count_new;
+			flag.store(0, std::memory_order_release);
+		}
+
+		NIHILUS_FORCE_INLINE void arrive_and_wait() {
+			auto new_value					 = flag.fetch_add(1, std::memory_order_acq_rel);
+			static constexpr int64_t garbage = -1;
+			int64_t expected				 = new_value ^ ((new_value ^ garbage) & -(new_value == get_thread_count() - 1));
+			(new_value == thread_count - 1) ? (flag.notify_all(), flag.store(0, std::memory_order_release)) : flag.wait(new_value + 1, std::memory_order_acquire);
+		}
+
+		NIHILUS_FORCE_INLINE int64_t get_thread_count() const noexcept {
+			return thread_count;
+		}
+
+	  protected:
+		alignas(64) std::atomic<int64_t> flag{};
+		alignas(64) int64_t thread_count{};
+	};
+
 	struct alignas(64) atomic_flag_wrapper {
 		NIHILUS_FORCE_INLINE atomic_flag_wrapper() noexcept = default;
 		NIHILUS_FORCE_INLINE atomic_flag_wrapper& operator=(const atomic_flag_wrapper&) noexcept {
@@ -177,6 +206,10 @@ namespace nihilus {
 		}
 
 		NIHILUS_FORCE_INLINE atomic_flag_wrapper(const atomic_flag_wrapper&) noexcept {
+		}
+
+		NIHILUS_FORCE_INLINE void store(int64_t value_new) {
+			flag.store(value_new, std::memory_order_release);
 		}
 
 		NIHILUS_FORCE_INLINE void clear() {
@@ -213,6 +246,7 @@ namespace nihilus {
 		alignas(64) std::vector<atomic_flag_wrapper> start_flags{};
 		char padding02[40];
 		alignas(64) std::atomic_signed_lock_free global_counter{};
+		alignas(64) std::atomic_flag main_thread_flag{};
 		char padding03[56];
 		alignas(64) size_t thread_count{};
 		char padding[56]{};

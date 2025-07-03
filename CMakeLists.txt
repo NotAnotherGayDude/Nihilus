@@ -107,8 +107,11 @@ target_compile_options(${PROJECT_NAME} "${NIHILUS_PRIVATE_DEFINITION}"
         -O3
         -Ofast
         -DNDEBUG
-        -march=native
-        -mtune=native
+        -ftrivial-auto-var-init=pattern
+        -menable-unsafe-fp-math
+        -Rpass=loop-vectorize
+        -Rpass-missed=loop-vectorize
+        -Rpass-analysis=loop-vectorize
         -flto=thin
         -ffast-math
         -funroll-loops
@@ -221,6 +224,9 @@ target_compile_options(${PROJECT_NAME} "${NIHILUS_PRIVATE_DEFINITION}"
         -floop-unroll-and-jam
         -fpeel-loops
         -fpredictive-commoning
+        -ftrivial-auto-var-init=pattern
+        -freorder-blocks-and-partition
+        -fipa-ra
         -fsplit-paths
         -ftree-loop-distribute-patterns
         -ftree-loop-distribution
@@ -312,7 +318,7 @@ target_compile_options(${PROJECT_NAME} "${NIHILUS_PRIVATE_DEFINITION}"
     >
 
     $<$<CXX_COMPILER_ID:MSVC>:
-        $<$<CONFIG:Release>:/O2>        
+        /O2
         /Ob3
         /Ot
         /Oy
@@ -330,7 +336,6 @@ target_compile_options(${PROJECT_NAME} "${NIHILUS_PRIVATE_DEFINITION}"
         /Gw
         /Zc:inline
         /Zc:throwingNew
-        /DYNAMICBASE:NO
         /W4
         /Wall
         /permissive-
@@ -381,6 +386,7 @@ target_link_options(${PROJECT_NAME} "${NIHILUS_PRIVATE_DEFINITION}"
 
     $<$<CXX_COMPILER_ID:MSVC>:
         $<$<CONFIG:Release>:/LTCG>
+        /DYNAMICBASE:NO
         /OPT:REF
         /OPT:ICF
         /INCREMENTAL:NO
