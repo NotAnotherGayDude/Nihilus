@@ -138,7 +138,7 @@ namespace nihilus {
 #endif
 	};
 
-	template<nihilus::model_config config, typename model_type> struct thread_pool : public get_core_bases_t<config> {
+	template<model_config config, typename model_type> struct thread_pool : public get_core_bases_t<config> {
 		using core_base_type													 = get_core_bases_t<config>;
 		NIHILUS_FORCE_INLINE thread_pool() noexcept								 = default;
 		NIHILUS_FORCE_INLINE thread_pool& operator=(const thread_pool&) noexcept = delete;
@@ -156,9 +156,6 @@ namespace nihilus {
 			core_base_type::template impl<execution_planner>(thread_count);
 		}
 
-		NIHILUS_FORCE_INLINE void thread_function_impl() {
-		}
-
 		template<bool raise_priority> NIHILUS_FORCE_INLINE void thread_function(uint64_t thread_index) {
 			while (!stop.load(std::memory_order_acquire)) {
 				thread_latch.worker_wait(thread_index);
@@ -174,12 +171,8 @@ namespace nihilus {
 		}
 
 		NIHILUS_FORCE_INLINE void execute_tasks() {
-			nihilus::depths.store(0, std::memory_order_release);
+			depths.store(0, std::memory_order_release);
 			thread_latch.count_down();
-			for (uint64_t x = 0; x < model_type::model_traits_type::block_count; ++x) {
-				core_base_type::template impl<main_thread_per_block_function>(x);
-			}
-			core_base_type::template impl<main_thread_global_output_function>();
 			thread_latch.main_wait();
 		}
 
@@ -199,7 +192,7 @@ namespace nihilus {
 		alignas(64) std::atomic_bool stop{};
 		char padding02[63]{};
 		alignas(64) uint64_t thread_count{};
-		nihilus::op_latch thread_latch;
+		main_gate_latch thread_latch;
 	};
 
 }

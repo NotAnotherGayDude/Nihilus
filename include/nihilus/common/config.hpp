@@ -113,7 +113,7 @@ NIHILUS_FORCE_INLINE void nihilus_pause() noexcept {
 #ifndef NDEBUG
 	#define NIHILUS_ASSERT(x) \
 		if (!(x)) \
-		nihilus::internal_abort(#x, std::source_location::current())
+		internal_abort(#x, std::source_location::current())
 #else
 	#define NIHILUS_ASSERT(x)
 #endif

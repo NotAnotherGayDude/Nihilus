@@ -26,6 +26,8 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
+	#include <arm_sve2.h>
+
 	template<simd_int_128_type simd_int_type_new> NIHILUS_FORCE_INLINE static simd_int_type_new gather_values(const void* str) noexcept {
 		return vld1q_u8(static_cast<const uint8_t*>(str));
 	}

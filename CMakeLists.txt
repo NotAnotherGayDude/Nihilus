@@ -351,26 +351,7 @@ target_compile_options(${PROJECT_NAME} "${NIHILUS_PRIVATE_DEFINITION}"
         /Zc:strictStrings
         /Zc:ternary
         /Zc:wchar_t
-        /we4062
-        /we4263
-        /we4264
-        /we4265
-        /we4266
-        /we4928
-        /we4946
-        /we4986
-        /we4987
-        /we4988
-        /wd4514
-        /wd4571
-        /wd4625
-        /wd4626
-        /wd4710
-        /wd4711
         /wd4820
-        /wd5026
-        /wd5027
-        /wd5045
     >
 )
 

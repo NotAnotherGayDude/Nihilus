@@ -642,8 +642,8 @@ namespace nihilus {
 		static constexpr kernel_types krn_type{ kernel_types::mul_mat };
 		static constexpr op_types type{ op_types::qcur };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		array<op_latch, model_traits_type::block_count> sync_flag_start{};
-		array<op_latch, model_traits_type::block_count> sync_flag_end{};
+		array<core_latch, model_traits_type::block_count> sync_flag_start{};
+		array<core_latch, model_traits_type::block_count> sync_flag_end{};
 		uint64_t dim01{ model_traits_type::max_sequence_length };
 		std::atomic_uint64_t remaining_thread_count{};
 		output_type* data{};
@@ -740,8 +740,8 @@ namespace nihilus {
 		static constexpr kernel_types krn_type{ kernel_types::mul_mat };
 		static constexpr op_types type{ op_types::kcur };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		array<op_latch, model_traits_type::block_count> sync_flag_start{};
-		array<op_latch, model_traits_type::block_count> sync_flag_end{};
+		array<core_latch, model_traits_type::block_count> sync_flag_start{};
+		array<core_latch, model_traits_type::block_count> sync_flag_end{};
 		uint64_t dim01{ model_traits_type::max_sequence_length };
 		std::atomic_uint64_t remaining_thread_count{};
 		output_type* data{};
@@ -839,8 +839,8 @@ namespace nihilus {
 		static constexpr kernel_types krn_type{ kernel_types::mul_mat };
 		static constexpr op_types type{ op_types::vcur };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		array<op_latch, model_traits_type::block_count> sync_flag_start{};
-		array<op_latch, model_traits_type::block_count> sync_flag_end{};
+		array<core_latch, model_traits_type::block_count> sync_flag_start{};
+		array<core_latch, model_traits_type::block_count> sync_flag_end{};
 		uint64_t dim01{ model_traits_type::max_sequence_length };
 		std::atomic_uint64_t remaining_thread_count{};
 		output_type* data{};
@@ -1107,8 +1107,8 @@ namespace nihilus {
 		static constexpr kernel_types krn_type{ kernel_types::mul_mat };
 		static constexpr op_types type{ op_types::kq };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		array<op_latch, model_traits_type::block_count> sync_flag_start{};
-		array<op_latch, model_traits_type::block_count> sync_flag_end{};
+		array<core_latch, model_traits_type::block_count> sync_flag_start{};
+		array<core_latch, model_traits_type::block_count> sync_flag_end{};
 		uint64_t dim00{ model_traits_type::max_sequence_length };
 		std::atomic_uint64_t remaining_thread_count{};
 		output_type* data{};
@@ -1172,8 +1172,8 @@ namespace nihilus {
 		static constexpr kernel_types krn_type{ kernel_types::mul_mat };
 		static constexpr op_types type{ op_types::kqv };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		array<op_latch, model_traits_type::block_count> sync_flag_start{};
-		array<op_latch, model_traits_type::block_count> sync_flag_end{};
+		array<core_latch, model_traits_type::block_count> sync_flag_start{};
+		array<core_latch, model_traits_type::block_count> sync_flag_end{};
 		std::atomic_uint64_t remaining_thread_count{};
 		output_type* data{};
 		int32_t value{};
@@ -1258,8 +1258,8 @@ namespace nihilus {
 		static constexpr kernel_types krn_type{ kernel_types::mul_mat };
 		static constexpr op_types type{ op_types::kqv_out };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		array<op_latch, model_traits_type::block_count> sync_flag_start{};
-		array<op_latch, model_traits_type::block_count> sync_flag_end{};
+		array<core_latch, model_traits_type::block_count> sync_flag_start{};
+		array<core_latch, model_traits_type::block_count> sync_flag_end{};
 		uint64_t dim01{ model_traits_type::max_sequence_length };
 		std::atomic_uint64_t remaining_thread_count{};
 		output_type* data{};
@@ -1421,8 +1421,8 @@ namespace nihilus {
 		static constexpr kernel_types krn_type{ kernel_types::mul_mat };
 		static constexpr op_types type{ op_types::ffn_gate };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		array<op_latch, model_traits_type::block_count> sync_flag_start{};
-		array<op_latch, model_traits_type::block_count> sync_flag_end{};
+		array<core_latch, model_traits_type::block_count> sync_flag_start{};
+		array<core_latch, model_traits_type::block_count> sync_flag_end{};
 		uint64_t dim01{ model_traits_type::max_sequence_length };
 		std::atomic_uint64_t remaining_thread_count{};
 		output_type* data{};
@@ -1488,8 +1488,8 @@ namespace nihilus {
 		static constexpr kernel_types krn_type{ kernel_types::mul_mat };
 		static constexpr op_types type{ op_types::ffn_up };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		array<op_latch, model_traits_type::block_count> sync_flag_start{};
-		array<op_latch, model_traits_type::block_count> sync_flag_end{};
+		array<core_latch, model_traits_type::block_count> sync_flag_start{};
+		array<core_latch, model_traits_type::block_count> sync_flag_end{};
 		uint64_t dim01{ model_traits_type::max_sequence_length };
 		std::atomic_uint64_t remaining_thread_count{};
 		output_type* data{};
@@ -1555,8 +1555,8 @@ namespace nihilus {
 		static constexpr kernel_types krn_type{ kernel_types::mul_mat };
 		static constexpr op_types type{ op_types::ffn_out };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		array<op_latch, model_traits_type::block_count> sync_flag_start{};
-		array<op_latch, model_traits_type::block_count> sync_flag_end{};
+		array<core_latch, model_traits_type::block_count> sync_flag_start{};
+		array<core_latch, model_traits_type::block_count> sync_flag_end{};
 		uint64_t dim01{ model_traits_type::max_sequence_length };
 		std::atomic_uint64_t remaining_thread_count{};
 		output_type* data{};
@@ -1752,8 +1752,8 @@ namespace nihilus {
 		static constexpr kernel_types krn_type{ kernel_types::mul_mat };
 		static constexpr op_types type{ op_types::result_output };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		array<op_latch, model_traits_type::block_count> sync_flag_start{};
-		array<op_latch, model_traits_type::block_count> sync_flag_end{};
+		array<core_latch, model_traits_type::block_count> sync_flag_start{};
+		array<core_latch, model_traits_type::block_count> sync_flag_end{};
 		uint64_t dim01{ model_traits_type::max_sequence_length };
 		std::atomic_uint64_t remaining_thread_count{};
 		output_type* data{};
@@ -1778,24 +1778,24 @@ namespace nihilus {
 		}
 	};
 
-	template<nihilus::model_config config, typename... bases> struct core_bases : public bases... {
-		template<template<nihilus::model_config, typename> typename mixin_type, typename... arg_types> NIHILUS_FORCE_INLINE constexpr void impl(arg_types&&... args) {
+	template<model_config config, typename... bases> struct core_bases : public bases... {
+		template<template<model_config, typename> typename mixin_type, typename... arg_types> NIHILUS_FORCE_INLINE constexpr void impl(arg_types&&... args) {
 			(impl_internal_filtered<mixin_type, bases>(std::forward<arg_types>(args)...), ...);
 		}
 
-		template<template<nihilus::model_config, typename> typename mixin_type, typename... arg_types> NIHILUS_FORCE_INLINE static constexpr void impl_static(arg_types&&... args) {
+		template<template<model_config, typename> typename mixin_type, typename... arg_types> NIHILUS_FORCE_INLINE static constexpr void impl_static(arg_types&&... args) {
 			(impl_internal_filtered_static<mixin_type, bases>(std::forward<arg_types>(args)...), ...);
 		}
 
 	  protected:
-		template<template<nihilus::model_config, typename> typename mixin_type, typename base_type, typename... arg_types>
+		template<template<model_config, typename> typename mixin_type, typename base_type, typename... arg_types>
 		NIHILUS_FORCE_INLINE constexpr void impl_internal_filtered(arg_types&&... args) {
 			if constexpr (mixin_type<config, base_type>::filter()) {
 				mixin_type<config, base_type>::impl(*static_cast<base_type*>(this), std::forward<arg_types>(args)...);
 			}
 		}
 
-		template<template<nihilus::model_config, typename> typename mixin_type, typename base_type, typename... arg_types>
+		template<template<model_config, typename> typename mixin_type, typename base_type, typename... arg_types>
 		NIHILUS_FORCE_INLINE static constexpr void impl_internal_filtered_static(arg_types&&... args) {
 			if constexpr (mixin_type<config, base_type>::filter()) {
 				mixin_type<config, base_type>::impl(std::forward<arg_types>(args)...);
@@ -1803,11 +1803,11 @@ namespace nihilus {
 		}
 	};
 
-	template<nihilus::model_config config, typename index_sequence> struct get_core_bases;
+	template<model_config config, typename index_sequence> struct get_core_bases;
 
-	template<nihilus::model_config config, uint64_t... index> struct get_core_bases<config, std::index_sequence<index...>> {
-		using type = core_bases<config, nihilus::core_traits<config, static_cast<typename nihilus::model_traits_type<config>::op_type_type>(index)>...>;
+	template<model_config config, uint64_t... index> struct get_core_bases<config, std::index_sequence<index...>> {
+		using type = core_bases<config, core_traits<config, static_cast<typename model_traits_type<config>::op_type_type>(index)>...>;
 	};
 
-	template<nihilus::model_config config> using get_core_bases_t = typename get_core_bases<config, std::make_index_sequence<static_cast<uint64_t>(op_types::count)>>::type;
+	template<model_config config> using get_core_bases_t = typename get_core_bases<config, std::make_index_sequence<static_cast<uint64_t>(op_types::count)>>::type;
 }

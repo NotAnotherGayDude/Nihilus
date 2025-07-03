@@ -187,6 +187,31 @@ std::thread spawn_thread(::op_latch& latch, size_t thread_index) {
 	} };
 }
 
+template<size_t index> struct base_test_struct {
+	NIHILUS_FORCE_INLINE void test_function() {
+		std::cout << "CURRENT INDEX: " << index << std::endl;
+	}
+};
+
+struct static_caster;
+
+struct test_struct : public base_test_struct<0>, public base_test_struct<1> {
+	using function_type = decltype(&static_caster::template impl<0>);
+	static constexpr nihilus::array<function_type, 2> values{ [] {
+		nihilus::array<function_type, 2> return_values{};
+		return return_values;
+	}() };
+	test_struct() {
+	}
+};
+
+
+struct static_caster {
+	template<size_t index> NIHILUS_FORCE_INLINE static decltype(auto) impl(test_struct* value) {
+		return *static_cast<base_test_struct<index>*>(value);
+	}
+};
+
 int main(int argc, char** argv) {
 	try {
 		std::vector<std::thread> threads{};

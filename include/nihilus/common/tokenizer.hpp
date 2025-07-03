@@ -79,22 +79,13 @@ namespace nihilus {
 	template<model_config config, typename derived_type, vocab_types vocab_type_new> struct tokenizer<config, derived_type, model_arches::llama, vocab_type_new>
 		: public tokenizer_parameters<model_arches::llama>, public vocab_traits<config.arch, vocab_type_new, config.vocab_pre_type> {
 		using vocab_type						  = vocab_traits<config.arch, vocab_type_new, config.vocab_pre_type>;
-		NIHILUS_FORCE_INLINE tokenizer() noexcept = default;
 		using model_traits_type					  = model_traits<config.arch, config.model_size, config.model_generation>;
-		static constexpr std::string_view regex_exprs{ [] {
-			if constexpr (vocab_type::pre_type == vocab_pre_types::llama3) {
-				return "(?:'[sS]|'[tT]|'[rR][eE]|'[vV][eE]|'[mM]|'[lL][lL]|'[dD])|[^\\r\\n\\p{L}\\p{N}]?\\p{L}+|\\p{N}{1,3}| "
-					   "?[^\\s\\p{L}\\p{N}]+[\\r\\n]*|\\s*[\\r\\n]+|\\s+(?!\\S)|\\s+";
-			} else {
-				return std::string_view{};
-			}
-		}() };
-		std::unordered_map<std::pair<std::string_view, std::string_view>, int32_t, pair_hash> bpe_ranks;
-		std::unordered_map<std::string_view, token> token_to_id;
+
+		NIHILUS_FORCE_INLINE tokenizer() noexcept = default;
 
 		NIHILUS_FORCE_INLINE void load_vocabulary() {
 
-			token_to_id.clear();
+			token_to_id.reserve(tokens.size());
 			for (size_t i = 0; i < tokens.size(); ++i) {
 				token_to_id[tokens[i]] = static_cast<int32_t>(i);
 			}
@@ -126,9 +117,19 @@ namespace nihilus {
 			return temp_tokens.size();
 		}
 
-	  private:
-		std::vector<nihilus_symbol> symbols;
+	  protected:
+		static constexpr std::string_view regex_exprs{ [] {
+			if constexpr (vocab_type::pre_type == vocab_pre_types::llama3) {
+				return "(?:'[sS]|'[tT]|'[rR][eE]|'[vV][eE]|'[mM]|'[lL][lL]|'[dD])|[^\\r\\n\\p{L}\\p{N}]?\\p{L}+|\\p{N}{1,3}| "
+					   "?[^\\s\\p{L}\\p{N}]+[\\r\\n]*|\\s*[\\r\\n]+|\\s+(?!\\S)|\\s+";
+			} else {
+				return std::string_view{};
+			}
+		}() };
+		std::unordered_map<std::pair<std::string_view, std::string_view>, int32_t, pair_hash> bpe_ranks;
+		std::unordered_map<std::string_view, token> token_to_id;
 		nihilus_bigram_bpe::queue work_queue;
+		std::vector<nihilus_symbol> symbols;
 
 		NIHILUS_FORCE_INLINE std::vector<std::string> gpt2_style_split(std::string_view text) {
 			std::vector<std::string> result;

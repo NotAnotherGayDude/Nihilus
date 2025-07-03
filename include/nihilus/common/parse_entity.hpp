@@ -20,7 +20,6 @@ RealTimeChris (Chris M.)
 #pragma once
 
 #include <nihilus/common/type_traits.hpp>
-#include <nihilus/common/model_graph_data.hpp>
 #include <nihilus/common/compare.hpp>
 #include <nihilus/common/debugging_io.hpp>
 #include <nihilus/common/model_traits.hpp>

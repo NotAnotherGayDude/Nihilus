@@ -81,9 +81,9 @@ int main(int argc, char** argv) {
 			nihilus::kernel_type_profiles::q8_gqa, nihilus::model_arches::llama, false);
 		test::stop_watch stop_watch_val{ 0 };
 		nihilus::cli_params cli_args_final;
+		cli_args_final = nihilus::harbinger<model_config>::parse_cli_arguments(argc, argv);
+		auto model_new{ nihilus::harbinger<model_config>::parse_model_graph_data(cli_args_final) };
 		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 4, 2, true, "Token">::runBenchmark<"nihilus">([&] {
-			cli_args_final = nihilus::harbinger<model_config>::parse_cli_arguments(argc, argv);
-			auto model_new{ nihilus::harbinger<model_config>::parse_model_graph_data(cli_args_final) };
 			while (model_new->process_input(cli_args_final.prompt)) {
 			}
 			return cli_args_final.n_tokens;

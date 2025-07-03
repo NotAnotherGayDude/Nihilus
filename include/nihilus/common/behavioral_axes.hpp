@@ -53,7 +53,7 @@ namespace nihilus {
 
 	int64_t current_iteration{};
 
-	template<nihilus::model_config config, typename base_type_new> struct execution_planner {
+	template<model_config config, typename base_type_new> struct execution_planner {
 		NIHILUS_FORCE_INLINE execution_planner() noexcept									 = default;
 		NIHILUS_FORCE_INLINE execution_planner& operator=(const execution_planner&) noexcept = delete;
 		NIHILUS_FORCE_INLINE execution_planner(const execution_planner&) noexcept			 = delete;
@@ -62,7 +62,7 @@ namespace nihilus {
 		using output_type																	 = base_type_new::output_type;
 		using base_type																		 = base_type_new;
 		NIHILUS_FORCE_INLINE static constexpr bool filter() {
-			return nihilus::blocking<base_type_new>;
+			return blocking<base_type_new>;
 		}
 		NIHILUS_FORCE_INLINE static void impl(base_type_new& core, uint64_t thread_count) {
 			for (uint64_t x = 0; x < base_type::model_traits_type::block_count; ++x) {
@@ -73,21 +73,21 @@ namespace nihilus {
 		}
 	};
 
-	template<nihilus::model_config config, typename base_type_new> struct weight_mapper {
+	template<model_config config, typename base_type_new> struct weight_mapper {
 		NIHILUS_FORCE_INLINE weight_mapper() noexcept								 = default;
 		NIHILUS_FORCE_INLINE weight_mapper& operator=(const weight_mapper&) noexcept = delete;
 		NIHILUS_FORCE_INLINE weight_mapper(const weight_mapper&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE weight_mapper& operator=(weight_mapper&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE weight_mapper(weight_mapper&&) noexcept				 = delete;
 		using base_type																 = base_type_new;
-		using model_traits_type														 = nihilus::model_traits_type<base_type::config>;
+		using model_traits_type														 = model_traits_type<base_type::config>;
 		using op_type_type															 = typename model_traits_type::op_type_type;
 		NIHILUS_FORCE_INLINE static constexpr bool filter() {
 			using core_traits_type = base_type;
 			return static_cast<uint64_t>(core_traits_type::type) <= 12;
 		}
-		NIHILUS_FORCE_INLINE static void impl(base_type_new& core, nihilus::array<nihilus::array<void*, model_traits_type::block_count>, op_types::count>& data) {
-			if constexpr (nihilus::array_type<decltype(core.data)>) {
+		NIHILUS_FORCE_INLINE static void impl(base_type_new& core, array<array<void*, model_traits_type::block_count>, op_types::count>& data) {
+			if constexpr (array_type<decltype(core.data)>) {
 				for (uint64_t x = 0; x < model_traits_type::block_count; ++x) {
 					data[base_type::type][x] = reinterpret_cast<void*>(&core.data[x]);
 				}
@@ -99,14 +99,14 @@ namespace nihilus {
 		}
 	};
 
-	template<nihilus::model_config config, typename base_type_new> struct memory_mapper {
+	template<model_config config, typename base_type_new> struct memory_mapper {
 		NIHILUS_FORCE_INLINE memory_mapper() noexcept								 = default;
 		NIHILUS_FORCE_INLINE memory_mapper& operator=(const memory_mapper&) noexcept = delete;
 		NIHILUS_FORCE_INLINE memory_mapper(const memory_mapper&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE memory_mapper& operator=(memory_mapper&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE memory_mapper(memory_mapper&&) noexcept				 = delete;
 		using base_type																 = base_type_new;
-		using model_traits_type														 = nihilus::model_traits_type<base_type::config>;
+		using model_traits_type														 = model_traits_type<base_type::config>;
 		using op_type_type															 = typename model_traits_type::op_type_type;
 		NIHILUS_FORCE_INLINE static constexpr bool filter() {
 			return base_type::total_required_bytes > 0;
@@ -114,7 +114,7 @@ namespace nihilus {
 		template<typename memory_buffer_type> NIHILUS_FORCE_INLINE static void impl(base_type_new& core, memory_buffer_type& memory_buffer) {
 			auto* new_ptr	  = memory_buffer.claim_memory(base_type::total_required_bytes);
 			using output_type = typename base_type::output_type;
-			if constexpr (nihilus::array_type<decltype(core.data)>) {
+			if constexpr (array_type<decltype(core.data)>) {
 				for (uint64_t x = 0; x < model_traits_type::block_count; ++x) {
 					core.data[x] = static_cast<output_type*>(new_ptr);
 				}
@@ -124,14 +124,14 @@ namespace nihilus {
 		}
 	};
 
-	template<nihilus::model_config config, typename base_type_new> struct dim_updater {
+	template<model_config config, typename base_type_new> struct dim_updater {
 		NIHILUS_FORCE_INLINE dim_updater() noexcept								 = default;
 		NIHILUS_FORCE_INLINE dim_updater& operator=(const dim_updater&) noexcept = delete;
 		NIHILUS_FORCE_INLINE dim_updater(const dim_updater&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE dim_updater& operator=(dim_updater&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE dim_updater(dim_updater&&) noexcept				 = delete;
 		using base_type															 = base_type_new;
-		using model_traits_type													 = nihilus::model_traits_type<base_type::config>;
+		using model_traits_type													 = model_traits_type<base_type::config>;
 		using op_type_type														 = typename model_traits_type::op_type_type;
 		NIHILUS_FORCE_INLINE static constexpr bool filter() {
 			return base_type::runtime_dims;
@@ -141,14 +141,14 @@ namespace nihilus {
 		}
 	};
 
-	template<nihilus::model_config config, typename base_type_new> struct memory_calculator {
+	template<model_config config, typename base_type_new> struct memory_calculator {
 		NIHILUS_FORCE_INLINE memory_calculator() noexcept									 = default;
 		NIHILUS_FORCE_INLINE memory_calculator& operator=(const memory_calculator&) noexcept = delete;
 		NIHILUS_FORCE_INLINE memory_calculator(const memory_calculator&) noexcept			 = delete;
 		NIHILUS_FORCE_INLINE memory_calculator& operator=(memory_calculator&&) noexcept		 = delete;
 		NIHILUS_FORCE_INLINE memory_calculator(memory_calculator&&) noexcept				 = delete;
 		using base_type																		 = base_type_new;
-		using model_traits_type																 = nihilus::model_traits_type<base_type::config>;
+		using model_traits_type																 = model_traits_type<base_type::config>;
 		using op_type_type																	 = typename model_traits_type::op_type_type;
 		NIHILUS_FORCE_INLINE static constexpr bool filter() {
 			using core_traits_type = base_type;
@@ -159,7 +159,9 @@ namespace nihilus {
 		}
 	};
 
-	template<nihilus::model_config config, typename base_type_new> struct global_input_thread_function {
+	array<atomic_flag_wrapper, op_types::count> op_exec_counts{};
+
+	template<model_config config, typename base_type_new> struct global_input_thread_function {
 		NIHILUS_FORCE_INLINE global_input_thread_function() noexcept											   = default;
 		NIHILUS_FORCE_INLINE global_input_thread_function& operator=(const global_input_thread_function&) noexcept = delete;
 		NIHILUS_FORCE_INLINE global_input_thread_function(const global_input_thread_function&) noexcept			   = delete;
@@ -168,28 +170,16 @@ namespace nihilus {
 		using base_type																							   = base_type_new;
 		NIHILUS_FORCE_INLINE static constexpr bool filter() {
 			using core_traits_type = base_type;
-			return core_traits_type::layer_type == nihilus::thread_strategy_type::global_input && core_traits_type::krn_type != nihilus::kernel_types::none;
+			return core_traits_type::layer_type == thread_strategy_type::global_input && core_traits_type::krn_type != kernel_types::none;
 		}
 		NIHILUS_FORCE_INLINE static void impl(base_type& core, uint64_t thread_index, uint64_t thread_count) {
-			nihilus::kernel_dispatcher<config, nihilus::device_types::cpu, base_type>::impl(core, thread_index, thread_count);
-			nihilus::spinlock_nanoseconds(spinlock_time);
+			op_exec_counts[base_type::type].fetch_add(1);
+			kernel_dispatcher<config, device_types::cpu, base_type>::impl(core, thread_index, thread_count);
+			spinlock_nanoseconds(spinlock_time);
 		}
 	};
 
-	template<nihilus::model_config config, nihilus::blocking base_type_new> struct global_input_thread_function<config, base_type_new> {
-		NIHILUS_FORCE_INLINE global_input_thread_function() noexcept											   = default;
-		NIHILUS_FORCE_INLINE global_input_thread_function& operator=(const global_input_thread_function&) noexcept = delete;
-		NIHILUS_FORCE_INLINE global_input_thread_function(const global_input_thread_function&) noexcept			   = delete;
-		NIHILUS_FORCE_INLINE global_input_thread_function& operator=(global_input_thread_function&&) noexcept	   = delete;
-		NIHILUS_FORCE_INLINE global_input_thread_function(global_input_thread_function&&) noexcept				   = delete;
-		using base_type																							   = base_type_new;
-		NIHILUS_FORCE_INLINE static constexpr bool filter() {
-			using core_traits_type = base_type;
-			return core_traits_type::layer_type == nihilus::thread_strategy_type::global_input && core_traits_type::krn_type != nihilus::kernel_types::none;
-		}
-	};
-
-	template<nihilus::model_config config, typename base_type_new> struct per_block_thread_function {
+	template<model_config config, typename base_type_new> struct per_block_thread_function {
 		NIHILUS_FORCE_INLINE per_block_thread_function() noexcept											 = default;
 		NIHILUS_FORCE_INLINE per_block_thread_function& operator=(const per_block_thread_function&) noexcept = delete;
 		NIHILUS_FORCE_INLINE per_block_thread_function(const per_block_thread_function&) noexcept			 = delete;
@@ -198,17 +188,18 @@ namespace nihilus {
 		using base_type																						 = base_type_new;
 		NIHILUS_FORCE_INLINE static constexpr bool filter() {
 			using core_traits_type = base_type;
-			return core_traits_type::layer_type == nihilus::thread_strategy_type::per_block && core_traits_type::krn_type != nihilus::kernel_types::transpose &&
-				core_traits_type::krn_type != nihilus::kernel_types::view && core_traits_type::krn_type != nihilus::kernel_types::permute &&
-				core_traits_type::krn_type != nihilus::kernel_types::reshape && core_traits_type::krn_type != nihilus::kernel_types::none;
+			return core_traits_type::layer_type == thread_strategy_type::per_block && core_traits_type::krn_type != kernel_types::transpose &&
+				core_traits_type::krn_type != kernel_types::view && core_traits_type::krn_type != kernel_types::permute &&
+				core_traits_type::krn_type != kernel_types::reshape && core_traits_type::krn_type != kernel_types::none;
 		}
-		NIHILUS_FORCE_INLINE static void impl(base_type& core, uint64_t thread_index, uint64_t thread_count, uint64_t current_block) {
-			nihilus::kernel_dispatcher<config, nihilus::device_types::cpu, base_type>::impl(core, thread_index, thread_count);
-			nihilus::spinlock_nanoseconds(spinlock_time);
+		NIHILUS_FORCE_INLINE static void impl(base_type& core, uint64_t thread_index, uint64_t thread_count, uint64_t) {
+			op_exec_counts[base_type::type].fetch_add(1);
+			kernel_dispatcher<config, device_types::cpu, base_type>::impl(core, thread_index, thread_count);
+			spinlock_nanoseconds(spinlock_time);
 		}
 	};
 
-	template<nihilus::model_config config, nihilus::blocking base_type_new> struct per_block_thread_function<config, base_type_new> {
+	template<model_config config, blocking base_type_new> struct per_block_thread_function<config, base_type_new> {
 		NIHILUS_FORCE_INLINE per_block_thread_function() noexcept											 = default;
 		NIHILUS_FORCE_INLINE per_block_thread_function& operator=(const per_block_thread_function&) noexcept = delete;
 		NIHILUS_FORCE_INLINE per_block_thread_function(const per_block_thread_function&) noexcept			 = delete;
@@ -217,20 +208,21 @@ namespace nihilus {
 		using base_type																						 = base_type_new;
 		NIHILUS_FORCE_INLINE static constexpr bool filter() {
 			using core_traits_type = base_type;
-			return core_traits_type::layer_type == nihilus::thread_strategy_type::per_block && core_traits_type::krn_type != nihilus::kernel_types::transpose &&
-				core_traits_type::krn_type != nihilus::kernel_types::view && core_traits_type::krn_type != nihilus::kernel_types::permute &&
-				core_traits_type::krn_type != nihilus::kernel_types::reshape && core_traits_type::krn_type != nihilus::kernel_types::none;
+			return core_traits_type::layer_type == thread_strategy_type::per_block && core_traits_type::krn_type != kernel_types::transpose &&
+				core_traits_type::krn_type != kernel_types::view && core_traits_type::krn_type != kernel_types::permute &&
+				core_traits_type::krn_type != kernel_types::reshape && core_traits_type::krn_type != kernel_types::none;
 		}
 
 		NIHILUS_FORCE_INLINE static void impl(base_type& core, uint64_t thread_index, uint64_t thread_count, uint64_t current_block) {
-			core.sync_flag_start[current_block].arrive_and_wait(thread_index);
-			nihilus::kernel_dispatcher<config, nihilus::device_types::cpu, base_type>::impl(core, thread_index, thread_count);
-			nihilus::spinlock_nanoseconds(spinlock_time);
-			core.sync_flag_end[current_block].arrive_and_wait(thread_index);
+			op_exec_counts[base_type::type].fetch_add(1);
+			core.sync_flag_start[current_block].arrive_and_wait();
+			kernel_dispatcher<config, device_types::cpu, base_type>::impl(core, thread_index, thread_count);
+			spinlock_nanoseconds(spinlock_time);
+			core.sync_flag_end[current_block].arrive_and_wait();
 		}
 	};
 
-	template<nihilus::model_config config, typename base_type_new> struct global_output_thread_function {
+	template<model_config config, typename base_type_new> struct global_output_thread_function {
 		NIHILUS_FORCE_INLINE global_output_thread_function() noexcept												 = default;
 		NIHILUS_FORCE_INLINE global_output_thread_function& operator=(const global_output_thread_function&) noexcept = delete;
 		NIHILUS_FORCE_INLINE global_output_thread_function(const global_output_thread_function&) noexcept			 = delete;
@@ -239,17 +231,18 @@ namespace nihilus {
 		using base_type																								 = base_type_new;
 		NIHILUS_FORCE_INLINE static constexpr bool filter() {
 			using core_traits_type = base_type;
-			return core_traits_type::layer_type == nihilus::thread_strategy_type::global_output && core_traits_type::krn_type != nihilus::kernel_types::transpose &&
-				core_traits_type::krn_type != nihilus::kernel_types::view && core_traits_type::krn_type != nihilus::kernel_types::permute &&
-				core_traits_type::krn_type != nihilus::kernel_types::reshape && core_traits_type::krn_type != nihilus::kernel_types::none;
+			return core_traits_type::layer_type == thread_strategy_type::global_output && core_traits_type::krn_type != kernel_types::transpose &&
+				core_traits_type::krn_type != kernel_types::view && core_traits_type::krn_type != kernel_types::permute &&
+				core_traits_type::krn_type != kernel_types::reshape && core_traits_type::krn_type != kernel_types::none;
 		}
 		NIHILUS_FORCE_INLINE static void impl(base_type& core, uint64_t thread_index, uint64_t thread_count) {
-			nihilus::kernel_dispatcher<config, nihilus::device_types::cpu, base_type>::impl(core, thread_index, thread_count);
-			nihilus::spinlock_nanoseconds(spinlock_time);
+			op_exec_counts[base_type::type].fetch_add(1);
+			kernel_dispatcher<config, device_types::cpu, base_type>::impl(core, thread_index, thread_count);
+			spinlock_nanoseconds(spinlock_time);
 		}
 	};
 
-	template<nihilus::model_config config, nihilus::blocking base_type_new> struct global_output_thread_function<config, base_type_new> {
+	template<model_config config, blocking base_type_new> struct global_output_thread_function<config, base_type_new> {
 		NIHILUS_FORCE_INLINE global_output_thread_function() noexcept												 = default;
 		NIHILUS_FORCE_INLINE global_output_thread_function& operator=(const global_output_thread_function&) noexcept = delete;
 		NIHILUS_FORCE_INLINE global_output_thread_function(const global_output_thread_function&) noexcept			 = delete;
@@ -258,62 +251,23 @@ namespace nihilus {
 		using base_type																								 = base_type_new;
 		NIHILUS_FORCE_INLINE static constexpr bool filter() {
 			using core_traits_type = base_type;
-			return core_traits_type::layer_type == nihilus::thread_strategy_type::global_output && core_traits_type::krn_type != nihilus::kernel_types::transpose &&
-				core_traits_type::krn_type != nihilus::kernel_types::view && core_traits_type::krn_type != nihilus::kernel_types::permute &&
-				core_traits_type::krn_type != nihilus::kernel_types::reshape && core_traits_type::krn_type != nihilus::kernel_types::none;
+			return core_traits_type::layer_type == thread_strategy_type::global_output && core_traits_type::krn_type != kernel_types::transpose &&
+				core_traits_type::krn_type != kernel_types::view && core_traits_type::krn_type != kernel_types::permute &&
+				core_traits_type::krn_type != kernel_types::reshape && core_traits_type::krn_type != kernel_types::none;
 		}
 
 		NIHILUS_FORCE_INLINE static void impl(base_type& core, uint64_t thread_index, uint64_t thread_count) {
-			core.sync_flag_start[0].arrive_and_wait(thread_index);
-			nihilus::kernel_dispatcher<config, nihilus::device_types::cpu, base_type>::impl(core, thread_index, thread_count);
-			nihilus::spinlock_nanoseconds(spinlock_time);
-			core.sync_flag_end[0].arrive_and_wait(thread_index);
-		}
-	};
-
-	template<nihilus::model_config config, typename base_type_new> struct main_thread_per_block_function {
-		NIHILUS_FORCE_INLINE main_thread_per_block_function() noexcept												   = default;
-		NIHILUS_FORCE_INLINE main_thread_per_block_function& operator=(const main_thread_per_block_function&) noexcept = delete;
-		NIHILUS_FORCE_INLINE main_thread_per_block_function(const main_thread_per_block_function&) noexcept			   = delete;
-		NIHILUS_FORCE_INLINE main_thread_per_block_function& operator=(main_thread_per_block_function&&) noexcept	   = delete;
-		NIHILUS_FORCE_INLINE main_thread_per_block_function(main_thread_per_block_function&&) noexcept				   = delete;
-		using base_type																								   = base_type_new;
-		NIHILUS_FORCE_INLINE static constexpr bool filter() {
-			using core_traits_type = base_type;
-			return nihilus::blocking<base_type_new> && core_traits_type::layer_type == nihilus::thread_strategy_type::per_block &&
-				core_traits_type::layer_type == nihilus::thread_strategy_type::per_block && core_traits_type::krn_type != nihilus::kernel_types::reshape &&
-				core_traits_type::krn_type != nihilus::kernel_types::transpose && core_traits_type::krn_type != nihilus::kernel_types::view &&
-				core_traits_type::krn_type != nihilus::kernel_types::permute && core_traits_type::krn_type != nihilus::kernel_types::none;
-		}
-		NIHILUS_FORCE_INLINE static void impl(base_type& core, uint64_t current_block) {
-			core.sync_flag_start[current_block].main_wait();
-			core.sync_flag_end[current_block].main_wait();
-		}
-	};
-
-	template<nihilus::model_config config, typename base_type_new> struct main_thread_global_output_function {
-		NIHILUS_FORCE_INLINE main_thread_global_output_function() noexcept													   = default;
-		NIHILUS_FORCE_INLINE main_thread_global_output_function& operator=(const main_thread_global_output_function&) noexcept = delete;
-		NIHILUS_FORCE_INLINE main_thread_global_output_function(const main_thread_global_output_function&) noexcept			   = delete;
-		NIHILUS_FORCE_INLINE main_thread_global_output_function& operator=(main_thread_global_output_function&&) noexcept	   = delete;
-		NIHILUS_FORCE_INLINE main_thread_global_output_function(main_thread_global_output_function&&) noexcept				   = delete;
-		using base_type																										   = base_type_new;
-		NIHILUS_FORCE_INLINE static constexpr bool filter() {
-			using core_traits_type = base_type;
-			return nihilus::blocking<base_type_new> && core_traits_type::layer_type == nihilus::thread_strategy_type::global_output &&
-				core_traits_type::krn_type != nihilus::kernel_types::transpose && core_traits_type::krn_type != nihilus::kernel_types::view &&
-				core_traits_type::krn_type != nihilus::kernel_types::permute && core_traits_type::krn_type != nihilus::kernel_types::reshape &&
-				core_traits_type::krn_type != nihilus::kernel_types::none;
-		}
-		NIHILUS_FORCE_INLINE static void impl(base_type& core) {
-			core.sync_flag_start[0].main_wait();
-			core.sync_flag_end[0].main_wait();
+			op_exec_counts[base_type::type].fetch_add(1);
+			core.sync_flag_start[0].arrive_and_wait();
+			kernel_dispatcher<config, device_types::cpu, base_type>::impl(core, thread_index, thread_count);
+			spinlock_nanoseconds(spinlock_time);
+			core.sync_flag_end[0].arrive_and_wait();
 		}
 	};
 
 #if defined(NIHILUS_DEBUG)
 
-	template<nihilus::model_config config, typename base_type> struct tensor_debugger_impl {
+	template<model_config config, typename base_type> struct tensor_debugger_impl {
 		NIHILUS_FORCE_INLINE tensor_debugger_impl() noexcept									   = default;
 		NIHILUS_FORCE_INLINE tensor_debugger_impl& operator=(const tensor_debugger_impl&) noexcept = delete;
 		NIHILUS_FORCE_INLINE tensor_debugger_impl(const tensor_debugger_impl&) noexcept			   = delete;
@@ -325,12 +279,12 @@ namespace nihilus {
 			return true;
 		}
 		NIHILUS_FORCE_INLINE static void impl(base_type& core) {
-			if constexpr (nihilus::array_type<decltype(core.data)>) {
+			if constexpr (array_type<decltype(core.data)>) {
 				for (uint64_t x = 0; x < base_type::model_traits_type::block_count; ++x) {
-					nihilus::tensor_debugger::compare_tensor_data(core, x, current_iteration);
+					tensor_debugger::compare_tensor_data(core, x, current_iteration);
 				}
 			} else {
-				nihilus::tensor_debugger::compare_tensor_data(core, 0, current_iteration);
+				tensor_debugger::compare_tensor_data(core, 0, current_iteration);
 			}
 		}
 	};

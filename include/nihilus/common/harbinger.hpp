@@ -130,9 +130,9 @@ namespace nihilus {
 	template<auto config> struct harbinger {
 		using model_type		 = model<config>;
 		using model_base_type	 = typename model<config>::base_type;
-		using input_session_type = nihilus::input_session<config, model_type>;
+		using input_session_type = input_session<config, model_type>;
 
-		NIHILUS_FORCE_INLINE static auto parse_model_graph_data(nihilus::cli_params params) {
+		NIHILUS_FORCE_INLINE static auto parse_model_graph_data(cli_params params) {
 			std::unique_ptr<model_base_type> return_value{};
 			model_base_type* new_model{ new model_type{ params } };
 			return_value.reset(new_model);
@@ -146,7 +146,7 @@ namespace nihilus {
 			return return_value;
 		}
 
-		NIHILUS_FORCE_INLINE static nihilus::cli_params parse_cli_arguments(uint32_t argc, char** argv) {
+		NIHILUS_FORCE_INLINE static cli_params parse_cli_arguments(uint32_t argc, char** argv) {
 			std::vector<std::string> cli_args{};
 			for (uint64_t x = 0; x < argc; ++x) {
 				cli_args.emplace_back(argv[x]);
@@ -154,8 +154,8 @@ namespace nihilus {
 			return parse_cli_arguments(cli_args);
 		}
 
-		NIHILUS_FORCE_INLINE static nihilus::cli_params parse_cli_arguments(const std::vector<std::string>& command_line) {
-			nihilus::cli_params result{};
+		NIHILUS_FORCE_INLINE static cli_params parse_cli_arguments(const std::vector<std::string>& command_line) {
+			cli_params result{};
 			std::string current_flag{};
 			bool expect_value = false;
 
