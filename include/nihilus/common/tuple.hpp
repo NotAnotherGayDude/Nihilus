@@ -116,7 +116,7 @@ namespace nihilus {
 
 	template<typename index_sequence, typename... value_type> struct get_tuple_base;
 
-	template<uint64_t... index, typename... value_type> struct get_tuple_base<std::index_sequence<index...>, value_type...> {
+	template<size_t... index, typename... value_type> struct get_tuple_base<std::index_sequence<index...>, value_type...> {
 		using type = type_map<tuple_elem<index, value_type>...>;
 	};
 

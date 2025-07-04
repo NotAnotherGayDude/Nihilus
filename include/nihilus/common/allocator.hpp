@@ -43,7 +43,7 @@ namespace nihilus {
 		using const_pointer	   = const value_type_new*;
 		using reference		   = value_type_new&;
 		using const_reference  = const value_type_new&;
-		using uint64_type		   = uint64_t;
+		using uint64_type	   = uint64_t;
 		using difference_type  = std::ptrdiff_t;
 		using allocator_traits = std::allocator_traits<allocator<value_type>>;
 

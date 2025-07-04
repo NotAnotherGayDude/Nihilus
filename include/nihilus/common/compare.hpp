@@ -45,13 +45,13 @@ namespace nihilus {
 		requires(string.length > 0 && string.length <= 8)
 	static constexpr auto pack_values() {
 		convert_length_to_int_t<string.length> return_values{};
-		for (size_t x = 0; x < string.length; ++x) {
+		for (uint64_t x = 0; x < string.length; ++x) {
 			return_values |= static_cast<convert_length_to_int_t<string.length>>(static_cast<uint64_t>(string[x]) << ((x % 8) * 8));
 		}
 		return return_values;
 	}
 
-	template<size_t size> static constexpr size_t getPackingSize() {
+	template<uint64_t size> static constexpr uint64_t get_packing_size() {
 		if constexpr (size >= 64) {
 			return 64;
 		} else if constexpr (size >= 32) {
@@ -64,8 +64,8 @@ namespace nihilus {
 	template<string_literal string>
 		requires(string.length != 0 && string.length > 8)
 	static constexpr auto pack_values() {
-		NIHILUS_ALIGN(16) array<uint64_t, round_up_to_multiple<16>(getPackingSize<string.length>())> return_values{};
-		for (size_t x = 0; x < string.length; ++x) {
+		NIHILUS_ALIGN(16) array<uint64_t, round_up_to_multiple<16>(get_packing_size<string.length>())> return_values{};
+		for (uint64_t x = 0; x < string.length; ++x) {
 			if (x / 8 < (string.length / 8) + 1) {
 				return_values[x / 8] |= (static_cast<uint64_t>(string[x]) << ((x % 8) * 8));
 			}
@@ -91,16 +91,16 @@ namespace nihilus {
 	template<typename value_type>
 	concept gt_16 = value_type::length > 16 && !eq_16<value_type> && !eq_32<value_type> && !eq_64<value_type>;
 
-	template<size_t index, typename string_type> static constexpr auto string_literal_from_view(string_type str) noexcept {
+	template<uint64_t index, typename string_type> static constexpr auto string_literal_from_view(string_type str) noexcept {
 		string_literal<index + 1> sl{};
 		std::copy_n(str.data(), str.size(), sl.values);
 		sl[index] = '\0';
 		return sl;
 	}
 
-	template<string_literal string, size_t offset> static constexpr auto offset_new_literal() noexcept {
-		constexpr size_t originalSize = string.length;
-		constexpr size_t newSize	  = (offset >= originalSize) ? 0 : originalSize - offset;
+	template<string_literal string, uint64_t offset> static constexpr auto offset_new_literal() noexcept {
+		constexpr uint64_t originalSize = string.length;
+		constexpr uint64_t newSize	  = (offset >= originalSize) ? 0 : originalSize - offset;
 		string_literal<newSize + 1> sl{};
 		if constexpr (newSize > 0) {
 			std::copy_n(string.data() + offset, newSize, sl.values);
@@ -109,9 +109,9 @@ namespace nihilus {
 		return sl;
 	}
 
-	template<string_literal string, size_t offset> static constexpr auto offset_into_literal() noexcept {
-		constexpr size_t originalSize = string.length;
-		constexpr size_t newSize	  = (offset >= originalSize) ? originalSize : offset;
+	template<string_literal string, uint64_t offset> static constexpr auto offset_into_literal() noexcept {
+		constexpr uint64_t originalSize = string.length;
+		constexpr uint64_t newSize	  = (offset >= originalSize) ? originalSize : offset;
 		string_literal<newSize + 1> sl{};
 		if constexpr (newSize > 0) {
 			std::copy_n(string.data(), newSize, sl.values);
@@ -227,7 +227,7 @@ namespace nihilus {
 	};
 #endif
 
-	static constexpr auto get_offset_into_literal_size(size_t inputSize) noexcept {
+	static constexpr auto get_offset_into_literal_size(uint64_t inputSize) noexcept {
 		if (inputSize >= 64 && cpu_alignment >= 64) {
 			return 64;
 		} else if (inputSize >= 32 && cpu_alignment >= 32) {

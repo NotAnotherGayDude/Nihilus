@@ -90,7 +90,7 @@ template<model_sizes size, model_arches arch> NIHILUS_FORCE_INLINE static conste
 
 	return get_model_config<combination_index>();
 }
-*/
+
 
 struct alignas(64) op_latch_branchless {
 	NIHILUS_FORCE_INLINE op_latch_branchless() noexcept = default;
@@ -153,7 +153,7 @@ struct alignas(64) op_latch {
 	NIHILUS_FORCE_INLINE void arrive_and_wait() {
 		auto new_value				 = flag.fetch_add(1, std::memory_order_acq_rel);
 		constexpr int64_t garbage	 = -1;
-		static constexpr auto lambda = []<size_t I>(std::atomic_signed_lock_free& flag_new, int64_t expected_new) {
+		static constexpr auto lambda = []<uint64_t I>(std::atomic_signed_lock_free& flag_new, int64_t expected_new) {
 			if constexpr (I == 0) {
 				flag_new.notify_all();
 			} else {
@@ -165,7 +165,7 @@ struct alignas(64) op_latch {
 				l.template operator()<I>(flag_new, expected_new);
 			}... };
 		}(std::make_index_sequence<2>{});
-		size_t jump_index = -(new_value == thread_count - 1) & 0;
+		uint64_t jump_index = -(new_value == thread_count - 1) & 0;
 		jump_index |= (~-(new_value == thread_count - 1)) & 1;
 		jump_table[jump_index](flag, new_value + 1, lambda);
 	}
@@ -180,52 +180,44 @@ struct alignas(64) op_latch {
 
 ::op_latch latch{};
 
-std::thread spawn_thread(::op_latch& latch, size_t thread_index) {
+std::thread spawn_thread(::op_latch& latch, uint64_t thread_index) {
 	return std::thread{ [&, thread_index] {
 		std::cout << "THREAD INDEX: " << thread_index << std::endl;
 		latch.arrive_and_wait();
 	} };
 }
 
-template<size_t index> struct base_test_struct {
+template<uint64_t index> struct base_test_struct {
 	NIHILUS_FORCE_INLINE void test_function() {
 		std::cout << "CURRENT INDEX: " << index << std::endl;
 	}
 };
 
-struct static_caster;
-
 struct test_struct : public base_test_struct<0>, public base_test_struct<1> {
-	using function_type = decltype(&static_caster::template impl<0>);
+	template<uint64_t index> NIHILUS_FORCE_INLINE static void impl(test_struct* value);
+	using function_type = decltype(&impl<0>);
 	static constexpr nihilus::array<function_type, 2> values{ [] {
 		nihilus::array<function_type, 2> return_values{};
+		return_values[0] = impl<0>;
+		return_values[0] = impl<1>;
 		return return_values;
 	}() };
 	test_struct() {
 	}
 };
 
-
-struct static_caster {
-	template<size_t index> NIHILUS_FORCE_INLINE static decltype(auto) impl(test_struct* value) {
-		return *static_cast<base_test_struct<index>*>(value);
-	}
-};
-
+template<uint64_t index> NIHILUS_FORCE_INLINE void test_struct::impl(test_struct* value) {
+	static_cast<base_test_struct<index>*>(value)->test_function();
+}
+*/
 int main(int argc, char** argv) {
 	try {
-		std::vector<std::thread> threads{};
-		latch.init(4);
-		threads.emplace_back(spawn_thread(latch, 0));
-		threads.emplace_back(spawn_thread(latch, 1));
-		threads.emplace_back(spawn_thread(latch, 2));
-		threads.emplace_back(spawn_thread(latch, 3));
-		for (auto& value: threads) {
-			if (value.joinable()) {
-				value.join();
-			}
-		}
-		//threads.emplace_back(spawn_thread(latch, 3));
+		static constexpr auto model_config = nihilus::generate_model_config(nihilus::model_generations::v3, nihilus::model_sizes::llm_8B, nihilus::kernel_type_profiles::q8_gqa,
+			nihilus::model_arches::llama, false);
+		nihilus::cli_params cli_args_final;
+		cli_args_final = nihilus::harbinger<model_config>::parse_cli_arguments(argc, argv);
+		using model_type = nihilus::harbinger<model_config>::model_type;
+		auto model_new{ nihilus::harbinger<model_config>::parse_model_graph_data(cli_args_final) };
 		return 0;
 		//cli_args_final.n_tokens;
 	} catch (const std::exception& error) {

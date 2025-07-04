@@ -21,7 +21,7 @@ RealTimeChris (Chris M.)
 #pragma once
 
 #include <nihilus/common/monolithic_dispatcher.hpp>
-#include <nihilus/common/behavioral_axes.hpp>
+#include <nihilus/common/core_bases.hpp>
 #include <nihilus/common/common.hpp>
 #include <nihilus/common/tuple.hpp>
 #include <atomic>
@@ -138,7 +138,7 @@ namespace nihilus {
 #endif
 	};
 
-	template<model_config config, typename model_type> struct thread_pool : public get_core_bases_t<config> {
+	template<nihilus::model_config config, typename model_type> struct thread_pool : public get_core_bases_t<config> {
 		using core_base_type													 = get_core_bases_t<config>;
 		NIHILUS_FORCE_INLINE thread_pool() noexcept								 = default;
 		NIHILUS_FORCE_INLINE thread_pool& operator=(const thread_pool&) noexcept = delete;
@@ -153,7 +153,6 @@ namespace nihilus {
 					thread_function<false>(x);
 				} };
 			}
-			core_base_type::template impl<execution_planner>(thread_count);
 		}
 
 		template<bool raise_priority> NIHILUS_FORCE_INLINE void thread_function(uint64_t thread_index) {
@@ -171,7 +170,8 @@ namespace nihilus {
 		}
 
 		NIHILUS_FORCE_INLINE void execute_tasks() {
-			depths.store(0, std::memory_order_release);
+			core_base_type::template impl<execution_planner>(thread_count);
+			nihilus::depths.store(0, std::memory_order_release);
 			thread_latch.count_down();
 			thread_latch.main_wait();
 		}
@@ -192,7 +192,7 @@ namespace nihilus {
 		alignas(64) std::atomic_bool stop{};
 		char padding02[63]{};
 		alignas(64) uint64_t thread_count{};
-		main_gate_latch thread_latch;
+		nihilus::main_gate_latch thread_latch;
 	};
 
 }

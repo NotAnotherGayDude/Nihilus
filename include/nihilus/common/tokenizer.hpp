@@ -21,7 +21,7 @@ RealTimeChris (Chris M.)
 #pragma once
 
 #include <nihilus/common/model_traits.hpp>
-#include <nihilus/common/vocab.hpp>
+#include <nihilus/common/tokenizer_traits.hpp>
 #include <unordered_map>
 #include <iterator>
 #include <queue>
@@ -31,7 +31,7 @@ namespace nihilus {
 	template<model_arches arch> struct tokenizer_parameters;
 
 	template<> struct tokenizer_parameters<model_arches::llama> {
-		std::vector<std::string_view> tokens{};
+		std::unordered_map<std::string_view, token> tokens{};
 		std::vector<std::string_view> merges{};
 		std::vector<int32_t> token_types{};
 		std::string_view chat_template{};
@@ -40,17 +40,17 @@ namespace nihilus {
 
 	struct bpe_token {
 		std::string token;
-		int32_t id;
 		float score;
+		int32_t id;
 	};
 
-	template<model_config config, typename derived_type, model_arches arch, vocab_types> struct tokenizer;
+	template<model_config config, typename derived_type, model_arches arch, tokenizer_types> struct tokenizer;
 
 	struct nihilus_symbol {
+		const char* text;
 		int32_t prev;
 		int32_t next;
-		const char* text;
-		size_t n;
+		uint64_t n;
 	};
 
 	struct nihilus_bigram_bpe {
@@ -63,38 +63,30 @@ namespace nihilus {
 		using queue_storage = std::vector<nihilus_bigram_bpe>;
 		using queue			= std::priority_queue<nihilus_bigram_bpe, queue_storage, comparator>;
 
-		int32_t left;
-		int32_t right;
 		std::string text;
+		uint64_t size;
+		int32_t right;
+		int32_t left;
 		int32_t rank;
-		size_t size;
-	};	
+	};
 
 	struct pair_hash {
-		NIHILUS_FORCE_INLINE size_t operator()(const std::pair<std::string_view, std::string_view>& p) const {
+		NIHILUS_FORCE_INLINE uint64_t operator()(const std::pair<std::string_view, std::string_view>& p) const {
 			return std::hash<std::string_view>{}(p.first) ^ (std::hash<std::string_view>{}(p.second) << 1);
 		}
 	};
 
-	template<model_config config, typename derived_type, vocab_types vocab_type_new> struct tokenizer<config, derived_type, model_arches::llama, vocab_type_new>
-		: public tokenizer_parameters<model_arches::llama>, public vocab_traits<config.arch, vocab_type_new, config.vocab_pre_type> {
-		using vocab_type						  = vocab_traits<config.arch, vocab_type_new, config.vocab_pre_type>;
-		using model_traits_type					  = model_traits<config.arch, config.model_size, config.model_generation>;
+	template<model_config config, typename derived_type, tokenizer_types tokenizer_type_new> struct tokenizer<config, derived_type, model_arches::llama, tokenizer_type_new>
+		: public tokenizer_parameters<model_arches::llama>, public tokenizer_traits<config.arch, tokenizer_type_new, config.tokenizer_pre_type> {
+		using tokenizer_type		= tokenizer_traits<config.arch, tokenizer_type_new, config.tokenizer_pre_type>;
+		using model_traits_type = model_traits<config.arch, config.model_size, config.model_generation>;
 
 		NIHILUS_FORCE_INLINE tokenizer() noexcept = default;
 
-		NIHILUS_FORCE_INLINE void load_vocabulary() {
-
-			token_to_id.reserve(tokens.size());
-			for (size_t i = 0; i < tokens.size(); ++i) {
-				token_to_id[tokens[i]] = static_cast<int32_t>(i);
-			}
-		}
-
 		NIHILUS_FORCE_INLINE uint64_t tokenize(const std::string& input_text, int32_t* output_tokens) {
 			std::vector<int32_t> temp_tokens;
-			if constexpr (vocab_type::add_bos && vocab_type::special_bos_id > 0) {
-				temp_tokens.push_back(static_cast<int32_t>(vocab_type::special_bos_id));
+			if constexpr (tokenizer_type::add_bos && tokenizer_type::special_bos_id > 0) {
+				temp_tokens.push_back(static_cast<int32_t>(tokenizer_type::special_bos_id));
 			}
 
 			std::vector<std::string> word_collection = gpt2_style_split(input_text);
@@ -103,11 +95,11 @@ namespace nihilus {
 				tokenize_word(word, temp_tokens);
 			}
 
-			if constexpr (vocab_type::add_eos && vocab_type::special_eos_id > 0) {
-				temp_tokens.push_back(static_cast<int32_t>(vocab_type::special_eos_id));
+			if constexpr (tokenizer_type::add_eos && tokenizer_type::special_eos_id > 0) {
+				temp_tokens.push_back(static_cast<int32_t>(tokenizer_type::special_eos_id));
 			}
 
-			for (size_t i = 0; i < temp_tokens.size(); ++i) {
+			for (uint64_t i = 0; i < temp_tokens.size(); ++i) {
 				output_tokens[i] = temp_tokens[i];
 			}
 
@@ -119,7 +111,7 @@ namespace nihilus {
 
 	  protected:
 		static constexpr std::string_view regex_exprs{ [] {
-			if constexpr (vocab_type::pre_type == vocab_pre_types::llama3) {
+			if constexpr (tokenizer_type::pre_type == tokenizer_pre_types::llama3) {
 				return "(?:'[sS]|'[tT]|'[rR][eE]|'[vV][eE]|'[mM]|'[lL][lL]|'[dD])|[^\\r\\n\\p{L}\\p{N}]?\\p{L}+|\\p{N}{1,3}| "
 					   "?[^\\s\\p{L}\\p{N}]+[\\r\\n]*|\\s*[\\r\\n]+|\\s+(?!\\S)|\\s+";
 			} else {
@@ -127,24 +119,23 @@ namespace nihilus {
 			}
 		}() };
 		std::unordered_map<std::pair<std::string_view, std::string_view>, int32_t, pair_hash> bpe_ranks;
-		std::unordered_map<std::string_view, token> token_to_id;
 		nihilus_bigram_bpe::queue work_queue;
 		std::vector<nihilus_symbol> symbols;
 
 		NIHILUS_FORCE_INLINE std::vector<std::string> gpt2_style_split(std::string_view text) {
 			std::vector<std::string> result;
-			size_t start = text.find_first_not_of(" \t\n\r");
+			uint64_t start = text.find_first_not_of(" \t\n\r");
 			if (start == std::string::npos)
 				return result;
 			text = text.substr(start);
 
-			size_t end = text.find_last_not_of(" \t\n\r");
+			uint64_t end = text.find_last_not_of(" \t\n\r");
 			if (end != std::string::npos) {
 				text = text.substr(0, end + 1);
 			}
 
 			bool is_first_word = true;
-			size_t i		   = 0;
+			uint64_t i		   = 0;
 
 			while (i < text.length()) {
 				std::string token;
@@ -202,8 +193,8 @@ namespace nihilus {
 			if (word.empty())
 				return;
 
-			auto direct_match = token_to_id.find(word);
-			if (direct_match != token_to_id.end()) {
+			auto direct_match = tokens.find(word);
+			if (direct_match != tokens.end()) {
 				output.push_back(direct_match->second);
 				return;
 			}
@@ -212,11 +203,11 @@ namespace nihilus {
 			work_queue = nihilus_bigram_bpe::queue();
 
 			int32_t index = 0;
-			size_t offset = 0;
+			uint64_t offset = 0;
 
 			while (offset < word.size()) {
 				nihilus_symbol sym;
-				size_t char_len = std::min(word.size() - offset, static_cast<size_t>(unicode_len_utf8(word[offset])));
+				uint64_t char_len = std::min(word.size() - offset, static_cast<uint64_t>(unicode_len_utf8(word[offset])));
 				sym.text		= word.c_str() + offset;
 				sym.n			= char_len;
 				offset += sym.n;
@@ -266,15 +257,15 @@ namespace nihilus {
 					continue;
 
 				std::string str(symbol.text, symbol.n);
-				auto it = token_to_id.find(str);
+				auto it = tokens.find(str);
 
-				if (it != token_to_id.end()) {
+				if (it != tokens.end()) {
 					output.push_back(it->second);
 				} else {
 					for (char c: str) {
 						std::string byte_str(1, c);
-						auto byte_it = token_to_id.find(byte_str);
-						if (byte_it != token_to_id.end()) {
+						auto byte_it = tokens.find(byte_str);
+						if (byte_it != tokens.end()) {
 							output.push_back(byte_it->second);
 						}
 					}
@@ -303,7 +294,7 @@ namespace nihilus {
 			work_queue.push(bigram);
 		}
 
-		NIHILUS_FORCE_INLINE size_t unicode_len_utf8(char c) {
+		NIHILUS_FORCE_INLINE uint64_t unicode_len_utf8(char c) {
 			if ((c & 0xE0) == 0xC0) {
 				return 2;
 			}
@@ -319,13 +310,13 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE void print_tokenization_debug(const std::string& input_text, const std::vector<int32_t>& tokens) {
 			std::cout << "=== NIHILUS BPE TOKENIZATION DEBUG ===" << std::endl;
 			std::cout << "system_info: n_threads = " << std::thread::hardware_concurrency() << " | NIHILUS ENGINE | BPE VOCAB | 432% FASTER |" << std::endl;
-			//std::cout << "vocab_type: " << static_cast<int32_t>(vocab_type) << " (BPE)" << std::endl;
+			//std::cout << "tokenizer_type: " << static_cast<int32_t>(tokenizer_type) << " (BPE)" << std::endl;
 			std::cout << "pre_type: " << pre << std::endl;
 			std::cout << "Input text: \"" << input_text << "\"" << std::endl;
 			std::cout << "Token count: " << tokens.size() << std::endl;
 
 			std::cout << "Tokens: ";
-			for (size_t i = 0; i < tokens.size(); ++i) {
+			for (uint64_t i = 0; i < tokens.size(); ++i) {
 				std::cout << "[" << i << "]=" << tokens[i];
 				if (i < tokens.size() - 1)
 					std::cout << " ";
@@ -333,7 +324,7 @@ namespace nihilus {
 			std::cout << std::endl;
 
 			std::cout << "Token strings: ";
-			for (size_t i = 0; i < tokens.size(); ++i) {
+			for (uint64_t i = 0; i < tokens.size(); ++i) {
 				std::cout << "[" << i << "]=" << tokens[i];
 				if (i < tokens.size() - 1)
 					std::cout << " ";

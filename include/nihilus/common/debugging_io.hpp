@@ -23,14 +23,14 @@ RealTimeChris (Chris M.)
 #if defined(NIHILUS_DEBUG)
 	#include <jsonifier/Index.hpp>
 
-#include <nihilus/common/common.hpp>
-#include <filesystem>
-#include <iostream>
-#include <stdexcept>
-#include <charconv>
-#include <cstdint>
-#include <fstream>
-#include <string>
+	#include <nihilus/common/common.hpp>
+	#include <filesystem>
+	#include <iostream>
+	#include <stdexcept>
+	#include <charconv>
+	#include <cstdint>
+	#include <fstream>
+	#include <string>
 
 namespace nihilus {
 
@@ -356,12 +356,12 @@ namespace nihilus {
 				std::cout << "RHS Dims: " << other.dims << std::endl;
 				return false;
 			}
-			size_t this_dims  = dims[0] * dims[1] * dims[2] * dims[3];
-			size_t other_dims = other.dims[0] * other.dims[1] * other.dims[2] * other.dims[3];
-			size_t this_size  = get_type_traits(type).type_size * this_dims;
-			size_t other_size = get_type_traits(other.type).type_size * other_dims;
-			size_t final_size = std::min(this_size, other_size);
-			final_size		  = std::min(final_size, static_cast<size_t>(128ull));
+			uint64_t this_dims  = dims[0] * dims[1] * dims[2] * dims[3];
+			uint64_t other_dims = other.dims[0] * other.dims[1] * other.dims[2] * other.dims[3];
+			uint64_t this_size  = get_type_traits(type).type_size * this_dims;
+			uint64_t other_size = get_type_traits(other.type).type_size * other_dims;
+			uint64_t final_size = std::min(this_size, other_size);
+			final_size		  = std::min(final_size, static_cast<uint64_t>(128ull));
 
 			int64_t equal_data = std ::memcmp(data.data(), other.data.data(), final_size);
 			for (int32_t i = 0; i < final_size; i++) {
@@ -500,21 +500,23 @@ namespace nihilus {
 	}
 
 	struct tensor_debugger {
-		inline static std::vector<std::unordered_map<std::string, intermediary_tensor>> leaf_iterations{ get_tensors_multi_iteration("C:/users/chris/source/repos/ft-tl", "Leaf_Data") };
+		inline static std::vector<std::unordered_map<std::string, intermediary_tensor>> leaf_iterations{ get_tensors_multi_iteration("C:/users/chris/source/repos/ft-tl",
+			"Leaf_Data") };
 
-		inline static std::vector<std::unordered_map<std::string, intermediary_tensor>> node_iterations{ get_tensors_multi_iteration("C:/users/chris/source/repos/ft-tl", "Node_Data") };
+		inline static std::vector<std::unordered_map<std::string, intermediary_tensor>> node_iterations{ get_tensors_multi_iteration("C:/users/chris/source/repos/ft-tl",
+			"Node_Data") };
 
-		static const std::unordered_map<std::string, intermediary_tensor>& get_leaf_iteration(size_t iteration) {
+		static const std::unordered_map<std::string, intermediary_tensor>& get_leaf_iteration(uint64_t iteration) {
 			static const std::unordered_map<std::string, intermediary_tensor> empty{};
 			return (iteration < leaf_iterations.size()) ? leaf_iterations[iteration] : empty;
 		}
 
-		static const std::unordered_map<std::string, intermediary_tensor>& get_node_iteration(size_t iteration) {
+		static const std::unordered_map<std::string, intermediary_tensor>& get_node_iteration(uint64_t iteration) {
 			static const std::unordered_map<std::string, intermediary_tensor> empty{};
 			return (iteration < node_iterations.size()) ? node_iterations[iteration] : empty;
 		}
 
-		static size_t get_iteration_count() {
+		static uint64_t get_iteration_count() {
 			return std::max(leaf_iterations.size(), node_iterations.size());
 		}
 

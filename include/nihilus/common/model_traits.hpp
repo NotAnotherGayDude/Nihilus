@@ -32,7 +32,7 @@ namespace nihilus {
 		static constexpr auto arch{ model_arches::llama };
 		static constexpr auto model_generation{ model_generations::v1_v2 };
 		static constexpr auto model_size{ model_sizes::llm_1B };
-		static constexpr uint64_t vocab_size		   = 32000;
+		static constexpr uint64_t tokenizer_size		   = 32000;
 		static constexpr uint64_t embedding_dim		   = 2048;
 		static constexpr uint64_t block_count		   = 16;
 		static constexpr uint64_t feed_forward_length  = 8192;
@@ -53,7 +53,7 @@ namespace nihilus {
 		static constexpr auto arch{ model_arches::llama };
 		static constexpr auto model_generation{ model_generations::v1_v2 };
 		static constexpr auto model_size{ model_sizes::llm_3B };
-		static constexpr uint64_t vocab_size		   = 32000;
+		static constexpr uint64_t tokenizer_size		   = 32000;
 		static constexpr uint64_t embedding_dim		   = 3072;
 		static constexpr uint64_t block_count		   = 28;
 		static constexpr uint64_t feed_forward_length  = 8192;
@@ -74,7 +74,7 @@ namespace nihilus {
 		static constexpr auto arch{ model_arches::llama };
 		static constexpr auto model_generation{ model_generations::v1_v2 };
 		static constexpr auto model_size{ model_sizes::llm_7B };
-		static constexpr uint64_t vocab_size		   = 32000;
+		static constexpr uint64_t tokenizer_size		   = 32000;
 		static constexpr uint64_t embedding_dim		   = 4096;
 		static constexpr uint64_t block_count		   = 32;
 		static constexpr uint64_t feed_forward_length  = 11008;
@@ -95,7 +95,7 @@ namespace nihilus {
 		static constexpr auto arch{ model_arches::llama };
 		static constexpr auto model_generation{ model_generations::v1_v2 };
 		static constexpr auto model_size{ model_sizes::llm_8B };
-		static constexpr uint64_t vocab_size		   = 32000;
+		static constexpr uint64_t tokenizer_size		   = 32000;
 		static constexpr uint64_t embedding_dim		   = 4096;
 		static constexpr uint64_t block_count		   = 32;
 		static constexpr uint64_t feed_forward_length  = 11008;
@@ -116,7 +116,7 @@ namespace nihilus {
 		static constexpr auto arch{ model_arches::llama };
 		static constexpr auto model_generation{ model_generations::v1_v2 };
 		static constexpr auto model_size{ model_sizes::llm_11B };
-		static constexpr uint64_t vocab_size		   = 32000;
+		static constexpr uint64_t tokenizer_size		   = 32000;
 		static constexpr uint64_t embedding_dim		   = 4096;
 		static constexpr uint64_t block_count		   = 32;
 		static constexpr uint64_t feed_forward_length  = 11008;
@@ -137,7 +137,7 @@ namespace nihilus {
 		static constexpr auto arch{ model_arches::llama };
 		static constexpr auto model_generation{ model_generations::v1_v2 };
 		static constexpr auto model_size{ model_sizes::llm_13B };
-		static constexpr uint64_t vocab_size		   = 32000;
+		static constexpr uint64_t tokenizer_size		   = 32000;
 		static constexpr uint64_t embedding_dim		   = 5120;
 		static constexpr uint64_t block_count		   = 40;
 		static constexpr uint64_t feed_forward_length  = 13824;
@@ -158,7 +158,7 @@ namespace nihilus {
 		static constexpr auto arch{ model_arches::llama };
 		static constexpr auto model_generation{ model_generations::v1_v2 };
 		static constexpr auto model_size{ model_sizes::llm_70B };
-		static constexpr uint64_t vocab_size		   = 32000;
+		static constexpr uint64_t tokenizer_size		   = 32000;
 		static constexpr uint64_t embedding_dim		   = 8192;
 		static constexpr uint64_t block_count		   = 80;
 		static constexpr uint64_t feed_forward_length  = 28672;
@@ -179,7 +179,7 @@ namespace nihilus {
 		static constexpr auto arch{ model_arches::llama };
 		static constexpr auto model_generation{ model_generations::v3 };
 		static constexpr auto model_size{ model_sizes::llm_1B };
-		static constexpr uint64_t vocab_size		   = 128256;
+		static constexpr uint64_t tokenizer_size		   = 128256;
 		static constexpr uint64_t embedding_dim		   = 2048;
 		static constexpr uint64_t block_count		   = 16;
 		static constexpr uint64_t feed_forward_length  = 8192;
@@ -200,7 +200,7 @@ namespace nihilus {
 		static constexpr auto arch{ model_arches::llama };
 		static constexpr auto model_generation{ model_generations::v3 };
 		static constexpr auto model_size{ model_sizes::llm_3B };
-		static constexpr uint64_t vocab_size		   = 128256;
+		static constexpr uint64_t tokenizer_size		   = 128256;
 		static constexpr uint64_t embedding_dim		   = 3072;
 		static constexpr uint64_t block_count		   = 28;
 		static constexpr uint64_t feed_forward_length  = 8192;
@@ -221,7 +221,7 @@ namespace nihilus {
 		static constexpr auto arch{ model_arches::llama };
 		static constexpr auto model_generation{ model_generations::v3 };
 		static constexpr auto model_size{ model_sizes::llm_7B };
-		static constexpr uint64_t vocab_size		   = 128256;
+		static constexpr uint64_t tokenizer_size		   = 128256;
 		static constexpr uint64_t embedding_dim		   = 4096;
 		static constexpr uint64_t block_count		   = 32;
 		static constexpr uint64_t feed_forward_length  = 11008;
@@ -242,7 +242,7 @@ namespace nihilus {
 		static constexpr auto arch{ model_arches::llama };
 		static constexpr auto model_generation{ model_generations::v3 };
 		static constexpr auto model_size{ model_sizes::llm_8B };
-		static constexpr uint64_t vocab_size		   = 128256;
+		static constexpr uint64_t tokenizer_size		   = 128256;
 		static constexpr uint64_t embedding_dim		   = 4096;
 		static constexpr uint64_t block_count		   = 32;
 		static constexpr uint64_t feed_forward_length  = 14336;
@@ -263,7 +263,7 @@ namespace nihilus {
 		static constexpr auto arch{ model_arches::llama };
 		static constexpr auto model_generation{ model_generations::v3 };
 		static constexpr auto model_size{ model_sizes::llm_11B };
-		static constexpr uint64_t vocab_size		   = 128256;
+		static constexpr uint64_t tokenizer_size		   = 128256;
 		static constexpr uint64_t embedding_dim		   = 4096;
 		static constexpr uint64_t block_count		   = 32;
 		static constexpr uint64_t feed_forward_length  = 14336;
@@ -284,7 +284,7 @@ namespace nihilus {
 		static constexpr auto arch{ model_arches::llama };
 		static constexpr auto model_generation{ model_generations::v3 };
 		static constexpr auto model_size{ model_sizes::llm_13B };
-		static constexpr uint64_t vocab_size		   = 128256;
+		static constexpr uint64_t tokenizer_size		   = 128256;
 		static constexpr uint64_t embedding_dim		   = 5120;
 		static constexpr uint64_t block_count		   = 40;
 		static constexpr uint64_t feed_forward_length  = 13824;
@@ -305,7 +305,7 @@ namespace nihilus {
 		static constexpr auto arch{ model_arches::llama };
 		static constexpr auto model_generation{ model_generations::v3 };
 		static constexpr auto model_size{ model_sizes::llm_70B };
-		static constexpr uint64_t vocab_size		   = 128256;
+		static constexpr uint64_t tokenizer_size		   = 128256;
 		static constexpr uint64_t embedding_dim		   = 8192;
 		static constexpr uint64_t block_count		   = 80;
 		static constexpr uint64_t feed_forward_length  = 28672;
@@ -326,7 +326,7 @@ namespace nihilus {
 		static constexpr auto arch{ model_arches::deci };
 		static constexpr auto model_generation{ model_generations::v1_v2 };
 		static constexpr auto model_size{ model_sizes::llm_1B };
-		static constexpr uint64_t vocab_size		   = 32000;
+		static constexpr uint64_t tokenizer_size		   = 32000;
 		static constexpr uint64_t embedding_dim		   = 1536;
 		static constexpr uint64_t block_count		   = 24;
 		static constexpr uint64_t feed_forward_length  = 4096;
@@ -347,7 +347,7 @@ namespace nihilus {
 		static constexpr auto arch{ model_arches::deci };
 		static constexpr auto model_generation{ model_generations::v1_v2 };
 		static constexpr auto model_size{ model_sizes::llm_7B };
-		static constexpr uint64_t vocab_size		   = 32000;
+		static constexpr uint64_t tokenizer_size		   = 32000;
 		static constexpr uint64_t embedding_dim		   = 4096;
 		static constexpr uint64_t block_count		   = 32;
 		static constexpr uint64_t feed_forward_length  = 11008;
@@ -368,7 +368,7 @@ namespace nihilus {
 		static constexpr auto arch{ model_arches::deci };
 		static constexpr auto model_generation{ model_generations::v3 };
 		static constexpr auto model_size{ model_sizes::llm_1B };
-		static constexpr uint64_t vocab_size		   = 50280;
+		static constexpr uint64_t tokenizer_size		   = 50280;
 		static constexpr uint64_t embedding_dim		   = 1536;
 		static constexpr uint64_t block_count		   = 24;
 		static constexpr uint64_t feed_forward_length  = 4096;
@@ -389,7 +389,7 @@ namespace nihilus {
 		static constexpr auto arch{ model_arches::deci };
 		static constexpr auto model_generation{ model_generations::v3 };
 		static constexpr auto model_size{ model_sizes::llm_7B };
-		static constexpr uint64_t vocab_size		   = 50280;
+		static constexpr uint64_t tokenizer_size		   = 50280;
 		static constexpr uint64_t embedding_dim		   = 4096;
 		static constexpr uint64_t block_count		   = 32;
 		static constexpr uint64_t feed_forward_length  = 11008;

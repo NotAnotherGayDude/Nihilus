@@ -61,7 +61,7 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE constexpr array() = default;
 
 		NIHILUS_FORCE_INLINE constexpr array(std::initializer_list<value_type> values) {
-			for (size_t x = 0; x < values.size(); ++x) {
+			for (uint64_t x = 0; x < values.size(); ++x) {
 				data_val[x] = values.begin()[x];
 			}
 		};

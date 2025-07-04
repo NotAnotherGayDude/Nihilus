@@ -106,7 +106,6 @@ target_compile_options(${PROJECT_NAME} "${NIHILUS_PRIVATE_DEFINITION}"
     $<$<CXX_COMPILER_ID:Clang>:
         -O3
         -Ofast
-        -DNDEBUG
         -ftrivial-auto-var-init=pattern
         -menable-unsafe-fp-math
         -Rpass=loop-vectorize
@@ -210,7 +209,6 @@ target_compile_options(${PROJECT_NAME} "${NIHILUS_PRIVATE_DEFINITION}"
     $<$<CXX_COMPILER_ID:GNU>:
         -O3
         -Ofast
-        -DNDEBUG
         -march=native
         -mtune=native
         -flto=auto
@@ -318,13 +316,11 @@ target_compile_options(${PROJECT_NAME} "${NIHILUS_PRIVATE_DEFINITION}"
     >
 
     $<$<CXX_COMPILER_ID:MSVC>:
-        /O2
         /Ob3
         /Ot
         /Oy
         /GT
         /GL
-        /DNDEBUG
         /fp:fast
         /Qpar
         /Qvec-report:2

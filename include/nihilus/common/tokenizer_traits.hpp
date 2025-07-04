@@ -35,36 +35,11 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-	template<model_arches arch, vocab_types type, vocab_pre_types pre> struct vocab_traits {
-		static constexpr vocab_pre_types pre_type		 = vocab_pre_types::llama3;
-		static constexpr int32_t max_token_len			 = 256;
-		static constexpr token special_bos_id			 = 128000;
-		static constexpr token special_eos_id			 = 128009;
-		static constexpr token special_eot_id			 = 128009;
-		static constexpr token special_eom_id			 = 128008;
-		static constexpr token special_unk_id			 = -1;
-		static constexpr token special_sep_id			 = -1;
-		static constexpr token special_pad_id			 = -1;
-		static constexpr token special_mask_id			 = -1;
-		static constexpr token linefeed_id				 = 13;
-		static constexpr token special_fim_pre_id		 = -1;
-		static constexpr token special_fim_suf_id		 = -1;
-		static constexpr token special_fim_mid_id		 = -1;
-		static constexpr token special_fim_pad_id		 = -1;
-		static constexpr token special_fim_rep_id		 = -1;
-		static constexpr token special_fim_sep_id		 = -1;
-		static constexpr bool add_space_prefix			 = false;
-		static constexpr bool add_bos					 = true;
-		static constexpr bool add_eos					 = false;
-		static constexpr bool ignore_merges				 = false;
-		static constexpr bool clean_spaces				 = true;
-		static constexpr bool remove_extra_whitespaces	 = false;
-		static constexpr bool escape_whitespaces		 = true;
-		static constexpr bool treat_whitespace_as_suffix = false;
-	};
+	template<model_arches arch, tokenizer_types type, tokenizer_pre_types pre> struct tokenizer_traits;
 
-	template<> struct vocab_traits<model_arches::llama, vocab_types::bpe, vocab_pre_types::llama3> {
-		static constexpr vocab_pre_types pre_type		 = vocab_pre_types::llama3;
+	template<> struct tokenizer_traits<model_arches::llama, tokenizer_types::bpe, tokenizer_pre_types::llama3> {
+		static constexpr tokenizer_pre_types pre_type = tokenizer_pre_types::llama3;
+		static constexpr std::string_view tokenizer_type{ "gpt2" };
 		static constexpr int32_t max_token_len			 = 256;
 		static constexpr token special_bos_id			 = 128000;
 		static constexpr token special_eos_id			 = 128009;

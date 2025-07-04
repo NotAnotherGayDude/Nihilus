@@ -44,7 +44,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, device_types dev_type, triple_input core_type> struct kernel_dispatcher<config, dev_type, core_type>  {
+	template<model_config config, device_types dev_type, triple_input core_type> struct kernel_dispatcher<config, dev_type, core_type> {
 		NIHILUS_FORCE_INLINE static void impl(core_type& params, uint64_t thread_index, uint64_t thread_count) {
 			current_count.fetch_add(1, std::memory_order_release);
 			kernel_dispatcher_impl<cpu_arch_index, core_type::krn_type, typename core_type::transform_type, core_type, typename core_type::output_type,

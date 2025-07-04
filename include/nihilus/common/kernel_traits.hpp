@@ -128,7 +128,7 @@ namespace nihilus {
 		NONE_Type_must_be_valid_tensor_type,
 	};
 
-	template<typename derived_type, uint64_t... indices> struct core_trait_dims;
+	template<typename derived_type, size_t... indices> struct core_trait_dims;
 
 	template<typename derived_type, uint64_t dim00_new, uint64_t dim01_new, uint64_t dim02_new, uint64_t dim03_new>
 	struct core_trait_dims<derived_type, dim00_new, dim01_new, dim02_new, dim03_new> {
@@ -511,10 +511,10 @@ namespace nihilus {
 		static constexpr auto dims01 = base_type::dims01;
 		static constexpr auto dims02 = base_type::dims02;
 		//static constexpr auto dims03{core_trait_dims<};
-		static_assert(static_assert_printer<(dims01[0] == dims02[0]), kernel_trait_static_assert_errors::GET_ROWS_Output_rows_must_match_number_of_indices, kernel_traits_new, output,
-			input01, input02>::impl);
+		static_assert(static_assert_printer<(dims01[0] == dims02[0]), kernel_trait_static_assert_errors::GET_ROWS_Output_rows_must_match_number_of_indices, kernel_traits_new,
+			output, input01, input02>::impl);
 		//static_assert(static_assert_printer<(dims01[1] == dims03[0]), kernel_trait_static_assert_errors::GET_ROWS_Output_sequence_length_must_match_input_token_count,
-			//kernel_traits_new, output, input01, input02>::impl);
+		//kernel_traits_new, output, input01, input02>::impl);
 		static_assert(
 			static_assert_printer<(dims01[2] == 1), kernel_trait_static_assert_errors::GET_ROWS_Output_dimension_2_must_be_1, kernel_traits_new, output, input01, input02>::impl);
 		static_assert(
@@ -522,17 +522,17 @@ namespace nihilus {
 		//static_assert(
 		//			static_assert_printer<(dims03[1] == 1), kernel_trait_static_assert_errors::GET_ROWS_Index_tensor_dimension_1_must_be_1, kernel_traits_new, output, input01, input02>::impl);
 		//static_assert(
-			//static_assert_printer<(dims03[2] == 1), kernel_trait_static_assert_errors::GET_ROWS_Index_tensor_dimension_2_must_be_1, kernel_traits_new, output, input01, input02>::impl);
+		//static_assert_printer<(dims03[2] == 1), kernel_trait_static_assert_errors::GET_ROWS_Index_tensor_dimension_2_must_be_1, kernel_traits_new, output, input01, input02>::impl);
 		//static_assert(
 		//			static_assert_printer<(dims03[3] == 1), kernel_trait_static_assert_errors::GET_ROWS_Index_tensor_dimension_3_must_be_1, kernel_traits_new, output, input01, input02>::impl);
 		static_assert(static_assert_printer<is_valid_tensor_type<typename input_type01::output_type>,
 			kernel_trait_static_assert_errors::GET_ROWS_Embedding_matrix_type_must_be_valid_tensor_type, kernel_traits_new, output, input01, input02>::impl);
-		static_assert(static_assert_printer<is_integral_type<typename input_type02::output_type>,
-			kernel_trait_static_assert_errors::GET_ROWS_Index_type_must_be_integer_type, kernel_traits_new, output, input01, input02>::impl);
+		static_assert(static_assert_printer<is_integral_type<typename input_type02::output_type>, kernel_trait_static_assert_errors::GET_ROWS_Index_type_must_be_integer_type,
+			kernel_traits_new, output, input01, input02>::impl);
 		//static_assert(static_assert_printer<is_valid_tensor_type<typename core_type::output_type>,
-			//kernel_trait_static_assert_errors::GET_ROWS_Output_type_must_be_valid_tensor_type, kernel_traits_new, output, input01, input02>::impl);
-		static constexpr uint64_t vocab_size	  = dims02[0];
-		static constexpr uint64_t embedding_dim	  = dims02[1];
+		//kernel_trait_static_assert_errors::GET_ROWS_Output_type_must_be_valid_tensor_type, kernel_traits_new, output, input01, input02>::impl);
+		static constexpr uint64_t tokenizer_size	= dims02[0];
+		static constexpr uint64_t embedding_dim = dims02[1];
 		//static constexpr uint64_t sequence_length = dims03[0];
 	};
 
@@ -569,7 +569,7 @@ namespace nihilus {
 			kernel_trait_static_assert_errors::GET_ROWS_Index_type_must_be_integer_type, kernel_traits, output, input01, input02>::impl);
 		static_assert(static_assert_printer<is_valid_tensor_type<typename core_type::output_type>,
 			kernel_trait_static_assert_errors::GET_ROWS_Output_type_must_be_valid_tensor_type, kernel_traits, output, input01, input02>::impl);
-		static constexpr uint64_t vocab_size	  = dims02[0];
+		static constexpr uint64_t tokenizer_size	  = dims02[0];
 		static constexpr uint64_t embedding_dim	  = dims02[1];
 		static constexpr uint64_t sequence_length = dims03[0];*/
 	};

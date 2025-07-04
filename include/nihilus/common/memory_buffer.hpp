@@ -29,10 +29,10 @@ RealTimeChris (Chris M.)
 namespace nihilus {
 
 	template<model_config config> struct memory_buffer : public allocator<uint8_t> {
-		using value_type = uint8_t;
-		using alloc		 = allocator<value_type>;
-		using pointer	 = value_type*;
-		using uint64_type	 = uint64_t;
+		using value_type  = uint8_t;
+		using alloc		  = allocator<value_type>;
+		using pointer	  = value_type*;
+		using uint64_type = uint64_t;
 
 		NIHILUS_FORCE_INLINE memory_buffer() noexcept = default;
 

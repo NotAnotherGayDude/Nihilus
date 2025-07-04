@@ -170,4 +170,8 @@ namespace nihilus {
 
 	template<template<typename...> typename value_type, typename... arg_types> constexpr bool is_specialization_v<value_type<arg_types...>, value_type> = true;
 
+	template<typename, template<auto...> typename> constexpr bool is_specialization_val_v = false;
+
+	template<template<auto...> typename value_type, auto... arg_types> constexpr bool is_specialization_val_v<value_type<arg_types...>, value_type> = true;
+
 }

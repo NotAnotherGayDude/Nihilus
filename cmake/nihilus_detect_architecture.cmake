@@ -129,6 +129,8 @@ RealTimeChris (Chris M.)
 */
 #pragma once
 
+#include <cstdint>
+
 #undef NIHILUS_CPU_INSTRUCTIONS
 #define NIHILUS_CPU_INSTRUCTIONS ${NIHILUS_CPU_INSTRUCTIONS}
 

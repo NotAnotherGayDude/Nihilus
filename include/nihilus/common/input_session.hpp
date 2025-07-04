@@ -28,8 +28,8 @@ RealTimeChris (Chris M.)
 namespace nihilus {
 
 	template<model_config config, typename model_type> struct input_session
-		: public tokenizer<config, model_type, model_traits<config.arch, config.model_size, config.model_generation>::arch, config.vocab_type> {
-		using tokenizer_type	= tokenizer<config, model_type, model_traits<config.arch, config.model_size, config.model_generation>::arch, config.vocab_type>;
+		: public tokenizer<config, model_type, model_traits<config.arch, config.model_size, config.model_generation>::arch, config.tokenizer_type> {
+		using tokenizer_type	= tokenizer<config, model_type, model_traits<config.arch, config.model_size, config.model_generation>::arch, config.tokenizer_type>;
 		using model_traits_type = model_traits<config.arch, config.model_size, config.model_generation>;
 
 		NIHILUS_FORCE_INLINE input_session() noexcept = default;

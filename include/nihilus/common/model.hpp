@@ -23,6 +23,7 @@ RealTimeChris (Chris M.)
 #include <nihilus/common/model_traits.hpp>
 #include <nihilus/common/model_parser.hpp>
 #include <nihilus/common/input_session.hpp>
+#include <nihilus/common/core_bases.hpp>
 #include <nihilus/cpu/thread_pool.hpp>
 #include <nihilus/common/tuple.hpp>
 
@@ -38,26 +39,22 @@ namespace nihilus {
 		virtual ~model_base()									 = default;
 	};
 
-	template<model_config config_new> struct model : public thread_pool<config_new, model<config_new>>, public model_base, public input_session<config_new, model<config_new>> {
+	template<model_config config_new>
+	struct model : public thread_pool<config_new, model<config_new>>, public model_base, public input_session<config_new, model<config_new>>, core_bases_traits<config_new> {
 		using thread_pool_type	= thread_pool<config_new, model<config_new>>;
-		using model_traits_type = model_traits_type<config_new>;
+		using model_traits_type = nihilus::model_traits_type<config_new>;
 		using core_bases_t		= get_core_bases_t<config_new>;
+		using core_bases_traits = core_bases_traits<config_new>;
 		using op_type_type		= typename model_traits_type ::op_type_type;
-		using tokenizer_type	= tokenizer<config_new, model, config_new.arch, config_new.vocab_type>;
+		using tokenizer_type	= tokenizer<config_new, model, config_new.arch, config_new.tokenizer_type>;
 		using base_type			= model_base;
-
-		static constexpr uint64_t total_required_bytes{ []() {
-			uint64_t return_value{};
-			thread_pool_type ::template impl_static<memory_calculator>(return_value);
-			return return_value;
-		}() };
 		template<auto op_type> auto& get_core() {
-			return *static_cast<core_traits<config_new, op_type>*>(static_cast<get_core_bases_t<config_new>*>(this));
+			return *static_cast<nihilus::core_traits<config_new, op_type>*>(static_cast<get_core_bases_t<config_new>*>(this));
 		}
 
 		NIHILUS_FORCE_INLINE model() noexcept = default;
 
-		NIHILUS_FORCE_INLINE model(cli_params params)
+		NIHILUS_FORCE_INLINE model(nihilus::cli_params params)
 			: thread_pool<config_new, model>{ params.thread_count }, model_base{ config_new }, input_session<config_new, model<config_new>>{ params } {
 			init(params);
 		}
@@ -69,27 +66,26 @@ namespace nihilus {
 			return input_session<config_new, model>::process_input_impl(input);
 		}
 
-		NIHILUS_FORCE_INLINE void init(cli_params params) {
-			memory.init(total_required_bytes);
-			weight_memory = memory_mapped_file{ params.model_file };
-			array<array<void*, model_traits_type::block_count>, op_types::count> data{};
+		NIHILUS_FORCE_INLINE void init(nihilus::cli_params params) {
+			memory.init(core_bases_traits::total_required_bytes);
+			weight_memory = nihilus::memory_mapped_file{ params.model_file };
+			nihilus::array<nihilus::array<void*, model_traits_type::block_count>, op_types::count> data{};
 			this->template impl<weight_mapper>(data);
 			this->template impl<memory_mapper>(memory);
-			stop_watch_val_nihilus.reset();
-			gguf_metadata<config_new.arch, config_new.vocab_type, config_new.vocab_pre_type> model_construction_data =
-				model_parser<config_new>::parse_model(data, &weight_memory, *static_cast<tokenizer_type*>(this));
-			int64_t total_time{ stop_watch_val_nihilus.total_time_elapsed().count() };
-			this->load_vocabulary();
+			nihilus::stop_watch_val_nihilus.reset();
+			gguf_metadata<config_new.arch, config_new.tokenizer_type, config_new.tokenizer_pre_type> model_construction_data =
+				nihilus::model_parser<config_new>::parse_model(data, &weight_memory, *static_cast<tokenizer_type*>(this));
+			int64_t total_time{ nihilus::stop_watch_val_nihilus.total_time_elapsed().count() };
 			std::cout << "Nihilus model Load time: " << total_time << std::endl;
 		}
 
-		NIHILUS_FORCE_INLINE void deinit(cli_params params) {
+		NIHILUS_FORCE_INLINE void deinit(nihilus::cli_params params) {
 			memory.deinit();
 		}
 
-		NIHILUS_FORCE_INLINE void execute_model(execution_parameters& params) {
+		NIHILUS_FORCE_INLINE void execute_model(nihilus::execution_parameters& params) {
 			current_iteration = 0;
-			stop_watch_val_nihilus.reset();
+			nihilus::stop_watch_val_nihilus.reset();
 			this->template impl<dim_updater>(2ull);
 #if defined(NIHILUS_DEBUG)
 			this->template impl<tensor_debugger_impl>();
@@ -99,28 +95,28 @@ namespace nihilus {
 #if defined(NIHILUS_DEBUG)
 			this->template impl<tensor_debugger_impl>();
 #endif
-			stop_watch_val_nihilus.reset();
+			nihilus::stop_watch_val_nihilus.reset();
 			static_cast<thread_pool<config_new, model>*>(this)->execute_tasks();
-			stop_watch_val_nihilus.add_time();
+			nihilus::stop_watch_val_nihilus.add_time();
 			++current_iteration;
 			this->template impl<dim_updater>(1ull);
 
 			for (uint64_t x = 0; x < params.token_count - 1; ++x) {
-				stop_watch_val_nihilus.reset();
+				nihilus::stop_watch_val_nihilus.reset();
 #if defined(NIHILUS_DEBUG)
 				this->template impl<tensor_debugger_impl>();
 				++current_iteration;
 #endif
 				static_cast<thread_pool<config_new, model>*>(this)->execute_tasks();
-				stop_watch_val_nihilus.add_time();
+				nihilus::stop_watch_val_nihilus.add_time();
 			}
 			// Perform all of the necessary stuff to execute the model - along with all of the constexpr values stored globally inside the class LOL!.
 			// Because we only pay the "virtual overhead @ the top here == totally negligible.
 		};
 
 	  protected:
-		memory_mapped_file weight_memory{};
-		memory_buffer<config_new> memory{};
+		nihilus::memory_mapped_file weight_memory{};
+		nihilus::memory_buffer<config_new> memory{};
 	};
 
 }

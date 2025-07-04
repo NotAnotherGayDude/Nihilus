@@ -24,7 +24,7 @@ RealTimeChris (Chris M.)
 
 #if defined(NIHILUS_NEON)
 
-#include <arm_neon.h>
+	#include <arm_neon.h>
 
 namespace nihilus {
 
@@ -56,11 +56,13 @@ namespace nihilus {
 		vst1q_u8(static_cast<uint8_t*>(storageLocation), value);
 	}
 
-	template<simd_int_128_type simd_int_t01, simd_int_128_type simd_int_t02> NIHILUS_FORCE_INLINE static auto op_cmp_eq(const simd_int_t01& value, const simd_int_t02& other) noexcept {
+	template<simd_int_128_type simd_int_t01, simd_int_128_type simd_int_t02>
+	NIHILUS_FORCE_INLINE static auto op_cmp_eq(const simd_int_t01& value, const simd_int_t02& other) noexcept {
 		return vget_lane_u64(vreinterpret_u64_u8(vshrn_n_u16(vceqq_u8(value, other), 4)), 0);
 	}
 
-	template<simd_int_128_type simd_int_t01, simd_int_128_type simd_int_t02> NIHILUS_FORCE_INLINE static auto opCmpLt(const simd_int_t01& value, const simd_int_t02& other) noexcept {
+	template<simd_int_128_type simd_int_t01, simd_int_128_type simd_int_t02>
+	NIHILUS_FORCE_INLINE static auto opCmpLt(const simd_int_t01& value, const simd_int_t02& other) noexcept {
 		return vget_lane_u64(vreinterpret_u64_u8(vshrn_n_u16(vcgtq_u8(other, value), 4)), 0);
 	}
 
@@ -92,7 +94,8 @@ namespace nihilus {
 		return opBitMask(vceqq_u8(value, other));
 	}
 
-	template<simd_int_128_type simd_int_t01, simd_int_128_type simd_int_t02> NIHILUS_FORCE_INLINE static auto opShuffle(const simd_int_t01& value, const simd_int_t02& other) noexcept {
+	template<simd_int_128_type simd_int_t01, simd_int_128_type simd_int_t02>
+	NIHILUS_FORCE_INLINE static auto opShuffle(const simd_int_t01& value, const simd_int_t02& other) noexcept {
 		const auto bitMask{ vdupq_n_u8(0x0F) };
 		return vqtbl1q_u8(value, vandq_u8(other, bitMask));
 	}

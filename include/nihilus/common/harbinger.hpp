@@ -30,11 +30,11 @@ namespace nihilus {
 
 	NIHILUS_FORCE_INLINE static consteval auto generate_model_config(model_generations model_generation, model_sizes model_size, kernel_type_profiles kernel_profile,
 		model_arches arch, bool exceptions = false, kv_cache_strategies cache_strategy = kv_cache_strategies::paged, bool use_gradient_checkpointing = false,
-		rope_scaling_types rope_scaling = rope_scaling_types::linear, vocab_pre_types vocab_pre_type = vocab_pre_types::llama3, uint64_t kv_cache_block_size = 16,
-		bool use_rotary_embeddings = true, bool use_flash_attention = true, norm_types rms_norm_type = norm_types::rms_standard, vocab_types vocab_type = vocab_types::bpe,
+		rope_scaling_types rope_scaling = rope_scaling_types::linear, tokenizer_pre_types tokenizer_pre_type = tokenizer_pre_types::llama3, uint64_t kv_cache_block_size = 16,
+		bool use_rotary_embeddings = true, bool use_flash_attention = true, norm_types rms_norm_type = norm_types::rms_standard, tokenizer_types tokenizer_type = tokenizer_types::bpe,
 		model_format format = model_format::gguf, float norm_epsilon = 1e-6f, bool benchmark = false) {
-		model_config config{ model_generation, model_size, kernel_profile, arch, exceptions, cache_strategy, use_gradient_checkpointing, rope_scaling, vocab_pre_type,
-			kv_cache_block_size, use_rotary_embeddings, use_flash_attention, rms_norm_type, vocab_type, format, norm_epsilon, benchmark };
+		model_config config{ model_generation, model_size, kernel_profile, arch, exceptions, cache_strategy, use_gradient_checkpointing, rope_scaling, tokenizer_pre_type,
+			kv_cache_block_size, use_rotary_embeddings, use_flash_attention, rms_norm_type, tokenizer_type, format, norm_epsilon, benchmark };
 		return config;
 	}
 
@@ -78,8 +78,8 @@ namespace nihilus {
 		return config;
 	}
 
-	NIHILUS_FORCE_INLINE static consteval auto update_model_config_vocab_pre_type(model_config config, vocab_pre_types vocab_pre_type) {
-		config.vocab_pre_type = vocab_pre_type;
+	NIHILUS_FORCE_INLINE static consteval auto update_model_config_tokenizer_pre_type(model_config config, tokenizer_pre_types tokenizer_pre_type) {
+		config.tokenizer_pre_type = tokenizer_pre_type;
 		return config;
 	}
 
@@ -103,8 +103,8 @@ namespace nihilus {
 		return config;
 	}
 
-	NIHILUS_FORCE_INLINE static consteval auto update_model_config_vocab_type(model_config config, vocab_types vocab_type) {
-		config.vocab_type = vocab_type;
+	NIHILUS_FORCE_INLINE static consteval auto update_model_config_tokenizer_type(model_config config, tokenizer_types tokenizer_type) {
+		config.tokenizer_type = tokenizer_type;
 		return config;
 	}
 
@@ -130,9 +130,9 @@ namespace nihilus {
 	template<auto config> struct harbinger {
 		using model_type		 = model<config>;
 		using model_base_type	 = typename model<config>::base_type;
-		using input_session_type = input_session<config, model_type>;
+		using input_session_type = nihilus::input_session<config, model_type>;
 
-		NIHILUS_FORCE_INLINE static auto parse_model_graph_data(cli_params params) {
+		NIHILUS_FORCE_INLINE static auto parse_model_graph_data(nihilus::cli_params params) {
 			std::unique_ptr<model_base_type> return_value{};
 			model_base_type* new_model{ new model_type{ params } };
 			return_value.reset(new_model);
@@ -146,7 +146,7 @@ namespace nihilus {
 			return return_value;
 		}
 
-		NIHILUS_FORCE_INLINE static cli_params parse_cli_arguments(uint32_t argc, char** argv) {
+		NIHILUS_FORCE_INLINE static nihilus::cli_params parse_cli_arguments(uint32_t argc, char** argv) {
 			std::vector<std::string> cli_args{};
 			for (uint64_t x = 0; x < argc; ++x) {
 				cli_args.emplace_back(argv[x]);
@@ -154,8 +154,8 @@ namespace nihilus {
 			return parse_cli_arguments(cli_args);
 		}
 
-		NIHILUS_FORCE_INLINE static cli_params parse_cli_arguments(const std::vector<std::string>& command_line) {
-			cli_params result{};
+		NIHILUS_FORCE_INLINE static nihilus::cli_params parse_cli_arguments(const std::vector<std::string>& command_line) {
+			nihilus::cli_params result{};
 			std::string current_flag{};
 			bool expect_value = false;
 

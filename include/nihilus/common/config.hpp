@@ -20,6 +20,7 @@ RealTimeChris (Chris M.)
 
 #pragma once
 
+#include <nihilus/cpu/simd/nihilus_cpu_instructions.hpp>
 #include <source_location>
 #include <cstring>
 #include <cstdint>
@@ -113,7 +114,7 @@ NIHILUS_FORCE_INLINE void nihilus_pause() noexcept {
 #ifndef NDEBUG
 	#define NIHILUS_ASSERT(x) \
 		if (!(x)) \
-		internal_abort(#x, std::source_location::current())
+		nihilus::internal_abort(#x, std::source_location::current())
 #else
 	#define NIHILUS_ASSERT(x)
 #endif

@@ -79,7 +79,7 @@ int main(int argc, char** argv) {
 	try {
 		static constexpr auto model_config = generate_model_config(model_generations::v3, model_sizes::llm_8B,
 			kernel_type_profiles::q8_gqa, model_arches::llama, false);
-		static constexpr auto model_config_new = update_model_config_vocab_pre_type(model_config, vocab_pre_types::llama3);
+		static constexpr auto model_config_new = update_model_config_tokenizer_pre_type(model_config, tokenizer_pre_types::llama3);
 		test::stop_watch stop_watch_val{ 0 };
 		cli_params cli_args_final;
 		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 4, 2, true, "Token">::runBenchmark<"nihilus">([&] {
@@ -132,7 +132,7 @@ int main(int argc, char** argv) {
 				return 1;
 			}
 
-			const llama_vocab* vocab = llama_model_get_vocab(model);
+			const llama_tokenizer* tokenizer = llama_model_get_tokenizer(model);
 			auto chat_templates		 = common_chat_templates_init(model, params.chat_template);
 
 			LOG_INF("%s: llama threadpool init, n_threads = %d\n", __func__, ( int )params.cpuparams.n_threads);
@@ -183,9 +183,9 @@ int main(int argc, char** argv) {
 			std::vector<llama_token> session_tokens;
 
 			ctx->stop_watch_val = stop_watch_val;
-			const bool add_bos	= llama_vocab_get_add_bos(vocab) && !params.use_jinja;
+			const bool add_bos	= llama_tokenizer_get_add_bos(tokenizer) && !params.use_jinja;
 			if (!llama_model_has_encoder(model)) {
-				GGML_ASSERT(!llama_vocab_get_add_eos(vocab));
+				GGML_ASSERT(!llama_tokenizer_get_add_eos(tokenizer));
 			}
 
 			LOG_DBG("n_ctx: %d, add_bos: %d\n", n_ctx, add_bos);
@@ -424,7 +424,7 @@ int main(int argc, char** argv) {
 					}
 
 					// deal with end of generation tokens in interactive mode
-					if (!waiting_for_first_input && llama_vocab_is_eog(vocab, common_sampler_last(smpl))) {
+					if (!waiting_for_first_input && llama_tokenizer_is_eog(tokenizer, common_sampler_last(smpl))) {
 						LOG_DBG("found an EOG token\n");
 
 						if (params.interactive) {
@@ -463,7 +463,7 @@ int main(int argc, char** argv) {
 
 						if (params.input_prefix_bos) {
 							LOG_DBG("adding input prefix BOS token\n");
-							embd_inp.push_back(llama_vocab_bos(vocab));
+							embd_inp.push_back(llama_tokenizer_bos(tokenizer));
 						}
 
 						std::string buffer;
@@ -528,8 +528,8 @@ int main(int argc, char** argv) {
 
 							// if user stop generation mid-way, we must add EOT to finish model's last response
 							if (need_insert_eot && format_chat) {
-								llama_token eot = llama_vocab_eot(vocab);
-								embd_inp.push_back(eot == LLAMA_TOKEN_NULL ? llama_vocab_eos(vocab) : eot);
+								llama_token eot = llama_tokenizer_eot(tokenizer);
+								embd_inp.push_back(eot == LLAMA_TOKEN_NULL ? llama_tokenizer_eos(tokenizer) : eot);
 								need_insert_eot = false;
 							}
 
@@ -568,7 +568,7 @@ int main(int argc, char** argv) {
 				}
 
 				// end of generation
-				if (!embd.empty() && llama_vocab_is_eog(vocab, embd.back()) && !(params.interactive)) {
+				if (!embd.empty() && llama_tokenizer_is_eog(tokenizer, embd.back()) && !(params.interactive)) {
 					LOG(" [end of text]\n");
 					break;
 				}

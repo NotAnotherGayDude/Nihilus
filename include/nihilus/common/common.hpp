@@ -25,6 +25,7 @@ RealTimeChris (Chris M.)
 #include <nihilus/common/data_types.hpp>
 #include <nihilus/common/concepts.hpp>
 #include <nihilus/common/array.hpp>
+#include <nihilus/common/enum.hpp>
 #include <filesystem>
 #include <iostream>
 #include <cstdint>
@@ -152,7 +153,7 @@ namespace nihilus {
 		}
 	};
 
-	static constexpr auto spinlock_time{ 8500 };
+	static constexpr auto spinlock_time{ 500 };
 
 	std::atomic_uint64_t current_count{};
 
@@ -172,35 +173,6 @@ namespace nihilus {
 		}
 	}
 
-	struct alignas(64) op_latch_branchless_real {
-		NIHILUS_FORCE_INLINE op_latch_branchless_real() noexcept = default;
-		NIHILUS_FORCE_INLINE op_latch_branchless_real& operator=(const op_latch_branchless_real&) noexcept {
-			return *this;
-		}
-
-		NIHILUS_FORCE_INLINE op_latch_branchless_real(const op_latch_branchless_real&) noexcept {};
-
-		NIHILUS_FORCE_INLINE void init(uint64_t thread_count_new) {
-			thread_count = thread_count_new;
-			flag.store(0, std::memory_order_release);
-		}
-
-		NIHILUS_FORCE_INLINE void arrive_and_wait() {
-			auto new_value					 = flag.fetch_add(1, std::memory_order_acq_rel);
-			static constexpr int64_t garbage = -1;
-			int64_t expected				 = new_value ^ ((new_value ^ garbage) & -(new_value == get_thread_count() - 1));
-			(new_value == thread_count - 1) ? (flag.notify_all(), flag.store(0, std::memory_order_release)) : flag.wait(new_value + 1, std::memory_order_acquire);
-		}
-
-		NIHILUS_FORCE_INLINE int64_t get_thread_count() const noexcept {
-			return thread_count;
-		}
-
-	  protected:
-		alignas(64) std::atomic<int64_t> flag{};
-		alignas(64) int64_t thread_count{};
-	};
-
 	struct alignas(64) atomic_flag_wrapper {
 		NIHILUS_FORCE_INLINE atomic_flag_wrapper() noexcept = default;
 		NIHILUS_FORCE_INLINE atomic_flag_wrapper& operator=(const atomic_flag_wrapper&) noexcept {
@@ -215,7 +187,7 @@ namespace nihilus {
 		}
 
 		NIHILUS_FORCE_INLINE int64_t load() {
-			return flag.load(std::memory_order_acquire);
+			return flag.load(std::memory_order_release);
 		}
 
 		NIHILUS_FORCE_INLINE void clear() {
@@ -238,6 +210,10 @@ namespace nihilus {
 			return flag.fetch_add(value, std::memory_order_acquire);
 		}
 
+		NIHILUS_FORCE_INLINE int64_t fetch_sub(int64_t value) {
+			return flag.fetch_sub(value, std::memory_order_acquire);
+		}
+
 		NIHILUS_FORCE_INLINE bool test() {
 			return flag.load(std::memory_order_acquire) == 1;
 		}
@@ -256,22 +232,34 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE op_latch& operator=(const op_latch&) = delete;
 		NIHILUS_FORCE_INLINE op_latch(const op_latch&)			  = delete;
 		alignas(64) atomic_flag_wrapper flag{};
-		alignas(64) size_t thread_count{};
+		alignas(64) uint64_t thread_count{};
 
-		NIHILUS_FORCE_INLINE void init(size_t thread_count_new) {
+		template<size_t index> NIHILUS_INLINE void call_function(int64_t new_value) {
+			if constexpr (index == 0) {
+				flag.wait(new_value + 1);
+			} else {
+				flag.notify_all(), flag.store(0);
+			}
+		}
+
+		using function_type = decltype(&op_latch::call_function<0>);
+
+		static constexpr array<function_type, 2> func_ptrs{ [] {
+			array<function_type, 2> return_values{};
+			return_values[0] = &op_latch::call_function<0>;
+			return_values[1] = &op_latch::call_function<1>;
+			return return_values;
+		}() };
+
+		NIHILUS_INLINE void init(uint64_t thread_count_new) {
 			thread_count = thread_count_new;
 			flag.store(0);
 		}
 
-		NIHILUS_FORCE_INLINE void arrive_and_wait() {
-			auto new_value					 = flag.fetch_add(1);
-			static constexpr int64_t garbage = -1;
-			int64_t expected				 = new_value ^ ((new_value ^ garbage) & -(new_value == get_thread_count() - 1));
-			(new_value == thread_count - 1) ? (flag.notify_all(), flag.store(0)) : flag.wait(new_value + 1);
-		}
-
-		NIHILUS_FORCE_INLINE int64_t get_thread_count() const noexcept {
-			return thread_count;
+		NIHILUS_INLINE void arrive_and_wait() {
+			auto new_value = flag.fetch_add(1);
+			bool wait{ (new_value == thread_count - 1) };
+			(*this.*func_ptrs[wait])(new_value);
 		}
 	};
 
@@ -280,26 +268,15 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE core_latch& operator=(const core_latch&) = delete;
 		NIHILUS_FORCE_INLINE core_latch(const core_latch&)			  = delete;
 		alignas(64) atomic_flag_wrapper flag{};
-		alignas(64) size_t thread_count{};
+		alignas(64) uint64_t thread_count{};
 
-		NIHILUS_FORCE_INLINE void init(size_t thread_count_new) {
+		NIHILUS_FORCE_INLINE void init(uint64_t thread_count_new) {
 			thread_count = thread_count_new;
-			flag.store(0);
+			flag.store(thread_count_new);
 		}
 
 		NIHILUS_FORCE_INLINE bool do_we_run() {
-			return flag.fetch_add(1) < thread_count;
-		}
-
-		NIHILUS_FORCE_INLINE void arrive_and_wait() {
-			auto new_value			  = flag.fetch_add(1);
-			constexpr int64_t garbage = -1;
-			int64_t expected		  = new_value ^ ((new_value ^ garbage) & -(new_value == get_thread_count() - 1));
-			 (expected + 1 == new_value) ? (flag.wait(expected + 1)) : (flag.notify_one(), flag.store(0));
-		}
-
-		NIHILUS_FORCE_INLINE int64_t get_thread_count() const noexcept {
-			return thread_count;
+			return flag.fetch_sub(1) > 0;
 		}
 	};
 
@@ -313,22 +290,22 @@ namespace nihilus {
 		char padding02[40]{};
 		alignas(64) std::atomic_signed_lock_free global_counter{};
 		char padding03[56]{};
-		alignas(64) size_t thread_count{};
+		alignas(64) uint64_t thread_count{};
 		char padding[56]{};
 
-		NIHILUS_FORCE_INLINE void init(size_t thread_count_new) {
+		NIHILUS_FORCE_INLINE void init(uint64_t thread_count_new) {
 			thread_count = thread_count_new;
 			start_flags.resize(thread_count);
 			finish_flags.resize(thread_count);
 			global_counter.store(static_cast<int64_t>(thread_count), std::memory_order_release);
 		}
 
-		NIHILUS_FORCE_INLINE void worker_wait(size_t thread_index) {
+		NIHILUS_FORCE_INLINE void worker_wait(uint64_t thread_index) {
 			start_flags[thread_index].wait(false);
 			start_flags[thread_index].clear();
 		}
 
-		NIHILUS_FORCE_INLINE void arrive_and_wait(size_t thread_index) {
+		NIHILUS_FORCE_INLINE void arrive_and_wait(uint64_t thread_index) {
 			global_counter.fetch_sub(1, std::memory_order_acq_rel);
 			global_counter.notify_one();
 
@@ -339,7 +316,7 @@ namespace nihilus {
 		}
 
 		NIHILUS_FORCE_INLINE void count_down() {
-			for (size_t x = 0; x < thread_count; ++x) {
+			for (uint64_t x = 0; x < thread_count; ++x) {
 				start_flags[x].test_and_set();
 				start_flags[x].notify_one();
 			}
@@ -353,7 +330,7 @@ namespace nihilus {
 			}
 
 			global_counter.store(static_cast<int64_t>(thread_count), std::memory_order_release);
-			for (size_t x = 0; x < thread_count; ++x) {
+			for (uint64_t x = 0; x < thread_count; ++x) {
 				finish_flags[x].test_and_set();
 				finish_flags[x].notify_one();
 			}
@@ -887,7 +864,7 @@ namespace nihilus {
 
 	static constexpr int32_t token_null{ -1 };
 
-	enum class vocab_types {
+	enum class tokenizer_types {
 		none,
 		spm,
 		bpe,
@@ -896,7 +873,7 @@ namespace nihilus {
 		rwkv,
 	};
 
-	enum class vocab_pre_types {
+	enum class tokenizer_pre_types {
 		default_pre,
 		llama3,
 		deepseek_llm,
@@ -973,12 +950,12 @@ namespace nihilus {
 		kv_cache_strategies cache_strategy{};
 		bool use_gradient_checkpointing{};
 		rope_scaling_types rope_scaling{};
-		vocab_pre_types vocab_pre_type{};
+		tokenizer_pre_types tokenizer_pre_type{};
 		uint64_t kv_cache_block_size{};
 		bool use_rotary_embeddings{};
 		bool use_flash_attention{};
 		norm_types rms_norm_type{};
-		vocab_types vocab_type{};
+		tokenizer_types tokenizer_type{};
 		model_format format{};
 		float norm_epsilon{};
 		bool benchmark{};
