@@ -73,7 +73,25 @@ namespace nihilus {
 	template<typename value_type>
 	concept simd_int_type = std::is_same_v<nihilus_simd_int_t, std::remove_cvref_t<value_type>>;
 
-#if defined(NIHILUS_AVX512) || defined(NIHILUS_AVX2)
+#if defined(NIHILUS_AVX512) || defined(NIHILUS_AVX2)	
+
+#define blsr(value) _blsr_u64(value)
+
+	template<uint16_type value_type> NIHILUS_FORCE_INLINE value_type tzcnt(value_type value) noexcept {
+	#if defined(NIHILUS_LINUX)
+		return __tzcnt_u16(value);
+	#else
+		return _tzcnt_u16(value);
+	#endif
+	}
+
+	template<uint32_type value_type> NIHILUS_FORCE_INLINE value_type tzcnt(value_type value) noexcept {
+		return _tzcnt_u32(value);
+	}
+
+	template<uint64_type value_type> NIHILUS_FORCE_INLINE value_type tzcnt(value_type value) noexcept {
+		return _tzcnt_u64(value);
+	}
 
 	template<simd_int_128_type simd_int_type_new> NIHILUS_FORCE_INLINE static simd_int_type_new gather_values(const void* str) noexcept {
 		return _mm_load_si128(static_cast<const __m128i*>(str));
@@ -291,25 +309,7 @@ namespace nihilus {
 
 #endif
 
-#define blsr(value) _blsr_u64(value)
-
-	template<uint16_type value_type> NIHILUS_FORCE_INLINE value_type tzcnt(value_type value) noexcept {
-#if defined(NIHILUS_LINUX)
-		return __tzcnt_u16(value);
-#else
-		return _tzcnt_u16(value);
-#endif
-	}
-
-	template<uint32_type value_type> NIHILUS_FORCE_INLINE value_type tzcnt(value_type value) noexcept {
-		return _tzcnt_u32(value);
-	}
-
-	template<uint64_type value_type> NIHILUS_FORCE_INLINE value_type tzcnt(value_type value) noexcept {
-		return _tzcnt_u64(value);
-	}
-
-#if defined(NIHILUS_AVX512) || defined(NIHILUS_AVX2)
+#if defined(NIHILUS_AVX512) 
 
 	template<simd_int_512_type simd_int_type_new> NIHILUS_FORCE_INLINE static simd_int_type_new gather_values(const void* str) noexcept {
 		return _mm512_load_si512(static_cast<const __m512i*>(str));

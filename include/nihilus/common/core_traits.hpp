@@ -75,7 +75,8 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE constexpr core_traits(core_traits&&) noexcept				   = delete;
 		using model_traits_type															   = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
 		using output_type																   = typename kernel_type_profile_traits<config_new.kernel_profile>::weight_type;
-		using core_traits_dims_type = core_trait_dims<core_traits<config_new, op_types::token_embd_weight>, model_traits_type::embedding_dim, model_traits_type::tokenizer_size, 1, 1>;
+		using core_traits_dims_type =
+			core_trait_dims<core_traits<config_new, op_types::token_embd_weight>, model_traits_type::embedding_dim, model_traits_type::tokenizer_size, 1, 1>;
 		static constexpr uint64_t depth{ 0 };
 		static constexpr auto config{ config_holder<config_new>::config };
 		static constexpr alloc_type alc_type{ alloc_type::single_alloc };

@@ -100,7 +100,7 @@ namespace nihilus {
 
 	template<string_literal string, uint64_t offset> static constexpr auto offset_new_literal() noexcept {
 		constexpr uint64_t originalSize = string.length;
-		constexpr uint64_t newSize	  = (offset >= originalSize) ? 0 : originalSize - offset;
+		constexpr uint64_t newSize		= (offset >= originalSize) ? 0 : originalSize - offset;
 		string_literal<newSize + 1> sl{};
 		if constexpr (newSize > 0) {
 			std::copy_n(string.data() + offset, newSize, sl.values);
@@ -111,7 +111,7 @@ namespace nihilus {
 
 	template<string_literal string, uint64_t offset> static constexpr auto offset_into_literal() noexcept {
 		constexpr uint64_t originalSize = string.length;
-		constexpr uint64_t newSize	  = (offset >= originalSize) ? originalSize : offset;
+		constexpr uint64_t newSize		= (offset >= originalSize) ? originalSize : offset;
 		string_literal<newSize + 1> sl{};
 		if constexpr (newSize > 0) {
 			std::copy_n(string.data(), newSize, sl.values);

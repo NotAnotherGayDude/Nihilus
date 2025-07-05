@@ -78,7 +78,7 @@ namespace nihilus {
 
 	template<model_config config, typename derived_type, tokenizer_types tokenizer_type_new> struct tokenizer<config, derived_type, model_arches::llama, tokenizer_type_new>
 		: public tokenizer_parameters<model_arches::llama>, public tokenizer_traits<config.arch, tokenizer_type_new, config.tokenizer_pre_type> {
-		using tokenizer_type		= tokenizer_traits<config.arch, tokenizer_type_new, config.tokenizer_pre_type>;
+		using tokenizer_type	= tokenizer_traits<config.arch, tokenizer_type_new, config.tokenizer_pre_type>;
 		using model_traits_type = model_traits<config.arch, config.model_size, config.model_generation>;
 
 		NIHILUS_FORCE_INLINE tokenizer() noexcept = default;
@@ -202,14 +202,14 @@ namespace nihilus {
 			symbols.clear();
 			work_queue = nihilus_bigram_bpe::queue();
 
-			int32_t index = 0;
+			int32_t index	= 0;
 			uint64_t offset = 0;
 
 			while (offset < word.size()) {
 				nihilus_symbol sym;
 				uint64_t char_len = std::min(word.size() - offset, static_cast<uint64_t>(unicode_len_utf8(word[offset])));
-				sym.text		= word.c_str() + offset;
-				sym.n			= char_len;
+				sym.text		  = word.c_str() + offset;
+				sym.n			  = char_len;
 				offset += sym.n;
 				sym.prev = index - 1;
 				sym.next = offset == word.size() ? -1 : index + 1;

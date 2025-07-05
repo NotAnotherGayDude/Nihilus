@@ -32,7 +32,7 @@ namespace nihilus {
 		static constexpr auto arch{ model_arches::llama };
 		static constexpr auto model_generation{ model_generations::v1_v2 };
 		static constexpr auto model_size{ model_sizes::llm_1B };
-		static constexpr uint64_t tokenizer_size		   = 32000;
+		static constexpr uint64_t tokenizer_size	   = 32000;
 		static constexpr uint64_t embedding_dim		   = 2048;
 		static constexpr uint64_t block_count		   = 16;
 		static constexpr uint64_t feed_forward_length  = 8192;
@@ -53,7 +53,7 @@ namespace nihilus {
 		static constexpr auto arch{ model_arches::llama };
 		static constexpr auto model_generation{ model_generations::v1_v2 };
 		static constexpr auto model_size{ model_sizes::llm_3B };
-		static constexpr uint64_t tokenizer_size		   = 32000;
+		static constexpr uint64_t tokenizer_size	   = 32000;
 		static constexpr uint64_t embedding_dim		   = 3072;
 		static constexpr uint64_t block_count		   = 28;
 		static constexpr uint64_t feed_forward_length  = 8192;
@@ -74,7 +74,7 @@ namespace nihilus {
 		static constexpr auto arch{ model_arches::llama };
 		static constexpr auto model_generation{ model_generations::v1_v2 };
 		static constexpr auto model_size{ model_sizes::llm_7B };
-		static constexpr uint64_t tokenizer_size		   = 32000;
+		static constexpr uint64_t tokenizer_size	   = 32000;
 		static constexpr uint64_t embedding_dim		   = 4096;
 		static constexpr uint64_t block_count		   = 32;
 		static constexpr uint64_t feed_forward_length  = 11008;
@@ -95,7 +95,7 @@ namespace nihilus {
 		static constexpr auto arch{ model_arches::llama };
 		static constexpr auto model_generation{ model_generations::v1_v2 };
 		static constexpr auto model_size{ model_sizes::llm_8B };
-		static constexpr uint64_t tokenizer_size		   = 32000;
+		static constexpr uint64_t tokenizer_size	   = 32000;
 		static constexpr uint64_t embedding_dim		   = 4096;
 		static constexpr uint64_t block_count		   = 32;
 		static constexpr uint64_t feed_forward_length  = 11008;
@@ -116,7 +116,7 @@ namespace nihilus {
 		static constexpr auto arch{ model_arches::llama };
 		static constexpr auto model_generation{ model_generations::v1_v2 };
 		static constexpr auto model_size{ model_sizes::llm_11B };
-		static constexpr uint64_t tokenizer_size		   = 32000;
+		static constexpr uint64_t tokenizer_size	   = 32000;
 		static constexpr uint64_t embedding_dim		   = 4096;
 		static constexpr uint64_t block_count		   = 32;
 		static constexpr uint64_t feed_forward_length  = 11008;
@@ -137,7 +137,7 @@ namespace nihilus {
 		static constexpr auto arch{ model_arches::llama };
 		static constexpr auto model_generation{ model_generations::v1_v2 };
 		static constexpr auto model_size{ model_sizes::llm_13B };
-		static constexpr uint64_t tokenizer_size		   = 32000;
+		static constexpr uint64_t tokenizer_size	   = 32000;
 		static constexpr uint64_t embedding_dim		   = 5120;
 		static constexpr uint64_t block_count		   = 40;
 		static constexpr uint64_t feed_forward_length  = 13824;
@@ -158,7 +158,7 @@ namespace nihilus {
 		static constexpr auto arch{ model_arches::llama };
 		static constexpr auto model_generation{ model_generations::v1_v2 };
 		static constexpr auto model_size{ model_sizes::llm_70B };
-		static constexpr uint64_t tokenizer_size		   = 32000;
+		static constexpr uint64_t tokenizer_size	   = 32000;
 		static constexpr uint64_t embedding_dim		   = 8192;
 		static constexpr uint64_t block_count		   = 80;
 		static constexpr uint64_t feed_forward_length  = 28672;
@@ -179,7 +179,7 @@ namespace nihilus {
 		static constexpr auto arch{ model_arches::llama };
 		static constexpr auto model_generation{ model_generations::v3 };
 		static constexpr auto model_size{ model_sizes::llm_1B };
-		static constexpr uint64_t tokenizer_size		   = 128256;
+		static constexpr uint64_t tokenizer_size	   = 128256;
 		static constexpr uint64_t embedding_dim		   = 2048;
 		static constexpr uint64_t block_count		   = 16;
 		static constexpr uint64_t feed_forward_length  = 8192;
@@ -200,7 +200,7 @@ namespace nihilus {
 		static constexpr auto arch{ model_arches::llama };
 		static constexpr auto model_generation{ model_generations::v3 };
 		static constexpr auto model_size{ model_sizes::llm_3B };
-		static constexpr uint64_t tokenizer_size		   = 128256;
+		static constexpr uint64_t tokenizer_size	   = 128256;
 		static constexpr uint64_t embedding_dim		   = 3072;
 		static constexpr uint64_t block_count		   = 28;
 		static constexpr uint64_t feed_forward_length  = 8192;
@@ -221,7 +221,7 @@ namespace nihilus {
 		static constexpr auto arch{ model_arches::llama };
 		static constexpr auto model_generation{ model_generations::v3 };
 		static constexpr auto model_size{ model_sizes::llm_7B };
-		static constexpr uint64_t tokenizer_size		   = 128256;
+		static constexpr uint64_t tokenizer_size	   = 128256;
 		static constexpr uint64_t embedding_dim		   = 4096;
 		static constexpr uint64_t block_count		   = 32;
 		static constexpr uint64_t feed_forward_length  = 11008;
@@ -242,7 +242,7 @@ namespace nihilus {
 		static constexpr auto arch{ model_arches::llama };
 		static constexpr auto model_generation{ model_generations::v3 };
 		static constexpr auto model_size{ model_sizes::llm_8B };
-		static constexpr uint64_t tokenizer_size		   = 128256;
+		static constexpr uint64_t tokenizer_size	   = 128256;
 		static constexpr uint64_t embedding_dim		   = 4096;
 		static constexpr uint64_t block_count		   = 32;
 		static constexpr uint64_t feed_forward_length  = 14336;
@@ -263,7 +263,7 @@ namespace nihilus {
 		static constexpr auto arch{ model_arches::llama };
 		static constexpr auto model_generation{ model_generations::v3 };
 		static constexpr auto model_size{ model_sizes::llm_11B };
-		static constexpr uint64_t tokenizer_size		   = 128256;
+		static constexpr uint64_t tokenizer_size	   = 128256;
 		static constexpr uint64_t embedding_dim		   = 4096;
 		static constexpr uint64_t block_count		   = 32;
 		static constexpr uint64_t feed_forward_length  = 14336;
@@ -284,7 +284,7 @@ namespace nihilus {
 		static constexpr auto arch{ model_arches::llama };
 		static constexpr auto model_generation{ model_generations::v3 };
 		static constexpr auto model_size{ model_sizes::llm_13B };
-		static constexpr uint64_t tokenizer_size		   = 128256;
+		static constexpr uint64_t tokenizer_size	   = 128256;
 		static constexpr uint64_t embedding_dim		   = 5120;
 		static constexpr uint64_t block_count		   = 40;
 		static constexpr uint64_t feed_forward_length  = 13824;
@@ -305,7 +305,7 @@ namespace nihilus {
 		static constexpr auto arch{ model_arches::llama };
 		static constexpr auto model_generation{ model_generations::v3 };
 		static constexpr auto model_size{ model_sizes::llm_70B };
-		static constexpr uint64_t tokenizer_size		   = 128256;
+		static constexpr uint64_t tokenizer_size	   = 128256;
 		static constexpr uint64_t embedding_dim		   = 8192;
 		static constexpr uint64_t block_count		   = 80;
 		static constexpr uint64_t feed_forward_length  = 28672;
@@ -316,90 +316,6 @@ namespace nihilus {
 		static constexpr uint64_t total_parameters	   = 70000000000;
 		static constexpr uint64_t kv_cache_layers	   = 80;
 		static constexpr uint64_t intermediate_size	   = 28672;
-		static constexpr uint64_t max_sequence_length  = 8192;
-		static constexpr uint64_t n_embd_head_kv	   = embedding_dim / head_count;
-		static constexpr uint64_t n_embd_kv_gqa		   = n_embd_head_kv * head_count_kv;
-	};
-
-	template<> struct model_traits<model_arches::deci, model_sizes::llm_1B, model_generations::v1_v2> {
-		using op_type_type = op_types;
-		static constexpr auto arch{ model_arches::deci };
-		static constexpr auto model_generation{ model_generations::v1_v2 };
-		static constexpr auto model_size{ model_sizes::llm_1B };
-		static constexpr uint64_t tokenizer_size		   = 32000;
-		static constexpr uint64_t embedding_dim		   = 1536;
-		static constexpr uint64_t block_count		   = 24;
-		static constexpr uint64_t feed_forward_length  = 4096;
-		static constexpr uint64_t head_count		   = 12;
-		static constexpr uint64_t head_count_kv		   = 4;
-		static constexpr uint64_t head_dim			   = 128;
-		static constexpr uint64_t rope_dimension_count = 128;
-		static constexpr uint64_t total_parameters	   = 1000000000;
-		static constexpr uint64_t kv_cache_layers	   = 24;
-		static constexpr uint64_t intermediate_size	   = 4096;
-		static constexpr uint64_t max_sequence_length  = 2048;
-		static constexpr uint64_t n_embd_head_kv	   = embedding_dim / head_count;
-		static constexpr uint64_t n_embd_kv_gqa		   = n_embd_head_kv * head_count_kv;
-	};
-
-	template<> struct model_traits<model_arches::deci, model_sizes::llm_7B, model_generations::v1_v2> {
-		using op_type_type = op_types;
-		static constexpr auto arch{ model_arches::deci };
-		static constexpr auto model_generation{ model_generations::v1_v2 };
-		static constexpr auto model_size{ model_sizes::llm_7B };
-		static constexpr uint64_t tokenizer_size		   = 32000;
-		static constexpr uint64_t embedding_dim		   = 4096;
-		static constexpr uint64_t block_count		   = 32;
-		static constexpr uint64_t feed_forward_length  = 11008;
-		static constexpr uint64_t head_count		   = 32;
-		static constexpr uint64_t head_count_kv		   = 8;
-		static constexpr uint64_t head_dim			   = 128;
-		static constexpr uint64_t rope_dimension_count = 128;
-		static constexpr uint64_t total_parameters	   = 7000000000;
-		static constexpr uint64_t kv_cache_layers	   = 32;
-		static constexpr uint64_t intermediate_size	   = 11008;
-		static constexpr uint64_t max_sequence_length  = 2048;
-		static constexpr uint64_t n_embd_head_kv	   = embedding_dim / head_count;
-		static constexpr uint64_t n_embd_kv_gqa		   = n_embd_head_kv * head_count_kv;
-	};
-
-	template<> struct model_traits<model_arches::deci, model_sizes::llm_1B, model_generations::v3> {
-		using op_type_type = op_types;
-		static constexpr auto arch{ model_arches::deci };
-		static constexpr auto model_generation{ model_generations::v3 };
-		static constexpr auto model_size{ model_sizes::llm_1B };
-		static constexpr uint64_t tokenizer_size		   = 50280;
-		static constexpr uint64_t embedding_dim		   = 1536;
-		static constexpr uint64_t block_count		   = 24;
-		static constexpr uint64_t feed_forward_length  = 4096;
-		static constexpr uint64_t head_count		   = 12;
-		static constexpr uint64_t head_count_kv		   = 4;
-		static constexpr uint64_t head_dim			   = 128;
-		static constexpr uint64_t rope_dimension_count = 128;
-		static constexpr uint64_t total_parameters	   = 1000000000;
-		static constexpr uint64_t kv_cache_layers	   = 24;
-		static constexpr uint64_t intermediate_size	   = 4096;
-		static constexpr uint64_t max_sequence_length  = 8192;
-		static constexpr uint64_t n_embd_head_kv	   = embedding_dim / head_count;
-		static constexpr uint64_t n_embd_kv_gqa		   = n_embd_head_kv * head_count_kv;
-	};
-
-	template<> struct model_traits<model_arches::deci, model_sizes::llm_7B, model_generations::v3> {
-		using op_type_type = op_types;
-		static constexpr auto arch{ model_arches::deci };
-		static constexpr auto model_generation{ model_generations::v3 };
-		static constexpr auto model_size{ model_sizes::llm_7B };
-		static constexpr uint64_t tokenizer_size		   = 50280;
-		static constexpr uint64_t embedding_dim		   = 4096;
-		static constexpr uint64_t block_count		   = 32;
-		static constexpr uint64_t feed_forward_length  = 11008;
-		static constexpr uint64_t head_count		   = 32;
-		static constexpr uint64_t head_count_kv		   = 8;
-		static constexpr uint64_t head_dim			   = 128;
-		static constexpr uint64_t rope_dimension_count = 128;
-		static constexpr uint64_t total_parameters	   = 7000000000;
-		static constexpr uint64_t kv_cache_layers	   = 32;
-		static constexpr uint64_t intermediate_size	   = 11008;
 		static constexpr uint64_t max_sequence_length  = 8192;
 		static constexpr uint64_t n_embd_head_kv	   = embedding_dim / head_count;
 		static constexpr uint64_t n_embd_kv_gqa		   = n_embd_head_kv * head_count_kv;

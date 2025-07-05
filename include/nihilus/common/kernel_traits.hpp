@@ -531,8 +531,8 @@ namespace nihilus {
 			kernel_traits_new, output, input01, input02>::impl);
 		//static_assert(static_assert_printer<is_valid_tensor_type<typename core_type::output_type>,
 		//kernel_trait_static_assert_errors::GET_ROWS_Output_type_must_be_valid_tensor_type, kernel_traits_new, output, input01, input02>::impl);
-		static constexpr uint64_t tokenizer_size	= dims02[0];
-		static constexpr uint64_t embedding_dim = dims02[1];
+		static constexpr uint64_t tokenizer_size = dims02[0];
+		static constexpr uint64_t embedding_dim	 = dims02[1];
 		//static constexpr uint64_t sequence_length = dims03[0];
 	};
 

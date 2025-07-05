@@ -76,7 +76,7 @@ namespace nihilus {
 	template<typename value_type, auto...> struct value_reader;
 
 	template<typename value_type>
-		requires(std::is_pod_v<value_type>)
+		requires(std::is_pod_v<value_type> && !std::is_enum_v<value_type> || std::is_same_v<gguf_metadata_value_type, value_type>)
 	struct value_reader<value_type> {
 		NIHILUS_FORCE_INLINE static value_type gather_value(stream_iterator& input) {
 			if (input.has_bytes<value_type>()) {
@@ -84,6 +84,130 @@ namespace nihilus {
 			} else {
 				throw std::runtime_error{ "Sorry, but that index is out of range!" };
 			}
+		}
+	};
+
+	template<typename enum_type> struct string_to_enum;
+
+	template<> struct string_to_enum<tokenizer_types> {
+		NIHILUS_FORCE_INLINE static tokenizer_types impl(std::string_view value) {
+			if (string_literal_comparison<"gpt2">(value.data())) {
+				return tokenizer_types::bpe;
+			}
+
+			return tokenizer_types::none;
+		}
+	};
+
+	template<> struct string_to_enum<tokenizer_pre_types> {
+		NIHILUS_FORCE_INLINE static tokenizer_pre_types impl(std::string_view value) {
+			if (string_literal_comparison<"default">(value.data())) {
+				return tokenizer_pre_types::default_pre;
+			}
+			if (string_literal_comparison<"llama3">(value.data()) || string_literal_comparison<"llama-v3">(value.data()) || string_literal_comparison<"llama-bpe">(value.data()) ||
+				string_literal_comparison<"falcon3">(value.data())) {
+				return tokenizer_pre_types::llama3;
+			}
+			if (string_literal_comparison<"deepseek-llm">(value.data())) {
+				return tokenizer_pre_types::deepseek_llm;
+			}
+			if (string_literal_comparison<"deepseek-coder">(value.data())) {
+				return tokenizer_pre_types::deepseek_coder;
+			}
+			if (string_literal_comparison<"deepseek-v3">(value.data())) {
+				return tokenizer_pre_types::deepseek3_llm;
+			}
+			if (string_literal_comparison<"falcon">(value.data())) {
+				return tokenizer_pre_types::falcon;
+			}
+			if (string_literal_comparison<"mpt">(value.data())) {
+				return tokenizer_pre_types::mpt;
+			}
+			if (string_literal_comparison<"starcoder">(value.data())) {
+				return tokenizer_pre_types::starcoder;
+			}
+			if (string_literal_comparison<"gpt-2">(value.data()) || string_literal_comparison<"phi-2">(value.data()) || string_literal_comparison<"jina-es">(value.data()) ||
+				string_literal_comparison<"jina-de">(value.data()) || string_literal_comparison<"gigachat">(value.data()) ||
+				string_literal_comparison<"jina-v1-en">(value.data()) || string_literal_comparison<"jina-v2-es">(value.data()) ||
+				string_literal_comparison<"jina-v2-de">(value.data()) || string_literal_comparison<"jina-v2-code">(value.data()) ||
+				string_literal_comparison<"roberta-bpe">(value.data())) {
+				return tokenizer_pre_types::gpt2;
+			}
+			if (string_literal_comparison<"refact">(value.data())) {
+				return tokenizer_pre_types::refact;
+			}
+			if (string_literal_comparison<"command-r">(value.data())) {
+				return tokenizer_pre_types::command_r;
+			}
+			if (string_literal_comparison<"stablelm2">(value.data())) {
+				return tokenizer_pre_types::stablelm2;
+			}
+			if (string_literal_comparison<"qwen2">(value.data()) || string_literal_comparison<"deepseek-r1-qwen">(value.data()) ||
+				string_literal_comparison<"megrez">(value.data())) {
+				return tokenizer_pre_types::qwen2;
+			}
+			if (string_literal_comparison<"olmo">(value.data())) {
+				return tokenizer_pre_types::olmo;
+			}
+			if (string_literal_comparison<"dbrx">(value.data())) {
+				return tokenizer_pre_types::dbrx;
+			}
+			if (string_literal_comparison<"smaug-bpe">(value.data())) {
+				return tokenizer_pre_types::smaug;
+			}
+			if (string_literal_comparison<"poro-chat">(value.data())) {
+				return tokenizer_pre_types::poro;
+			}
+			if (string_literal_comparison<"chatglm-bpe">(value.data())) {
+				return tokenizer_pre_types::chatglm4;
+			}
+			if (string_literal_comparison<"viking">(value.data())) {
+				return tokenizer_pre_types::viking;
+			}
+			if (string_literal_comparison<"jais">(value.data())) {
+				return tokenizer_pre_types::jais;
+			}
+			if (string_literal_comparison<"tekken">(value.data())) {
+				return tokenizer_pre_types::tekken;
+			}
+			if (string_literal_comparison<"smollm">(value.data())) {
+				return tokenizer_pre_types::smollm;
+			}
+			if (string_literal_comparison<"codeshell">(value.data())) {
+				return tokenizer_pre_types::codeshell;
+			}
+			if (string_literal_comparison<"bloom">(value.data())) {
+				return tokenizer_pre_types::bloom;
+			}
+			if (string_literal_comparison<"gpt3-finnish">(value.data())) {
+				return tokenizer_pre_types::gpt3_finnish;
+			}
+			if (string_literal_comparison<"exaone">(value.data())) {
+				return tokenizer_pre_types::exaone;
+			}
+			if (string_literal_comparison<"chameleon">(value.data())) {
+				return tokenizer_pre_types::chameleon;
+			}
+			if (string_literal_comparison<"minerva-7b">(value.data())) {
+				return tokenizer_pre_types::minerva;
+			}
+
+			return tokenizer_pre_types::default_pre;
+		}
+	};
+
+	template<typename value_type>
+		requires(std::is_enum_v<value_type> && !std::is_same_v<gguf_metadata_value_type, value_type>)
+	struct value_reader<value_type> {
+		NIHILUS_FORCE_INLINE static value_type gather_value(stream_iterator& input) {
+			uint64_t length = value_reader<uint64_t>::gather_value(input);
+			if (!input.has_bytes<uint8_t>(length)) {
+				throw std::runtime_error("Sorry, but that index is out of range!");
+			}
+			const char* string_ptr{ static_cast<const char*>(input.file->data()) + input.current_index };
+			input.current_index += length;
+			std::string_view result(string_ptr, length);
+			return string_to_enum<value_type>::impl(result);
 		}
 	};
 
@@ -151,38 +275,37 @@ namespace nihilus {
 		std::string_view general_architecture;
 		std::string_view general_size_label;
 		std::string_view general_finetune;
-		std::string_view general_basename;
 		std::string_view general_license;
-		std::string_view general_type;
-		std::string_view general_name;
 		uint32_t general_file_type;
 		uint64_t metadata_kv_count;
 		uint64_t tensor_count;
 		uint32_t alignment;
 	};
 
-	template<model_arches arch> struct model_data_base {
+	template<model_arches arch> struct model_data_base;
+
+	template<> struct model_data_base<model_arches::llama> {
 		float llama_attention_layer_norm_rms_epsilon;
 		uint32_t llama_attention_head_count_kv;
 		uint32_t llama_attention_head_count;
 		uint32_t llama_rope_dimension_count;
 		uint32_t llama_feed_forward_length;
 		uint32_t llama_embedding_length;
+		uint32_t llama_tokenizer_size;
 		uint32_t llama_context_length;
 		uint32_t llama_block_count;
 		float llama_rope_freq_base;
-		uint32_t llama_tokenizer_size;
+		uint32_t llama_vocab_size;
 	};
 
-	template<tokenizer_types type> struct tokenizer_base {
+	template<tokenizer_types type> struct tokenizer_base;
+
+	template<> struct tokenizer_base<tokenizer_types::bpe> {
 		std::unordered_map<std::string_view, int32_t> tokenizer_ggml_tokens;
 		std::vector<std::string_view> tokenizer_ggml_merges;
 		std::vector<int32_t> tokenizer_ggml_token_type;
 		std::string_view tokenizer_chat_template;
 		std::string_view tokenizer_ggml_model;
-		uint32_t tokenizer_ggml_bos_token_id;
-		uint32_t tokenizer_ggml_eos_token_id;
-		std::string_view tokenizer_ggml_pre;
 	};
 
 	struct gguf_metadata_base {
@@ -209,28 +332,13 @@ namespace nihilus {
 		uint32_t general_file_type;
 	};
 
-	template<model_arches arch, tokenizer_types type, tokenizer_pre_types pre> struct gguf_metadata;
-
-	template<tokenizer_types type, tokenizer_pre_types pre> struct gguf_metadata<model_arches::llama, type, pre>
-		: public metadata_base, public tokenizer_base<type>, public model_data_base<model_arches::llama>, public tokenizer_traits<model_arches::llama, type, pre> {
-		float llama_attention_layer_norm_rms_epsilon;
-		uint32_t llama_attention_head_count_kv;
-		uint32_t llama_attention_head_count;
-		uint32_t llama_rope_dimension_count;
-		uint32_t llama_feed_forward_length;
-		uint32_t llama_embedding_length;
-		uint32_t llama_context_length;
-		float llama_rope_freq_base;
-		uint32_t llama_block_count;
-		uint32_t llama_tokenizer_size;
-	};
+	template<model_arches arch, tokenizer_types type, tokenizer_pre_types pre>
+	struct gguf_metadata : public metadata_base, public tokenizer_base<type>, public model_data_base<arch>, public tokenizer_traits<arch, type, pre> {};
 
 	template<model_arches arch, tokenizer_types type, tokenizer_pre_types pre> struct core<gguf_metadata<arch, type, pre>> {
 		using value_type				  = gguf_metadata<arch, type, pre>;
 		static constexpr auto parse_value = create_value<make_parse_entity<&value_type::general_architecture, "general.architecture">(),
-			make_parse_entity<&value_type::tokenizer_type, "tokenizer.ggml.model">(), make_parse_entity<&value_type::general_type, "general.type">(),
-			make_parse_entity<&value_type::general_name, "general.name">(), make_parse_entity<&value_type::general_finetune, "general.finetune">(),
-			make_parse_entity<&value_type::general_basename, "general.basename">(), make_parse_entity<&value_type::general_size_label, "general.size_label">(),
+			make_parse_entity<&value_type::general_finetune, "general.finetune">(), make_parse_entity<&value_type::general_size_label, "general.size_label">(),
 			make_parse_entity<&value_type::general_license, "general.license">(), make_parse_entity<&value_type::general_tags, "general.tags">(),
 			make_parse_entity<&value_type::general_languages, "general.languages">(), make_parse_entity<&value_type::llama_block_count, "llama.block_count">(),
 			make_parse_entity<&value_type::llama_context_length, "llama.context_length">(), make_parse_entity<&value_type::llama_embedding_length, "llama.embedding_length">(),
@@ -239,10 +347,9 @@ namespace nihilus {
 			make_parse_entity<&value_type::llama_attention_head_count_kv, "llama.attention.head_count_kv">(),
 			make_parse_entity<&value_type::llama_rope_freq_base, "llama.rope.freq_base">(),
 			make_parse_entity<&value_type::llama_attention_layer_norm_rms_epsilon, "llama.attention.layer_norm_rms_epsilon">(),
-			make_parse_entity<&value_type::general_file_type, "general.file_type">(), make_parse_entity<&value_type::llama_tokenizer_size, "llama.tokenizer_size">(),
-			make_parse_entity<&value_type::llama_rope_dimension_count, "llama.rope.dimension_count">(),
-			make_parse_entity<&value_type::tokenizer_ggml_model, "tokenizer.ggml.model">(), make_parse_entity<&value_type::tokenizer_ggml_pre, "tokenizer.ggml.pre">(),
-			make_parse_entity<&value_type::tokenizer_ggml_tokens, "tokenizer.ggml.tokens">(),
+			make_parse_entity<&value_type::general_file_type, "general.file_type">(), make_parse_entity<&value_type::llama_vocab_size, "llama.vocab_size">(),
+			make_parse_entity<&value_type::llama_rope_dimension_count, "llama.rope.dimension_count">(), make_parse_entity<&value_type::type, "tokenizer.ggml.model">(),
+			make_parse_entity<&value_type::pre_type, "tokenizer.ggml.pre">(), make_parse_entity<&value_type::tokenizer_ggml_tokens, "tokenizer.ggml.tokens">(),
 			make_parse_entity<&value_type::tokenizer_ggml_token_type, "tokenizer.ggml.token_type">(),
 			make_parse_entity<&value_type::tokenizer_ggml_merges, "tokenizer.ggml.merges">(), make_parse_entity<&value_type::special_bos_id, "tokenizer.ggml.bos_token_id">(),
 			make_parse_entity<&value_type::special_eos_id, "tokenizer.ggml.eos_token_id">(), make_parse_entity<&value_type::tokenizer_chat_template, "tokenizer.chat_template">(),
@@ -253,13 +360,13 @@ namespace nihilus {
 			make_parse_entity<&value_type::quantize_imatrix_chunks_count, "quantize.imatrix.chunks_count">()>();
 	};
 
-	template<typename stream_type, typename value_type> struct parse_types_impl {
+	template<typename value_type> struct parse_types_impl {
 		inline static constexpr auto memberCount = core_tuple_size<value_type>;
 
 		template<uint64_t index> using member_type_t =
 			std::remove_reference_t<decltype(get_member<value_type, get<index>(core<value_type>::parse_value).member_ptr>(std::declval<value_type&>()))>;
 
-		template<uint64_t index> NIHILUS_FORCE_INLINE static bool processIndex(value_type& value, std::string_view string, stream_type& stream) {
+		template<uint64_t index> NIHILUS_FORCE_INLINE static bool processIndex(value_type& value, std::string_view string, stream_iterator& stream) {
 			static constexpr auto tupleElem	 = get<index>(core<value_type>::parse_value);
 			static constexpr auto string_lit = tupleElem.name;
 			static constexpr auto ptrNew	 = tupleElem.member_ptr;
@@ -272,8 +379,7 @@ namespace nihilus {
 				} else {
 					member_type_t<index> value_new{ value_reader<std::remove_const_t<member_type_t<index>>>::gather_value(stream) };
 					if (value_new != ref) {
-						std::string error_string{ std::string{ "Sorry, but member of name: " } + std::string{ string_lit.data(), string_lit.size() } +
-							" was not equal!" };
+						std::string error_string{ std::string{ "Sorry, but member of name: " } + std::string{ string_lit.data(), string_lit.size() } + " was not equal!" };
 						throw std::runtime_error{ error_string };
 					}
 				}
@@ -282,14 +388,14 @@ namespace nihilus {
 		}
 	};
 
-	template<template<typename, typename> typename parsing_type, typename stream_type, typename value_type, size_t... indices>
+	template<template<typename> typename parsing_type, typename value_type, size_t... indices>
 	inline static constexpr auto generateFunctionPtrs(std::index_sequence<indices...>) noexcept {
-		using function_type = decltype(&parse_types_impl<stream_type, value_type>::template processIndex<0>);
-		return array<function_type, sizeof...(indices)>{ { &parsing_type<stream_type, value_type>::template processIndex<indices>... } };
+		using function_type = decltype(&parse_types_impl<value_type>::template processIndex<0>);
+		return array<function_type, sizeof...(indices)>{ { &parsing_type<value_type>::template processIndex<indices>... } };
 	}
 
-	template<template<typename, typename> typename parsing_type, typename stream_type, typename value_type>
-	static constexpr auto function_ptrs{ generateFunctionPtrs<parsing_type, stream_type, value_type>(std::make_index_sequence<core_tuple_size<value_type>>{}) };
+	template<template<typename> typename parsing_type, typename value_type>
+	static constexpr auto function_ptrs{ generateFunctionPtrs<parsing_type, value_type>(std::make_index_sequence<core_tuple_size<value_type>>{}) };
 
 	NIHILUS_INLINE uint64_t calculate_and_skip_unknown_value(stream_iterator& input, gguf_metadata_value_type type) {
 		uint64_t bytes_skipped = 0;
@@ -393,8 +499,8 @@ namespace nihilus {
 				std::string_view new_string			= value_reader<gguf_string_t>::gather_value(input);
 				gguf_metadata_value_type value_type = value_reader<gguf_metadata_value_type>::gather_value(input);
 				auto index							= hash_map<gguf_metadata<arch, type, pre>, const char*>::findIndex(new_string.data(), new_string.data() + new_string.size());
-				if (index < function_ptrs<parse_types_impl, stream_iterator, gguf_metadata<arch, type, pre>>.size()) {
-					function_ptrs<parse_types_impl, stream_iterator, gguf_metadata<arch, type, pre>>[index](value, new_string, input);
+				if (index < function_ptrs<parse_types_impl, gguf_metadata<arch, type, pre>>.size()) {
+					function_ptrs<parse_types_impl, gguf_metadata<arch, type, pre>>[index](value, new_string, input);
 				} else {
 					calculate_and_skip_unknown_value(input, value_type);
 				}
@@ -538,7 +644,7 @@ namespace nihilus {
 			value.op_type					  = string_to_op_type<arch>::impl(name);
 			value.n_dimensions				  = value_reader<uint32_t>::gather_value(input);
 			value.layer_number				  = extract_layer_number(name);
-			constexpr uint32_t MAX_DIMENSIONS = 8;
+			constexpr uint32_t MAX_DIMENSIONS = 4;
 			if (value.n_dimensions > MAX_DIMENSIONS) {
 				throw std::runtime_error{ "Tensor dimensions exceed maximum!" };
 			}
@@ -586,7 +692,6 @@ namespace nihilus {
 			tokenizer.merges		= std::move(gguf_file.tokenizer_ggml_merges);
 			tokenizer.token_types	= std::move(gguf_file.tokenizer_ggml_token_type);
 			tokenizer.chat_template = std::move(gguf_file.tokenizer_chat_template);
-			tokenizer.pre			= std::move(gguf_file.tokenizer_ggml_pre);
 			std::vector<core_base_creation_data> tensor_infos{};
 			tensor_infos.reserve(gguf_file.tensor_count);
 			for (uint64_t x = 0; x < gguf_file.tensor_count; ++x) {

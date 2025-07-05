@@ -73,7 +73,7 @@ namespace nihilus {
 			core_bases_val<config_new>.template impl<max_depth_calculator>(return_value);
 			return return_value;
 		}() };
-		static constexpr array<uint64_t, max_depth+1> ops_per_depth{ []() {
+		static constexpr array<uint64_t, max_depth + 1> ops_per_depth{ []() {
 			array<uint64_t, max_depth + 1> return_value{};
 			core_bases_val<config_new>.template impl<ops_per_depth_calculator>(return_value);
 			return return_value;

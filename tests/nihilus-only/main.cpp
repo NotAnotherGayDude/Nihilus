@@ -31,7 +31,7 @@ template<uint64_t size_idx, uint64_t arch_idx> NIHILUS_FORCE_INLINE static const
 		kv_cache_strategies::paged,
 		false,
 		rope_scaling_types::linear,
-		vocab_pre_types::llama3,
+		tokenizer_pre_types::llama3,
 		16,
 		true,
 		true,
@@ -179,7 +179,7 @@ struct alignas(64) op_latch {
 };
 
 ::op_latch latch{};
-
+*/
 std::thread spawn_thread(::op_latch& latch, uint64_t thread_index) {
 	return std::thread{ [&, thread_index] {
 		std::cout << "THREAD INDEX: " << thread_index << std::endl;
@@ -209,15 +209,33 @@ struct test_struct : public base_test_struct<0>, public base_test_struct<1> {
 template<uint64_t index> NIHILUS_FORCE_INLINE void test_struct::impl(test_struct* value) {
 	static_cast<base_test_struct<index>*>(value)->test_function();
 }
-*/
 int main(int argc, char** argv) {
 	try {
+		nihilus::op_latch latch{};
+		latch.init(4);
+		auto thread01					   = spawn_thread(latch, 0);
+		auto thread02					   = spawn_thread(latch, 1);
+		auto thread03					   = spawn_thread(latch, 2);
+		auto thread04					   = spawn_thread(latch, 3); 
+		if (thread01.joinable()) {
+			thread01.join();
+		}
+		if (thread02.joinable()) {
+			thread02.join();
+		}
+		if (thread03.joinable()) {
+			thread03.join();
+		}
+		if (thread04.joinable()) {
+			thread04.join();
+		}
+		/*
 		static constexpr auto model_config = nihilus::generate_model_config(nihilus::model_generations::v3, nihilus::model_sizes::llm_8B, nihilus::kernel_type_profiles::q8_gqa,
 			nihilus::model_arches::llama, false);
 		nihilus::cli_params cli_args_final;
 		cli_args_final = nihilus::harbinger<model_config>::parse_cli_arguments(argc, argv);
 		using model_type = nihilus::harbinger<model_config>::model_type;
-		auto model_new{ nihilus::harbinger<model_config>::parse_model_graph_data(cli_args_final) };
+		auto model_new{ nihilus::harbinger<model_config>::parse_model_graph_data(cli_args_final) };*/
 		return 0;
 		//cli_args_final.n_tokens;
 	} catch (const std::exception& error) {

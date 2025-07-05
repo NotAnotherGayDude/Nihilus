@@ -356,12 +356,12 @@ namespace nihilus {
 				std::cout << "RHS Dims: " << other.dims << std::endl;
 				return false;
 			}
-			uint64_t this_dims  = dims[0] * dims[1] * dims[2] * dims[3];
+			uint64_t this_dims	= dims[0] * dims[1] * dims[2] * dims[3];
 			uint64_t other_dims = other.dims[0] * other.dims[1] * other.dims[2] * other.dims[3];
-			uint64_t this_size  = get_type_traits(type).type_size * this_dims;
+			uint64_t this_size	= get_type_traits(type).type_size * this_dims;
 			uint64_t other_size = get_type_traits(other.type).type_size * other_dims;
 			uint64_t final_size = std::min(this_size, other_size);
-			final_size		  = std::min(final_size, static_cast<uint64_t>(128ull));
+			final_size			= std::min(final_size, static_cast<uint64_t>(128ull));
 
 			int64_t equal_data = std ::memcmp(data.data(), other.data.data(), final_size);
 			for (int32_t i = 0; i < final_size; i++) {
