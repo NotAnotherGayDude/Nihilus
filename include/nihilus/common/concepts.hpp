@@ -137,32 +137,35 @@ namespace nihilus {
 	concept active_thread = single_input<value_type> || double_input<value_type> || triple_input<value_type> || single_input_blocking<value_type> ||
 		double_input_blocking<value_type> || triple_input_blocking<value_type>;
 
-	template<typename T>
-	concept is_arithmetic_type = std::is_arithmetic_v<T>;
+	template<typename value_type>
+	concept is_arithmetic_type = std::is_arithmetic_v<value_type>;
 
-	template<typename T>
+	template<typename value_type>
 	concept is_quantized_type = requires {
-		sizeof(T);
-		!std::is_arithmetic_v<T>;
+		sizeof(value_type);
+		!std::is_arithmetic_v<value_type>;
 	};
 
-	template<typename T>
-	concept is_fp_type = std::is_floating_point_v<T>;
+	template<typename value_type>
+	concept is_fp_type = std::is_floating_point_v<value_type>;
 
-	template<typename T>
-	concept is_integral_type = std::is_integral_v<T>;
+	template<typename value_type>
+	concept is_integral_type = std::is_integral_v<value_type>;
 
-	template<typename T>
-	concept is_valid_tensor_type = is_arithmetic_type<T> || is_quantized_type<T>;
+	template<typename value_type>
+	concept is_valid_tensor_type = is_arithmetic_type<value_type> || is_quantized_type<value_type>;
 
-	template<typename T>
-	concept is_valid_weight_type = is_arithmetic_type<T> || is_quantized_type<T>;
+	template<typename value_type>
+	concept is_valid_weight_type = is_arithmetic_type<value_type> || is_quantized_type<value_type>;
 
-	template<typename T>
-	concept is_valid_activation_type = is_fp_type<T> || is_quantized_type<T>;
+	template<typename value_type>
+	concept is_valid_activation_type = is_fp_type<value_type> || is_quantized_type<value_type>;
 
 	template<typename value_type>
 	concept integral_or_enum = std::integral<value_type> || std::is_enum_v<value_type>;
+
+	template<typename value_type>
+	concept active_op_type = requires() { std::remove_cvref_t<value_type>::run_checkers; };
 
 	// from
 	// https://stackoverflow.com/questions/16337610/how-to-know-if-a-type-is-a-specialization-of-stdvector

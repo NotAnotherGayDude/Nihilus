@@ -28,7 +28,7 @@ namespace nihilus {
 	template<auto multiple, typename value_type01 = decltype(multiple)> NIHILUS_FORCE_INLINE constexpr value_type01 round_up_to_multiple(value_type01 value) noexcept {
 		if constexpr ((multiple & (multiple - 1)) == 0) {
 			constexpr auto mulSub1{ multiple - 1 };
-			auto notMulSub1{ ~mulSub1 };
+			constexpr auto notMulSub1{ ~mulSub1 };
 			return (value + (mulSub1)) & notMulSub1;
 		} else {
 			const auto remainder = value % multiple;

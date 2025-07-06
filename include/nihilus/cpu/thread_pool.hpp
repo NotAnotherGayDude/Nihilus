@@ -159,11 +159,11 @@ namespace nihilus {
 			while (!stop.load(std::memory_order_acquire)) {
 				thread_latch.worker_wait(thread_index);
 				if (!stop.load(std::memory_order_acquire)) {
-					core_base_type::template impl<global_input_thread_function>(thread_index, thread_count);
+					core_base_type::template impl<global_input_thread_function>();
 					for (uint64_t x = 0; x < model_type::model_traits_type::block_count; ++x) {
-						core_base_type::template impl<per_block_thread_function>(thread_index, thread_count, x);
+						core_base_type::template impl<per_block_thread_function>(x);
 					}
-					core_base_type::template impl<global_output_thread_function>(thread_index, thread_count);
+					core_base_type::template impl<global_output_thread_function>();
 					thread_latch.arrive_and_wait(thread_index);
 				}
 			}

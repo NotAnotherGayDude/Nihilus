@@ -34,7 +34,8 @@ namespace nihilus {
 	inline std::atomic_uint64_t depths{};
 	inline std::atomic_uint64_t count{};
 
-	NIHILUS_FORCE_INLINE void spinlock_nanoseconds(uint64_t nanoseconds) {
+	NIHILUS_FORCE_INLINE void spinlock_nanoseconds(uint64_t nanoseconds) {		
+#if !defined(NIHILUS_DEV)
 #if defined(NIHILUS_PLATFORM_WINDOWS)
 		auto start = std::chrono::high_resolution_clock::now();
 		auto end   = std::chrono::high_resolution_clock::now();
@@ -47,6 +48,7 @@ namespace nihilus {
 		auto target = start + std::chrono::nanoseconds(nanoseconds);
 		do {
 		} while (std::chrono::high_resolution_clock::now() < target);
+#endif
 #endif
 	}
 
@@ -63,10 +65,16 @@ namespace nihilus {
 		using output_type																	 = base_type_new::output_type;
 		using base_type																		 = base_type_new;
 		NIHILUS_FORCE_INLINE static constexpr bool filter() {
-			return true;
+			return active_op_type<base_type>;
 		}
-		NIHILUS_FORCE_INLINE static void impl(base_type_new& core, uint64_t thread_count) {
-			core.run_checker[0].init(thread_count / core_bases_traits<config>::ops_per_depth[base_type::depth]);
+		NIHILUS_FORCE_INLINE static void impl(base_type_new& parse_core, uint64_t thread_count) {
+			if constexpr (array_type<decltype(parse_core.run_checkers)>) {
+				for (uint64_t x = 0; x < base_type::model_traits_type::block_count; ++x) {
+				parse_core.run_checkers[x].init(max(1ull, thread_count / core_bases_traits<config>::ops_per_depth[base_type::depth]));
+				}
+			} else {
+				parse_core.run_checkers.init(max(1ull, thread_count / core_bases_traits<config>::ops_per_depth[base_type::depth]));
+			}
 		}
 	};
 
@@ -79,13 +87,24 @@ namespace nihilus {
 		using output_type																	 = base_type_new::output_type;
 		using base_type																		 = base_type_new;
 		NIHILUS_FORCE_INLINE static constexpr bool filter() {
-			return true;
+			return active_op_type<base_type>;
 		}
-		NIHILUS_FORCE_INLINE static void impl(base_type_new& core, uint64_t thread_count) {
-			for (uint64_t x = 0; x < base_type::model_traits_type::block_count; ++x) {
-				core.run_checker[x].init(thread_count / core_bases_traits<config>::ops_per_depth[base_type::depth]);
-				core.sync_flag_start[x].init(thread_count / core_bases_traits<config>::ops_per_depth[base_type::depth]);
-				core.sync_flag_end[x].init(thread_count / core_bases_traits<config>::ops_per_depth[base_type::depth]);
+		NIHILUS_FORCE_INLINE static void impl(base_type_new& parse_core, uint64_t thread_count) {
+			if constexpr (array_type<decltype(parse_core.run_checkers)>) {
+				for (uint64_t x = 0; x < base_type::model_traits_type::block_count; ++x) {
+					parse_core.run_checkers[x].init(thread_count);
+				}
+			} else {
+				parse_core.run_checkers.init(thread_count);
+			}
+			if constexpr (array_type<decltype(parse_core.sync_flag_start)>) {
+				for (uint64_t x = 0; x < base_type::model_traits_type::block_count; ++x) {
+					parse_core.sync_flag_start[x].init(thread_count);
+					parse_core.sync_flag_end[x].init(thread_count);
+				}
+			} else {
+				parse_core.sync_flag_start.init(thread_count);
+				parse_core.sync_flag_end.init(thread_count);
 			}
 		}
 	};
@@ -103,14 +122,14 @@ namespace nihilus {
 			using core_traits_type = base_type;
 			return static_cast<uint64_t>(core_traits_type::type) <= 12;
 		}
-		NIHILUS_FORCE_INLINE static void impl(base_type_new& core, nihilus::array<nihilus::array<void*, model_traits_type::block_count>, op_types::count>& data) {
-			if constexpr (nihilus::array_type<decltype(core.data)>) {
+		NIHILUS_FORCE_INLINE static void impl(base_type_new& parse_core, nihilus::array<nihilus::array<void*, model_traits_type::block_count>, op_types::count>& data) {
+			if constexpr (nihilus::array_type<decltype(parse_core.data)>) {
 				for (uint64_t x = 0; x < model_traits_type::block_count; ++x) {
-					data[base_type::type][x] = reinterpret_cast<void*>(&core.data[x]);
+					data[base_type::type][x] = reinterpret_cast<void*>(&parse_core.data[x]);
 				}
 			} else {
 				for (uint64_t x = 0; x < model_traits_type::block_count; ++x) {
-					data[base_type::type][x] = reinterpret_cast<void*>(&core.data);
+					data[base_type::type][x] = reinterpret_cast<void*>(&parse_core.data);
 				}
 			}
 		}
@@ -128,15 +147,15 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE static constexpr bool filter() {
 			return base_type::total_required_bytes > 0;
 		}
-		template<typename memory_buffer_type> NIHILUS_FORCE_INLINE static void impl(base_type_new& core, memory_buffer_type& memory_buffer) {
+		template<typename memory_buffer_type> NIHILUS_FORCE_INLINE static void impl(base_type_new& parse_core, memory_buffer_type& memory_buffer) {
 			auto* new_ptr	  = memory_buffer.claim_memory(base_type::total_required_bytes);
 			using output_type = typename base_type::output_type;
-			if constexpr (nihilus::array_type<decltype(core.data)>) {
+			if constexpr (nihilus::array_type<decltype(parse_core.data)>) {
 				for (uint64_t x = 0; x < model_traits_type::block_count; ++x) {
-					core.data[x] = static_cast<output_type*>(new_ptr);
+					parse_core.data[x] = static_cast<output_type*>(new_ptr);
 				}
 			} else {
-				core.data = static_cast<output_type*>(new_ptr);
+				parse_core.data = static_cast<output_type*>(new_ptr);
 			}
 		}
 	};
@@ -153,8 +172,8 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE static constexpr bool filter() {
 			return base_type::runtime_dims;
 		}
-		NIHILUS_FORCE_INLINE static void impl(base_type_new& core, uint64_t new_dims) {
-			core.get_mutable_dim() = new_dims;
+		NIHILUS_FORCE_INLINE static void impl(base_type_new& parse_core, uint64_t new_dims) {
+			parse_core.get_mutable_dim() = new_dims;
 		}
 	};
 
@@ -170,7 +189,7 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE static constexpr bool filter() {
 			return true;
 		}
-		NIHILUS_FORCE_INLINE static constexpr void impl(const base_type_new& core, uint64_t& current_max_depth) {
+		NIHILUS_FORCE_INLINE static constexpr void impl(const base_type_new& parse_core, uint64_t& current_max_depth) {
 			current_max_depth = base_type::depth > current_max_depth ? base_type::depth : current_max_depth;
 		}
 	};
@@ -187,7 +206,7 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE static constexpr bool filter() {
 			return true;
 		}
-		template<uint64_t max_depth> NIHILUS_FORCE_INLINE static constexpr void impl(const base_type_new& core, array<uint64_t, max_depth>& ops_per_depth) {
+		template<uint64_t max_depth> NIHILUS_FORCE_INLINE static constexpr void impl(const base_type_new& parse_core, array<uint64_t, max_depth>& ops_per_depth) {
 			++ops_per_depth[base_type::depth];
 		}
 	};
@@ -205,7 +224,7 @@ namespace nihilus {
 			using core_traits_type = base_type;
 			return core_traits_type::total_required_bytes > 0;
 		}
-		NIHILUS_FORCE_INLINE static constexpr void impl(const base_type_new& core, uint64_t& total_required_bytes) {
+		NIHILUS_FORCE_INLINE static constexpr void impl(const base_type_new& parse_core, uint64_t& total_required_bytes) {
 			total_required_bytes += base_type::total_required_bytes;
 		}
 	};
@@ -221,24 +240,13 @@ namespace nihilus {
 			using core_traits_type = base_type;
 			return core_traits_type::layer_type == nihilus::thread_strategy_type::global_input && core_traits_type::krn_type != nihilus::kernel_types::none;
 		}
-		NIHILUS_FORCE_INLINE static void impl(base_type& core, uint64_t thread_index, uint64_t thread_count) {
-			if (core.run_checker[0].do_we_run()) {
-				nihilus::kernel_dispatcher<config, nihilus::device_types::cpu, base_type>::impl(core, thread_index, thread_count);
+		NIHILUS_FORCE_INLINE static void impl(base_type& parse_core) {
+			int64_t thread_count{ parse_core.run_checkers.thread_count };
+			if (int64_t thread_index = parse_core.run_checkers.do_we_run(); thread_index < thread_count) {
+				nihilus::kernel_dispatcher<config, nihilus::device_types::cpu, base_type>::impl(parse_core, thread_index, thread_count);
 				nihilus::spinlock_nanoseconds(spinlock_time);
+				count.fetch_add(1, std::memory_order_release);
 			}
-		}
-	};
-
-	template<nihilus::model_config config, nihilus::blocking base_type_new> struct global_input_thread_function<config, base_type_new> {
-		NIHILUS_FORCE_INLINE global_input_thread_function() noexcept											   = default;
-		NIHILUS_FORCE_INLINE global_input_thread_function& operator=(const global_input_thread_function&) noexcept = delete;
-		NIHILUS_FORCE_INLINE global_input_thread_function(const global_input_thread_function&) noexcept			   = delete;
-		NIHILUS_FORCE_INLINE global_input_thread_function& operator=(global_input_thread_function&&) noexcept	   = delete;
-		NIHILUS_FORCE_INLINE global_input_thread_function(global_input_thread_function&&) noexcept				   = delete;
-		using base_type																							   = base_type_new;
-		NIHILUS_FORCE_INLINE static constexpr bool filter() {
-			using core_traits_type = base_type;
-			return core_traits_type::layer_type == nihilus::thread_strategy_type::global_input && core_traits_type::krn_type != nihilus::kernel_types::none;
 		}
 	};
 
@@ -255,10 +263,12 @@ namespace nihilus {
 				core_traits_type::krn_type != nihilus::kernel_types::view && core_traits_type::krn_type != nihilus::kernel_types::permute &&
 				core_traits_type::krn_type != nihilus::kernel_types::reshape && core_traits_type::krn_type != nihilus::kernel_types::none;
 		}
-		NIHILUS_FORCE_INLINE static void impl(base_type& core, uint64_t thread_index, uint64_t thread_count, uint64_t current_block) {
-			if (core.run_checker[current_block].do_we_run()) {
-				nihilus::kernel_dispatcher<config, nihilus::device_types::cpu, base_type>::impl(core, thread_index, thread_count);
+		NIHILUS_FORCE_INLINE static void impl(base_type& parse_core, uint64_t current_block) {
+			int64_t thread_count{ parse_core.run_checkers[current_block].thread_count };
+			if (int64_t thread_index = parse_core.run_checkers[current_block].do_we_run(); thread_index < thread_count) {
+				nihilus::kernel_dispatcher<config, nihilus::device_types::cpu, base_type>::impl(parse_core, thread_index, thread_count);
 				nihilus::spinlock_nanoseconds(spinlock_time);
+				count.fetch_add(1, std::memory_order_release);
 			}
 		}
 	};
@@ -277,12 +287,14 @@ namespace nihilus {
 				core_traits_type::krn_type != nihilus::kernel_types::reshape && core_traits_type::krn_type != nihilus::kernel_types::none;
 		}
 
-		NIHILUS_FORCE_INLINE static void impl(base_type& core, uint64_t thread_index, uint64_t thread_count, uint64_t current_block) {
-			if (core.run_checker[current_block].do_we_run()) {
-				core.sync_flag_start[current_block].arrive_and_wait();
-				nihilus::kernel_dispatcher<config, nihilus::device_types::cpu, base_type>::impl(core, thread_index, thread_count);
+		NIHILUS_FORCE_INLINE static void impl(base_type& parse_core, uint64_t current_block) {
+			int64_t thread_count{ parse_core.run_checkers[current_block].thread_count };
+			if (int64_t thread_index = parse_core.run_checkers[current_block].do_we_run(); thread_index < thread_count) {
+				parse_core.sync_flag_start[current_block].arrive_and_wait();
+				nihilus::kernel_dispatcher<config, nihilus::device_types::cpu, base_type>::impl(parse_core, thread_index, thread_count);
 				nihilus::spinlock_nanoseconds(spinlock_time);
-				core.sync_flag_end[current_block].arrive_and_wait();
+				parse_core.sync_flag_end[current_block].arrive_and_wait();
+				count.fetch_add(1, std::memory_order_release);
 			}
 		}
 	};
@@ -300,10 +312,12 @@ namespace nihilus {
 				core_traits_type::krn_type != nihilus::kernel_types::view && core_traits_type::krn_type != nihilus::kernel_types::permute &&
 				core_traits_type::krn_type != nihilus::kernel_types::reshape && core_traits_type::krn_type != nihilus::kernel_types::none;
 		}
-		NIHILUS_FORCE_INLINE static void impl(base_type& core, uint64_t thread_index, uint64_t thread_count) {
-			if (core.run_checker[0].do_we_run()) {
-				nihilus::kernel_dispatcher<config, nihilus::device_types::cpu, base_type>::impl(core, thread_index, thread_count);
+		NIHILUS_FORCE_INLINE static void impl(base_type& parse_core) {
+			int64_t thread_count{ parse_core.run_checkers.thread_count };
+			if (int64_t thread_index = parse_core.run_checkers.do_we_run(); thread_index < thread_count) {
+				nihilus::kernel_dispatcher<config, nihilus::device_types::cpu, base_type>::impl(parse_core, thread_index, thread_count);
 				nihilus::spinlock_nanoseconds(spinlock_time);
+				count.fetch_add(1, std::memory_order_release);
 			}
 		}
 	};
@@ -322,17 +336,22 @@ namespace nihilus {
 				core_traits_type::krn_type != nihilus::kernel_types::reshape && core_traits_type::krn_type != nihilus::kernel_types::none;
 		}
 
-		NIHILUS_FORCE_INLINE static void impl(base_type& core, uint64_t thread_index, uint64_t thread_count) {
-			if (core.run_checker[0].do_we_run()) {
-				core.sync_flag_start[0].arrive_and_wait();
-				nihilus::kernel_dispatcher<config, nihilus::device_types::cpu, base_type>::impl(core, thread_index, thread_count);
+		NIHILUS_FORCE_INLINE static void impl(base_type& parse_core) {
+			int64_t thread_count{ parse_core.run_checkers.thread_count };
+			if (int64_t thread_index = parse_core.run_checkers.do_we_run(); thread_index < thread_count) {
+				parse_core.sync_flag_start.arrive_and_wait();
+				nihilus::kernel_dispatcher<config, nihilus::device_types::cpu, base_type>::impl(parse_core, thread_index, thread_count);
 				nihilus::spinlock_nanoseconds(spinlock_time);
-				core.sync_flag_end[0].arrive_and_wait();
+				parse_core.sync_flag_end.arrive_and_wait();
+				count.fetch_add(1, std::memory_order_release);
 			}
 		}
 	};
 
-#if defined(NIHILUS_DEBUG)
+	template<nihilus::model_config config, typename base_type> struct tensor_debugger_impl;
+	template<nihilus::model_config config, typename base_type_new> struct execution_checker;
+
+#if defined(NIHILUS_DEV)
 
 	template<nihilus::model_config config, typename base_type> struct tensor_debugger_impl {
 		NIHILUS_FORCE_INLINE tensor_debugger_impl() noexcept									   = default;
@@ -345,16 +364,74 @@ namespace nihilus {
 			using core_traits_type = base_type;
 			return true;
 		}
-		NIHILUS_FORCE_INLINE static void impl(base_type& core) {
-			if constexpr (nihilus::array_type<decltype(core.data)>) {
+		NIHILUS_FORCE_INLINE static void impl(base_type& parse_core) {
+			if constexpr (nihilus::array_type<decltype(parse_core.data)>) {
 				for (uint64_t x = 0; x < base_type::model_traits_type::block_count; ++x) {
-					nihilus::tensor_debugger::compare_tensor_data(core, x, current_iteration);
+					nihilus::tensor_debugger::compare_tensor_data(parse_core, x, current_iteration);
 				}
 			} else {
-				nihilus::tensor_debugger::compare_tensor_data(core, 0, current_iteration);
+				nihilus::tensor_debugger::compare_tensor_data(parse_core, 0, current_iteration);
 			}
 		}
 	};
+
+	
+	template<nihilus::model_config config, typename base_type_new> struct execution_checker {
+		NIHILUS_FORCE_INLINE execution_checker() noexcept									 = default;
+		NIHILUS_FORCE_INLINE execution_checker& operator=(const execution_checker&) noexcept = delete;
+		NIHILUS_FORCE_INLINE execution_checker(const execution_checker&) noexcept			 = delete;
+		NIHILUS_FORCE_INLINE execution_checker& operator=(execution_checker&&) noexcept		 = delete;
+		NIHILUS_FORCE_INLINE execution_checker(execution_checker&&) noexcept				 = delete;
+		using output_type																	 = base_type_new::output_type;
+		using base_type																		 = base_type_new;
+		NIHILUS_FORCE_INLINE static constexpr bool filter() {
+			return active_op_type<base_type>;
+		}
+		NIHILUS_FORCE_INLINE static void impl(base_type_new& parse_core, uint64_t thread_count) {
+			if constexpr (array_type<decltype(parse_core.run_checkers)>) {
+				for (uint64_t x = 0; x < base_type::model_traits_type::block_count; ++x) {
+					if (parse_core.run_checkers[x].flag.load() < parse_core.run_checkers[x].thread_count) {
+						std::cout << "Failed to finish op of type: " << ( int32_t )base_type::type << ", FOR BLOCK: " << x << std::endl;
+						std::cout << "Actuated Count: " << parse_core.run_checkers[x].flag.load() << ", Expected Count: " << parse_core.run_checkers[x].thread_count << std::endl;
+					}
+				}
+			} else {
+				if (parse_core.run_checkers.flag.load() < parse_core.run_checkers.thread_count) {
+					std::cout << "Failed to finish op of type: " << ( int32_t )base_type::type << std::endl;
+					std::cout << "Actuated Count: " << parse_core.run_checkers.flag.load() << ", Expected Count: " << parse_core.run_checkers.thread_count << std::endl;
+				}
+			}
+		}
+	};
+
+	template<nihilus::model_config config, blocking base_type_new> struct execution_checker<config, base_type_new> {
+		NIHILUS_FORCE_INLINE execution_checker() noexcept									 = default;
+		NIHILUS_FORCE_INLINE execution_checker& operator=(const execution_checker&) noexcept = delete;
+		NIHILUS_FORCE_INLINE execution_checker(const execution_checker&) noexcept			 = delete;
+		NIHILUS_FORCE_INLINE execution_checker& operator=(execution_checker&&) noexcept		 = delete;
+		NIHILUS_FORCE_INLINE execution_checker(execution_checker&&) noexcept				 = delete;
+		using output_type																	 = base_type_new::output_type;
+		using base_type																		 = base_type_new;
+		NIHILUS_FORCE_INLINE static constexpr bool filter() {
+			return active_op_type<base_type>;
+		}
+		NIHILUS_FORCE_INLINE static void impl(base_type_new& parse_core, uint64_t thread_count) {
+			if constexpr (array_type<decltype(parse_core.sync_flag_start)>) {
+				for (uint64_t x = 0; x < base_type::model_traits_type::block_count; ++x) {
+					if (parse_core.run_checkers[x].flag.load() < parse_core.run_checkers[x].thread_count) {
+						std::cout << "Failed to finish op of type: " << ( int32_t )base_type::type << ", FOR BLOCK: " << x << std::endl;
+						std::cout << "Actuated Count: " << parse_core.run_checkers[x].flag.load() << ", Expected Count: " << parse_core.run_checkers[x].thread_count << std::endl;
+					}
+				}
+			} else {
+				if (parse_core.run_checkers.flag.load() < parse_core.run_checkers.thread_count) {
+					std::cout << "Failed to finish op of type: " << ( int32_t )base_type::type << std::endl;
+					std::cout << "Actuated Count: " << parse_core.run_checkers.flag.load() << ", Expected Count: " << parse_core.run_checkers.thread_count << std::endl;
+				}
+			}
+		}
+	};
+
 #endif
 
 }

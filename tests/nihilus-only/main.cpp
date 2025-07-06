@@ -209,7 +209,7 @@ struct test_struct : public base_test_struct<0>, public base_test_struct<1> {
 template<uint64_t index> NIHILUS_FORCE_INLINE void test_struct::impl(test_struct* value) {
 	static_cast<base_test_struct<index>*>(value)->test_function();
 }
-int main(int argc, char** argv) {
+int32_t main(int32_t argc, char** argv) {
 	try {
 		nihilus::op_latch latch{};
 		latch.init(4);
@@ -217,6 +217,23 @@ int main(int argc, char** argv) {
 		auto thread02					   = spawn_thread(latch, 1);
 		auto thread03					   = spawn_thread(latch, 2);
 		auto thread04					   = spawn_thread(latch, 3); 
+		if (thread01.joinable()) {
+			thread01.join();
+		}
+		if (thread02.joinable()) {
+			thread02.join();
+		}
+		if (thread03.joinable()) {
+			thread03.join();
+		}
+		if (thread04.joinable()) {
+			thread04.join();
+		}
+		latch.init(4);
+		thread01 = spawn_thread(latch, 0);
+		thread02 = spawn_thread(latch, 1);
+		thread03 = spawn_thread(latch, 2);
+		thread04 = spawn_thread(latch, 3);
 		if (thread01.joinable()) {
 			thread01.join();
 		}

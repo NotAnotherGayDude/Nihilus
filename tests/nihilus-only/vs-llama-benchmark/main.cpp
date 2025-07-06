@@ -45,7 +45,7 @@ static std::vector<llama_token>* g_output_tokens;
 static bool is_interacting	= false;
 static bool need_insert_eot = false;
 
-static void print_usage(int argc, char** argv) {
+static void print_usage(int32_t argc, char** argv) {
 	( void )argc;
 
 	LOG("\nexample usage:\n");
@@ -55,7 +55,7 @@ static void print_usage(int argc, char** argv) {
 }
 
 #if defined(__unix__) || (defined(__APPLE__) && defined(__MACH__)) || defined(_WIN32)
-static void sigint_handler(int signo) {
+static void sigint_handler(int32_t signo) {
 	if (signo == SIGINT) {
 		if (!is_interacting && g_params->interactive) {
 			is_interacting	= true;
@@ -75,7 +75,7 @@ static void sigint_handler(int signo) {
 }
 #endif
 
-int main(int argc, char** argv) {
+int32_t main(int32_t argc, char** argv) {
 	try {
 		static constexpr auto model_config = generate_model_config(model_generations::v3, model_sizes::llm_8B,
 			kernel_type_profiles::q8_gqa, model_arches::llama, false);
@@ -135,7 +135,7 @@ int main(int argc, char** argv) {
 			const llama_tokenizer* tokenizer = llama_model_get_tokenizer(model);
 			auto chat_templates		 = common_chat_templates_init(model, params.chat_template);
 
-			LOG_INF("%s: llama threadpool init, n_threads = %d\n", __func__, ( int )params.cpuparams.n_threads);
+			LOG_INF("%s: llama threadpool init, n_threads = %d\n", __func__, ( int32_t )params.cpuparams.n_threads);
 
 			auto* cpu_dev = ggml_backend_dev_by_type(GGML_BACKEND_DEVICE_TYPE_CPU);
 			if (!cpu_dev) {
@@ -215,8 +215,8 @@ int main(int argc, char** argv) {
 			}
 
 			// Tokenize negative prompt
-			if (( int )embd_inp.size() > n_ctx - 4) {
-				LOG_ERR("%s: prompt is too long (%d tokens, max %d)\n", __func__, ( int )embd_inp.size(), n_ctx - 4);
+			if (( int32_t )embd_inp.size() > n_ctx - 4) {
+				LOG_ERR("%s: prompt is too long (%d tokens, max %d)\n", __func__, ( int32_t )embd_inp.size(), n_ctx - 4);
 				return 1;
 			}
 
@@ -251,8 +251,8 @@ int main(int argc, char** argv) {
 
 			LOG_INF("generate: n_ctx = %d, n_batch = %d, n_predict = %d, n_keep = %d\n", n_ctx, params.n_batch, params.n_predict, params.n_keep);
 
-			const int ga_n = params.grp_attn_n;
-			const int ga_w = params.grp_attn_w;
+			const int32_t ga_n = params.grp_attn_n;
+			const int32_t ga_w = params.grp_attn_w;
 			LOG_INF("\n");
 
 			bool is_antiprompt		  = false;
@@ -260,13 +260,13 @@ int main(int argc, char** argv) {
 			bool display			  = true;
 			bool need_to_save_session = !path_session.empty() && n_matching_session_tokens < embd_inp.size();
 
-			int n_past	   = 0;
-			int n_remain   = params.n_predict;
-			int n_consumed = 0;
+			int32_t n_past	   = 0;
+			int32_t n_remain   = params.n_predict;
+			int32_t n_consumed = 0;
 
-			std::vector<int> input_tokens;
+			std::vector<int32_t> input_tokens;
 			g_input_tokens = &input_tokens;
-			std::vector<int> output_tokens;
+			std::vector<int32_t> output_tokens;
 			g_output_tokens = &output_tokens;
 			std::ostringstream output_ss;
 			g_output_ss = &output_ss;
@@ -289,8 +289,8 @@ int main(int argc, char** argv) {
 					// --prompt or --file which uses the same value.
 					uint32_t max_embd_size = n_ctx - 4;
 
-					for (int i = 0; i < ( int )embd.size(); i += params.n_batch) {
-						int n_eval = ( int )embd.size() - i;
+					for (int32_t i = 0; i < ( int32_t )embd.size(); i += params.n_batch) {
+						int32_t n_eval = ( int32_t )embd.size() - i;
 						if (n_eval > params.n_batch) {
 							n_eval = params.n_batch;
 						}
@@ -311,7 +311,7 @@ int main(int argc, char** argv) {
 
 				embd.clear();
 
-				if (( int )embd_inp.size() <= n_consumed && !is_interacting) {
+				if (( int32_t )embd_inp.size() <= n_consumed && !is_interacting) {
 					// optionally save the session on first sample (for faster prompt loading next time)
 					if (!path_session.empty() && need_to_save_session && !params.prompt_cache_ro) {
 						need_to_save_session = false;
@@ -337,8 +337,8 @@ int main(int argc, char** argv) {
 					LOG_DBG("n_remain: %d\n", n_remain);
 				} else {
 					// some user input remains from prompt or interaction, forward it to processing
-					LOG_DBG("embd_inp.size(): %d, n_consumed: %d\n", ( int )embd_inp.size(), n_consumed);
-					while (( int )embd_inp.size() > n_consumed) {
+					LOG_DBG("embd_inp.size(): %d, n_consumed: %d\n", ( int32_t )embd_inp.size(), n_consumed);
+					while (( int32_t )embd_inp.size() > n_consumed) {
 						embd.push_back(embd_inp[n_consumed]);
 
 						// push the prompt in the sampling context in order to apply repetition penalties later
@@ -346,7 +346,7 @@ int main(int argc, char** argv) {
 						common_sampler_accept(smpl, embd_inp[n_consumed], false);
 
 						++n_consumed;
-						if (( int )embd.size() >= params.n_batch) {
+						if (( int32_t )embd.size() >= params.n_batch) {
 							break;
 						}
 					}
@@ -375,16 +375,16 @@ int main(int argc, char** argv) {
 				}
 
 				// reset color to default if there is no pending user input
-				if (input_echo && ( int )embd_inp.size() == n_consumed) {
+				if (input_echo && ( int32_t )embd_inp.size() == n_consumed) {
 					console::set_display(console::reset);
 					display = true;
 				}
 
 				// if not currently processing queued inputs;
-				if (( int )embd_inp.size() <= n_consumed) {
+				if (( int32_t )embd_inp.size() <= n_consumed) {
 					// check for reverse prompt in the last n_prev tokens
 					if (!params.antiprompt.empty()) {
-						const int n_prev			  = 32;
+						const int32_t n_prev			  = 32;
 						const std::string last_output = common_sampler_prev_str(smpl, ctx, n_prev);
 
 						is_antiprompt = false;

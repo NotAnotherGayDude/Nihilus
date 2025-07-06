@@ -24,7 +24,7 @@
 // grammar constraints are applied to the full vocabulary and the token is resampled.
 //
 // The common_sampler also maintains a container with the last accepted tokens. In the future, this can
-// be moved into the core llama library.
+// be moved into the parse_core llama library.
 //
 // For convenience, the common_sampler also maintains a container with the current candidate tokens.
 // This can be used to access the probabilities of the rest of the non-sampled tokens.

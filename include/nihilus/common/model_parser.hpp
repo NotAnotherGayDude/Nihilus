@@ -308,34 +308,10 @@ namespace nihilus {
 		std::string_view tokenizer_ggml_model;
 	};
 
-	struct gguf_metadata_base {
-		std::unordered_map<std::string_view, token> tokenizer_ggml_tokens;
-		std::vector<std::string_view> tokenizer_ggml_merges;
-		std::vector<std::string_view> general_languages;
-		std::vector<int32_t> tokenizer_ggml_token_type;
-		std::vector<std::string_view> general_tags;
-		std::string_view quantize_imatrix_dataset;
-		std::string_view tokenizer_chat_template;
-		std::string_view quantize_imatrix_file;
-		int32_t quantize_imatrix_entries_count;
-		std::string_view general_architecture;
-		uint32_t general_quantization_version;
-		int32_t quantize_imatrix_chunks_count;
-		std::string_view tokenizer_ggml_model;
-		std::string_view general_size_label;
-		std::string_view tokenizer_ggml_pre;
-		std::string_view general_finetune;
-		std::string_view general_basename;
-		std::string_view general_license;
-		std::string_view general_type;
-		std::string_view general_name;
-		uint32_t general_file_type;
-	};
-
 	template<model_arches arch, tokenizer_types type, tokenizer_pre_types pre>
 	struct gguf_metadata : public metadata_base, public tokenizer_base<type>, public model_data_base<arch>, public tokenizer_traits<arch, type, pre> {};
 
-	template<model_arches arch, tokenizer_types type, tokenizer_pre_types pre> struct core<gguf_metadata<arch, type, pre>> {
+	template<model_arches arch, tokenizer_types type, tokenizer_pre_types pre> struct parse_core<gguf_metadata<arch, type, pre>> {
 		using value_type				  = gguf_metadata<arch, type, pre>;
 		static constexpr auto parse_value = create_value<make_parse_entity<&value_type::general_architecture, "general.architecture">(),
 			make_parse_entity<&value_type::general_finetune, "general.finetune">(), make_parse_entity<&value_type::general_size_label, "general.size_label">(),
@@ -364,10 +340,10 @@ namespace nihilus {
 		inline static constexpr auto memberCount = core_tuple_size<value_type>;
 
 		template<uint64_t index> using member_type_t =
-			std::remove_reference_t<decltype(get_member<value_type, get<index>(core<value_type>::parse_value).member_ptr>(std::declval<value_type&>()))>;
+			std::remove_reference_t<decltype(get_member<value_type, get<index>(parse_core<value_type>::parse_value).member_ptr>(std::declval<value_type&>()))>;
 
 		template<uint64_t index> NIHILUS_FORCE_INLINE static bool processIndex(value_type& value, std::string_view string, stream_iterator& stream) {
-			static constexpr auto tupleElem	 = get<index>(core<value_type>::parse_value);
+			static constexpr auto tupleElem	 = get<index>(parse_core<value_type>::parse_value);
 			static constexpr auto string_lit = tupleElem.name;
 			static constexpr auto ptrNew	 = tupleElem.member_ptr;
 			static constexpr auto keySize	 = string_lit.size();
@@ -702,7 +678,7 @@ namespace nihilus {
 			for (const auto& tensor: tensor_infos) {
 				uint64_t tensor_size = tensor.core_total_byte_size();
 				uint64_t tensor_end	 = tensor.offset + tensor_size;
-				max_tensor_end		 = std::max(max_tensor_end, tensor_end);
+				max_tensor_end		 = max(max_tensor_end, tensor_end);
 			}
 
 			uint64_t tensor_data_start = ptr.file->size() - max_tensor_end;

@@ -123,6 +123,11 @@ namespace nihilus {
 		return config;
 	}
 
+	NIHILUS_FORCE_INLINE static consteval auto update_model_config_dev(model_config config, bool dev) {
+		config.dev = dev;
+		return config;
+	}
+
 	template<typename... UpdateFuncs> NIHILUS_FORCE_INLINE static consteval auto chain_model_config_updates(model_config config, UpdateFuncs... update_funcs) {
 		return (update_funcs(config), ...);
 	}
@@ -139,7 +144,7 @@ namespace nihilus {
 			return return_value;
 		}
 
-		NIHILUS_FORCE_INLINE static auto parse_model_graph_data() {
+		NIHILUS_FORCE_INLINE static auto get_model_graph() {
 			std::unique_ptr<model_base_type> return_value{};
 			model_base_type* new_model{ new model_type{} };
 			return_value.reset(new_model);

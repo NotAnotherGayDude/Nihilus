@@ -20,7 +20,7 @@ RealTimeChris (Chris M.)
 
 #pragma once
 
-#if defined(NIHILUS_DEBUG)
+#if defined(NIHILUS_DEV)
 	#include <jsonifier/Index.hpp>
 
 	#include <nihilus/common/common.hpp>
@@ -517,7 +517,7 @@ namespace nihilus {
 		}
 
 		static uint64_t get_iteration_count() {
-			return std::max(leaf_iterations.size(), node_iterations.size());
+			return max(leaf_iterations.size(), node_iterations.size());
 		}
 
 		template<typename tensor_type> static bool compare_tensor_data(tensor_type& tensor, uint64_t current_block, uint64_t iteration) {

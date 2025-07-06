@@ -75,11 +75,12 @@ int main(int argc, char** argv) {
 	try {
 		static constexpr auto model_config = nihilus::generate_model_config(nihilus::model_generations::v3, nihilus::model_sizes::llm_8B,
 			nihilus::kernel_type_profiles::q8_gqa, nihilus::model_arches::llama, false);
+		static constexpr auto model_config_new = nihilus::update_model_config_benchmark(model_config, true);
 		test::stop_watch stop_watch_val{ 0 };
 		nihilus::cli_params cli_args_final;
 		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 4, 2, true, "Token">::runBenchmark<"nihilus">([&] {
-			cli_args_final = nihilus::harbinger<model_config>::parse_cli_arguments(argc, argv);
-			auto model_new{ nihilus::harbinger<model_config>::parse_model_graph_data(cli_args_final) };
+			cli_args_final = nihilus::harbinger<model_config_new>::parse_cli_arguments(argc, argv);
+			auto model_new{ nihilus::harbinger<model_config_new>::parse_model_graph_data(cli_args_final) };
 			while (model_new->process_input(cli_args_final.prompt)) {
 			}
 			return cli_args_final.n_tokens;
@@ -593,7 +594,7 @@ int main(int argc, char** argv) {
 		std::cout << "FOR " << cli_args_final.thread_count << " THREADS, WITH " << spinlock_time << " NANOSECONDS OF SPINLOCK PER KERNEL, "
 				  << "LLAMA.CPP/GGML AVERAGE COMPUTE TIME, OVER: " << std::setw(50 - std::size("LLAMA.CPP/GGML AVERAGE COMPUTE TIME, OVER: ")) << stop_watch_val.get_count()
 				  << " TOKENS: " << stop_watch_val.get_average() << std::endl;
-		std::cout << "FOR " << cli_args_final.thread_count << " THREADS, WITH " << spinlock_time << " NANOSECONDS OF SPINLOCK PER KERNEL, "
+		std::cout << "FOR " << cli_args_final.thread_count << " THREADS, WITH " << nihilus::spinlock_time << " NANOSECONDS OF SPINLOCK PER KERNEL, "
 				  << "NIHILUS AVERAGE COMPUTE TIME, OVER: " << std::setw(50 - std::size("NIHILUS AVERAGE COMPUTE TIME, OVER: ")) << nihilus::stop_watch_val_nihilus.get_count()
 				  << " TOKENS: " << nihilus::stop_watch_val_nihilus.get_average() << std::endl;
 		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 4, 2, true, "Token">::printResults();
