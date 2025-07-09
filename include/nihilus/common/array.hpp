@@ -22,6 +22,7 @@ RealTimeChris (Chris M.)
 
 #include <nihilus/common/iterator.hpp>
 #include <nihilus/common/config.hpp>
+#include <nihilus/common/utility.hpp>
 #include <algorithm>
 #include <stdexcept>
 
@@ -97,7 +98,7 @@ namespace nihilus {
 			requires(std::is_move_constructible_v<value_type>)
 		{
 			for (uint64_t i = 0; i < size_val; ++i) {
-				data_val[i] = std::move(other.data_val[i]);
+				data_val[i] = detail::move(other.data_val[i]);
 			}
 		}
 
@@ -106,7 +107,7 @@ namespace nihilus {
 		{
 			if (this != &other) {
 				for (uint64_t i = 0; i < size_val; ++i) {
-					data_val[i] = std::move(other.data_val[i]);
+					data_val[i] = detail::move(other.data_val[i]);
 				}
 			}
 			return *this;
@@ -114,7 +115,7 @@ namespace nihilus {
 
 		template<typename... Args> NIHILUS_FORCE_INLINE constexpr array(Args&&... args)
 			requires(sizeof...(Args) == size_val && (std::is_constructible_v<value_type, Args> && ...) && std::is_copy_constructible_v<value_type>)
-			: data_val{ static_cast<value_type>(std::forward<Args>(args))... } {
+			: data_val{ static_cast<value_type>(forward<Args>(args))... } {
 		}
 
 		NIHILUS_FORCE_INLINE constexpr void fill(const value_type& _Value) {

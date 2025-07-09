@@ -110,7 +110,7 @@ namespace nihilus {
 			return (value);
 		}
 		constexpr decltype(auto) operator[](tag<index>) && {
-			return (std::move(*this).value);
+			return (move(*this).value);
 		}
 	};
 

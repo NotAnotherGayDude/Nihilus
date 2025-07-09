@@ -91,7 +91,7 @@ namespace nihilus {
 
 		int32_t max_priority = sched_get_priority_max(policy);
 		if (max_priority == -1) {
-			std::cerr << "Failed to get max thread priority: " << strerror(errno) << std::endl;
+			std::cerr << "Failed to get detail::max thread priority: " << strerror(errno) << std::endl;
 			return;
 		}
 
@@ -124,7 +124,7 @@ namespace nihilus {
 		int32_t min_priority = sched_get_priority_min(policy);
 		int32_t max_priority = sched_get_priority_max(policy);
 		if (min_priority == -1 || max_priority == -1) {
-			std::cerr << "Failed to get min/max priority: " << strerror(errno) << std::endl;
+			std::cerr << "Failed to get detail::min/max priority: " << strerror(errno) << std::endl;
 			return;
 		}
 

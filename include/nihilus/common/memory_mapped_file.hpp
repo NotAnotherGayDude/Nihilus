@@ -19,7 +19,7 @@ RealTimeChris (Chris M.)
 */
 #pragma once
 
-#include <nihilus/common/config.hpp>
+#include <nihilus/common/common.hpp>
 
 #if defined(NIHILUS_PLATFORM_WINDOWS)
 	#if !defined(NOMINMAX)
@@ -51,7 +51,7 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-#ifdef NIHILUS_PLATFORM_WINDOWS
+#if defined(NIHILUS_PLATFORM_WINDOWS)
 	static std::string format_win_error(DWORD error_code) {
 		LPSTR buffer = nullptr;
 		DWORD size	 = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, error_code,
@@ -86,7 +86,7 @@ namespace nihilus {
 		}
 
 		NIHILUS_FORCE_INLINE memory_mapped_file(memory_mapped_file&& other) noexcept {
-			*this = std::move(other);
+			*this = detail::move(other);
 		}
 
 		NIHILUS_FORCE_INLINE memory_mapped_file& operator=(memory_mapped_file&& other) noexcept {
@@ -96,17 +96,17 @@ namespace nihilus {
 				file_path_	 = other.file_path_;
 				mapped_data_ = other.mapped_data_;
 				file_size_	 = other.file_size_;
-#ifdef NIHILUS_PLATFORM_WINDOWS
+#if defined(NIHILUS_PLATFORM_WINDOWS)
 				file_handle_	= other.file_handle_;
 				mapping_handle_ = other.mapping_handle_;
 #else
 				file_descriptor_  = other.file_descriptor_;
-				mapped_fragments_ = std::move(other.mapped_fragments_);
+				mapped_fragments_ = detail::move(other.mapped_fragments_);
 #endif
 
 				other.mapped_data_ = nullptr;
 				other.file_size_   = 0;
-#ifdef NIHILUS_PLATFORM_WINDOWS
+#if defined(NIHILUS_PLATFORM_WINDOWS)
 				other.file_handle_	  = INVALID_HANDLE_VALUE;
 				other.mapping_handle_ = nullptr;
 #else
@@ -141,7 +141,7 @@ namespace nihilus {
 		void* mapped_data_	= nullptr;
 		uint64_t file_size_ = 0;
 
-#ifdef NIHILUS_PLATFORM_WINDOWS
+#if defined(NIHILUS_PLATFORM_WINDOWS)
 		HANDLE file_handle_	   = INVALID_HANDLE_VALUE;
 		HANDLE mapping_handle_ = nullptr;
 #else
@@ -150,7 +150,7 @@ namespace nihilus {
 #endif
 
 		NIHILUS_FORCE_INLINE void map_file(std::string_view file_path, uint64_t prefetch_bytes, bool numa_aware) {
-#ifdef NIHILUS_PLATFORM_WINDOWS
+#if defined(NIHILUS_PLATFORM_WINDOWS)
 			( void )numa_aware;
 			std::string_view file_path_str(file_path);
 
@@ -240,7 +240,7 @@ namespace nihilus {
 				prefetch_bytes = 0;
 			}
 
-	#ifdef __linux__
+	#if defined(__linux__)
 			if (posix_fadvise(file_descriptor_, 0, 0, POSIX_FADV_SEQUENTIAL) != 0) {
 			}
 
@@ -284,7 +284,7 @@ namespace nihilus {
 		}
 
 		NIHILUS_FORCE_INLINE void unmap_file() {
-#ifdef NIHILUS_PLATFORM_WINDOWS
+#if defined(NIHILUS_PLATFORM_WINDOWS)
 			if (mapped_data_) {
 				UnmapViewOfFile(mapped_data_);
 				mapped_data_ = nullptr;
@@ -315,7 +315,7 @@ namespace nihilus {
 		}
 
 		NIHILUS_FORCE_INLINE void unmap_fragment(uint64_t first, uint64_t last) {
-#ifdef NIHILUS_PLATFORM_WINDOWS
+#if defined(NIHILUS_PLATFORM_WINDOWS)
 			( void )first;
 			( void )last;
 #else
@@ -359,17 +359,17 @@ namespace nihilus {
 					new_fragments.push_back(frag);
 				}
 			}
-			mapped_fragments_ = std::move(new_fragments);
+			mapped_fragments_ = detail::move(new_fragments);
 #endif
 		}
 
 		NIHILUS_FORCE_INLINE void lock_memory() {
-#ifdef NIHILUS_PLATFORM_WINDOWS
+#if defined(NIHILUS_PLATFORM_WINDOWS)
 			if (mapped_data_ && file_size_ > 0) {
 				VirtualLock(mapped_data_, file_size_);
 			}
 #else
-	#ifdef _POSIX_MEMLOCK_RANGE
+	#if defined(_POSIX_MEMLOCK_RANGE)
 			if (mapped_data_ && file_size_ > 0) {
 				mlock(mapped_data_, file_size_);
 			}

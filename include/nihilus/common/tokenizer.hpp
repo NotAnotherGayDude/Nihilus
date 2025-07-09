@@ -80,10 +80,19 @@ namespace nihilus {
 		: public tokenizer_parameters<model_arches::llama>, public tokenizer_traits<config.arch, tokenizer_type_new, config.tokenizer_pre_type> {
 		using tokenizer_type	= tokenizer_traits<config.arch, tokenizer_type_new, config.tokenizer_pre_type>;
 		using model_traits_type = model_traits<config.arch, config.model_size, config.model_generation>;
+		using tokenizer_traits = tokenizer_traits<config.arch, config.tokenizer_type, config.tokenizer_pre_type>;
 
-		NIHILUS_FORCE_INLINE tokenizer() noexcept = default;
+		NIHILUS_FORCE_INLINE tokenizer() noexcept {
+			candidate_tokens.reserve(32768);
+			cumulative_probs.reserve(32768);
+		};
 
-		NIHILUS_FORCE_INLINE uint64_t tokenize(const std::string& input_text, int32_t* output_tokens) {
+		NIHILUS_FORCE_INLINE void tokenize_init(int32_t* output_tokens) {
+			output_tokens[0] = tokenizer_traits::special_bos_id;
+			output_tokens[1] = tokenizer_traits::special_eos_id;
+		}	
+
+		NIHILUS_FORCE_INLINE uint64_t tokenize(std::string_view input_text, int32_t* output_tokens) {
 			std::vector<int32_t> temp_tokens;
 			if constexpr (tokenizer_type::add_bos && tokenizer_type::special_bos_id > 0) {
 				temp_tokens.push_back(static_cast<int32_t>(tokenizer_type::special_bos_id));
@@ -106,7 +115,218 @@ namespace nihilus {
 #if defined(NIHILUS_DEV)
 			print_tokenization_debug(input_text, temp_tokens);
 #endif
+			
 			return temp_tokens.size();
+		}		
+
+		struct nihilus_rng {
+			uint64_t state{};
+
+			NIHILUS_FORCE_INLINE nihilus_rng(uint64_t seed = 0) : state(seed == 0 ? std::chrono::high_resolution_clock::now().time_since_epoch().count() : seed) {
+			}
+
+			NIHILUS_FORCE_INLINE uint64_t next() {
+				state ^= state << 13;
+				state ^= state >> 7;
+				state ^= state << 17;
+				return state;
+			}
+
+			NIHILUS_FORCE_INLINE float next_float() {
+				return static_cast<float>(next()) / static_cast<float>(UINT64_MAX);
+			}
+		};
+
+		struct sampling_params {
+			float temperature		 = 1.0f;
+			int32_t top_k			 = 50;
+			float top_p				 = 0.9f;
+			float min_p				 = 0.0f;
+			float repetition_penalty = 1.1f;
+			uint64_t repeat_last_n	 = 64;
+			uint64_t seed			 = 0;
+			bool use_mirostat		 = false;
+			float mirostat_tau		 = 5.0f;
+			float mirostat_eta		 = 0.1f;
+		};
+
+		struct token_prob {
+			int32_t token_id;
+			float probability;
+
+			NIHILUS_FORCE_INLINE bool operator>(const token_prob& other) const {
+				return probability > other.probability;
+			}
+		};
+
+		mutable std::vector<token_prob> candidate_tokens;
+		mutable std::vector<float> cumulative_probs;
+		mutable nihilus_rng rng;
+		mutable float mirostat_mu = 0.0f;
+
+		NIHILUS_FORCE_INLINE void apply_temperature(float* logits, uint64_t vocab_size, float temperature) const {
+			if (temperature == 1.0f)
+				return;
+
+			const float inv_temp = 1.0f / temperature;
+
+			for (uint64_t i = 0; i < vocab_size; ++i) {
+				logits[i] *= inv_temp;
+			}
+		}
+
+		NIHILUS_FORCE_INLINE void apply_repetition_penalty(float* logits, const int32_t* recent_tokens, uint64_t recent_count, float penalty) const {
+			if (penalty == 1.0f)
+				return;
+
+			for (uint64_t i = 0; i < recent_count; ++i) {
+				int32_t token = recent_tokens[i];
+				if (token >= 0 && token < static_cast<int32_t>(tokens.size())) {
+					if (logits[token] > 0.0f) {
+						logits[token] /= penalty;
+					} else {
+						logits[token] *= penalty;
+					}
+				}
+			}
+		}
+
+		NIHILUS_FORCE_INLINE void logits_to_probs(float* logits, uint64_t vocab_size) const {
+			float max_logit = logits[0];
+			for (uint64_t i = 1; i < vocab_size; ++i) {
+				max_logit = detail::max(max_logit, logits[i]);
+			}
+
+			float sum = 0.0f;
+			for (uint64_t i = 0; i < vocab_size; ++i) {
+				logits[i] = std::exp(logits[i] - max_logit);
+				sum += logits[i];
+			}
+
+			const float inv_sum = 1.0f / sum;
+			for (uint64_t i = 0; i < vocab_size; ++i) {
+				logits[i] *= inv_sum;
+			}
+		}
+
+		NIHILUS_FORCE_INLINE void apply_top_k(std::vector<token_prob>& candidates, int32_t k) const {
+			if (k <= 0 || k >= static_cast<int32_t>(candidates.size()))
+				return;
+
+			std::partial_sort(candidates.begin(), candidates.begin() + k, candidates.end(), [](const token_prob& a, const token_prob& b) {
+				return a.probability > b.probability;
+			});
+
+			candidates.resize(k);
+		}
+
+		NIHILUS_FORCE_INLINE void apply_top_p(std::vector<token_prob>& candidates, float p) const {
+			if (p >= 1.0f)
+				return;
+
+			std::sort(candidates.begin(), candidates.end(), [](const token_prob& a, const token_prob& b) {
+				return a.probability > b.probability;
+			});
+
+			float cumulative_prob = 0.0f;
+			uint64_t cutoff		  = candidates.size();
+
+			for (uint64_t i = 0; i < candidates.size(); ++i) {
+				cumulative_prob += candidates[i].probability;
+				if (cumulative_prob >= p) {
+					cutoff = i + 1;
+					break;
+				}
+			}
+
+			candidates.resize(cutoff);
+		}
+
+		NIHILUS_FORCE_INLINE void apply_min_p(std::vector<token_prob>& candidates, float min_p) const {
+			if (min_p <= 0.0f)
+				return;
+
+			candidates.erase(std::remove_if(candidates.begin(), candidates.end(),
+								 [min_p](const token_prob& candidate) {
+									 return candidate.probability < min_p;
+								 }),
+				candidates.end());
+		}
+
+		NIHILUS_FORCE_INLINE int32_t sample_from_candidates(const std::vector<token_prob>& candidates) const {
+			if (candidates.empty())
+				return 0;
+			if (candidates.size() == 1)
+				return candidates[0].token_id;
+
+			cumulative_probs.clear();
+			cumulative_probs.reserve(candidates.size());
+
+			float cumulative = 0.0f;
+			for (const auto& candidate: candidates) {
+				cumulative += candidate.probability;
+				cumulative_probs.push_back(cumulative);
+			}
+
+			const float random_val = rng.next_float() * cumulative;
+
+			auto it		   = std::lower_bound(cumulative_probs.begin(), cumulative_probs.end(), random_val);
+			uint64_t index = std::distance(cumulative_probs.begin(), it);
+
+			return candidates[detail::min(index, candidates.size() - 1)].token_id;
+		}
+
+		NIHILUS_FORCE_INLINE int32_t sample_next_token(float* logits, uint64_t vocab_size, const int32_t* recent_tokens, uint64_t recent_count,
+			const sampling_params& params) const {
+			if (params.seed != 0) {
+				rng = nihilus_rng(params.seed);
+			}
+
+			apply_repetition_penalty(logits, recent_tokens, detail::min(recent_count, params.repeat_last_n), params.repetition_penalty);
+
+			apply_temperature(logits, vocab_size, params.temperature);
+
+			logits_to_probs(logits, vocab_size);
+
+			candidate_tokens.clear();
+			candidate_tokens.reserve(vocab_size);
+
+			for (uint64_t i = 0; i < vocab_size; ++i) {
+				if (logits[i] > 0.0f) {
+					candidate_tokens.push_back({ static_cast<int32_t>(i), logits[i] });
+				}
+			}
+
+			if (candidate_tokens.empty()) {
+				return 0;
+			}
+
+			apply_min_p(candidate_tokens, params.min_p);
+			apply_top_k(candidate_tokens, params.top_k);
+			apply_top_p(candidate_tokens, params.top_p);
+
+			float total_prob = 0.0f;
+			for (auto& candidate: candidate_tokens) {
+				total_prob += candidate.probability;
+			}
+
+			if (total_prob > 0.0f) {
+				const float inv_total = 1.0f / total_prob;
+				for (auto& candidate: candidate_tokens) {
+					candidate.probability *= inv_total;
+				}
+			}
+
+			return sample_from_candidates(candidate_tokens);
+		}
+
+		NIHILUS_FORCE_INLINE int32_t sample_next_token(float* logits, uint64_t vocab_size) {
+			sampling_params default_params{};
+			return sample_next_token(logits, vocab_size, nullptr, 0, default_params);
+		}
+
+		NIHILUS_FORCE_INLINE int32_t sample_next_token(float* logits, uint64_t vocab_size, const std::vector<int32_t>& context, const sampling_params& params = sampling_params{}) {
+			return sample_next_token(logits, vocab_size, context.empty() ? nullptr : context.data(), context.size(), params);
 		}
 
 	  protected:
@@ -207,7 +427,7 @@ namespace nihilus {
 
 			while (offset < word.size()) {
 				nihilus_symbol sym;
-				uint64_t char_len = std::min(word.size() - offset, static_cast<uint64_t>(unicode_len_utf8(word[offset])));
+				uint64_t char_len = detail::min(word.size() - offset, static_cast<uint64_t>(unicode_len_utf8(word[offset])));
 				sym.text		  = word.c_str() + offset;
 				sym.n			  = char_len;
 				offset += sym.n;
@@ -307,7 +527,7 @@ namespace nihilus {
 			return 1;
 		}
 
-		NIHILUS_FORCE_INLINE void print_tokenization_debug(const std::string& input_text, const std::vector<int32_t>& tokens) {
+		NIHILUS_FORCE_INLINE void print_tokenization_debug(std::string_view input_text, const std::vector<int32_t>& tokens) {
 			std::cout << "=== NIHILUS BPE TOKENIZATION DEBUG ===" << std::endl;
 			std::cout << "system_info: n_threads = " << std::thread::hardware_concurrency() << " | NIHILUS ENGINE | BPE VOCAB | 432% FASTER |" << std::endl;
 			//std::cout << "tokenizer_type: " << static_cast<int32_t>(tokenizer_type) << " (BPE)" << std::endl;
@@ -333,5 +553,6 @@ namespace nihilus {
 			std::cout << "=================================" << std::endl;
 		}
 	};
+
 
 }

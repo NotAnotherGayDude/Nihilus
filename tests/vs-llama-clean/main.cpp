@@ -506,7 +506,7 @@ int main(int argc, char** argv) {
 							}
 
 							bool format_chat	 = params.conversation_mode && params.enable_chat_template;
-							std::string user_inp = format_chat ? chat_add_and_format("user", std::move(buffer)) : std::move(buffer);
+							std::string user_inp = format_chat ? chat_add_and_format("user", move(buffer)) : move(buffer);
 							// TODO: one inconvenient of current chat template implementation is that we can't distinguish between user input and special tokens (prefix/postfix)
 							const auto line_pfx = common_tokenize(ctx, params.input_prefix, false, true);
 							const auto line_inp = common_tokenize(ctx, user_inp, false, format_chat);
@@ -581,11 +581,10 @@ int main(int argc, char** argv) {
 			});
 			
 		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 2, 1, true, "Token">::runBenchmark<"nihilus">([&] {
-			static constexpr auto model_config = nihilus::generate_model_config(nihilus::model_generations::v3, nihilus::model_sizes::llm_8B,
-					nihilus::kernel_type_profiles::q8_gqa, nihilus::model_arches::llama, false);
-			static constexpr auto model_config_new = nihilus::update_model_config_tokenizer_pre_type(model_config, nihilus::tokenizer_pre_types::llama3);
-			nihilus::cli_params cli_args_final{ nihilus::harbinger<model_config_new>::parse_cli_arguments(argc, argv) };
-			auto model_new{ nihilus::harbinger<model_config_new>::parse_model_graph_data(cli_args_final) };
+			static constexpr auto model_config = nihilus::generate_model_config(nihilus::model_generations::v3, nihilus::model_sizes::llm_3B, nihilus::kernel_type_profiles::q8_gqa,
+				nihilus::model_arches::llama, false);
+			nihilus::cli_params cli_args_final{ nihilus::harbinger<model_config>::parse_cli_arguments(argc, argv) };
+			auto model_new{ nihilus::harbinger<model_config>::parse_model_graph_data(cli_args_final) };
 			while (model_new->process_input(cli_args_final.prompt)) {
 			}
 			return cli_args_final.n_tokens;

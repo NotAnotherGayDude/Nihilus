@@ -61,11 +61,6 @@ namespace nihilus {
 
 	template<typename value_type> struct parse_core {};
 
-	template<typename value_type> struct base_parse_entity {
-		using class_type = value_type;
-		inline static constexpr uint64_t index{ 0 };
-	};
-
 	template<auto member_ptr_new, string_literal name_new> struct parse_entity_temp {
 		using member_type = remove_class_pointer_t<decltype(member_ptr_new)>;
 		inline static constexpr member_type member_ptr{ member_ptr_new };
@@ -117,7 +112,7 @@ namespace nihilus {
 		return create_value_impl<values...>(std::make_index_sequence<sizeof...(values)>{});
 	}
 
-	template<typename value_type> using core_tuple_type				 = decltype(core<std::remove_cvref_t<value_type>>::parse_value);
+	template<typename value_type> using core_tuple_type				 = decltype(parse_core<std::remove_cvref_t<value_type>>::parse_value);
 	template<typename value_type> constexpr uint64_t core_tuple_size = tuple_size_v<core_tuple_type<value_type>>;
 
 	template<typename value_type, uint64_t current_index = 0> NIHILUS_FORCE_INLINE static constexpr uint64_t find_matching_element(const char* start, uint64_t length) noexcept {
@@ -126,7 +121,7 @@ namespace nihilus {
 		if constexpr (current_index >= tuple_size) {
 			return std::numeric_limits<uint64_t>::max();
 		} else {
-			constexpr auto element = get<current_index>(core<value_type>::parse_value);
+			constexpr auto element = get<current_index>(parse_core<value_type>::parse_value);
 
 			constexpr auto element_name = element.name;
 			if (length == element_name.size()) {

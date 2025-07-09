@@ -48,7 +48,6 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "LLAMA_CURL": "Off",
-        "NIHILUS_DEV": true,
         "NIHILUS_DEV": true
       }
     },
@@ -59,7 +58,6 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
         "LLAMA_CURL": "Off",
-        "NIHILUS_DEV": true,
         "NIHILUS_DEV": true
       }
     },
@@ -96,7 +94,7 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "LLAMA_CURL": "Off",
-        "NIHILUS_VS_LLAMA_BENCHMARK": true
+        "NIHILUS_BENCHMARK": true
       }
     },
     {
@@ -106,7 +104,7 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
         "LLAMA_CURL": "Off",
-        "NIHILUS_VS_LLAMA_BENCHMARK": true
+        "NIHILUS_BENCHMARK": true
       }
     },
     {
@@ -120,7 +118,7 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
         "LLAMA_CURL": "Off",
-        "NIHILUS_VS_LLAMA": true
+        "NIHILUS_CLEAN": true
       }
     },
     {
@@ -130,7 +128,7 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
         "LLAMA_CURL": "Off",
-        "NIHILUS_VS_LLAMA": true
+        "NIHILUS_CLEAN": true
       }
     },
     {

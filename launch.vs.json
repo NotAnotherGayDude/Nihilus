@@ -16,7 +16,10 @@
       "exe": "",
       "project": "CMakeLists.txt",
       "projectTarget": "ggml.dll (bin\\ggml.dll)",
-      "name": "ggml.dll (bin\\ggml.dll)"
+      "name": "ggml.dll (bin\\ggml.dll)",
+      "args": [
+        "-m C:\\Users\\Chris\\source\\repos\\oi-engine\\models\\Meta-Llama-3.1-8B-Instruct-Q8_0.gguf -p \"What is the meaning of life?\" -s 0 -n 8 -no-cnv -t 1 -b 512"
+      ]
     }
   ]
 }

@@ -78,7 +78,7 @@ namespace nihilus {
 		}
 
 		template<typename... arg_types> NIHILUS_FORCE_INLINE static void construct(pointer ptr, arg_types&&... args) noexcept {
-			new (ptr) value_type(std::forward<arg_types>(args)...);
+			new (ptr) value_type(forward<arg_types>(args)...);
 		}
 
 		NIHILUS_FORCE_INLINE static uint64_type maxSize() noexcept {

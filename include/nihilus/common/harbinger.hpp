@@ -20,7 +20,6 @@ RealTimeChris (Chris M.)
 
 #pragma once
 
-#include <nihilus/common/input_session.hpp>
 #include <nihilus/common/model.hpp>
 #include <nihilus/common/model_parser.hpp>
 #include <nihilus/common/common.hpp>
@@ -127,22 +126,21 @@ namespace nihilus {
 		return (update_funcs(config), ...);
 	}
 
-	template<auto config> struct harbinger {
+	template<model_config config> struct harbinger {
 		using model_type		 = model<config>;
 		using model_base_type	 = typename model<config>::base_type;
-		using input_session_type = nihilus::input_session<config, model_type>;
 
 		NIHILUS_FORCE_INLINE static auto parse_model_graph_data(nihilus::cli_params params) {
-			std::unique_ptr<model_base_type> return_value{};
-			model_base_type* new_model{ new model_type{ params } };
-			return_value.reset(new_model);
+			std::unique_ptr<model_base_type> return_value{ new model_type{ params } };
 			return return_value;
 		}
 
+		NIHILUS_FORCE_INLINE static auto serialize_model(serializer_params params) {
+			//return model_serializer<config>::impl(params);
+		}
+
 		NIHILUS_FORCE_INLINE static auto get_model_graph() {
-			std::unique_ptr<model_base_type> return_value{};
-			model_base_type* new_model{ new model_type{} };
-			return_value.reset(new_model);
+			std::unique_ptr<model_base_type> return_value{ new model_type{} };
 			return return_value;
 		}
 

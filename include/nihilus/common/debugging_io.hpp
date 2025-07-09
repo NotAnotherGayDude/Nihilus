@@ -269,9 +269,9 @@ namespace nihilus {
 		}
 
 		NIHILUS_FORCE_INLINE intermediary_tensor(intermediary_tensor&& other) noexcept {
-			dims = std::move(other.dims);
-			data = std::move(other.data);
-			name = std::move(other.name);
+			dims = detail::move(other.dims);
+			data = detail::move(other.data);
+			name = detail::move(other.name);
 			type = other.type;
 			op	 = other.op;
 		}
@@ -289,9 +289,9 @@ namespace nihilus {
 
 		NIHILUS_FORCE_INLINE intermediary_tensor& operator=(intermediary_tensor&& other) noexcept {
 			if (this != &other) {
-				dims = std::move(other.dims);
-				data = std::move(other.data);
-				name = std::move(other.name);
+				dims = detail::move(other.dims);
+				data = detail::move(other.data);
+				name = detail::move(other.name);
 				type = other.type;
 				op	 = other.op;
 			}
@@ -360,15 +360,17 @@ namespace nihilus {
 			uint64_t other_dims = other.dims[0] * other.dims[1] * other.dims[2] * other.dims[3];
 			uint64_t this_size	= get_type_traits(type).type_size * this_dims;
 			uint64_t other_size = get_type_traits(other.type).type_size * other_dims;
-			uint64_t final_size = std::min(this_size, other_size);
-			final_size			= std::min(final_size, static_cast<uint64_t>(128ull));
-
-			int64_t equal_data = std ::memcmp(data.data(), other.data.data(), final_size);
-			for (int32_t i = 0; i < final_size; i++) {
-				if (data.data()[i] != other.data.data()[i]) {
-					printf("Difference at %d: %d vs %d\n", i, data[i], other.data[i]);
-					equal_data = 1;
-					break;
+			uint64_t final_size = detail::min(this_size, other_size);
+			final_size			= detail::min(final_size, static_cast<uint64_t>(128ull));
+			int64_t equal_data{};
+			if (other.data.size() > final_size) {
+				equal_data = std ::memcmp(data.data(), other.data.data(), final_size);
+				for (int32_t i = 0; i < final_size; i++) {
+					if (data.data()[i] != other.data.data()[i]) {
+						printf("Difference at %d: %d vs %d\n", i, data[i], other.data[i]);
+						equal_data = 1;
+						break;
+					}
 				}
 			}
 
@@ -397,8 +399,17 @@ namespace nihilus {
 	NIHILUS_FORCE_INLINE std::string convert_op_to_string(op_types type, uint64_t current_block) {
 		std::string block{ std::to_string(current_block) };
 		switch (type) {
+			case op_types::norm_attn_norm: {
+				return "norm-" + block;
+			}
 			case op_types::inp_embd: {
 				return "inp_embd";
+			}
+			case op_types::qcur_rope: {
+				return "Qcur-" + block;
+			}
+			case op_types::kq_mask: {
+				return "KQ_mask";
 			}
 			case op_types::inp_pos: {
 				return "inp_pos";
@@ -488,7 +499,7 @@ namespace nihilus {
 					std::cout << "Iteration " << iteration << " - Error: " << value << std::endl;
 				}
 
-				return_values.push_back(std::move(iteration_tensors));
+				return_values.push_back(move(iteration_tensors));
 
 			} catch (const std::exception& e) {
 				std::cout << "Failed to parse iteration " << iteration << ": " << e.what() << std::endl;
@@ -517,7 +528,7 @@ namespace nihilus {
 		}
 
 		static uint64_t get_iteration_count() {
-			return max(leaf_iterations.size(), node_iterations.size());
+			return detail::max(leaf_iterations.size(), node_iterations.size());
 		}
 
 		template<typename tensor_type> static bool compare_tensor_data(tensor_type& tensor, uint64_t current_block, uint64_t iteration) {

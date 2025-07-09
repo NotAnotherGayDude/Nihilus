@@ -28,7 +28,7 @@ namespace nihilus {
 	template<nihilus::model_config config, typename... bases> struct core_bases : public bases... {
 		NIHILUS_FORCE_INLINE constexpr core_bases(){};
 		template<template<nihilus::model_config, typename> typename mixin_type, typename... arg_types> NIHILUS_FORCE_INLINE constexpr void impl(arg_types&&... args) const {
-			(impl_internal_filtered<mixin_type, bases>(std::forward<arg_types>(args)...), ...);
+			(impl_internal_filtered<mixin_type, bases>(detail::forward<arg_types>(args)...), ...);
 		}
 
 		template<template<nihilus::model_config, typename> typename mixin_type, typename... arg_types> NIHILUS_FORCE_INLINE constexpr void impl(arg_types&&... args) {
@@ -39,7 +39,7 @@ namespace nihilus {
 		template<template<nihilus::model_config, typename> typename mixin_type, typename base_type, typename... arg_types>
 		NIHILUS_FORCE_INLINE constexpr void impl_internal_filtered(arg_types&&... args) const {
 			if constexpr (mixin_type<config, base_type>::filter()) {
-				mixin_type<config, base_type>::impl(*static_cast<const base_type*>(this), std::forward<arg_types>(args)...);
+				mixin_type<config, base_type>::impl(*static_cast<const base_type*>(this), detail::forward<arg_types>(args)...);
 			}
 		}
 
@@ -47,7 +47,7 @@ namespace nihilus {
 		template<template<nihilus::model_config, typename> typename mixin_type, typename base_type, typename... arg_types>
 		NIHILUS_FORCE_INLINE constexpr void impl_internal_filtered(arg_types&&... args) {
 			if constexpr (mixin_type<config, base_type>::filter()) {
-				mixin_type<config, base_type>::impl(*static_cast<base_type*>(this), std::forward<arg_types>(args)...);
+				mixin_type<config, base_type>::impl(*static_cast<base_type*>(this), detail::forward<arg_types>(args)...);
 			}
 		}
 	};

@@ -402,6 +402,7 @@ target_compile_definitions(
     "${PROJECT_NAME}" "${NIHILUS_PRIVATE_DEFINITION}" 
     "$<$<STREQUAL:${NIHILUS_ASAN_ENABLED},TRUE>:NIHILUS_ASAN_ENABLED>"
     "$<$<STREQUAL:${NIHILUS_DEV},TRUE>:NIHILUS_DEV>"
+    "$<$<STREQUAL:${NIHILUS_BENCHMARK},TRUE>:NIHILUS_BENCHMARK>"
 )
 
 set(CONFIG_FILE_NAME "${PROJECT_NAME}Config.cmake")
@@ -468,11 +469,11 @@ if(NIHILUS_BUILD_ALL_ARM_VARIANTS)
     message(STATUS "ARM Variants: ${INSTRUCTION_SET_NAME}")
 endif()
 
-if (NIHILUS_VS_LLAMA)
+if (NIHILUS_CLEAN)
     add_subdirectory("./tests/vs-llama-clean")
 elseif (NIHILUS_DEV)
     add_subdirectory("./tests/vs-llama-dev")
-elseif (NIHILUS_VS_LLAMA_BENCHMARK)
+elseif (NIHILUS_BENCHMARK)
     add_subdirectory("./tests/vs-llama-benchmark")
 elseif (NIHILUS_NH_ONLY)
     add_subdirectory("./tests/nihilus-only")

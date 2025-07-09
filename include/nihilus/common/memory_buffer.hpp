@@ -49,7 +49,7 @@ namespace nihilus {
 		}
 
 		NIHILUS_FORCE_INLINE memory_buffer(memory_buffer&& other) noexcept {
-			*this = std::move(other);
+			*this = detail::move(other);
 		}
 
 		NIHILUS_FORCE_INLINE void init(uint64_t size) noexcept {

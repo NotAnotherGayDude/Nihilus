@@ -24,4 +24,3 @@ RealTimeChris (Chris M.)
 #include <nihilus/common/type_traits.hpp>
 #include <nihilus/common/array.hpp>
 #include <nihilus/common/harbinger.hpp>
-#include <nihilus/common/input_session.hpp>

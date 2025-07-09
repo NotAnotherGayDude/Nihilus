@@ -36,10 +36,6 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-	template<typename value_type01, typename value_type02> NIHILUS_FORCE_INLINE constexpr value_type01 max(value_type01 val01, value_type02 val02) noexcept {
-		return val01 > static_cast<value_type01>(val02) ? val01 : static_cast<value_type01>(val02);
-	}
-
 	static constexpr array<bool, 256> alpha_table{ [] {
 		array<bool, 256> return_values{};
 
@@ -77,7 +73,7 @@ namespace nihilus {
 		return static_cast<uint8_t>(c - '0') < 10;
 	}
 
-	template<typename value_type> struct core;
+	template<typename value_type> struct parse_core;
 
 	template<bool exceptions> class file_loader {
 	  public:
@@ -350,7 +346,7 @@ namespace nihilus {
 		}
 
 		NIHILUS_FORCE_INLINE stop_watch(stop_watch&& other) noexcept {
-			*this = std::move(other);
+			*this = detail::move(other);
 		}
 
 		NIHILUS_FORCE_INLINE stop_watch& operator=(const stop_watch& other) noexcept {
@@ -928,9 +924,10 @@ namespace nihilus {
 		single_word	 = 1 << 9,
 	};
 
-	enum class model_format { gguf = 1 };
-
-	template<auto> struct harbinger;
+	enum class model_format {
+		nh_void,
+		gguf,
+	};
 
 	struct model_config {
 		model_generations model_generation{};
@@ -969,6 +966,7 @@ namespace nihilus {
 		uint64_t position_offset{};
 		uint64_t sequence_length{};
 		uint64_t max_new_tokens{};
+		std::string_view prompt{};
 		uint64_t thread_count{};
 		uint64_t token_count{};
 		uint64_t random_seed{};

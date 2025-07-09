@@ -22,6 +22,7 @@ RealTimeChris (Chris M.)
 #include <nihilus/common/memory_mapped_file.hpp>
 #include <nihilus/common/parse_entity.hpp>
 #include <nihilus/common/tokenizer.hpp>
+#include <nihilus/common/core_traits.hpp>
 
 namespace nihilus {
 
@@ -311,7 +312,7 @@ namespace nihilus {
 	template<model_arches arch, tokenizer_types type, tokenizer_pre_types pre>
 	struct gguf_metadata : public metadata_base, public tokenizer_base<type>, public model_data_base<arch>, public tokenizer_traits<arch, type, pre> {};
 
-	template<model_arches arch, tokenizer_types type, tokenizer_pre_types pre> struct core<gguf_metadata<arch, type, pre>> {
+	template<model_arches arch, tokenizer_types type, tokenizer_pre_types pre> struct parse_core<gguf_metadata<arch, type, pre>> {
 		using value_type				  = gguf_metadata<arch, type, pre>;
 		static constexpr auto parse_value = create_value<make_parse_entity<&value_type::general_architecture, "general.architecture">(),
 			make_parse_entity<&value_type::general_finetune, "general.finetune">(), make_parse_entity<&value_type::general_size_label, "general.size_label">(),
@@ -340,10 +341,10 @@ namespace nihilus {
 		inline static constexpr auto memberCount = core_tuple_size<value_type>;
 
 		template<uint64_t index> using member_type_t =
-			std::remove_reference_t<decltype(get_member<value_type, get<index>(core<value_type>::parse_value).member_ptr>(std::declval<value_type&>()))>;
+			std::remove_reference_t<decltype(get_member<value_type, get<index>(parse_core<value_type>::parse_value).member_ptr>(std::declval<value_type&>()))>;
 
 		template<uint64_t index> NIHILUS_FORCE_INLINE static bool processIndex(value_type& value, std::string_view string, stream_iterator& stream) {
-			static constexpr auto tupleElem	 = get<index>(core<value_type>::parse_value);
+			static constexpr auto tupleElem	 = get<index>(parse_core<value_type>::parse_value);
 			static constexpr auto string_lit = tupleElem.name;
 			static constexpr auto ptrNew	 = tupleElem.member_ptr;
 			static constexpr auto keySize	 = string_lit.size();
@@ -556,28 +557,80 @@ namespace nihilus {
 		uint64_t offset{};
 		data_types type{};
 
-		NIHILUS_FORCE_INLINE uint64_t core_total_dims() const {
+		NIHILUS_FORCE_INLINE uint64_t total_dims() const {
 			return dimensions[0] * dimensions[1] * dimensions[2] * dimensions[3];
 		}
 
-		NIHILUS_FORCE_INLINE uint64_t core_total_byte_size() const {
-			uint64_t total_elements = core_total_dims();
-			uint64_t block_size		= core_block_size();
-			uint64_t type_size		= core_type_size();
-			uint64_t num_blocks		= (total_elements + block_size - 1) / block_size;
-			return num_blocks * type_size;
+		NIHILUS_FORCE_INLINE uint64_t total_byte_size() const {
+			uint64_t total_elements = total_dims();
+			uint64_t block_size_val = block_size();
+			uint64_t type_size_val	= type_size();
+			uint64_t num_blocks		= (total_elements + block_size_val - 1) / block_size_val;
+			return num_blocks * type_size_val;
 		}
 
-		NIHILUS_FORCE_INLINE uint64_t core_block_size() const {
+		template<core_traits_type core_traits> NIHILUS_FORCE_INLINE bool operator==(const core_traits& other) const {
+			static constexpr auto other_dims = core_traits::get_array();
+			return dimensions[0] == other_dims[0] && dimensions[1] == other_dims[1] && dimensions[2] == other_dims[2] && dimensions[3] == other_dims[3];
+		}
+
+		NIHILUS_FORCE_INLINE uint64_t block_size() const {
 			return get_type_traits(type).block_size;
 		}
 
-		NIHILUS_FORCE_INLINE uint64_t core_type_size() const {
+		NIHILUS_FORCE_INLINE uint64_t type_size() const {
 			return get_type_traits(type).type_size;
 		}
+	};
 
-		NIHILUS_FORCE_INLINE uint64_t core_row_size(int64_t dims_new) const {
-			return core_type_size() * dims_new / core_block_size();
+	template<model_config, model_arches> struct core_traits_comparitor;
+
+	template<model_config config> struct core_traits_comparitor<config, model_arches::llama> {
+		NIHILUS_FORCE_INLINE static bool impl(const core_base_creation_data& core) noexcept {
+			switch (core.op_type) {
+				case op_types::token_embd_weight: {
+					return core == core_traits<config, op_types::token_embd_weight>{};
+				}
+				case op_types::rope_freqs_weight: {
+					return core == core_traits<config, op_types::rope_freqs_weight>{};
+				}
+				case op_types::output_norm_weight: {
+					return core == core_traits<config, op_types::output_norm_weight>{};
+				}
+				case op_types::output_weight: {
+					return core == core_traits<config, op_types::output_weight>{};
+				}
+				case op_types::attn_q_weight: {
+					return core == core_traits<config, op_types::attn_q_weight>{};
+				}
+				case op_types::attn_norm_weight: {
+					return core == core_traits<config, op_types::attn_norm_weight>{};
+				}
+				case op_types::attn_k_weight: {
+					return core == core_traits<config, op_types::attn_k_weight>{};
+				}
+				case op_types::attn_v_weight: {
+					return core == core_traits<config, op_types::attn_v_weight>{};
+				}
+				case op_types::attn_output_weight: {
+					return core == core_traits<config, op_types::attn_output_weight>{};
+				}
+				case op_types::ffn_down_weight: {
+					return core == core_traits<config, op_types::ffn_down_weight>{};
+				}
+				case op_types::ffn_gate_weight: {
+					return core == core_traits<config, op_types::ffn_gate_weight>{};
+				}
+				case op_types::ffn_up_weight: {
+					return core == core_traits<config, op_types::ffn_up_weight>{};
+				}
+				case op_types::ffn_norm_weight: {
+					return core == core_traits<config, op_types::ffn_norm_weight>{};
+				}
+				default: {
+					return false;
+				}
+			}
 		}
 	};
 
@@ -664,21 +717,24 @@ namespace nihilus {
 			gguf_metadata<config.arch, config.tokenizer_type, config.tokenizer_pre_type> gguf_file{
 				value_reader<gguf_metadata<config.arch, config.tokenizer_type, config.tokenizer_pre_type>>::gather_value(ptr)
 			};
-			tokenizer.tokens		= std::move(gguf_file.tokenizer_ggml_tokens);
-			tokenizer.merges		= std::move(gguf_file.tokenizer_ggml_merges);
-			tokenizer.token_types	= std::move(gguf_file.tokenizer_ggml_token_type);
-			tokenizer.chat_template = std::move(gguf_file.tokenizer_chat_template);
+			tokenizer.tokens		= detail::move(gguf_file.tokenizer_ggml_tokens);
+			tokenizer.merges		= detail::move(gguf_file.tokenizer_ggml_merges);
+			tokenizer.token_types	= detail::move(gguf_file.tokenizer_ggml_token_type);
+			tokenizer.chat_template = detail::move(gguf_file.tokenizer_chat_template);
 			std::vector<core_base_creation_data> tensor_infos{};
 			tensor_infos.reserve(gguf_file.tensor_count);
 			for (uint64_t x = 0; x < gguf_file.tensor_count; ++x) {
 				auto new_tensor{ value_reader<core_base_creation_data, model_arches::llama>::gather_value(ptr) };
+				if (!core_traits_comparitor<config, model_arches::llama>::impl(new_tensor)) {
+					throw std::runtime_error{ "Tensor dimensions incorrect!" };
+				}
 				tensor_infos.emplace_back(new_tensor);
 			}
 			uint64_t max_tensor_end = 0;
 			for (const auto& tensor: tensor_infos) {
-				uint64_t tensor_size = tensor.core_total_byte_size();
+				uint64_t tensor_size = tensor.total_byte_size();
 				uint64_t tensor_end	 = tensor.offset + tensor_size;
-				max_tensor_end		 = max(max_tensor_end, tensor_end);
+				max_tensor_end		 = detail::max(max_tensor_end, tensor_end);
 			}
 
 			uint64_t tensor_data_start = ptr.file->size() - max_tensor_end;
