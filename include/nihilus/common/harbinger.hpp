@@ -123,11 +123,6 @@ namespace nihilus {
 		return config;
 	}
 
-	NIHILUS_FORCE_INLINE static consteval auto update_model_config_dev(model_config config, bool dev) {
-		config.dev = dev;
-		return config;
-	}
-
 	template<typename... UpdateFuncs> NIHILUS_FORCE_INLINE static consteval auto chain_model_config_updates(model_config config, UpdateFuncs... update_funcs) {
 		return (update_funcs(config), ...);
 	}

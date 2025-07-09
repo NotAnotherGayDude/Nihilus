@@ -1740,13 +1740,13 @@ namespace nihilus {
 		using model_traits_type	   = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
 		using derived_derived_type = model<config_new>;
 		using thread_pool_type	   = typename derived_derived_type::thread_pool_type;
-		NIHILUS_FORCE_INLINE static auto& impl(derived_type& parse_core) {
+		NIHILUS_FORCE_INLINE static auto& impl(derived_type& core) {
 			if constexpr (index == 0) {
-				return *static_cast<typename derived_type::input_type01*>(static_cast<typename derived_derived_type::thread_pool_type::core_base_type*>(&parse_core));
+				return *static_cast<typename derived_type::input_type01*>(static_cast<typename derived_derived_type::thread_pool_type::core_base_type*>(&core));
 			} else if constexpr (index == 1) {
-				return *static_cast<typename derived_type::input_type02*>(static_cast<typename derived_derived_type::thread_pool_type::core_base_type*>(&parse_core));
+				return *static_cast<typename derived_type::input_type02*>(static_cast<typename derived_derived_type::thread_pool_type::core_base_type*>(&core));
 			} else if constexpr (index == 2) {
-				return *static_cast<typename derived_type::input_type03*>(static_cast<typename derived_derived_type::thread_pool_type::core_base_type*>(&parse_core));
+				return *static_cast<typename derived_type::input_type03*>(static_cast<typename derived_derived_type::thread_pool_type::core_base_type*>(&core));
 			}
 		}
 	};

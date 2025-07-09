@@ -311,7 +311,7 @@ namespace nihilus {
 	template<model_arches arch, tokenizer_types type, tokenizer_pre_types pre>
 	struct gguf_metadata : public metadata_base, public tokenizer_base<type>, public model_data_base<arch>, public tokenizer_traits<arch, type, pre> {};
 
-	template<model_arches arch, tokenizer_types type, tokenizer_pre_types pre> struct parse_core<gguf_metadata<arch, type, pre>> {
+	template<model_arches arch, tokenizer_types type, tokenizer_pre_types pre> struct core<gguf_metadata<arch, type, pre>> {
 		using value_type				  = gguf_metadata<arch, type, pre>;
 		static constexpr auto parse_value = create_value<make_parse_entity<&value_type::general_architecture, "general.architecture">(),
 			make_parse_entity<&value_type::general_finetune, "general.finetune">(), make_parse_entity<&value_type::general_size_label, "general.size_label">(),
@@ -340,10 +340,10 @@ namespace nihilus {
 		inline static constexpr auto memberCount = core_tuple_size<value_type>;
 
 		template<uint64_t index> using member_type_t =
-			std::remove_reference_t<decltype(get_member<value_type, get<index>(parse_core<value_type>::parse_value).member_ptr>(std::declval<value_type&>()))>;
+			std::remove_reference_t<decltype(get_member<value_type, get<index>(core<value_type>::parse_value).member_ptr>(std::declval<value_type&>()))>;
 
 		template<uint64_t index> NIHILUS_FORCE_INLINE static bool processIndex(value_type& value, std::string_view string, stream_iterator& stream) {
-			static constexpr auto tupleElem	 = get<index>(parse_core<value_type>::parse_value);
+			static constexpr auto tupleElem	 = get<index>(core<value_type>::parse_value);
 			static constexpr auto string_lit = tupleElem.name;
 			static constexpr auto ptrNew	 = tupleElem.member_ptr;
 			static constexpr auto keySize	 = string_lit.size();

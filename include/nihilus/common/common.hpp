@@ -78,7 +78,7 @@ namespace nihilus {
 		return static_cast<uint8_t>(c - '0') < 10;
 	}
 
-	template<typename value_type> struct parse_core;
+	template<typename value_type> struct core;
 
 	template<bool exceptions> class file_loader {
 	  public:
@@ -951,7 +951,6 @@ namespace nihilus {
 		model_format format{};
 		float norm_epsilon{};
 		bool benchmark{};
-		bool dev{};
 	};
 
 	struct cli_params {

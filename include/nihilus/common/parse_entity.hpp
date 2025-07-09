@@ -117,7 +117,7 @@ namespace nihilus {
 		return create_value_impl<values...>(std::make_index_sequence<sizeof...(values)>{});
 	}
 
-	template<typename value_type> using core_tuple_type				 = decltype(parse_core<std::remove_cvref_t<value_type>>::parse_value);
+	template<typename value_type> using core_tuple_type				 = decltype(core<std::remove_cvref_t<value_type>>::parse_value);
 	template<typename value_type> constexpr uint64_t core_tuple_size = tuple_size_v<core_tuple_type<value_type>>;
 
 	template<typename value_type, uint64_t current_index = 0> NIHILUS_FORCE_INLINE static constexpr uint64_t find_matching_element(const char* start, uint64_t length) noexcept {
@@ -126,7 +126,7 @@ namespace nihilus {
 		if constexpr (current_index >= tuple_size) {
 			return std::numeric_limits<uint64_t>::max();
 		} else {
-			constexpr auto element = get<current_index>(parse_core<value_type>::parse_value);
+			constexpr auto element = get<current_index>(core<value_type>::parse_value);
 
 			constexpr auto element_name = element.name;
 			if (length == element_name.size()) {

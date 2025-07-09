@@ -48,12 +48,12 @@ namespace nihilus {
 		using op_type_type		= typename model_traits_type ::op_type_type;
 		using tokenizer_type	= tokenizer<config_new, model, config_new.arch, config_new.tokenizer_type>;
 		using base_type			= model_base;
-
 		template<auto op_type> auto& get_core() {
 			return *static_cast<nihilus::core_traits<config_new, op_type>*>(static_cast<get_core_bases_t<config_new>*>(this));
 		}
 
 		NIHILUS_FORCE_INLINE model() noexcept = default;
+
 		NIHILUS_FORCE_INLINE model(nihilus::cli_params params)
 			: thread_pool<config_new, model>{ params.thread_count }, model_base{ config_new }, input_session<config_new, model<config_new>>{ params } {
 			init(params);
@@ -67,101 +67,16 @@ namespace nihilus {
 		}
 
 		NIHILUS_FORCE_INLINE void init(nihilus::cli_params params) {
-
 			memory.init(core_bases_traits::total_required_bytes);
 			weight_memory = nihilus::memory_mapped_file{ params.model_file };
 			nihilus::array<nihilus::array<void*, model_traits_type::block_count>, op_types::count> data{};
 			this->template impl<weight_mapper>(data);
 			this->template impl<memory_mapper>(memory);
-
+			nihilus::stop_watch_val_nihilus.reset();
 			gguf_metadata<config_new.arch, config_new.tokenizer_type, config_new.tokenizer_pre_type> model_construction_data =
 				nihilus::model_parser<config_new>::parse_model(data, &weight_memory, *static_cast<tokenizer_type*>(this));
-		}
-
-		NIHILUS_FORCE_INLINE void deinit(nihilus::cli_params params) {
-			memory.deinit();
-		}
-
-		NIHILUS_FORCE_INLINE void execute_model(nihilus::execution_parameters& params) {
-
-			this->template impl<dim_updater>(2ull);
-			++current_iteration;
-			this->template impl<dim_updater>(12);
-
-			static_cast<thread_pool<config_new, model>*>(this)->execute_tasks();
-
-			++current_iteration;
-			this->template impl<dim_updater>(1ull);
-
-			for (uint64_t x = 0; x < params.token_count - 1; ++x) {
-				static_cast<thread_pool<config_new, model>*>(this)->execute_tasks();
-			}
-
-			std::cout << "OP COUNT: " << current_count.load() << std::endl;
-		}
-
-	  private:
-
-	  protected:
-		nihilus::memory_mapped_file weight_memory{};
-		nihilus::memory_buffer<config_new> memory{};
-	};
-
-	template<model_config config_new>
-		requires(config_new.benchmark)
-	struct model<config_new>
-		: public thread_pool<config_new, model<config_new>>, public model_base, public input_session<config_new, model<config_new>>, core_bases_traits<config_new> {
-		using thread_pool_type	= thread_pool<config_new, model<config_new>>;
-		using model_traits_type = nihilus::model_traits_type<config_new>;
-		using core_bases_t		= get_core_bases_t<config_new>;
-		using core_bases_traits = core_bases_traits<config_new>;
-		using op_type_type		= typename model_traits_type ::op_type_type;
-		using tokenizer_type	= tokenizer<config_new, model, config_new.arch, config_new.tokenizer_type>;
-		using base_type			= model_base;
-
-		struct benchmark_stats {
-			int64_t total_load_time_ms		  = 0;
-			int64_t total_prompt_eval_time_ms = 0;
-			int64_t total_eval_time_ms		  = 0;
-			int64_t total_sampling_time_ms	  = 0;
-			int32_t prompt_token_count		  = 0;
-			int32_t generated_token_count	  = 0;
-			int32_t total_sampling_runs		  = 0;
-		} perf_stats;
-
-		template<auto op_type> auto& get_core() {
-			return *static_cast<nihilus::core_traits<config_new, op_type>*>(static_cast<get_core_bases_t<config_new>*>(this));
-		}
-
-		NIHILUS_FORCE_INLINE model() noexcept = default;
-		NIHILUS_FORCE_INLINE model(nihilus::cli_params params)
-			: thread_pool<config_new, model>{ params.thread_count }, model_base{ config_new }, input_session<config_new, model<config_new>>{ params } {
-			init(params);
-		}
-
-		model& operator=(const model&) = delete;
-		model(const model&)			   = delete;
-
-		NIHILUS_FORCE_INLINE bool process_input(const std::string& input) {
-			return input_session<config_new, model>::process_input_impl(input);
-		}
-
-		NIHILUS_FORCE_INLINE void init(nihilus::cli_params params) {
-			auto load_start = std::chrono::high_resolution_clock::now();
-
-			memory.init(core_bases_traits::total_required_bytes);
-			weight_memory = nihilus::memory_mapped_file{ params.model_file };
-			nihilus::array<nihilus::array<void*, model_traits_type::block_count>, op_types::count> data{};
-			this->template impl<weight_mapper>(data);
-			this->template impl<memory_mapper>(memory);
-
-			gguf_metadata<config_new.arch, config_new.tokenizer_type, config_new.tokenizer_pre_type> model_construction_data =
-				nihilus::model_parser<config_new>::parse_model(data, &weight_memory, *static_cast<tokenizer_type*>(this));
-
-			auto load_end				  = std::chrono::high_resolution_clock::now();
-			perf_stats.total_load_time_ms = std::chrono::duration_cast<std::chrono::milliseconds>(load_end - load_start).count();
-
-			std::cout << "nihilus_perf_context_print:        load time = " << perf_stats.total_load_time_ms << " ms" << std::endl;
+			int64_t total_time{ nihilus::stop_watch_val_nihilus.total_time_elapsed().count() };
+			std::cout << "Nihilus model Load time: " << total_time << std::endl;
 		}
 
 		NIHILUS_FORCE_INLINE void deinit(nihilus::cli_params params) {
@@ -170,158 +85,40 @@ namespace nihilus {
 
 		NIHILUS_FORCE_INLINE void execute_model(nihilus::execution_parameters& params) {
 			current_iteration = 0;
-
-			perf_stats.prompt_token_count	 = params.sequence_length;
-			perf_stats.generated_token_count = params.token_count - 1;
-			perf_stats.total_sampling_runs	 = params.token_count;
-
-			auto prompt_start = std::chrono::high_resolution_clock::now();
-
+			nihilus::stop_watch_val_nihilus.reset();
 			this->template impl<dim_updater>(2ull);
+#if defined(NIHILUS_DEBUG)
+			this->template impl<tensor_debugger_impl>();
+#endif
 			++current_iteration;
 			this->template impl<dim_updater>(12);
-
+#if defined(NIHILUS_DEBUG)
+			this->template impl<tensor_debugger_impl>();
+#endif
+			nihilus::stop_watch_val_nihilus.reset();
 			static_cast<thread_pool<config_new, model>*>(this)->execute_tasks();
-
-			auto prompt_end						 = std::chrono::high_resolution_clock::now();
-			perf_stats.total_prompt_eval_time_ms = std::chrono::duration_cast<std::chrono::milliseconds>(prompt_end - prompt_start).count();
-
-			std::cout << "nihilus_perf_context_print: prompt eval time = " << perf_stats.total_prompt_eval_time_ms << " ms / " << perf_stats.prompt_token_count << " tokens ("
-					  << ( float )perf_stats.total_prompt_eval_time_ms / perf_stats.prompt_token_count << " ms per token, "
-					  << (1000.0f * perf_stats.prompt_token_count) / perf_stats.total_prompt_eval_time_ms << " tokens per second)" << std::endl;
-
+			nihilus::stop_watch_val_nihilus.add_time();
 			++current_iteration;
 			this->template impl<dim_updater>(1ull);
 
-			auto eval_start				   = std::chrono::high_resolution_clock::now();
-			int64_t total_eval_time_ms	   = 0;
-			int64_t total_sampling_time_ms = 0;
-
 			for (uint64_t x = 0; x < params.token_count - 1; ++x) {
-				auto token_start = std::chrono::high_resolution_clock::now();
-				static_cast<thread_pool<config_new, model>*>(this)->execute_tasks();
-
-				auto token_end	   = std::chrono::high_resolution_clock::now();
-				auto token_time_ms = std::chrono::duration_cast<std::chrono::milliseconds>(token_end - token_start).count();
-				total_eval_time_ms += token_time_ms;
-
-				auto sampling_start = std::chrono::high_resolution_clock::now();
-
-				sample_next_token(params);
-
-				auto sampling_end	  = std::chrono::high_resolution_clock::now();
-				auto sampling_time_ms = std::chrono::duration_cast<std::chrono::milliseconds>(sampling_end - sampling_start).count();
-				total_sampling_time_ms += sampling_time_ms;
-			}
-
-			perf_stats.total_eval_time_ms	  = total_eval_time_ms;
-			perf_stats.total_sampling_time_ms = total_sampling_time_ms;
-
-			print_performance_stats();
-
-			std::cout << "OP COUNT: " << current_count.load() << std::endl;
-		}
-
-	  private:
-		NIHILUS_FORCE_INLINE void sample_next_token(nihilus::execution_parameters& params) {
-			volatile int dummy_work = 0;
-			for (int i = 0; i < 100; ++i) {
-				dummy_work += i;
-			}
-		}
-
-		NIHILUS_FORCE_INLINE void print_performance_stats() {
-			int64_t total_time_ms = perf_stats.total_load_time_ms + perf_stats.total_prompt_eval_time_ms + perf_stats.total_eval_time_ms + perf_stats.total_sampling_time_ms;
-
-			int32_t total_tokens = perf_stats.prompt_token_count + perf_stats.generated_token_count;
-			std::cout << "nihilus_perf_sampler_print:    sampling time = " << perf_stats.total_sampling_time_ms << " ms / " << perf_stats.total_sampling_runs << " runs   ("
-					  << ( float )perf_stats.total_sampling_time_ms / perf_stats.total_sampling_runs << " ms per token, "
-					  << (1000.0f * perf_stats.total_sampling_runs) / perf_stats.total_sampling_time_ms << " tokens per second)" << std::endl;
-
-			std::cout << "nihilus_perf_context_print:        eval time = " << perf_stats.total_eval_time_ms << " ms / " << perf_stats.generated_token_count << " runs   ("
-					  << ( float )perf_stats.total_eval_time_ms / perf_stats.generated_token_count << " ms per token, "
-					  << (1000.0f * perf_stats.generated_token_count) / perf_stats.total_eval_time_ms << " tokens per second)" << std::endl;
-
-			std::cout << "nihilus_perf_context_print:       total time = " << total_time_ms << " ms / " << total_tokens << " tokens" << std::endl;
-		}
-
-	  protected:
-		nihilus::memory_mapped_file weight_memory{};
-		nihilus::memory_buffer<config_new> memory{};
-	};
-
-	template<model_config config_new>
-		requires(config_new.dev)
-	struct model<config_new>
-		: public thread_pool<config_new, model<config_new>>, public model_base, public input_session<config_new, model<config_new>>, core_bases_traits<config_new> {
-		using thread_pool_type	= thread_pool<config_new, model<config_new>>;
-		using model_traits_type = nihilus::model_traits_type<config_new>;
-		using core_bases_t		= get_core_bases_t<config_new>;
-		using core_bases_traits = core_bases_traits<config_new>;
-		using op_type_type		= typename model_traits_type ::op_type_type;
-		using tokenizer_type	= tokenizer<config_new, model, config_new.arch, config_new.tokenizer_type>;
-		using base_type			= model_base;
-
-		template<auto op_type> auto& get_core() {
-			return *static_cast<nihilus::core_traits<config_new, op_type>*>(static_cast<get_core_bases_t<config_new>*>(this));
-		}
-
-		NIHILUS_FORCE_INLINE model() noexcept = default;
-		NIHILUS_FORCE_INLINE model(nihilus::cli_params params)
-			: thread_pool<config_new, model>{ params.thread_count }, model_base{ config_new }, input_session<config_new, model<config_new>>{ params } {
-			init(params);
-		}
-
-		model& operator=(const model&) = delete;
-		model(const model&)			   = delete;
-
-		NIHILUS_FORCE_INLINE bool process_input(const std::string& input) {
-			return input_session<config_new, model>::process_input_impl(input);
-		}
-
-		NIHILUS_FORCE_INLINE void init(nihilus::cli_params params) {
-			memory.init(core_bases_traits::total_required_bytes);
-			weight_memory = nihilus::memory_mapped_file{ params.model_file };
-			nihilus::array<nihilus::array<void*, model_traits_type::block_count>, op_types::count> data{};
-			this->template impl<weight_mapper>(data);
-			this->template impl<memory_mapper>(memory);
-
-			gguf_metadata<config_new.arch, config_new.tokenizer_type, config_new.tokenizer_pre_type> model_construction_data =
-				nihilus::model_parser<config_new>::parse_model(data, &weight_memory, *static_cast<tokenizer_type*>(this));
-		}
-
-		NIHILUS_FORCE_INLINE void deinit(nihilus::cli_params params) {
-			memory.deinit();
-		}
-
-		NIHILUS_FORCE_INLINE void execute_model(nihilus::execution_parameters& params) {
-			current_iteration = 0;
-
-			this->template impl<dim_updater>(2ull);
-			this->template impl<tensor_debugger_impl>();
-			++current_iteration;
-			this->template impl<dim_updater>(12);
-			this->template impl<tensor_debugger_impl>();
-
-			static_cast<thread_pool<config_new, model>*>(this)->execute_tasks();
-
-			++current_iteration;
-			this->template impl<dim_updater>(1ull);
-
-
-			for (uint64_t x = 0; x < params.token_count - 1; ++x) {
+				nihilus::stop_watch_val_nihilus.reset();
+#if defined(NIHILUS_DEBUG)
 				this->template impl<tensor_debugger_impl>();
 				++current_iteration;
+#endif
 				static_cast<thread_pool<config_new, model>*>(this)->execute_tasks();
+				nihilus::stop_watch_val_nihilus.add_time();
 			}
-
-
+#if defined(NIHILUS_DEBUG)
 			this->template impl<execution_checker>(params.thread_count);
-
+#endif
 			std::cout << "OP COUNT: " << current_count.load() << std::endl;
-		}
 
-	  private:
+			// Perform all of the necessary stuff to execute the model - along with all of the constexpr values stored globally inside the class LOL!.
+			// Because we only pay the "virtual overhead @ the top here == totally negligible.
+		};
+
 	  protected:
 		nihilus::memory_mapped_file weight_memory{};
 		nihilus::memory_buffer<config_new> memory{};
