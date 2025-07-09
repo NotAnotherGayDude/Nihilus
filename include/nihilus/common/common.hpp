@@ -25,7 +25,6 @@ RealTimeChris (Chris M.)
 #include <nihilus/common/data_types.hpp>
 #include <nihilus/common/concepts.hpp>
 #include <nihilus/common/array.hpp>
-#include <nihilus/common/enum.hpp>
 #include <filesystem>
 #include <iostream>
 #include <cstdint>

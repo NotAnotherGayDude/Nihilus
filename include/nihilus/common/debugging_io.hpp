@@ -20,7 +20,7 @@ RealTimeChris (Chris M.)
 
 #pragma once
 
-#if defined(NIHILUS_DEBUG)
+#if defined(NIHILUS_DEV)
 	#include <jsonifier/Index.hpp>
 
 	#include <nihilus/common/common.hpp>
