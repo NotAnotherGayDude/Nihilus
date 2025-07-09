@@ -35,7 +35,7 @@ namespace nihilus {
 	inline std::atomic_uint64_t count{};
 
 	NIHILUS_FORCE_INLINE void spinlock_nanoseconds(uint64_t nanoseconds) {		
-#if !defined(NIHILUS_DEV)
+#if !defined(NIHILUS_DEBUG)
 #if defined(NIHILUS_PLATFORM_WINDOWS)
 		auto start = std::chrono::high_resolution_clock::now();
 		auto end   = std::chrono::high_resolution_clock::now();
@@ -348,7 +348,7 @@ namespace nihilus {
 		}
 	};
 
-#if defined(NIHILUS_DEV)
+#if defined(NIHILUS_DEBUG)
 
 	template<nihilus::model_config config, typename base_type> struct tensor_debugger_impl {
 		NIHILUS_FORCE_INLINE tensor_debugger_impl() noexcept									   = default;

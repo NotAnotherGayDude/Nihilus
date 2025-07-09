@@ -103,7 +103,7 @@ namespace nihilus {
 				output_tokens[i] = temp_tokens[i];
 			}
 
-#if defined(NIHILUS_DEV)
+#if defined(NIHILUS_DEBUG)
 			print_tokenization_debug(input_text, temp_tokens);
 #endif
 			return temp_tokens.size();
