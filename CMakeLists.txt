@@ -25,7 +25,7 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(ENV{CMAKE_INSTALL_PREFIX} "${CMAKE_SOURCE_DIR}/../Install")
 
-if (NIHILUS_VS_LLAMA_DEV)
+if (NIHILUS_DEV)
     include(FetchContent)
     FetchContent_Declare(
         Jsonifier
@@ -94,7 +94,7 @@ target_include_directories(
 )
 
 target_link_libraries(
-    "${PROJECT_NAME}" "${NIHILUS_PRIVATE_DEFINITION}" $<$<STREQUAL:$<UPPER_CASE:${NIHILUS_VS_LLAMA_DEV}>,TRUE>:Jsonifier::Jsonifier>
+    "${PROJECT_NAME}" "${NIHILUS_PRIVATE_DEFINITION}" $<$<STREQUAL:$<UPPER_CASE:${NIHILUS_DEV}>,TRUE>:Jsonifier::Jsonifier>
 )
 
 include("cmake/nihilus_detect_architecture.cmake")
@@ -401,7 +401,8 @@ target_link_options(
 target_compile_definitions(
     "${PROJECT_NAME}" "${NIHILUS_PRIVATE_DEFINITION}" 
     "$<$<STREQUAL:${NIHILUS_ASAN_ENABLED},TRUE>:NIHILUS_ASAN_ENABLED>"
-    "$<$<STREQUAL:${NIHILUS_DEV_ENABLED},TRUE>:NIHILUS_DEBUG>"
+    "$<$<STREQUAL:${NIHILUS_DEV},TRUE>:NIHILUS_DEV>"
+    "$<$<STREQUAL:${NIHILUS_BENCHMARK},TRUE>:NIHILUS_BENCHMARK>"
 )
 
 set(CONFIG_FILE_NAME "${PROJECT_NAME}Config.cmake")
@@ -468,11 +469,11 @@ if(NIHILUS_BUILD_ALL_ARM_VARIANTS)
     message(STATUS "ARM Variants: ${INSTRUCTION_SET_NAME}")
 endif()
 
-if (NIHILUS_VS_LLAMA)
+if (NIHILUS_CLEAN)
     add_subdirectory("./tests/vs-llama-clean")
-elseif (NIHILUS_VS_LLAMA_DEV)
+elseif (NIHILUS_DEV)
     add_subdirectory("./tests/vs-llama-dev")
-elseif (NIHILUS_VS_LLAMA_BENCHMARK)
+elseif (NIHILUS_BENCHMARK)
     add_subdirectory("./tests/vs-llama-benchmark")
 elseif (NIHILUS_NH_ONLY)
     add_subdirectory("./tests/nihilus-only")
