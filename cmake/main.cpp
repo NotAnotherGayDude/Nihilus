@@ -1,5 +1,6 @@
 // Sampled mostly from Simdjson: https://github.com/simdjson/simdjson
-#include <iostream>
+#if defined(NIHILUS_DETECT_ARCH)
+	#include <iostream>
 #include <cstring>
 #include <cstdint>
 #include <cstdlib>
@@ -135,3 +136,9 @@ int32_t main() {
 	const auto supported_isa = detect_supported_architectures();
 	return supported_isa;
 }
+#else
+#include <thread>
+int32_t main() {
+	return std::thread::hardware_concurrency();
+}
+#endif

@@ -74,16 +74,17 @@ namespace nihilus {
 		}
 	};
 
-	template<typename value_type, auto...> struct value_reader;
+	template<model_config config, typename value_type, auto...> struct value_reader;
 
-	template<typename value_type>
+	template<model_config config, typename value_type>
 		requires(std::is_pod_v<value_type> && !std::is_enum_v<value_type> || std::is_same_v<gguf_metadata_value_type, value_type>)
-	struct value_reader<value_type> {
+	struct value_reader<config, value_type> {
 		NIHILUS_FORCE_INLINE static value_type gather_value(stream_iterator& input) {
 			if (input.has_bytes<value_type>()) {
 				return input.read<value_type>();
 			} else {
-				throw std::runtime_error{ "Sorry, but that index is out of range!" };
+				static constexpr auto location = get_source_location();
+				return status_handler<config, value_type>::template construct_status<"Sorry, but that index is out of range!", location, success_statuses::fail>();
 			}
 		}
 	};
@@ -197,13 +198,14 @@ namespace nihilus {
 		}
 	};
 
-	template<typename value_type>
+	template<model_config config, typename value_type>
 		requires(std::is_enum_v<value_type> && !std::is_same_v<gguf_metadata_value_type, value_type>)
-	struct value_reader<value_type> {
+	struct value_reader<config, value_type> {
 		NIHILUS_FORCE_INLINE static value_type gather_value(stream_iterator& input) {
-			uint64_t length = value_reader<uint64_t>::gather_value(input);
+			uint64_t length = value_reader<config, uint64_t>::gather_value(input);
 			if (!input.has_bytes<uint8_t>(length)) {
-				throw std::runtime_error("Sorry, but that index is out of range!");
+				static constexpr auto location = get_source_location();
+				return status_handler<config, value_type>::template construct_status<"Sorry, but that index is out of range!", location, success_statuses::fail>();
 			}
 			const char* string_ptr{ static_cast<const char*>(input.file->data()) + input.current_index };
 			input.current_index += length;
@@ -212,39 +214,41 @@ namespace nihilus {
 		}
 	};
 
-	template<typename value_type>
+	template<model_config config, typename value_type>
 		requires(is_specialization_v<value_type, std::unordered_map>)
-	struct value_reader<value_type> {
+	struct value_reader<config, value_type> {
 		NIHILUS_FORCE_INLINE static value_type gather_value(stream_iterator& input) {
-			gguf_metadata_value_type type{ value_reader<gguf_metadata_value_type>::gather_value(input) };
-			uint64_t length{ value_reader<uint64_t>::gather_value(input) };
+			gguf_metadata_value_type type{ value_reader<config, gguf_metadata_value_type>::gather_value(input) };
+			uint64_t length{ value_reader<config, uint64_t>::gather_value(input) };
 			constexpr uint64_t MAX_ARRAY_LENGTH = 1024 * 1024;
 			if (length > MAX_ARRAY_LENGTH) {
-				throw std::runtime_error{ "Array length exceeds maximum allowed size!" };
+				static constexpr auto location = get_source_location();
+				return status_handler<config, value_type>::template construct_status<"Sorry, but that index is out of range!", location, success_statuses::fail>();
 			}
 			value_type value{};
 			value.reserve(length);
 			for (uint64_t x = 0; x < length; ++x) {
-				value[value_reader<typename value_type::key_type>::gather_value(input)] = x;
+				value[value_reader<config, typename value_type::key_type>::gather_value(input)] = x;
 			}
 			return value;
 		}
 	};
 
-	template<typename value_type>
+	template<model_config config, typename value_type>
 		requires(is_specialization_v<value_type, std::vector>)
-	struct value_reader<value_type> {
+	struct value_reader<config, value_type> {
 		NIHILUS_FORCE_INLINE static value_type gather_value(stream_iterator& input) {
-			gguf_metadata_value_type type{ value_reader<gguf_metadata_value_type>::gather_value(input) };
-			uint64_t length{ value_reader<uint64_t>::gather_value(input) };
+			gguf_metadata_value_type type{ value_reader<config, gguf_metadata_value_type>::gather_value(input) };
+			uint64_t length{ value_reader<config, uint64_t>::gather_value(input) };
 			constexpr uint64_t MAX_ARRAY_LENGTH = 1024 * 1024;
 			if (length > MAX_ARRAY_LENGTH) {
-				throw std::runtime_error{ "Array length exceeds maximum allowed size!" };
+				static constexpr auto location = get_source_location();
+				return status_handler<config, value_type>::template construct_status<"Array length exceeds maximum allowed size!", location, success_statuses::fail>();
 			}
 			value_type value{};
 			value.reserve(length);
 			for (uint64_t x = 0; x < length; ++x) {
-				value.emplace_back(value_reader<typename value_type::value_type>::gather_value(input));
+				value.emplace_back(value_reader<config, typename value_type::value_type>::gather_value(input));
 			}
 			return value;
 		}
@@ -252,11 +256,12 @@ namespace nihilus {
 
 	using gguf_string_t = std::string_view;
 
-	template<> struct value_reader<gguf_string_t> {
+	template<model_config config> struct value_reader<config, gguf_string_t> {
 		NIHILUS_FORCE_INLINE static std::string_view gather_value(stream_iterator& input) {
-			uint64_t length = value_reader<uint64_t>::gather_value(input);
+			uint64_t length = value_reader<config, uint64_t>::gather_value(input);
 			if (!input.has_bytes<uint8_t>(length)) {
-				throw std::runtime_error("Sorry, but that index is out of range!");
+				static constexpr auto location = get_source_location();
+				return status_handler<config, gguf_string_t>::template construct_status<"Sorry, but that index is out of range!", location, success_statuses::fail>();
 			}
 			const char* string_ptr{ static_cast<const char*>(input.file->data()) + input.current_index };
 			input.current_index += length;
@@ -266,84 +271,69 @@ namespace nihilus {
 	};
 
 	struct metadata_base {
-		std::vector<std::string_view> general_languages;
-		std::vector<std::string_view> general_tags;
 		std::string_view quantize_imatrix_dataset;
+		std::vector<std::string_view> languages;
 		int32_t quantize_imatrix_entries_count;
 		std::string_view quantize_imatrix_file;
-		uint32_t general_quantization_version;
 		int32_t quantize_imatrix_chunks_count;
-		std::string_view general_architecture;
-		std::string_view general_size_label;
-		std::string_view general_finetune;
-		std::string_view general_license;
-		uint32_t general_file_type;
+		std::vector<std::string_view> tags;
+		uint32_t quantization_version;
+		std::string_view architecture;
+		std::string_view size_label;
 		uint64_t metadata_kv_count;
+		std::string_view finetune;
+		std::string_view license;
 		uint64_t tensor_count;
+		uint32_t file_type;
 		uint32_t alignment;
-	};
-
-	template<model_arches arch> struct model_data_base;
-
-	template<> struct model_data_base<model_arches::llama> {
-		float llama_attention_layer_norm_rms_epsilon;
-		uint32_t llama_attention_head_count_kv;
-		uint32_t llama_attention_head_count;
-		uint32_t llama_rope_dimension_count;
-		uint32_t llama_feed_forward_length;
-		uint32_t llama_embedding_length;
-		uint32_t llama_tokenizer_size;
-		uint32_t llama_context_length;
-		uint32_t llama_block_count;
-		float llama_rope_freq_base;
-		uint32_t llama_vocab_size;
 	};
 
 	template<tokenizer_types type> struct tokenizer_base;
 
 	template<> struct tokenizer_base<tokenizer_types::bpe> {
-		std::unordered_map<std::string_view, int32_t> tokenizer_ggml_tokens;
-		std::vector<std::string_view> tokenizer_ggml_merges;
-		std::vector<int32_t> tokenizer_ggml_token_type;
-		std::string_view tokenizer_chat_template;
-		std::string_view tokenizer_ggml_model;
+		std::unordered_map<std::string_view, int32_t> ggml_tokens;
+		std::vector<std::string_view> ggml_merges;
+		std::vector<int32_t> ggml_token_type;
+		std::string_view chat_template;
+		std::string_view ggml_model;
 	};
 
-	template<model_arches arch, tokenizer_types type, tokenizer_pre_types pre>
-	struct gguf_metadata : public metadata_base, public tokenizer_base<type>, public model_data_base<arch>, public tokenizer_traits<arch, type, pre> {};
+	template<model_config config> struct gguf_metadata : public metadata_base,
+														 public tokenizer_base<config.tokenizer_type>,
+														 public model_traits<config.arch, config.model_size, config.model_generation>,
+														 public tokenizer_traits<config.arch, config.tokenizer_type, config.tokenizer_pre_type> {};
 
-	template<model_arches arch, tokenizer_types type, tokenizer_pre_types pre> struct parse_core<gguf_metadata<arch, type, pre>> {
-		using value_type				  = gguf_metadata<arch, type, pre>;
-		static constexpr auto parse_value = create_value<make_parse_entity<&value_type::general_architecture, "general.architecture">(),
-			make_parse_entity<&value_type::general_finetune, "general.finetune">(), make_parse_entity<&value_type::general_size_label, "general.size_label">(),
-			make_parse_entity<&value_type::general_license, "general.license">(), make_parse_entity<&value_type::general_tags, "general.tags">(),
-			make_parse_entity<&value_type::general_languages, "general.languages">(), make_parse_entity<&value_type::llama_block_count, "llama.block_count">(),
-			make_parse_entity<&value_type::llama_context_length, "llama.context_length">(), make_parse_entity<&value_type::llama_embedding_length, "llama.embedding_length">(),
-			make_parse_entity<&value_type::llama_feed_forward_length, "llama.feed_forward_length">(),
-			make_parse_entity<&value_type::llama_attention_head_count, "llama.attention.head_count">(),
-			make_parse_entity<&value_type::llama_attention_head_count_kv, "llama.attention.head_count_kv">(),
-			make_parse_entity<&value_type::llama_rope_freq_base, "llama.rope.freq_base">(),
-			make_parse_entity<&value_type::llama_attention_layer_norm_rms_epsilon, "llama.attention.layer_norm_rms_epsilon">(),
-			make_parse_entity<&value_type::general_file_type, "general.file_type">(), make_parse_entity<&value_type::llama_vocab_size, "llama.vocab_size">(),
-			make_parse_entity<&value_type::llama_rope_dimension_count, "llama.rope.dimension_count">(), make_parse_entity<&value_type::type, "tokenizer.ggml.model">(),
-			make_parse_entity<&value_type::pre_type, "tokenizer.ggml.pre">(), make_parse_entity<&value_type::tokenizer_ggml_tokens, "tokenizer.ggml.tokens">(),
-			make_parse_entity<&value_type::tokenizer_ggml_token_type, "tokenizer.ggml.token_type">(),
-			make_parse_entity<&value_type::tokenizer_ggml_merges, "tokenizer.ggml.merges">(), make_parse_entity<&value_type::special_bos_id, "tokenizer.ggml.bos_token_id">(),
-			make_parse_entity<&value_type::special_eos_id, "tokenizer.ggml.eos_token_id">(), make_parse_entity<&value_type::tokenizer_chat_template, "tokenizer.chat_template">(),
-			make_parse_entity<&value_type::general_quantization_version, "general.quantization_version">(),
-			make_parse_entity<&value_type::quantize_imatrix_file, "quantize.imatrix.file">(),
-			make_parse_entity<&value_type::quantize_imatrix_dataset, "quantize.imatrix.dataset">(),
-			make_parse_entity<&value_type::quantize_imatrix_entries_count, "quantize.imatrix.entries_count">(),
-			make_parse_entity<&value_type::quantize_imatrix_chunks_count, "quantize.imatrix.chunks_count">()>();
+	template<model_config config> struct parse_core<gguf_metadata<config>> {
+		using value_type = gguf_metadata<config>;
+		static constexpr auto parse_value =
+			create_value<make_parse_entity<&value_type::architecture, "general.architecture">(), make_parse_entity<&value_type::finetune, "general.finetune">(),
+				make_parse_entity<&value_type::size_label, "general.size_label">(), make_parse_entity<&value_type::license, "general.license">(),
+				make_parse_entity<&value_type::tags, "general.tags">(), make_parse_entity<&value_type::languages, "general.languages">(),
+				make_parse_entity<&value_type::block_count, "llama.block_count">(), make_parse_entity<&value_type::context_length, "llama.context_length">(),
+				make_parse_entity<&value_type::embedding_length, "llama.embedding_length">(), make_parse_entity<&value_type::feed_forward_length, "llama.feed_forward_length">(),
+				make_parse_entity<&value_type::attention_head_count, "llama.attention.attention_head_count">(),
+				make_parse_entity<&value_type::attention_head_count_kv, "llama.attention.attention_head_count_kv">(),
+				make_parse_entity<&value_type::rope_freq_base, "llama.rope.freq_base">(),
+				make_parse_entity<&value_type::layer_norm_rms_epsilon, "llama.attention.layer_norm_rms_epsilon">(),
+				make_parse_entity<&value_type::file_type, "general.file_type">(), make_parse_entity<&value_type::vocab_size, "llama.vocab_size">(),
+				make_parse_entity<&value_type::rope_dimension_count, "llama.rope.dimension_count">(), make_parse_entity<&value_type::type, "tokenizer.ggml.model">(),
+				make_parse_entity<&value_type::pre_type, "tokenizer.ggml.pre">(), make_parse_entity<&value_type::ggml_tokens, "tokenizer.ggml.tokens">(),
+				make_parse_entity<&value_type::ggml_token_type, "tokenizer.ggml.token_type">(), make_parse_entity<&value_type::ggml_merges, "tokenizer.ggml.merges">(),
+				make_parse_entity<&value_type::special_bos_id, "tokenizer.ggml.bos_token_id">(), make_parse_entity<&value_type::special_eos_id, "tokenizer.ggml.eos_token_id">(),
+				make_parse_entity<&value_type::chat_template, "tokenizer.chat_template">(), make_parse_entity<&value_type::quantization_version, "general.quantization_version">(),
+				make_parse_entity<&value_type::quantize_imatrix_file, "quantize.imatrix.file">(),
+				make_parse_entity<&value_type::quantize_imatrix_dataset, "quantize.imatrix.dataset">(),
+				make_parse_entity<&value_type::quantize_imatrix_entries_count, "quantize.imatrix.entries_count">(),
+				make_parse_entity<&value_type::quantize_imatrix_chunks_count, "quantize.imatrix.chunks_count">()>();
 	};
 
-	template<typename value_type> struct parse_types_impl {
+	template<model_config config, typename value_type> struct parse_types_impl {
 		inline static constexpr auto memberCount = core_tuple_size<value_type>;
 
 		template<uint64_t index> using member_type_t =
 			std::remove_reference_t<decltype(get_member<value_type, get<index>(parse_core<value_type>::parse_value).member_ptr>(std::declval<value_type&>()))>;
 
-		template<uint64_t index> NIHILUS_FORCE_INLINE static bool processIndex(value_type& value, std::string_view string, stream_iterator& stream) {
+		template<uint64_t index> NIHILUS_FORCE_INLINE static void processIndex(value_type& value, std::string_view string, stream_iterator& stream) {
 			static constexpr auto tupleElem	 = get<index>(parse_core<value_type>::parse_value);
 			static constexpr auto string_lit = tupleElem.name;
 			static constexpr auto ptrNew	 = tupleElem.member_ptr;
@@ -352,93 +342,95 @@ namespace nihilus {
 			if NIHILUS_LIKELY ((string.size() <= keySize) && string_literal_comparitor<decltype(string_lit), string_lit>::impl(string.data())) {
 				auto& ref = get_member<value_type, ptrNew>(value);
 				if constexpr (!std::is_const_v<std::remove_reference_t<decltype(ref)>>) {
-					ref = value_reader<member_type_t<index>>::gather_value(stream);
+					ref = value_reader<config, member_type_t<index>>::gather_value(stream);
 				} else {
-					member_type_t<index> value_new{ value_reader<std::remove_const_t<member_type_t<index>>>::gather_value(stream) };
+					member_type_t<index> value_new{ value_reader<config, std::remove_const_t<member_type_t<index>>>::gather_value(stream) };
 					if (value_new != ref) {
-						std::string error_string{ std::string{ "Sorry, but member of name: " } + std::string{ string_lit.data(), string_lit.size() } + " was not equal!" };
-						throw std::runtime_error{ error_string };
+						static constexpr string_literal sl_new{ "Sorry, but member of name: " + string_lit + " was not equal!" };
+						static constexpr auto location = get_source_location();
+						status_handler<config, void>::template construct_status<sl_new, location, success_statuses::fail>();
+						return;
 					}
 				}
+				( void )ref;
 			}
-			return false;
 		}
 	};
 
-	template<template<typename> typename parsing_type, typename value_type, size_t... indices>
+	template<template<model_config, typename> typename parsing_type, model_config config, typename value_type, size_t... indices>
 	inline static constexpr auto generateFunctionPtrs(std::index_sequence<indices...>) noexcept {
-		using function_type = decltype(&parse_types_impl<value_type>::template processIndex<0>);
-		return array<function_type, sizeof...(indices)>{ { &parsing_type<value_type>::template processIndex<indices>... } };
+		using function_type = decltype(&parse_types_impl<config, value_type>::template processIndex<0>);
+		return array<function_type, sizeof...(indices)>{ { &parsing_type<config, value_type>::template processIndex<indices>... } };
 	}
 
-	template<template<typename> typename parsing_type, typename value_type>
-	static constexpr auto function_ptrs{ generateFunctionPtrs<parsing_type, value_type>(std::make_index_sequence<core_tuple_size<value_type>>{}) };
+	template<template<model_config, typename> typename parsing_type, model_config config, typename value_type>
+	static constexpr auto function_ptrs{ generateFunctionPtrs<parsing_type, config, value_type>(std::make_index_sequence<core_tuple_size<value_type>>{}) };
 
-	NIHILUS_INLINE uint64_t calculate_and_skip_unknown_value(stream_iterator& input, gguf_metadata_value_type type) {
-		uint64_t bytes_skipped = 0;
-
+	template<model_config config> NIHILUS_INLINE void calculate_and_skip_unknown_value(stream_iterator& input, gguf_metadata_value_type type) {
 		switch (type) {
 			case gguf_metadata_value_type::uint8:
 			case gguf_metadata_value_type::int8:
 			case gguf_metadata_value_type::boolean: {
-				bytes_skipped = 1;
-				input.current_index += bytes_skipped;
+				input.current_index += 1;
 				break;
 			}
 			case gguf_metadata_value_type::uint16:
 			case gguf_metadata_value_type::int16: {
-				bytes_skipped = 2;
-				input.current_index += bytes_skipped;
+				input.current_index += 2;
 				break;
 			}
 			case gguf_metadata_value_type::uint32:
 			case gguf_metadata_value_type::int32:
 			case gguf_metadata_value_type::float32: {
-				bytes_skipped = 4;
-				input.current_index += bytes_skipped;
+				input.current_index += 4;
 				break;
 			}
 			case gguf_metadata_value_type::uint64:
 			case gguf_metadata_value_type::int64:
 			case gguf_metadata_value_type::float64: {
-				bytes_skipped = 8;
-				input.current_index += bytes_skipped;
+				input.current_index += 8;
 				break;
 			}
 			case gguf_metadata_value_type::string: {
 				if (!input.has_bytes<uint64_t>()) {
-					throw std::runtime_error("Insufficient bytes for string length!");
+					static constexpr auto location = get_source_location();
+					status_handler<config, void>::template construct_status<"Insufficient bytes for string length!", location, success_statuses::fail>();
+					return;
 				}
 				uint64_t string_length = input.read<uint64_t>();
-				bytes_skipped		   = sizeof(uint64_t) + string_length;
 
 				if (!input.has_bytes<uint8_t>(string_length)) {
-					throw std::runtime_error("Insufficient bytes for string content!");
+					static constexpr auto location = get_source_location();
+					status_handler<config, void>::template construct_status<"Insufficient bytes for string content!", location, success_statuses::fail>();
+					return;
 				}
 				input.current_index += string_length;
 				break;
 			}
 			case gguf_metadata_value_type::array: {
 				if (!input.has_bytes<gguf_metadata_value_type>()) {
-					throw std::runtime_error("Insufficient bytes for array type!");
+					static constexpr auto location = get_source_location();
+					status_handler<config, void>::template construct_status<"Insufficient bytes for array type!", location, success_statuses::fail>();
+					return;
 				}
 				gguf_metadata_value_type array_type = input.read<gguf_metadata_value_type>();
-				bytes_skipped += sizeof(gguf_metadata_value_type);
 
 				if (!input.has_bytes<uint64_t>()) {
-					throw std::runtime_error("Insufficient bytes for array length!");
+					static constexpr auto location = get_source_location();
+					status_handler<config, void>::template construct_status<"Insufficient bytes for array length!", location, success_statuses::fail>();
+					return;
 				}
 				uint64_t array_length = input.read<uint64_t>();
-				bytes_skipped += sizeof(uint64_t);
 
 				constexpr uint64_t MAX_ARRAY_LENGTH = 1024 * 1024;
 				if (array_length > MAX_ARRAY_LENGTH) {
-					throw std::runtime_error("Array length exceeds maximum allowed size during skip!");
+					static constexpr auto location = get_source_location();
+					status_handler<config, void>::template construct_status<"Array length exceeds maximum allowed size during skip!", location, success_statuses::fail>();
+					return;
 				}
 
 				for (uint64_t i = 0; i < array_length; ++i) {
-					uint64_t element_bytes = calculate_and_skip_unknown_value(input, array_type);
-					bytes_skipped += element_bytes;
+					calculate_and_skip_unknown_value<config>(input, array_type);
 				}
 				break;
 			}
@@ -448,38 +440,41 @@ namespace nihilus {
 			}
 		}
 
-		return bytes_skipped;
+		return;
 	}
 
-	template<model_arches arch, tokenizer_types type, tokenizer_pre_types pre> struct value_reader<gguf_metadata<arch, type, pre>> {
-		NIHILUS_FORCE_INLINE static gguf_metadata<arch, type, pre> gather_value(stream_iterator& input) {
-			gguf_metadata<arch, type, pre> value{};
-			uint32_t magic = value_reader<uint32_t>::gather_value(input);
+	template<model_config config> struct value_reader<config, gguf_metadata<config>> {
+		NIHILUS_FORCE_INLINE static gguf_metadata<config> gather_value(stream_iterator& input) {
+			gguf_metadata<config> value{};
+			uint32_t magic = value_reader<config, uint32_t>::gather_value(input);
 			if (magic != 0x46554747) {
-				throw std::runtime_error{ "Sorry, but that magic value was incorrect!" };
+				static constexpr auto location = get_source_location();
+				return status_handler<config, gguf_metadata<config>>::template construct_status<"Sorry, but that magic value was incorrect!", location, success_statuses::fail>();
 			}
-			uint64_t version		= value_reader<uint32_t>::gather_value(input);
-			value.tensor_count		= value_reader<uint64_t>::gather_value(input);
-			value.metadata_kv_count = value_reader<uint64_t>::gather_value(input);
+			uint64_t version		= value_reader<config, uint32_t>::gather_value(input);
+			value.tensor_count		= value_reader<config, uint64_t>::gather_value(input);
+			value.metadata_kv_count = value_reader<config, uint64_t>::gather_value(input);
 
 			static constexpr uint64_t MAX_TENSOR_COUNT	 = 100000;
 			static constexpr uint64_t MAX_METADATA_COUNT = 10000;
 
 			if (value.tensor_count > MAX_TENSOR_COUNT) {
-				throw std::runtime_error{ "Tensor count exceeds reasonable maximum!" };
+				static constexpr auto location = get_source_location();
+				return status_handler<config, gguf_metadata<config>>::template construct_status<"Tensor count exceeds reasonable maximum!", location, success_statuses::fail>();
 			}
 			if (value.metadata_kv_count > MAX_METADATA_COUNT) {
-				throw std::runtime_error{ "Metadata count exceeds reasonable maximum!" };
+				static constexpr auto location = get_source_location();
+				return status_handler<config, gguf_metadata<config>>::template construct_status<"Metadata count exceeds reasonable maximum!", location, success_statuses::fail>();
 			}
 
 			for (uint64_t x = 0; x < value.metadata_kv_count; ++x) {
-				std::string_view new_string			= value_reader<gguf_string_t>::gather_value(input);
-				gguf_metadata_value_type value_type = value_reader<gguf_metadata_value_type>::gather_value(input);
-				auto index							= hash_map<gguf_metadata<arch, type, pre>, const char*>::findIndex(new_string.data(), new_string.data() + new_string.size());
-				if (index < function_ptrs<parse_types_impl, gguf_metadata<arch, type, pre>>.size()) {
-					function_ptrs<parse_types_impl, gguf_metadata<arch, type, pre>>[index](value, new_string, input);
+				std::string_view new_string			= value_reader<config, gguf_string_t>::gather_value(input);
+				gguf_metadata_value_type value_type = value_reader<config, gguf_metadata_value_type>::gather_value(input);
+				auto index							= hash_map<gguf_metadata<config>, const char*>::findIndex(new_string.data(), new_string.data() + new_string.size());
+				if (index < function_ptrs<parse_types_impl, config, gguf_metadata<config>>.size()) {
+					function_ptrs<parse_types_impl, config, gguf_metadata<config>>[index](value, new_string, input);
 				} else {
-					calculate_and_skip_unknown_value(input, value_type);
+					calculate_and_skip_unknown_value<config>(input, value_type);
 				}
 			}
 			return value;
@@ -586,46 +581,46 @@ namespace nihilus {
 	template<model_config, model_arches> struct core_traits_comparitor;
 
 	template<model_config config> struct core_traits_comparitor<config, model_arches::llama> {
-		NIHILUS_FORCE_INLINE static bool impl(const core_base_creation_data& core) noexcept {
-			switch (core.op_type) {
+		NIHILUS_FORCE_INLINE static bool impl(const core_base_creation_data& parse_core) noexcept {
+			switch (parse_core.op_type) {
 				case op_types::token_embd_weight: {
-					return core == core_traits<config, op_types::token_embd_weight>{};
+					return parse_core == core_traits<config, op_types::token_embd_weight>{};
 				}
 				case op_types::rope_freqs_weight: {
-					return core == core_traits<config, op_types::rope_freqs_weight>{};
+					return parse_core == core_traits<config, op_types::rope_freqs_weight>{};
 				}
 				case op_types::output_norm_weight: {
-					return core == core_traits<config, op_types::output_norm_weight>{};
+					return parse_core == core_traits<config, op_types::output_norm_weight>{};
 				}
 				case op_types::output_weight: {
-					return core == core_traits<config, op_types::output_weight>{};
+					return parse_core == core_traits<config, op_types::output_weight>{};
 				}
 				case op_types::attn_q_weight: {
-					return core == core_traits<config, op_types::attn_q_weight>{};
+					return parse_core == core_traits<config, op_types::attn_q_weight>{};
 				}
 				case op_types::attn_norm_weight: {
-					return core == core_traits<config, op_types::attn_norm_weight>{};
+					return parse_core == core_traits<config, op_types::attn_norm_weight>{};
 				}
 				case op_types::attn_k_weight: {
-					return core == core_traits<config, op_types::attn_k_weight>{};
+					return parse_core == core_traits<config, op_types::attn_k_weight>{};
 				}
 				case op_types::attn_v_weight: {
-					return core == core_traits<config, op_types::attn_v_weight>{};
+					return parse_core == core_traits<config, op_types::attn_v_weight>{};
 				}
 				case op_types::attn_output_weight: {
-					return core == core_traits<config, op_types::attn_output_weight>{};
+					return parse_core == core_traits<config, op_types::attn_output_weight>{};
 				}
 				case op_types::ffn_down_weight: {
-					return core == core_traits<config, op_types::ffn_down_weight>{};
+					return parse_core == core_traits<config, op_types::ffn_down_weight>{};
 				}
 				case op_types::ffn_gate_weight: {
-					return core == core_traits<config, op_types::ffn_gate_weight>{};
+					return parse_core == core_traits<config, op_types::ffn_gate_weight>{};
 				}
 				case op_types::ffn_up_weight: {
-					return core == core_traits<config, op_types::ffn_up_weight>{};
+					return parse_core == core_traits<config, op_types::ffn_up_weight>{};
 				}
 				case op_types::ffn_norm_weight: {
-					return core == core_traits<config, op_types::ffn_norm_weight>{};
+					return parse_core == core_traits<config, op_types::ffn_norm_weight>{};
 				}
 				default: {
 					return false;
@@ -666,27 +661,29 @@ namespace nihilus {
 		return 0;
 	}
 
-	template<model_arches arch> struct value_reader<core_base_creation_data, arch> {
+	template<model_config config> struct value_reader<config, core_base_creation_data> {
 		NIHILUS_FORCE_INLINE static core_base_creation_data gather_value(stream_iterator& input) {
 			core_base_creation_data value{};
-			std::string_view name{ value_reader<std::string_view>::gather_value(input) };
-			value.op_type					  = string_to_op_type<arch>::impl(name);
-			value.n_dimensions				  = value_reader<uint32_t>::gather_value(input);
+			std::string_view name{ value_reader<config, std::string_view>::gather_value(input) };
+			value.op_type					  = string_to_op_type<config.arch>::impl(name);
+			value.n_dimensions				  = value_reader<config, uint32_t>::gather_value(input);
 			value.layer_number				  = extract_layer_number(name);
 			constexpr uint32_t MAX_DIMENSIONS = 4;
 			if (value.n_dimensions > MAX_DIMENSIONS) {
-				throw std::runtime_error{ "Tensor dimensions exceed maximum!" };
+				static constexpr auto location = get_source_location();
+				return status_handler<config, core_base_creation_data>::template construct_status<"Tensor dimensions exceed maximum!", location, success_statuses::fail>();
 			}
 			for (uint64_t x = 0; x < value.n_dimensions; ++x) {
-				uint64_t dim					= value_reader<uint64_t>::gather_value(input);
+				uint64_t dim					= value_reader<config, uint64_t>::gather_value(input);
 				constexpr uint64_t MAX_DIM_SIZE = 1ULL << 32;
 				if (dim > MAX_DIM_SIZE) {
-					throw std::runtime_error{ "Tensor dimension size too large!" };
+					static constexpr auto location = get_source_location();
+					return status_handler<config, core_base_creation_data>::template construct_status<"Tensor dimensions size too large!", location, success_statuses::fail>();
 				}
 				value.dimensions[x] = dim;
 			}
-			value.type	 = static_cast<data_types>(value_reader<uint32_t>::gather_value(input));
-			value.offset = value_reader<uint64_t>::gather_value(input);
+			value.type	 = static_cast<data_types>(value_reader<config, uint32_t>::gather_value(input));
+			value.offset = value_reader<config, uint64_t>::gather_value(input);
 			return value;
 		}
 	};
@@ -711,22 +708,21 @@ namespace nihilus {
 	struct model_parser_impl<config> {
 		using model_traits_type = model_traits<config.arch, config.model_size, config.model_generation>;
 		static_assert((std::endian::native == std::endian::little), "Sorry, but big-endian is not yet supported by the library");
-		template<typename tokenizer_type> NIHILUS_FORCE_INLINE static gguf_metadata<config.arch, config.tokenizer_type, config.tokenizer_pre_type> parse_model(
-			array<array<void*, model_traits_type::block_count>, op_types::count>& data, memory_mapped_file* memory_file, tokenizer_type& tokenizer) {
+		template<typename tokenizer_type> NIHILUS_FORCE_INLINE static gguf_metadata<config> parse_model(array<array<void*, model_traits_type::block_count>, op_types::count>& data,
+			memory_mapped_file* memory_file, tokenizer_type& tokenizer) {
 			stream_iterator ptr{ memory_file };
-			gguf_metadata<config.arch, config.tokenizer_type, config.tokenizer_pre_type> gguf_file{
-				value_reader<gguf_metadata<config.arch, config.tokenizer_type, config.tokenizer_pre_type>>::gather_value(ptr)
-			};
-			tokenizer.tokens		= detail::move(gguf_file.tokenizer_ggml_tokens);
-			tokenizer.merges		= detail::move(gguf_file.tokenizer_ggml_merges);
-			tokenizer.token_types	= detail::move(gguf_file.tokenizer_ggml_token_type);
-			tokenizer.chat_template = detail::move(gguf_file.tokenizer_chat_template);
+			gguf_metadata<config> gguf_file{ value_reader<config, gguf_metadata<config>>::gather_value(ptr) };
+			tokenizer.tokens		= detail::move(gguf_file.ggml_tokens);
+			tokenizer.merges		= detail::move(gguf_file.ggml_merges);
+			tokenizer.token_types	= detail::move(gguf_file.ggml_token_type);
+			tokenizer.chat_template = detail::move(gguf_file.chat_template);
 			std::vector<core_base_creation_data> tensor_infos{};
 			tensor_infos.reserve(gguf_file.tensor_count);
 			for (uint64_t x = 0; x < gguf_file.tensor_count; ++x) {
-				auto new_tensor{ value_reader<core_base_creation_data, model_arches::llama>::gather_value(ptr) };
+				auto new_tensor{ value_reader<config, core_base_creation_data>::gather_value(ptr) };
 				if (!core_traits_comparitor<config, model_arches::llama>::impl(new_tensor)) {
-					throw std::runtime_error{ "Tensor dimensions incorrect!" };
+					static constexpr auto location = get_source_location();
+					return status_handler<config, gguf_metadata<config>>::template construct_status<"Tensor dimensions incorrect!", location, success_statuses::fail>();
 				}
 				tensor_infos.emplace_back(new_tensor);
 			}
@@ -751,8 +747,8 @@ namespace nihilus {
 	template<model_config config> struct model_parser {
 		using model_traits_type = model_traits<config.arch, config.model_size, config.model_generation>;
 
-		template<typename tokenizer_type> NIHILUS_FORCE_INLINE static gguf_metadata<config.arch, config.tokenizer_type, config.tokenizer_pre_type> parse_model(
-			array<array<void*, model_traits_type::block_count>, op_types::count>& data, memory_mapped_file* memory_file, tokenizer_type& tokenizer) {
+		template<typename tokenizer_type> NIHILUS_FORCE_INLINE static gguf_metadata<config> parse_model(array<array<void*, model_traits_type::block_count>, op_types::count>& data,
+			memory_mapped_file* memory_file, tokenizer_type& tokenizer) {
 			return model_parser_impl<config>::parse_model(data, memory_file, tokenizer);
 		}
 	};

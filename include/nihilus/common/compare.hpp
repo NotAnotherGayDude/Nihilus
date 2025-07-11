@@ -21,6 +21,7 @@ RealTimeChris (Chris M.)
 #pragma once
 
 #include <nihilus/common/string_literal.hpp>
+#include <nihilus/cpu/cpu_arch.hpp>
 #include <nihilus/common/allocator.hpp>
 #include <type_traits>
 #include <concepts>

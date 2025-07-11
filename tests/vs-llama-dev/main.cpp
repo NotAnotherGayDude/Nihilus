@@ -104,8 +104,23 @@ static std::string chat_add_and_format(struct llama_model* model, std::vector<co
 	return formatted;
 }
 
+#if !defined(LLAMA_MODEL_SIZE)
+static constexpr nihilus::model_sizes model_size{ nihilus::model_sizes::llm_8B };
+#else
+static constexpr nihilus::model_sizes model_size{ LLAMA_MODEL_SIZE };
+#endif
+
 int main(int argc, char** argv) {
 	try {
+		static constexpr auto model_config = nihilus::generate_model_config(nihilus::model_generations::v3, model_size, nihilus::kernel_type_profiles::q8_gqa,
+			nihilus::model_arches::llama, false);
+		nihilus::cli_params cli_args_final{ nihilus::harbinger<model_config>::parse_cli_arguments(argc, argv) };
+		auto model_new{ nihilus::harbinger<model_config>::parse_model_graph_data(cli_args_final) };
+		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 2, 1, true, "Token">::runBenchmark<"nihilus">([&] {
+			while (model_new->process_input(cli_args_final.prompt)) {
+			}
+			return cli_args_final.n_tokens;
+		});
 		std::string return_value{};
 		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 2, 1, true, "Token">::runBenchmark<"llama.cpp">([&] {
 			return_value.clear();
@@ -939,15 +954,6 @@ int main(int argc, char** argv) {
 			ggml_threadpool_free_fn(threadpool);
 			ggml_threadpool_free_fn(threadpool_batch);
 			return static_cast<int32_t>(token_count - 2);
-		});
-		static constexpr auto model_config = nihilus::generate_model_config(nihilus::model_generations::v3, nihilus::model_sizes::llm_8B, nihilus::kernel_type_profiles::q8_gqa,
-			nihilus::model_arches::llama, false);
-		nihilus::cli_params cli_args_final{ nihilus::harbinger<model_config>::parse_cli_arguments(argc, argv) };
-		auto model_new{ nihilus::harbinger<model_config>::parse_model_graph_data(cli_args_final) };
-		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 2, 1, true, "Token">::runBenchmark<"nihilus">([&] {
-			while (model_new->process_input(cli_args_final.prompt)) {
-			}
-			return cli_args_final.n_tokens;
 		});
 		std::cout << return_value << std::endl;
 		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 2, 1, true, "Token">::printResults();

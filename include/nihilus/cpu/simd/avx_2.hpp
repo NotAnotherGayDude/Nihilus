@@ -24,7 +24,7 @@ RealTimeChris (Chris M.)
 
 #if defined(NIHILUS_AVX2)
 
-namespace nihilus {	
+namespace nihilus {
 
 	template<typename transform_type, typename core_type> struct kernel_dispatcher_impl<1, kernel_types::add_rms_norm_mul, transform_type, core_type, float, float, float>
 		: public kernel_base<core_type::type, kernel_types::add_rms_norm_mul, core_type, float, float, float> {

@@ -47,7 +47,7 @@ namespace nihilus {
 	template<typename value_type> using remove_class_pointer_t = typename remove_class_pointer<value_type>::type;
 
 	template<typename value_type, auto element> NIHILUS_FORCE_INLINE decltype(auto) get_member(value_type& value) {
-		using V = std::decay_t<decltype(element)>;
+		using V = std::remove_cvref_t<decltype(element)>;
 		if constexpr (std::is_member_object_pointer_v<V>) {
 			return value.*element;
 		} else if constexpr (std::is_member_function_pointer_v<V>) {

@@ -33,9 +33,8 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE model_base() noexcept = default;
 		NIHILUS_FORCE_INLINE model_base(model_config config_new) : config{ config_new } {};
 		model_config config{};
-		virtual bool process_input(const std::string& params)	 = 0;
-		virtual void init(cli_params params)					 = 0;
-		virtual ~model_base()									 = default;
+		virtual bool process_input(const std::string& params) = 0;
+		virtual ~model_base()								  = default;
 	};
 
 	template<model_config config_new> struct model
@@ -83,7 +82,7 @@ namespace nihilus {
 
 		NIHILUS_FORCE_INLINE bool process_input(const std::string& input) {
 			tokenizer_type::tokenize_init(get_core<op_type_type::inp_tokens>().data);
-			get_core<op_type_type::inp_pos>().data[1] = 1;
+			get_core<op_type_type::inp_pos>().data[1]	  = 1;
 			get_core<op_type_type::inp_out_ids>().data[0] = 1;
 			execute_model(input);
 			return false;
@@ -94,15 +93,14 @@ namespace nihilus {
 			auto load_start	   = std::chrono::high_resolution_clock::now();
 			perf_stats.t_start = load_start;// Start timing like llama.cpp
 #endif
-
+			std::cout << "CURRENT BYTES: " << core_bases_traits::total_required_bytes << std::endl;
 			memory.init(core_bases_traits::total_required_bytes);
 			weight_memory = nihilus::memory_mapped_file{ params.model_file };
 			nihilus::array<nihilus::array<void*, model_traits_type::block_count>, op_types::count> data{};
 			this->template impl<weight_mapper>(data);
 			this->template impl<memory_mapper>(memory);
 
-			gguf_metadata<config_new.arch, config_new.tokenizer_type, config_new.tokenizer_pre_type> model_construction_data =
-				nihilus::model_parser<config_new>::parse_model(data, &weight_memory, *static_cast<tokenizer_type*>(this));
+			gguf_metadata<config_new> model_construction_data = nihilus::model_parser<config_new>::parse_model(data, &weight_memory, *static_cast<tokenizer_type*>(this));
 
 #if defined(NIHILUS_BENCHMARK) || defined(NIHILUS_DEV)
 			auto load_end				  = std::chrono::high_resolution_clock::now();
@@ -116,7 +114,6 @@ namespace nihilus {
 		}
 
 		NIHILUS_FORCE_INLINE void execute_model(std::string_view input) {
-
 #if defined(NIHILUS_BENCHMARK) || defined(NIHILUS_DEV)
 
 			auto prompt_start = std::chrono::high_resolution_clock::now();
@@ -152,9 +149,9 @@ namespace nihilus {
 				perf_stats.llama_style_load_time_ns = std::chrono::duration<double, std::nano>(prompt_end - perf_stats.t_start).count();
 				perf_stats.has_evaluated_once		= true;
 			}
+			++current_iteration;
 #endif
 
-			++current_iteration;
 			this->template impl<dim_updater>(1ull);
 
 #if defined(NIHILUS_BENCHMARK) || defined(NIHILUS_DEV)
@@ -163,7 +160,7 @@ namespace nihilus {
 			int64_t total_sampling_time_ns = 0;
 #endif
 
-			for (uint64_t x = 0; x < exec_params.token_count; ++x) {
+			for (uint64_t x = 0; x < exec_params.token_count - 1; ++x) {
 #if defined(NIHILUS_BENCHMARK) || defined(NIHILUS_DEV)
 				auto token_start = std::chrono::high_resolution_clock::now();
 #endif
@@ -214,7 +211,7 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE int32_t sample_next_token() {
 			auto& result_output_tensor = get_core<op_types::result_output>();
 			float* logits			   = static_cast<float*>(result_output_tensor.data);
-			uint64_t vocab_size		   = model_traits_type::tokenizer_size;
+			uint64_t vocab_size		   = model_traits_type::vocab_size;
 			return tokenizer_type::sample_next_token(logits, vocab_size);
 		}
 

@@ -78,11 +78,8 @@ namespace nihilus {
 			uint64_t aligned_amount = round_up_to_multiple<alignment>(amount_to_claim);
 
 			if (current_offset + aligned_amount > size_val) {
-				if constexpr (config.exceptions) {
-					throw std::runtime_error{ "Sorry, but this memory_buffer is out of memory!" };
-				} else {
-					return nullptr;
-				}
+				static constexpr auto location = get_source_location();
+				return nihilus_exception<config, "memory_buffer overflow - not enough memory allocated", location, void*>::impl();
 			}
 
 			pointer return_value = data_val + current_offset;

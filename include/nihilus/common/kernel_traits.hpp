@@ -128,10 +128,11 @@ namespace nihilus {
 		NONE_Type_must_be_valid_tensor_type,
 	};
 
-	template<typename derived_type, size_t... indices> struct core_trait_dims;
+	template<model_config config_new, op_types op_type> struct core_traits;
 
-	template<typename derived_type, uint64_t dim00_new, uint64_t dim01_new, uint64_t dim02_new, uint64_t dim03_new>
-	struct core_trait_dims<derived_type, dim00_new, dim01_new, dim02_new, dim03_new> {
+	template<size_t... indices> struct core_trait_dims;
+
+	template<uint64_t dim00_new, uint64_t dim01_new, uint64_t dim02_new, uint64_t dim03_new> struct core_trait_dims<dim00_new, dim01_new, dim02_new, dim03_new> {
 		static constexpr array<bool, 4> runtime_dims{ false, false, false, false };
 		static constexpr uint64_t dim00{ dim00_new };
 		static constexpr uint64_t dim01{ dim01_new };
@@ -148,8 +149,26 @@ namespace nihilus {
 			return { { dim00, dim01, dim02, dim03 } };
 		}
 
+		NIHILUS_FORCE_INLINE uint64_t operator[](uint64_t index) const {
+			return *dims[index];
+		}
+	};
+
+	template<uint64_t dim00_new, uint64_t dim01_new, uint64_t dim02_new, uint64_t dim03_new> struct core_trait_dims<dim00_new, dim01_new, dim02_new, dim03_new, 0> {
+		static constexpr array<bool, 4> runtime_dims{ true, false, false, false };
+		uint64_t dim00{ dim00_new };
+		static constexpr uint64_t dim01{ dim01_new };
+		static constexpr uint64_t dim02{ dim02_new };
+		static constexpr uint64_t dim03{ dim03_new };
+
+		const uint64_t* dims[4]{ &dim00, &dim01, &dim02, &dim03 };
+
+		NIHILUS_FORCE_INLINE static constexpr array<uint64_t, 4> get_array() {
+			return { { dim00_new, dim01_new, dim02_new, dim03_new } };
+		}
+
 		NIHILUS_FORCE_INLINE uint64_t& get_mutable_dim() {
-			return static_cast<derived_type*>(this)->dim00;
+			return dim00;
 		}
 
 		NIHILUS_FORCE_INLINE uint64_t operator[](uint64_t index) const {
@@ -157,70 +176,43 @@ namespace nihilus {
 		}
 	};
 
-	template<typename derived_type, uint64_t dim00_new, uint64_t dim01_new, uint64_t dim02_new, uint64_t dim03_new>
-	struct core_trait_dims<derived_type, dim00_new, dim01_new, dim02_new, dim03_new, 0> {
+	template<uint64_t dim00_new, uint64_t dim01_new, uint64_t dim02_new, uint64_t dim03_new> struct core_trait_dims<dim00_new, dim01_new, dim02_new, dim03_new, 1> {
+		static constexpr array<bool, 4> runtime_dims{ true, false, false, false };
+		static constexpr uint64_t dim00{ dim00_new };
+		uint64_t dim01{ dim01_new };
+		static constexpr uint64_t dim02{ dim02_new };
+		static constexpr uint64_t dim03{ dim03_new };
+
+		const uint64_t* dims[4]{ &dim00, &dim01, &dim02, &dim03 };
+
+		NIHILUS_FORCE_INLINE static constexpr array<uint64_t, 4> get_array() {
+			return { { dim00_new, dim01_new, dim02_new, dim03_new } };
+		}
+
+		NIHILUS_FORCE_INLINE uint64_t& get_mutable_dim() {
+			return dim01;
+		}
+
+		NIHILUS_FORCE_INLINE uint64_t operator[](uint64_t index) const {
+			return *dims[index];
+		}
+	};
+
+	template<uint64_t dim00_new, uint64_t dim01_new, uint64_t dim02_new, uint64_t dim03_new> struct core_trait_dims<dim00_new, dim01_new, dim02_new, dim03_new, 2> {
 		static constexpr array<bool, 4> runtime_dims{ true, false, false, false };
 		static constexpr uint64_t dim00{ dim00_new };
 		static constexpr uint64_t dim01{ dim01_new };
-		static constexpr uint64_t dim02{ dim02_new };
+		uint64_t dim02{ dim02_new };
 		static constexpr uint64_t dim03{ dim03_new };
 
-		const uint64_t* dims[4]{ &static_cast<derived_type*>(this)->dim00, &dim01, &dim02, &dim03 };
+		const uint64_t* dims[4]{ &dim00, &dim01, &dim02, &dim03 };
 
 		NIHILUS_FORCE_INLINE static constexpr array<uint64_t, 4> get_array() {
-			return { { dim00, dim01, dim02, dim03 } };
+			return { { dim00_new, dim01_new, dim02_new, dim03_new } };
 		}
 
 		NIHILUS_FORCE_INLINE uint64_t& get_mutable_dim() {
-			return static_cast<derived_type*>(this)->dim00;
-		}
-
-		NIHILUS_FORCE_INLINE uint64_t operator[](uint64_t index) const {
-			return *dims[index];
-		}
-	};
-
-	template<typename derived_type, uint64_t dim00_new, uint64_t dim01_new, uint64_t dim02_new, uint64_t dim03_new>
-	struct core_trait_dims<derived_type, dim00_new, dim01_new, dim02_new, dim03_new, 1> {
-		static constexpr array<bool, 4> runtime_dims{ false, true, false, false };
-		static constexpr uint64_t dim00{ dim00_new };
-		static constexpr uint64_t dim01{ dim01_new };
-		static constexpr uint64_t dim02{ dim02_new };
-		static constexpr uint64_t dim03{ dim03_new };
-		constexpr core_trait_dims() noexcept {};
-
-		const uint64_t* dims[4]{ &dim00, &static_cast<derived_type*>(this)->dim01, &dim02, &dim03 };
-
-		NIHILUS_FORCE_INLINE static constexpr array<uint64_t, 4> get_array() {
-			return { { dim00, dim01, dim02, dim03 } };
-		}
-
-		NIHILUS_FORCE_INLINE uint64_t& get_mutable_dim() {
-			return static_cast<derived_type*>(this)->dim01;
-		}
-
-		NIHILUS_FORCE_INLINE uint64_t operator[](uint64_t index) const {
-			return *dims[index];
-		}
-	};
-
-	template<typename derived_type, uint64_t dim00_new, uint64_t dim01_new, uint64_t dim02_new, uint64_t dim03_new>
-	struct core_trait_dims<derived_type, dim00_new, dim01_new, dim02_new, dim03_new, 2> {
-		static constexpr array<bool, 4> runtime_dims{ false, false, true, false };
-		static constexpr uint64_t dim00{ dim00_new };
-		static constexpr uint64_t dim01{ dim01_new };
-		static constexpr uint64_t dim02{ dim02_new };
-		static constexpr uint64_t dim03{ dim03_new };
-		constexpr core_trait_dims() noexcept {};
-
-		const uint64_t* dims[4]{ &dim00, &dim01, &static_cast<derived_type*>(this)->dim02, &dim03 };
-
-		NIHILUS_FORCE_INLINE static constexpr array<uint64_t, 4> get_array() {
-			return { { dim00, dim01, dim02, dim03 } };
-		}
-
-		NIHILUS_FORCE_INLINE uint64_t& get_mutable_dim() {
-			return static_cast<derived_type*>(this)->dim02;
+			return dim02;
 		}
 
 		NIHILUS_FORCE_INLINE uint64_t operator[](uint64_t index) const {
@@ -235,80 +227,27 @@ namespace nihilus {
 	template<typename value_type>
 	concept runtime_dims_t = requires() { std::remove_cvref_t<value_type>::dimension; };
 
-	enum class get_new_dims_errors {
-		unknown_kernel_type
-	};
-
-	template<typename derived_type, kernel_types kernel_type, typename... core_traits01> struct get_new_dims;
-
-	template<typename derived_type, kernel_types kernel_type, core_traits_type core_traits01, core_traits_type core_traits02, core_traits_type core_traits03,
-		runtime_dims_t... dimension_type>
-	struct get_new_dims<derived_type, kernel_type, core_traits01, core_traits02, core_traits03, dimension_type...> {
-		using dim_traits01			 = typename core_traits01::core_traits_dims_type;
-		using dim_traits02			 = typename core_traits02::core_traits_dims_type;
-		using dim_traits03			 = typename core_traits03::core_traits_dims_type;
-		static constexpr auto dims01 = dim_traits01::get_array();
-		static constexpr auto dims02 = dim_traits02::get_array();
-		static constexpr auto dims03 = dim_traits03::get_array();
-
-		static constexpr auto get_new_dims_fn() {
-			if constexpr (kernel_type == kernel_types::rope) {
-				return core_trait_dims<derived_type, dims01[0], dims02[0], dims01[2], dims01[3], (dimension_type::dimension, ...)>{};
-			} else {
-				static_assert(
-					static_assert_printer<false, get_new_dims_errors::unknown_kernel_type, derived_type, core_traits01, core_traits02, core_traits03, dimension_type...>::impl);
-			}
-		}
-
-		using type = decltype(get_new_dims_fn());
-	};
-
-	template<typename derived_type, kernel_types kernel_type, core_traits_type core_traits01, core_traits_type core_traits02, runtime_dims_t... dimension_type>
-	struct get_new_dims<derived_type, kernel_type, core_traits01, core_traits02, dimension_type...> {
-		using dim_traits01			 = typename core_traits01::core_traits_dims_type;
-		using dim_traits02			 = typename core_traits02::core_traits_dims_type;
-		static constexpr auto dims01 = dim_traits01::get_array();
-		static constexpr auto dims02 = dim_traits02::get_array();
-
-		static constexpr auto get_new_dims_fn() {
-			if constexpr (kernel_type == kernel_types::get_rows) {
-				return core_trait_dims<derived_type, dims01[0], dims02[0], dims01[2], dims01[3], (dimension_type::dimension,...)>{};
-			} else if constexpr (kernel_type == kernel_types::rms_norm_mul) {
-				return core_trait_dims<derived_type, dims01[0], dims01[0], dims01[2], dims01[3], (dimension_type::dimension,...)>{};
-			} else if constexpr (kernel_type == kernel_types::mul_mat) {
-				return core_trait_dims<derived_type, dims01[1], dims02[1], dims01[2], dims01[3], (dimension_type::dimension,...)>{};
-			} else if constexpr (kernel_type == kernel_types::sub) {
-				return core_trait_dims<derived_type, dims01[0], dims01[1], dims01[2], dims01[3], (dimension_type::dimension,...)>{};
-			} else if constexpr (kernel_type == kernel_types::add) {
-				return core_trait_dims<derived_type, dims01[0], dims01[1], dims01[2], dims01[3], (dimension_type::dimension,...)>{};
-			} else {
-				static_assert(static_assert_printer<false, get_new_dims_errors::unknown_kernel_type, derived_type, core_traits01, core_traits02, dimension_type...>::impl);
-			}
-		}
-
-		using type = decltype(get_new_dims_fn());
-	};
-
-	template<typename derived_type, kernel_types kernel_type, core_traits_type core_traits01, runtime_dims_t... dimension_type>
-	struct get_new_dims<derived_type, kernel_type, core_traits01, dimension_type...> {
-		using dim_traits01			 = typename core_traits01::core_traits_dims_type;
-		static constexpr auto dims01 = dim_traits01::get_array();
-
-		static constexpr auto get_new_dims_fn() {
-			return core_trait_dims<derived_type, dims01[0], dims01[1], dims01[2], dims01[3], (dimension_type::dimension, ...)>{};
-		}
-
-		using type = decltype(get_new_dims_fn());
-	};
+	enum class get_new_dims_errors { unknown_kernel_type };
 
 	template<uint64_t, auto op_type, typename... operand_types> struct kernel_dispatcher_impl;
 
-	template<auto op_type, kernel_types krn_type, typename core_type, typename... operand_types> struct kernel_base;
+	template<auto op_type, kernel_types kernel_type, typename core_type, typename... operand_types> struct kernel_base;
 
-	template<kernel_types krn_type, typename... operand_types> struct kernel_base_new;
+	template<kernel_types kernel_type, typename... operand_types> struct kernel_base_new;
 
-	template<auto op_type, kernel_types krn_type, single_input core_type, typename output_type, typename input_type01>
-	struct kernel_base<op_type, krn_type, core_type, output_type, input_type01> {
+	template<kernel_types kernel_type, typename... core_traits01> struct get_new_dims;
+
+	template<model_config config, kernel_types kernel_type, op_types op_type, typename... dimensions_type> using get_new_dims_1_t =
+		typename get_new_dims<kernel_type, core_traits<config, op_type>, dimensions_type...>::type;
+
+	template<model_config config, kernel_types kernel_type, op_types op_type01, op_types op_type02, typename... dimensions_type> using get_new_dims_2_t =
+		typename get_new_dims<kernel_type, core_traits<config, op_type01>, core_traits<config, op_type02>, dimensions_type...>::type;
+
+	template<model_config config, kernel_types kernel_type, op_types op_type01, op_types op_type02, op_types op_type03, typename... dimensions_type> using get_new_dims_3_t =
+		typename get_new_dims<kernel_type, core_traits<config, op_type01>, core_traits<config, op_type02>, core_traits<config, op_type03>, dimensions_type...>::type;
+
+	template<auto op_type, kernel_types kernel_type, single_input core_type, typename output_type, typename input_type01>
+	struct kernel_base<op_type, kernel_type, core_type, output_type, input_type01> {
 		using input01									 = input_type01;
 		using output									 = output_type;
 		static constexpr auto dims01					 = core_type::get_array();
@@ -323,14 +262,14 @@ namespace nihilus {
 			kernel_trait_static_assert_errors::Sorry_but_these_input_type01_types_are_not_the_same, kernel_base, core_type, output_type, input_type01>::impl);
 	};
 
-	template<kernel_types krn_type, typename input_type01> struct kernel_base_new<krn_type, input_type01> {
+	template<kernel_types kernel_type, typename input_type01> struct kernel_base_new<kernel_type, input_type01> {
 		using input01									 = input_type01;
 		static constexpr auto dims01					 = input01::get_array();
 		static constexpr auto strides01					 = input01::strides;
 		static constexpr uint64_t input01_total_elements = dims01[0] * dims01[1] * dims01[2] * dims01[3];
 	};
 
-	template<kernel_types krn_type, typename input_type01, typename input_type02> struct kernel_base_new<krn_type, input_type01, input_type02> {
+	template<kernel_types kernel_type, typename input_type01, typename input_type02> struct kernel_base_new<kernel_type, input_type01, input_type02> {
 		using input01									 = input_type01;
 		using input02									 = input_type02;
 		static constexpr auto dims01					 = input01::get_array();
@@ -341,8 +280,8 @@ namespace nihilus {
 		static constexpr uint64_t input02_total_elements = dims02[0] * dims02[1] * dims02[2] * dims02[3];
 	};
 
-	template<auto op_type, kernel_types krn_type, double_input core_type, typename output_type, typename input_type01, typename input_type02>
-	struct kernel_base<op_type, krn_type, core_type, output_type, input_type01, input_type02> {
+	template<auto op_type, kernel_types kernel_type, double_input core_type, typename output_type, typename input_type01, typename input_type02>
+	struct kernel_base<op_type, kernel_type, core_type, output_type, input_type01, input_type02> {
 		using input01									 = typename core_type::input_type01;
 		using input02									 = typename core_type::input_type02;
 		using output									 = core_type;
@@ -363,8 +302,8 @@ namespace nihilus {
 			kernel_trait_static_assert_errors::Sorry_but_these_input_type02_types_are_not_the_same, kernel_base, core_type, output_type, input_type01, input_type02>::impl);
 	};
 
-	template<auto op_type, kernel_types krn_type, triple_input core_type, typename output_type, typename input_type01, typename input_type02, typename input_type03>
-	struct kernel_base<op_type, krn_type, core_type, output_type, input_type01, input_type02, input_type03> {
+	template<auto op_type, kernel_types kernel_type, triple_input core_type, typename output_type, typename input_type01, typename input_type02, typename input_type03>
+	struct kernel_base<op_type, kernel_type, core_type, output_type, input_type01, input_type02, input_type03> {
 		using input01									 = typename core_type::input_type01;
 		using input02									 = typename core_type::input_type02;
 		using input03									 = typename core_type::input_type03;
@@ -394,9 +333,9 @@ namespace nihilus {
 			input_type03>::impl);
 	};
 
-	template<auto op_type, kernel_types krn_type, typename core_type, typename... operand_types> struct kernel_traits;
+	template<auto op_type, kernel_types kernel_type, typename core_type, typename... operand_types> struct kernel_traits;
 
-	template<kernel_types krn_type, typename... operand_types> struct kernel_traits_new;
+	template<kernel_types kernel_type, typename... operand_types> struct kernel_traits_new;
 
 	template<auto op_type, double_input core_type> struct kernel_traits<op_type, kernel_types::mul, core_type, typename core_type::output_type,
 		typename core_type::input_type01::output_type, typename core_type::input_type02::output_type>
@@ -633,8 +572,8 @@ namespace nihilus {
 			kernel_traits_new, output, input01, input02>::impl);
 		//static_assert(static_assert_printer<is_valid_tensor_type<typename core_type::output_type>,
 		//kernel_trait_static_assert_errors::GET_ROWS_Output_type_must_be_valid_tensor_type, kernel_traits_new, output, input01, input02>::impl);
-		static constexpr uint64_t tokenizer_size = dims02[0];
-		static constexpr uint64_t embedding_dim	 = dims02[1];
+		static constexpr uint64_t vocab_size	   = dims02[0];
+		static constexpr uint32_t embedding_length = dims02[1];
 		//static constexpr uint64_t sequence_length = dims03[0];
 	};
 
@@ -671,8 +610,8 @@ namespace nihilus {
 			kernel_trait_static_assert_errors::GET_ROWS_Index_type_must_be_integer_type, kernel_traits, output, input01, input02>::impl);
 		static_assert(static_assert_printer<is_valid_tensor_type<typename core_type::output_type>,
 			kernel_trait_static_assert_errors::GET_ROWS_Output_type_must_be_valid_tensor_type, kernel_traits, output, input01, input02>::impl);
-		static constexpr uint64_t tokenizer_size	  = dims02[0];
-		static constexpr uint64_t embedding_dim	  = dims02[1];
+		static constexpr uint64_t vocab_size	  = dims02[0];
+		static constexpr uint32_t embedding_length	  = dims02[1];
 		static constexpr uint64_t sequence_length = dims03[0];*/
 	};
 

@@ -20,6 +20,7 @@ RealTimeChris (Chris M.)
 
 #pragma once
 
+#include <nihilus/common/string_literal.hpp>
 #include <nihilus/common/iterator.hpp>
 #include <nihilus/common/config.hpp>
 #include <nihilus/common/utility.hpp>

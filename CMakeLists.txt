@@ -36,6 +36,12 @@ if (NIHILUS_DEV)
     FetchContent_MakeAvailable(Jsonifier)
 endif()
 
+option(NIHILUS_MAX_THREAD_COUNT "Override detected thread count" OFF)
+
+option(NIHILUS_CPU_INSTRUCTIONS "Override cpu-arch selection" OFF)
+
+option(NIHILUS_MODEL_SIZE_OVERRIDE "For manually setting which model size gets used in 'tests'" OFF)
+
 project(
     "${PROJECT_NAME}"
     VERSION "1.0.0"
@@ -97,6 +103,7 @@ target_link_libraries(
     "${PROJECT_NAME}" "${NIHILUS_PRIVATE_DEFINITION}" $<$<STREQUAL:$<UPPER_CASE:${NIHILUS_DEV}>,TRUE>:Jsonifier::Jsonifier>
 )
 
+include("cmake/nihilus_detect_max_thread_count.cmake")
 include("cmake/nihilus_detect_architecture.cmake")
 
 set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
@@ -120,7 +127,7 @@ target_compile_options(${PROJECT_NAME} "${NIHILUS_PRIVATE_DEFINITION}"
         -fconstexpr-backtrace-limit=0
         -fconstexpr-depth=2048
         -ftemplate-depth=2048
-        -fconstexpr-steps=1000000
+        -fconstexpr-ops-limit=2000000
         -fno-stack-protector
         -fomit-frame-pointer
         -fno-plt
@@ -235,7 +242,7 @@ target_compile_options(${PROJECT_NAME} "${NIHILUS_PRIVATE_DEFINITION}"
         -floop-nest-optimize        
         -ftemplate-backtrace-limit=0
         -fconstexpr-loop-limit=1000000
-        -fconstexpr-ops-limit=1000000
+        -fconstexpr-ops-limit=2000000
         -ftemplate-depth=2048
         -fno-stack-protector
         -fomit-frame-pointer
@@ -384,6 +391,7 @@ target_compile_definitions(${PROJECT_NAME} "${NIHILUS_PRIVATE_DEFINITION}"
             NOMINMAX
         >
     >
+    "$<$<NOT:$<STREQUAL:${NIHILUS_MODEL_SIZE_OVERRIDE},OFF>>:LLAMA_MODEL_SIZE=${NIHILUS_MODEL_SIZE_OVERRIDE}>"
     CONSTEXPR_EVERYTHING
     ENABLE_CONSTEXPR_MATH
 )
@@ -459,6 +467,7 @@ message(STATUS "")
 message(STATUS "Nihilus Configuration Summary:")
 message(STATUS "==========================")
 message(STATUS "Version: ${PROJECT_VERSION}")
+message(STATUS "Max Thread Count: ${NIHILUS_MAX_THREAD_COUNT}")
 message(STATUS "Architecture: ${CMAKE_SYSTEM_PROCESSOR}")
 message(STATUS "Compiler: ${CMAKE_CXX_COMPILER_ID}")
 message(STATUS "Build Type: ${CMAKE_BUILD_TYPE}")

@@ -20,7 +20,7 @@ RealTimeChris (Chris M.)
 
 #pragma once
 
-#include <nihilus/common/config.hpp>
+#include <nihilus/common/status_handler.hpp>
 #include <nihilus/cpu/simd/nihilus_cpu_instructions.hpp>
 #include <nihilus/common/data_types.hpp>
 #include <nihilus/common/concepts.hpp>
@@ -34,7 +34,7 @@ RealTimeChris (Chris M.)
 #include <latch>
 #include <cmath>
 
-namespace nihilus {
+namespace nihilus {	
 
 	static constexpr array<bool, 256> alpha_table{ [] {
 		array<bool, 256> return_values{};
@@ -75,102 +75,9 @@ namespace nihilus {
 
 	template<typename value_type> struct parse_core;
 
-	template<bool exceptions> class file_loader {
-	  public:
-		explicit file_loader(const std::filesystem::path& filePath) {
-			if (!std::filesystem::exists(filePath)) {
-				if constexpr (exceptions) {
-					throw std::runtime_error("File does not exist: " + filePath.string());
-				} else {
-					std::cerr << "File does not exist: " + filePath.string() << std::endl;
-				}
-			}
-
-			std::ifstream file(filePath, std::ios::binary | std::ios::ate);
-			if (!file) {
-				if constexpr (exceptions) {
-					throw std::runtime_error("Failed to open file: " + filePath.string());
-				} else {
-					std::cerr << "Failed to open file: " + filePath.string() << std::endl;
-				}
-			}
-
-			const std::streamsize size = file.tellg();
-			file.seekg(0, std::ios::beg);
-			if (size != -1) {
-				contents.resize(static_cast<uint64_t>(size));
-				if (!file.read(contents.data(), size)) {
-					if constexpr (exceptions) {
-						throw std::runtime_error("Failed to read file: " + filePath.string());
-					} else {
-						std::cerr << "Failed to read file: " + filePath.string() << std::endl;
-					}
-				}
-			}
-		}
-
-		operator const std::string&() const noexcept {
-			return contents;
-		}
-
-		uint64_t size() const noexcept {
-			return contents.size();
-		}
-
-	  protected:
-		std::string contents;
-	};
-
-	template<bool exceptions> class file_saver {
-	  public:
-		file_saver(const std::filesystem::path& path, const void* data, uint64_t size) {
-			if (!data || size == 0) {
-				if constexpr (exceptions) {
-					throw std::runtime_error("Cannot save null or empty data to file: " + path.string());
-				} else {
-					std::cerr << "Cannot save null or empty data to file: " + path.string() << std::endl;
-				}
-			}
-
-			std::ofstream file(path, std::ios::binary | std::ios::trunc);
-			if (!file) {
-				if constexpr (exceptions) {
-					throw std::runtime_error("Failed to open file for writing: " + path.string());
-				} else {
-					std::cerr << "Failed to open file for writing: " + path.string() << std::endl;
-				}
-			}
-
-			file.write(static_cast<const char*>(data), static_cast<std::streamsize>(size));
-			if (!file) {
-				if constexpr (exceptions) {
-					throw std::runtime_error("Failed to write data to file: " + path.string());
-				} else {
-					std::cerr << "Failed to write data to file: " + path.string() << std::endl;
-				}
-			}
-		}
-	};
-
 	static constexpr auto spinlock_time{ 172000 };
 
 	std::atomic_uint64_t current_count{};
-
-	inline std::mutex mutex{};
-
-	enum class log_levels {
-		error,
-		status,
-	};
-
-	template<log_levels level> NIHILUS_FORCE_INLINE void log(std::string_view string) {
-		std::unique_lock lock{ mutex };
-		if constexpr (level == log_levels::error) {
-			std::cerr << string << std::endl;
-		} else {
-			std::cout << string << std::endl;
-		}
-	}
 
 	struct alignas(64) atomic_flag_wrapper {
 		NIHILUS_FORCE_INLINE atomic_flag_wrapper() noexcept = default;
@@ -983,5 +890,64 @@ namespace nihilus {
 
 	template<model_config config_new> struct config_holder {
 		static constexpr model_config config{ config_new };
+	};	
+
+	template<model_config config> class file_loader {
+	  public:
+		explicit file_loader(const std::filesystem::path& filePath) {
+			if (!std::filesystem::exists(filePath)) {
+				static constexpr auto location = get_source_location();
+				nihilus_exception<config, "file_loader - Path does not exist", location, void*>::impl();
+			}
+
+			std::ifstream file(filePath, std::ios::binary | std::ios::ate);
+			if (!file) {
+				static constexpr auto location = get_source_location();
+				nihilus_exception<config, "file_loader - Failed to open file", location, void*>::impl();
+			}
+
+			const std::streamsize size = file.tellg();
+			file.seekg(0, std::ios::beg);
+			if (size != -1) {
+				contents.resize(static_cast<uint64_t>(size));
+				if (!file.read(contents.data(), size)) {
+					static constexpr auto location = get_source_location();
+					nihilus_exception<config, "file_loader - Failed to read file", location, void*>::impl();
+				}
+			}
+		}
+
+		operator const std::string&() const noexcept {
+			return contents;
+		}
+
+		uint64_t size() const noexcept {
+			return contents.size();
+		}
+
+	  protected:
+		std::string contents;
+	};
+
+	template<model_config config> class file_saver {
+	  public:
+		file_saver(const std::filesystem::path& path, const void* data, uint64_t size) {
+			if (!data || size == 0) {
+				static constexpr auto location = get_source_location();
+				nihilus_exception<config, "file_saver - Cannot save null or empty data to file: ", location, void*>::impl(path.string());
+			}
+
+			std::ofstream file(path, std::ios::binary | std::ios::trunc);
+			if (!file) {
+				static constexpr auto location = get_source_location();
+				nihilus_exception<config, "file_saver - Cannot save null or empty data to file: ", location, void*>::impl(path.string());
+			}
+
+			file.write(static_cast<const char*>(data), static_cast<std::streamsize>(size));
+			if (!file) {
+				static constexpr auto location = get_source_location();
+				nihilus_exception<config, "file_saver - Cannot save null or empty data to file: ", location, void*>::impl(path.string());
+			}
+		}
 	};
 }

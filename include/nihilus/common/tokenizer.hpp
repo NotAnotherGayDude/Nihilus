@@ -80,7 +80,7 @@ namespace nihilus {
 		: public tokenizer_parameters<model_arches::llama>, public tokenizer_traits<config.arch, tokenizer_type_new, config.tokenizer_pre_type> {
 		using tokenizer_type	= tokenizer_traits<config.arch, tokenizer_type_new, config.tokenizer_pre_type>;
 		using model_traits_type = model_traits<config.arch, config.model_size, config.model_generation>;
-		using tokenizer_traits = tokenizer_traits<config.arch, config.tokenizer_type, config.tokenizer_pre_type>;
+		using tokenizer_traits	= tokenizer_traits<config.arch, config.tokenizer_type, config.tokenizer_pre_type>;
 
 		NIHILUS_FORCE_INLINE tokenizer() noexcept {
 			candidate_tokens.reserve(32768);
@@ -90,7 +90,34 @@ namespace nihilus {
 		NIHILUS_FORCE_INLINE void tokenize_init(int32_t* output_tokens) {
 			output_tokens[0] = tokenizer_traits::special_bos_id;
 			output_tokens[1] = tokenizer_traits::special_eos_id;
-		}	
+		}
+
+		NIHILUS_FORCE_INLINE uint64_t tokenize(char input_text, int32_t* output_tokens) {
+			std::vector<int32_t> temp_tokens;
+			if constexpr (tokenizer_type::add_bos && tokenizer_type::special_bos_id > 0) {
+				temp_tokens.push_back(static_cast<int32_t>(tokenizer_type::special_bos_id));
+			}
+
+			std::vector<std::string> word_collection = gpt2_style_split(input_text);
+
+			for (const auto& word: word_collection) {
+				tokenize_word(word, temp_tokens);
+			}
+
+			if constexpr (tokenizer_type::add_eos && tokenizer_type::special_eos_id > 0) {
+				temp_tokens.push_back(static_cast<int32_t>(tokenizer_type::special_eos_id));
+			}
+
+			for (uint64_t i = 0; i < temp_tokens.size(); ++i) {
+				output_tokens[i] = temp_tokens[i];
+			}
+
+#if defined(NIHILUS_DEV)
+			print_tokenization_debug(input_text, temp_tokens);
+#endif
+
+			return temp_tokens.size();
+		}
 
 		NIHILUS_FORCE_INLINE uint64_t tokenize(std::string_view input_text, int32_t* output_tokens) {
 			std::vector<int32_t> temp_tokens;
@@ -115,9 +142,9 @@ namespace nihilus {
 #if defined(NIHILUS_DEV)
 			print_tokenization_debug(input_text, temp_tokens);
 #endif
-			
+
 			return temp_tokens.size();
-		}		
+		}
 
 		struct nihilus_rng {
 			uint64_t state{};
@@ -407,6 +434,13 @@ namespace nihilus {
 			}
 
 			return result;
+		}
+
+		NIHILUS_FORCE_INLINE std::string gpt2_style_split(char c) {
+			if (!is_space(c)) {
+				return std::string{ c, 1 };
+			}
+			return {};
 		}
 
 		NIHILUS_FORCE_INLINE void tokenize_word(const std::string& word, std::vector<int32_t>& output) {

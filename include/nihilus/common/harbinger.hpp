@@ -127,8 +127,8 @@ namespace nihilus {
 	}
 
 	template<model_config config> struct harbinger {
-		using model_type		 = model<config>;
-		using model_base_type	 = typename model<config>::base_type;
+		using model_type	  = model<config>;
+		using model_base_type = typename model<config>::base_type;
 
 		NIHILUS_FORCE_INLINE static auto parse_model_graph_data(nihilus::cli_params params) {
 			std::unique_ptr<model_base_type> return_value{ new model_type{ params } };

@@ -18,29 +18,29 @@
 # */
 
 if (UNIX OR APPLE)
-    file(WRITE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/BuildFeatureTester.sh" "#!/bin/bash
-\"${CMAKE_COMMAND}\" -S ./ -B ./Build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
-\"${CMAKE_COMMAND}\" --build ./Build --config=Release")
+    file(WRITE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/BuildFeatureTesterArch.sh" "#!/bin/bash
+\"${CMAKE_COMMAND}\" -S ./ -B ./Build-Arch -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DNIHILUS_DETECT_ARCH=TRUE
+\"${CMAKE_COMMAND}\" --build ./Build-Arch --config=Release")
     execute_process(
-        COMMAND chmod +x "${CMAKE_CURRENT_SOURCE_DIR}/cmake/BuildFeatureTester.sh"
+        COMMAND chmod +x "${CMAKE_CURRENT_SOURCE_DIR}/cmake/BuildFeatureTesterArch.sh"
         RESULT_VARIABLE CHMOD_RESULT
     )
     if(NOT ${CHMOD_RESULT} EQUAL 0)
-        message(FATAL_ERROR "Failed to set executable permissions for BuildFeatureTester.sh")
+        message(FATAL_ERROR "Failed to set executable permissions for BuildFeatureTesterArch.sh")
     endif()
     execute_process(
-        COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/cmake/BuildFeatureTester.sh"
+        COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/cmake/BuildFeatureTesterArch.sh"
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/cmake"
     )
-    set(FEATURE_TESTER_FILE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Build/feature_detector")
+    set(FEATURE_TESTER_FILE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Build-Arch/feature_detector")
 elseif(WIN32)
-    file(WRITE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/BuildFeatureTester.bat" "\"${CMAKE_COMMAND}\" -S ./ -B ./Build -DCMAKE_BUILD_TYPE=Release
-\"${CMAKE_COMMAND}\" --build ./Build --config=Release")
+    file(WRITE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/BuildFeatureTesterArch.bat" "\"${CMAKE_COMMAND}\" -S ./ -B ./Build-Arch -DCMAKE_BUILD_TYPE=Release  -DNIHILUS_DETECT_ARCH=TRUE
+\"${CMAKE_COMMAND}\" --build ./Build-Arch --config=Release")
     execute_process(
-        COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/cmake/BuildFeatureTester.bat"
+        COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/cmake/BuildFeatureTesterArch.bat"
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/cmake"
     )
-    set(FEATURE_TESTER_FILE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Build/Release/feature_detector.exe")
+    set(FEATURE_TESTER_FILE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Build-Arch/Release/feature_detector.exe")
 endif()
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
@@ -55,7 +55,7 @@ else()
     set(NIHILUS_SVE2_FLAGS "-march=armv8-a+sve;-msve-vector-bits=scalable;-march=armv8-a+sve+sve2")
 endif()
 
-if (NOT DEFINED NIHILUS_CPU_INSTRUCTIONS)
+if (NOT NIHILUS_CPU_INSTRUCTIONS)
 
 execute_process(
     COMMAND "${FEATURE_TESTER_FILE}"

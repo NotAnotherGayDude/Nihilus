@@ -71,9 +71,15 @@ static void sigint_handler(int signo) {
 }
 #endif
 
+#if !defined(LLAMA_MODEL_SIZE)
+static constexpr nihilus::model_sizes model_size{ nihilus::model_sizes::llm_8B };
+#else
+static constexpr nihilus::model_sizes model_size{ LLAMA_MODEL_SIZE };
+#endif
+
 int main(int argc, char** argv) {
 	try {
-		static constexpr auto model_config = nihilus::generate_model_config(nihilus::model_generations::v3, nihilus::model_sizes::llm_8B, nihilus::kernel_type_profiles::q8_gqa,
+		static constexpr auto model_config = nihilus::generate_model_config(nihilus::model_generations::v3, model_size, nihilus::kernel_type_profiles::q8_gqa,
 			nihilus::model_arches::llama, false);
 		nihilus::cli_params cli_args_final = nihilus::harbinger<model_config>::parse_cli_arguments(argc, argv);
 		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 4, 2, true, "Token">::runBenchmark<"nihilus">([&] {

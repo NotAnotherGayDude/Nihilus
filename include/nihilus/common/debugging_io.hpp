@@ -326,7 +326,7 @@ namespace nihilus {
 			}
 			name = name_new;
 			type = type_traits<output_type>::type;
-			op	 = other.krn_type;
+			op	 = other.kernel_type;
 		}
 		std::string name{};
 		std::vector<uint8_t> data{};
@@ -408,6 +408,9 @@ namespace nihilus {
 			case op_types::qcur_rope: {
 				return "Qcur-" + block;
 			}
+			case op_types::qcur_reshaped: {
+				return "Qcur-" + block + " (reshaped)";
+			}
 			case op_types::kq_mask: {
 				return "KQ_mask";
 			}
@@ -487,7 +490,8 @@ namespace nihilus {
 			std::unordered_map<std::string, intermediary_tensor> iteration_tensors{};
 
 			try {
-				file_loader<true> file_loader{ filename };
+				static constexpr model_config config{};
+				file_loader<config> file_loader{ filename };
 				jsonifier::jsonifier_core parser{};
 				parser.parseJson<jsonifier::parse_options{ .minified = true }>(iteration_ggml, file_loader.operator const std::string&());
 
@@ -535,24 +539,27 @@ namespace nihilus {
 			std::string tensor_name{ convert_op_to_string(tensor.type, current_block) };
 			const auto& current_leafs = get_leaf_iteration(iteration);
 			const auto& current_nodes = get_node_iteration(iteration);
-			intermediary_tensor tensor_new{ tensor, tensor_name, current_block };
+			if (!tensor_name.empty()) {
+				intermediary_tensor tensor_new{ tensor, tensor_name, current_block };
 
-			if (current_leafs.contains(tensor_name)) {
-				bool return_value{ tensor_new == current_leafs.at(tensor_name) };
-				if (!return_value) {
-					std::cout << "Found an op of name: " << tensor_name << ", OF TYPE: " << ( int32_t )tensor.type << " (iteration " << iteration << ")" << std::endl;
+				if (current_leafs.contains(tensor_name)) {
+					bool return_value{ tensor_new == current_leafs.at(tensor_name) };
+					if (!return_value) {
+						std::cout << "Found an op of name: " << tensor_name << ", OF TYPE: " << ( int32_t )tensor.type << " (iteration " << iteration << ")" << std::endl;
+					}
+					return return_value;
+				} else if (current_nodes.contains(tensor_name)) {
+					bool return_value{ tensor_new == current_nodes.at(tensor_name) };
+					if (!return_value) {
+						std::cout << "Found an op of name: " << tensor_name << ", OF TYPE: " << ( int32_t )tensor.type << " (iteration " << iteration << ")" << std::endl;
+					}
+					return return_value;
+				} else {
+					std::cout << "Not Found: Tensor of name: " << tensor_name << ", OF TYPE: " << ( int32_t )tensor.type << " (iteration " << iteration << ")" << std::endl;
+					return false;
 				}
-				return return_value;
-			} else if (current_nodes.contains(tensor_name)) {
-				bool return_value{ tensor_new == current_nodes.at(tensor_name) };
-				if (!return_value) {
-					std::cout << "Found an op of name: " << tensor_name << ", OF TYPE: " << ( int32_t )tensor.type << " (iteration " << iteration << ")" << std::endl;
-				}
-				return return_value;
-			} else {
-				std::cout << "Not Found: Tensor of name: " << tensor_name << ", OF TYPE: " << ( int32_t )tensor.type << " (iteration " << iteration << ")" << std::endl;
-				return false;
 			}
+			return false;
 		}
 	};
 

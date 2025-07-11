@@ -23,7 +23,10 @@
 /// Sep 1, 2024
 #pragma once
 
-#include <nihilus/cpu/cpu_arch.hpp>
+#include <nihilus/cpu/simd/nihilus_cpu_instructions.hpp>
+#include <nihilus/common/config.hpp>
+#include <type_traits>
+#include <algorithm>
 
 namespace nihilus {
 
@@ -40,6 +43,13 @@ namespace nihilus {
 		constexpr string_literal() noexcept = default;
 
 		constexpr string_literal(const char (&str)[sizeVal]) noexcept {
+			for (uint64_t x = 0; x < length; ++x) {
+				values[x] = str[x];
+			}
+			values[length] = '\0';
+		}
+
+		explicit constexpr string_literal(const char* str) noexcept {
 			for (uint64_t x = 0; x < length; ++x) {
 				values[x] = str[x];
 			}
@@ -83,7 +93,9 @@ namespace nihilus {
 		}
 
 		template<size_type sizeNew> constexpr friend auto operator+(const value_type (&lhs)[sizeNew], const string_literal<sizeVal>& str) noexcept {
-			return string_literal<sizeNew>{ lhs } + str;
+			string_literal<sizeNew> sl_new{};
+			std::copy_n(lhs, sizeNew, sl_new.data());
+			return sl_new + str;
 		}
 
 		constexpr reference operator[](size_type index) noexcept {
@@ -111,7 +123,7 @@ namespace nihilus {
 		return os;
 	}
 
-	inline static constexpr uint64_t countDigits(int64_t number) noexcept {
+	inline static constexpr uint64_t count_digits(int64_t number) noexcept {
 		uint64_t count = 0;
 		if (number < 0) {
 			number *= -1;
@@ -124,7 +136,7 @@ namespace nihilus {
 		return count;
 	}
 
-	template<int64_t number, uint64_t numDigits = countDigits(number)> inline static constexpr string_literal<numDigits + 1> toStringLiteral() noexcept {
+	template<int64_t number, uint64_t numDigits = count_digits(number)> inline static constexpr string_literal<numDigits + 1> to_string_literal() noexcept {
 		char buffer[numDigits + 1]{};
 		char* ptr = buffer + numDigits;
 		*ptr	  = '\0';
@@ -142,14 +154,22 @@ namespace nihilus {
 		return string_literal<numDigits + 1>{ buffer };
 	}
 
-	constexpr char toLower(char input) noexcept {
+	constexpr char to_lower(char input) noexcept {
 		return (input >= 'A' && input <= 'Z') ? (input + 32) : input;
 	}
 
-	template<uint64_t size, typename value_type> inline static constexpr auto toLower(string_literal<size> input) noexcept {
+	constexpr char strlen(const char* input) noexcept {
+		uint64_t return_val{};
+		while (input[return_val] != '\0') {
+			++return_val;
+		}
+		return return_val;
+	}
+
+	template<uint64_t size, typename value_type> inline static constexpr auto to_lower(string_literal<size> input) noexcept {
 		string_literal<size> output{};
 		for (uint64_t x = 0; x < size; ++x) {
-			output[x] = toLower(input[x]);
+			output[x] = to_lower(input[x]);
 		}
 		return output;
 	}

@@ -36,3 +36,4 @@ out/
 build-arm64-*
 build-x64-*
 Tensor-Data.txt
+cmake/Build-Arch/

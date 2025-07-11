@@ -74,6 +74,170 @@ static void sigint_handler(int signo) {
 }
 #endif
 
+
+enum class FunctionType { Linear, Quadratic, Sinusoidal };
+
+struct FitResult {
+	FunctionType type;
+	std::array<float, 4> params;// only 2–3 used depending on function
+	float error;
+};
+
+class ParametricFitter32 {
+  public:
+	static constexpr int BlockSize		= 32;
+	static constexpr float FitThreshold = 1e-2f;
+
+	static std::optional<FitResult> fit(const float* values) {
+		if (auto linear = fit_linear(values); linear.has_value() && linear->error < FitThreshold)
+			return linear;
+
+		if (auto quad = fit_quadratic(values); quad.has_value() && quad->error < FitThreshold)
+			return quad;
+
+		if (auto sine = fit_sinusoidal(values); sine.has_value() && sine->error < FitThreshold)
+			return sine;
+
+		return std::nullopt;
+	}
+
+  private:
+	static std::optional<FitResult> fit_linear(const float* v) {
+		float sum_i = 0, sum_y = 0, sum_iy = 0, sum_i2 = 0;
+		for (int i = 0; i < BlockSize; ++i) {
+			sum_i += i;
+			sum_y += v[i];
+			sum_iy += i * v[i];
+			sum_i2 += i * i;
+		}
+
+		float denom = BlockSize * sum_i2 - sum_i * sum_i;
+		if (denom == 0)
+			return std::nullopt;
+
+		float a = (BlockSize * sum_iy - sum_i * sum_y) / denom;
+		float b = (sum_y - a * sum_i) / BlockSize;
+
+		float error = 0.0f;
+		for (int i = 0; i < BlockSize; ++i) {
+			float est  = a * i + b;
+			float diff = v[i] - est;
+			error += diff * diff;
+		}
+
+		return FitResult{ FunctionType::Linear, { a, b, 0.0f, 0.0f }, error };
+	}
+
+	static std::optional<FitResult> fit_quadratic(const float* v) {
+		float S0 = BlockSize;
+		float S1 = 0, S2 = 0, S3 = 0, S4 = 0;
+		float T0 = 0, T1 = 0, T2 = 0;
+
+		for (int i = 0; i < BlockSize; ++i) {
+			float x	 = i;
+			float y	 = v[i];
+			float x2 = x * x;
+			float x3 = x2 * x;
+			float x4 = x3 * x;
+
+			S1 += x;
+			S2 += x2;
+			S3 += x3;
+			S4 += x4;
+
+			T0 += y;
+			T1 += x * y;
+			T2 += x2 * y;
+		}
+
+		float A[3][4] = {
+			{ S0, S1, S2, T0 },
+			{ S1, S2, S3, T1 },
+			{ S2, S3, S4, T2 },
+		};
+
+		if (!gauss_jordan(A, 3))
+			return std::nullopt;
+
+		float a = A[2][3];
+		float b = A[1][3];
+		float c = A[0][3];
+
+		float error = 0.0f;
+		for (int i = 0; i < BlockSize; ++i) {
+			float est  = a * i * i + b * i + c;
+			float diff = v[i] - est;
+			error += diff * diff;
+		}
+
+		return FitResult{ FunctionType::Quadratic, { a, b, c, 0.0f }, error };
+	}
+
+	static std::optional<FitResult> fit_sinusoidal(const float* v) {
+		float a = 1.0f, b = 0.2f, c = 0.0f;
+		float lr = 0.0005f;
+
+		for (int step = 0; step < 3000; ++step) {
+			float da = 0, db = 0, dc = 0;
+			for (int i = 0; i < BlockSize; ++i) {
+				float pred = a * std::sin(b * i + c);
+				float err  = pred - v[i];
+				da += err * std::sin(b * i + c);
+				db += err * a * i * std::cos(b * i + c);
+				dc += err * a * std::cos(b * i + c);
+			}
+			a -= lr * 2 * da;
+			b -= lr * 2 * db;
+			c -= lr * 2 * dc;
+		}
+
+		float error = 0.0f;
+		for (int i = 0; i < BlockSize; ++i) {
+			float pred = a * std::sin(b * i + c);
+			float diff = v[i] - pred;
+			error += diff * diff;
+		}
+
+		return FitResult{ FunctionType::Sinusoidal, { a, b, c, 0.0f }, error };
+	}
+
+	static bool gauss_jordan(float A[3][4], int n) {
+		for (int i = 0; i < n; ++i) {
+			int maxRow = i;
+			for (int k = i + 1; k < n; ++k) {
+				if (std::abs(A[k][i]) > std::abs(A[maxRow][i])) {
+					maxRow = k;
+				}
+			}
+			for (int k = i; k <= n; ++k)
+				std::swap(A[i][k], A[maxRow][k]);
+
+			if (std::abs(A[i][i]) < 1e-6f)
+				return false;
+
+			float div = A[i][i];
+			for (int k = 0; k <= n; ++k)
+				A[i][k] /= div;
+
+			for (int j = 0; j < n; ++j) {
+				if (j == i)
+					continue;
+				float factor = A[j][i];
+				for (int k = 0; k <= n; ++k) {
+					A[j][k] -= factor * A[i][k];
+				}
+			}
+		}
+		return true;
+	}
+};
+
+#if !defined(LLAMA_MODEL_SIZE)
+static constexpr nihilus::model_sizes model_size{ nihilus::model_sizes::llm_8B };
+#else
+static constexpr nihilus::model_sizes model_size{ LLAMA_MODEL_SIZE };
+#endif
+
 int main(int argc, char** argv) {
 	try {
 		std::string return_value{};
@@ -581,11 +745,11 @@ int main(int argc, char** argv) {
 			});
 			
 		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 2, 1, true, "Token">::runBenchmark<"nihilus">([&] {
-			static constexpr auto model_config = nihilus::generate_model_config(nihilus::model_generations::v3, nihilus::model_sizes::llm_3B, nihilus::kernel_type_profiles::q8_gqa,
+			static constexpr auto model_config = nihilus::generate_model_config(nihilus::model_generations::v3, model_size, nihilus::kernel_type_profiles::q8_gqa,
 				nihilus::model_arches::llama, false);
 			nihilus::cli_params cli_args_final{ nihilus::harbinger<model_config>::parse_cli_arguments(argc, argv) };
-			auto model_new{ nihilus::harbinger<model_config>::parse_model_graph_data(cli_args_final) };
-			while (model_new->process_input(cli_args_final.prompt)) {
+			nihilus::model<model_config> model_newer{ cli_args_final };
+			while (model_newer.process_input(cli_args_final.prompt)) {
 			}
 			return cli_args_final.n_tokens;
 		});
