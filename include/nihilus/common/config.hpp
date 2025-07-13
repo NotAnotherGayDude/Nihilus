@@ -52,25 +52,19 @@ RealTimeChris (Chris M.)
 
 #if defined(NDEBUG)
 	#if defined(NIHILUS_COMPILER_MSVC)
-		#define NIHILUS_INLINE inline
-		#define NIHILUS_FORCE_INLINE [[msvc::forceinline]] inline
+		#define NIHILUS_INLINE [[msvc::forceinline]] inline
 	#elif defined(NIHILUS_COMPILER_CLANG)
-		#define NIHILUS_INLINE inline
-		#define NIHILUS_FORCE_INLINE inline __attribute__((always_inline))
+		#define NIHILUS_INLINE inline __attribute__((always_inline))
 	#elif defined(NIHILUS_COMPILER_GNUCXX)
-		#define NIHILUS_INLINE inline
-		#define NIHILUS_FORCE_INLINE inline __attribute__((always_inline))
+		#define NIHILUS_INLINE inline __attribute__((always_inline))
 	#endif
 #else
 	#if defined(NIHILUS_COMPILER_MSVC)
 		#define NIHILUS_INLINE
-		#define NIHILUS_FORCE_INLINE
 	#elif defined(NIHILUS_COMPILER_CLANG)
 		#define NIHILUS_INLINE
-		#define NIHILUS_FORCE_INLINE
 	#elif defined(NIHILUS_COMPILER_GNUCXX)
 		#define NIHILUS_INLINE
-		#define NIHILUS_FORCE_INLINE
 	#endif
 #endif
 
@@ -101,7 +95,7 @@ RealTimeChris (Chris M.)
 	#error "Unsupported architecture"
 #endif
 
-NIHILUS_FORCE_INLINE void nihilus_pause() noexcept {
+NIHILUS_INLINE void nihilus_pause() noexcept {
 #if defined(NIHILUS_ARCH_X86_64)
 	_mm_pause();
 #elif defined(NIHILUS_ARCH_ARM64)
@@ -114,7 +108,7 @@ NIHILUS_FORCE_INLINE void nihilus_pause() noexcept {
 #ifndef NDEBUG
 	#define NIHILUS_ASSERT(x) \
 		if (!(x)) \
-		nihilus::internal_abort(#x, std::source_location::current())
+		internal_abort(#x, std::source_location::current())
 #else
 	#define NIHILUS_ASSERT(x)
 #endif

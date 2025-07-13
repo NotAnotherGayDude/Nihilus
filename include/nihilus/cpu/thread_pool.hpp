@@ -30,7 +30,7 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-	NIHILUS_FORCE_INLINE bool pin_thread_to_core(int32_t core_id) {
+	NIHILUS_INLINE bool pin_thread_to_core(int32_t core_id) {
 #if defined(NIHILUS_PLATFORM_WINDOWS)
 		DWORD_PTR mask	 = 1ULL << core_id;
 		HANDLE thread	 = GetCurrentThread();
@@ -71,7 +71,7 @@ namespace nihilus {
 #endif
 	}
 
-	NIHILUS_FORCE_INLINE void raise_current_thread_priority() {
+	NIHILUS_INLINE void raise_current_thread_priority() {
 #if defined(NIHILUS_PLATFORM_WINDOWS)
 		HANDLE thread = GetCurrentThread();
 		if (!SetThreadPriority(thread, THREAD_PRIORITY_HIGHEST)) {
@@ -105,7 +105,7 @@ namespace nihilus {
 #endif
 	}
 
-	NIHILUS_FORCE_INLINE void reset_current_thread_priority() {
+	NIHILUS_INLINE void reset_current_thread_priority() {
 #if defined(NIHILUS_PLATFORM_WINDOWS)
 		HANDLE thread = GetCurrentThread();
 		if (!SetThreadPriority(thread, THREAD_PRIORITY_NORMAL)) {
@@ -138,13 +138,13 @@ namespace nihilus {
 #endif
 	};
 
-	template<nihilus::model_config config, typename model_type> struct thread_pool : public get_core_bases_t<config> {
-		using core_base_type													 = get_core_bases_t<config>;
-		NIHILUS_FORCE_INLINE thread_pool() noexcept								 = default;
-		NIHILUS_FORCE_INLINE thread_pool& operator=(const thread_pool&) noexcept = delete;
-		NIHILUS_FORCE_INLINE thread_pool(const thread_pool&) noexcept			 = delete;
+	template<model_config config, typename model_type> struct thread_pool : public get_core_bases_t<config> {
+		using core_base_type											   = get_core_bases_t<config>;
+		NIHILUS_INLINE thread_pool() noexcept							   = default;
+		NIHILUS_INLINE thread_pool& operator=(const thread_pool&) noexcept = delete;
+		NIHILUS_INLINE thread_pool(const thread_pool&) noexcept			   = delete;
 
-		NIHILUS_FORCE_INLINE thread_pool(uint64_t thread_count_new) {
+		NIHILUS_INLINE thread_pool(uint64_t thread_count_new) {
 			threads.resize(thread_count_new);
 			thread_count = thread_count_new;
 			thread_latch.init(thread_count_new);
@@ -155,7 +155,7 @@ namespace nihilus {
 			}
 		}
 
-		template<bool raise_priority> NIHILUS_FORCE_INLINE void thread_function(uint64_t thread_index) {
+		template<bool raise_priority> NIHILUS_INLINE void thread_function(uint64_t thread_index) {
 			while (!stop.load(std::memory_order_acquire)) {
 				thread_latch.worker_wait(thread_index);
 				if (!stop.load(std::memory_order_acquire)) {
@@ -169,14 +169,14 @@ namespace nihilus {
 			}
 		}
 
-		NIHILUS_FORCE_INLINE void execute_tasks() {
+		NIHILUS_INLINE void execute_tasks() {
 			core_base_type::template impl<execution_planner>(thread_count);
-			nihilus::depths.store(0, std::memory_order_release);
+			depths.store(0, std::memory_order_release);
 			thread_latch.count_down();
 			thread_latch.main_wait();
 		}
 
-		NIHILUS_FORCE_INLINE ~thread_pool() {
+		NIHILUS_INLINE ~thread_pool() {
 			stop.store(true, std::memory_order_release);
 			thread_latch.count_down();
 			for (auto& value: threads) {
@@ -192,7 +192,7 @@ namespace nihilus {
 		alignas(64) std::atomic_bool stop{};
 		char padding02[63]{};
 		alignas(64) uint64_t thread_count{};
-		nihilus::main_gate_latch thread_latch;
+		main_gate_latch thread_latch;
 	};
 
 }

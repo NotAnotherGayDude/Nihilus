@@ -34,7 +34,7 @@ RealTimeChris (Chris M.)
 #include <latch>
 #include <cmath>
 
-namespace nihilus {	
+namespace nihilus {
 
 	static constexpr array<bool, 256> alpha_table{ [] {
 		array<bool, 256> return_values{};
@@ -50,7 +50,7 @@ namespace nihilus {
 		return return_values;
 	}() };
 
-	template<typename value_type> NIHILUS_FORCE_INLINE static constexpr bool is_alpha(value_type c) noexcept {
+	template<typename value_type> NIHILUS_INLINE static constexpr bool is_alpha(value_type c) noexcept {
 		return alpha_table[static_cast<uint8_t>(c)];
 	}
 
@@ -65,11 +65,11 @@ namespace nihilus {
 		return return_values;
 	}() };
 
-	template<typename value_type> NIHILUS_FORCE_INLINE static constexpr bool is_space(value_type c) noexcept {
+	template<typename value_type> NIHILUS_INLINE static constexpr bool is_space(value_type c) noexcept {
 		return space_table[static_cast<uint8_t>(c)];
 	}
 
-	template<typename value_type> NIHILUS_FORCE_INLINE static constexpr bool is_digit(value_type c) noexcept {
+	template<typename value_type> NIHILUS_INLINE static constexpr bool is_digit(value_type c) noexcept {
 		return static_cast<uint8_t>(c - '0') < 10;
 	}
 
@@ -77,54 +77,52 @@ namespace nihilus {
 
 	static constexpr auto spinlock_time{ 172000 };
 
-	std::atomic_uint64_t current_count{};
-
 	struct alignas(64) atomic_flag_wrapper {
-		NIHILUS_FORCE_INLINE atomic_flag_wrapper() noexcept = default;
-		NIHILUS_FORCE_INLINE atomic_flag_wrapper& operator=(const atomic_flag_wrapper&) noexcept {
+		NIHILUS_INLINE atomic_flag_wrapper() noexcept = default;
+		NIHILUS_INLINE atomic_flag_wrapper& operator=(const atomic_flag_wrapper&) noexcept {
 			return *this;
 		}
 
-		NIHILUS_FORCE_INLINE atomic_flag_wrapper(const atomic_flag_wrapper&) noexcept {
+		NIHILUS_INLINE atomic_flag_wrapper(const atomic_flag_wrapper&) noexcept {
 		}
 
-		NIHILUS_FORCE_INLINE void store(int64_t value_new) {
+		NIHILUS_INLINE void store(int64_t value_new) {
 			flag.store(value_new, std::memory_order_release);
 		}
 
-		NIHILUS_FORCE_INLINE int64_t load() {
+		NIHILUS_INLINE int64_t load() {
 			return flag.load(std::memory_order_acquire);
 		}
 
-		NIHILUS_FORCE_INLINE void clear() {
+		NIHILUS_INLINE void clear() {
 			flag.store(0, std::memory_order_release);
 		}
 
-		NIHILUS_FORCE_INLINE void test_and_set() {
+		NIHILUS_INLINE void test_and_set() {
 			flag.store(1, std::memory_order_release);
 		}
 
-		NIHILUS_FORCE_INLINE void notify_one() {
+		NIHILUS_INLINE void notify_one() {
 			flag.notify_one();
 		}
 
-		NIHILUS_FORCE_INLINE void notify_all() {
+		NIHILUS_INLINE void notify_all() {
 			flag.notify_all();
 		}
 
-		NIHILUS_FORCE_INLINE int64_t fetch_add(int64_t value) {
+		NIHILUS_INLINE int64_t fetch_add(int64_t value) {
 			return flag.fetch_add(value, std::memory_order_acq_rel);
 		}
 
-		NIHILUS_FORCE_INLINE int64_t fetch_sub(int64_t value) {
+		NIHILUS_INLINE int64_t fetch_sub(int64_t value) {
 			return flag.fetch_sub(value, std::memory_order_acq_rel);
 		}
 
-		NIHILUS_FORCE_INLINE bool test() {
+		NIHILUS_INLINE bool test() {
 			return flag.load(std::memory_order_acquire) == 1;
 		}
 
-		NIHILUS_FORCE_INLINE void wait(int64_t value) {
+		NIHILUS_INLINE void wait(int64_t value) {
 			flag.wait(value, std::memory_order_acquire);
 		}
 
@@ -134,9 +132,9 @@ namespace nihilus {
 	};
 
 	struct alignas(64) op_latch {
-		NIHILUS_FORCE_INLINE op_latch()							  = default;
-		NIHILUS_FORCE_INLINE op_latch& operator=(const op_latch&) = delete;
-		NIHILUS_FORCE_INLINE op_latch(const op_latch&)			  = delete;
+		NIHILUS_INLINE op_latch()							= default;
+		NIHILUS_INLINE op_latch& operator=(const op_latch&) = delete;
+		NIHILUS_INLINE op_latch(const op_latch&)			= delete;
 		alignas(64) atomic_flag_wrapper global_flag{};
 		alignas(64) int64_t thread_count{};
 
@@ -158,26 +156,26 @@ namespace nihilus {
 	};
 
 	struct alignas(64) core_latch {
-		NIHILUS_FORCE_INLINE core_latch()							  = default;
-		NIHILUS_FORCE_INLINE core_latch& operator=(const core_latch&) = delete;
-		NIHILUS_FORCE_INLINE core_latch(const core_latch&)			  = delete;
+		NIHILUS_INLINE core_latch()								= default;
+		NIHILUS_INLINE core_latch& operator=(const core_latch&) = delete;
+		NIHILUS_INLINE core_latch(const core_latch&)			= delete;
 		alignas(64) atomic_flag_wrapper flag{};
 		alignas(64) int64_t thread_count{};
 
-		NIHILUS_FORCE_INLINE void init(uint64_t thread_count_new) {
+		NIHILUS_INLINE void init(uint64_t thread_count_new) {
 			thread_count = thread_count_new;
 			flag.store(0);
 		}
 
-		NIHILUS_FORCE_INLINE int64_t do_we_run() {
+		NIHILUS_INLINE int64_t do_we_run() {
 			return flag.fetch_add(1);
 		}
 	};
 
 	struct alignas(64) main_gate_latch {
-		NIHILUS_FORCE_INLINE main_gate_latch()									= default;
-		NIHILUS_FORCE_INLINE main_gate_latch& operator=(const main_gate_latch&) = delete;
-		NIHILUS_FORCE_INLINE main_gate_latch(const main_gate_latch&)			= delete;
+		NIHILUS_INLINE main_gate_latch()								  = default;
+		NIHILUS_INLINE main_gate_latch& operator=(const main_gate_latch&) = delete;
+		NIHILUS_INLINE main_gate_latch(const main_gate_latch&)			  = delete;
 		alignas(64) std::vector<atomic_flag_wrapper> finish_flags{};
 		char padding01[40]{};
 		alignas(64) std::vector<atomic_flag_wrapper> start_flags{};
@@ -187,19 +185,19 @@ namespace nihilus {
 		alignas(64) int64_t thread_count{};
 		char padding[56]{};
 
-		NIHILUS_FORCE_INLINE void init(uint64_t thread_count_new) {
+		NIHILUS_INLINE void init(uint64_t thread_count_new) {
 			thread_count = thread_count_new;
 			start_flags.resize(thread_count);
 			finish_flags.resize(thread_count);
 			global_counter.store(static_cast<int64_t>(thread_count), std::memory_order_release);
 		}
 
-		NIHILUS_FORCE_INLINE void worker_wait(uint64_t thread_index) {
+		NIHILUS_INLINE void worker_wait(uint64_t thread_index) {
 			start_flags[thread_index].wait(false);
 			start_flags[thread_index].clear();
 		}
 
-		NIHILUS_FORCE_INLINE void arrive_and_wait(uint64_t thread_index) {
+		NIHILUS_INLINE void arrive_and_wait(uint64_t thread_index) {
 			global_counter.fetch_sub(1, std::memory_order_acq_rel);
 			global_counter.notify_one();
 
@@ -209,14 +207,14 @@ namespace nihilus {
 			finish_flags[thread_index].clear();
 		}
 
-		NIHILUS_FORCE_INLINE void count_down() {
+		NIHILUS_INLINE void count_down() {
 			for (uint64_t x = 0; x < thread_count; ++x) {
 				start_flags[x].test_and_set();
 				start_flags[x].notify_one();
 			}
 		}
 
-		NIHILUS_FORCE_INLINE void main_wait() {
+		NIHILUS_INLINE void main_wait() {
 			int64_t current_value = global_counter.load(std::memory_order_acquire);
 			while (current_value > 0) {
 				global_counter.wait(current_value);
@@ -240,11 +238,11 @@ namespace nihilus {
 		static constexpr bool lock_free{ std::atomic<value_type>::is_always_lock_free };
 		using time_type = std::conditional_t<lock_free, value_type, uint64_t>;
 
-		NIHILUS_FORCE_INLINE stop_watch(uint64_t newTime) noexcept {
+		NIHILUS_INLINE stop_watch(uint64_t newTime) noexcept {
 			total_time_units.store(time_type{ newTime }, std::memory_order_release);
 		}
 
-		NIHILUS_FORCE_INLINE stop_watch& operator=(stop_watch&& other) noexcept {
+		NIHILUS_INLINE stop_watch& operator=(stop_watch&& other) noexcept {
 			if NIHILUS_LIKELY (this != &other) {
 				total_time_units.store(other.total_time_units.load(std::memory_order_acquire), std::memory_order_release);
 				start_time_units.store(other.start_time_units.load(std::memory_order_acquire), std::memory_order_release);
@@ -252,11 +250,11 @@ namespace nihilus {
 			return *this;
 		}
 
-		NIHILUS_FORCE_INLINE stop_watch(stop_watch&& other) noexcept {
+		NIHILUS_INLINE stop_watch(stop_watch&& other) noexcept {
 			*this = detail::move(other);
 		}
 
-		NIHILUS_FORCE_INLINE stop_watch& operator=(const stop_watch& other) noexcept {
+		NIHILUS_INLINE stop_watch& operator=(const stop_watch& other) noexcept {
 			if NIHILUS_LIKELY (this != &other) {
 				total_time_units.store(other.total_time_units.load(std::memory_order_acquire), std::memory_order_release);
 				start_time_units.store(other.start_time_units.load(std::memory_order_acquire), std::memory_order_release);
@@ -264,21 +262,21 @@ namespace nihilus {
 			return *this;
 		}
 
-		NIHILUS_FORCE_INLINE stop_watch(const stop_watch& other) noexcept {
+		NIHILUS_INLINE stop_watch(const stop_watch& other) noexcept {
 			*this = other;
 		}
 
-		NIHILUS_FORCE_INLINE bool has_time_elapsed() noexcept {
+		NIHILUS_INLINE bool has_time_elapsed() noexcept {
 			return ((get_current_time() - start_time_units.load(std::memory_order_acquire)) >= total_time_units.load(std::memory_order_acquire));
 		}
 
-		NIHILUS_FORCE_INLINE void add_time() noexcept {
+		NIHILUS_INLINE void add_time() noexcept {
 			std::unique_lock lock{ mutex };
 			values.emplace_back(total_time_elapsed());
 			reset();
 		}
 
-		NIHILUS_FORCE_INLINE uint64_t get_average() noexcept {
+		NIHILUS_INLINE uint64_t get_average() noexcept {
 			std::unique_lock lock{ mutex };
 			uint64_t total_time{};
 			for (auto& value: values) {
@@ -287,26 +285,26 @@ namespace nihilus {
 			return total_time / ((values.size() > 0) ? values.size() : 1);
 		}
 
-		NIHILUS_FORCE_INLINE uint64_t get_count() noexcept {
+		NIHILUS_INLINE uint64_t get_count() noexcept {
 			return values.size();
 		}
 
-		NIHILUS_FORCE_INLINE void reset(time_type newTimeValue = time_type{}) noexcept {
+		NIHILUS_INLINE void reset(time_type newTimeValue = time_type{}) noexcept {
 			if NIHILUS_LIKELY (newTimeValue != time_type{}) {
 				total_time_units.store(newTimeValue, std::memory_order_release);
 			}
 			start_time_units.store(get_current_time(), std::memory_order_release);
 		}
 
-		NIHILUS_FORCE_INLINE uint64_t get_total_wait_time() const noexcept {
+		NIHILUS_INLINE uint64_t get_total_wait_time() const noexcept {
 			return get_value_as_uint(total_time_units.load(std::memory_order_acquire));
 		}
 
-		NIHILUS_FORCE_INLINE time_type total_time_elapsed() noexcept {
+		NIHILUS_INLINE time_type total_time_elapsed() noexcept {
 			return get_current_time() - start_time_units.load(std::memory_order_acquire);
 		}
 
-		NIHILUS_FORCE_INLINE uint64_t total_time_elapsed_uint64() noexcept {
+		NIHILUS_INLINE uint64_t total_time_elapsed_uint64() noexcept {
 			return get_value_as_uint(get_current_time()) - get_value_as_uint(start_time_units.load(std::memory_order_acquire));
 		}
 
@@ -316,7 +314,7 @@ namespace nihilus {
 		std::vector<time_type> values{};
 		std::mutex mutex{};
 
-		NIHILUS_FORCE_INLINE time_type get_current_time() {
+		NIHILUS_INLINE time_type get_current_time() {
 			if constexpr (lock_free) {
 				return std::chrono::duration_cast<value_type>(hr_clock::now().time_since_epoch());
 			} else {
@@ -324,7 +322,7 @@ namespace nihilus {
 			}
 		}
 
-		NIHILUS_FORCE_INLINE uint64_t get_value_as_uint(time_type time) {
+		NIHILUS_INLINE uint64_t get_value_as_uint(time_type time) {
 			if constexpr (lock_free) {
 				return time.count();
 			} else {
@@ -335,7 +333,7 @@ namespace nihilus {
 
 	inline stop_watch<std::chrono::nanoseconds> stop_watch_val_nihilus{ 0 };
 
-	template<auto current_index, auto enum_count> NIHILUS_FORCE_INLINE constexpr std::string_view get_enum_name() {
+	template<auto current_index, auto enum_count> NIHILUS_INLINE constexpr std::string_view get_enum_name() {
 		std::string_view return_string{ std::source_location::current().function_name() };
 		auto new_size	   = std::size("get_enum_name<");
 		uint64_t new_index = return_string.find("get_enum_name<") + new_size - 1;
@@ -344,7 +342,7 @@ namespace nihilus {
 		return return_string;
 	}
 
-	template<auto current_index, auto enum_count> NIHILUS_FORCE_INLINE std::string print_enum_value(auto enum_val) {
+	template<auto current_index, auto enum_count> NIHILUS_INLINE std::string print_enum_value(auto enum_val) {
 		if constexpr (static_cast<uint64_t>(current_index) < static_cast<uint64_t>(enum_count)) {
 			if (static_cast<uint64_t>(current_index) == static_cast<uint64_t>(enum_val)) {
 				constexpr std::string_view string{ get_enum_name<current_index, enum_count>() };
@@ -369,7 +367,7 @@ namespace nihilus {
 		count,
 	};
 
-	NIHILUS_FORCE_INLINE constexpr const char* get_type_name(data_types type) {
+	NIHILUS_INLINE constexpr const char* get_type_name(data_types type) {
 		switch (type) {
 			case data_types::f64: {
 				return "double";
@@ -423,6 +421,51 @@ namespace nihilus {
 		count,
 	};
 
+	NIHILUS_INLINE std::ostream& operator<<(std::ostream& os, kernel_types type) {
+		switch (type) {
+			case kernel_types::none:
+				return os << "none";
+			case kernel_types::add_rms_norm_mul:
+				return os << "add_rms_norm_mul";
+			case kernel_types::get_rows:
+				return os << "get_rows";
+			case kernel_types::rms_norm_mul:
+				return os << "rms_norm_mul";
+			case kernel_types::rms_norm:
+				return os << "rms_norm";
+			case kernel_types::mul:
+				return os << "mul";
+			case kernel_types::mul_mat:
+				return os << "mul_mat";
+			case kernel_types::reshape:
+				return os << "reshape";
+			case kernel_types::permute:
+				return os << "permute";
+			case kernel_types::transpose:
+				return os << "transpose";
+			case kernel_types::view:
+				return os << "view";
+			case kernel_types::cont:
+				return os << "cont";
+			case kernel_types::copy:
+				return os << "copy";
+			case kernel_types::rope:
+				return os << "rope";
+			case kernel_types::softmax:
+				return os << "softmax";
+			case kernel_types::silu:
+				return os << "silu";
+			case kernel_types::add:
+				return os << "add";
+			case kernel_types::sub:
+				return os << "sub";
+			case kernel_types::count:
+				return os << "count";
+			default:
+				return os << "unknown_kernel_type(" << static_cast<uint8_t>(type) << ")";
+		}
+	}
+
 	static constexpr array<const char*, kernel_types::count> kernel_names{ { "none", "get_rows", "rms_norm", "mul", "mul_mat", "reshape", "permute", "transpose", "view", "cont",
 		"copy", "rope", "softmax", "silu", "add", "sub" } };
 
@@ -448,13 +491,13 @@ namespace nihilus {
 		cache_v,
 		kq_mask,
 		norm_attn_norm,
-		qcur,
+		qcur_mul_mat,
 		qcur_reshaped,
 		qcur_rope,
-		kcur,
+		kcur_mul_mat,
 		kcur_reshaped,
 		kcur_rope,
-		vcur,
+		vcur_mul_mat,
 		k_cache_view,
 		k_cache_view_copy,
 		vcur_transposed,
@@ -487,7 +530,130 @@ namespace nihilus {
 		count
 	};
 
-	template<integral_or_enum value_type> constexpr kernel_types get_kernel_type_from_llm_op(value_type op) {
+	NIHILUS_INLINE std::ostream& operator<<(std::ostream& os, op_types type) {
+		switch (type) {
+			case op_types::token_embd_weight:
+				return os << "token_embd_weight";
+			case op_types::rope_freqs_weight:
+				return os << "rope_freqs_weight";
+			case op_types::output_weight:
+				return os << "output_weight";
+			case op_types::output_norm_weight:
+				return os << "output_norm_weight";
+			case op_types::attn_q_weight:
+				return os << "attn_q_weight";
+			case op_types::attn_k_weight:
+				return os << "attn_k_weight";
+			case op_types::attn_v_weight:
+				return os << "attn_v_weight";
+			case op_types::attn_output_weight:
+				return os << "attn_output_weight";
+			case op_types::attn_norm_weight:
+				return os << "attn_norm_weight";
+			case op_types::ffn_gate_weight:
+				return os << "ffn_gate_weight";
+			case op_types::ffn_up_weight:
+				return os << "ffn_up_weight";
+			case op_types::ffn_down_weight:
+				return os << "ffn_down_weight";
+			case op_types::ffn_norm_weight:
+				return os << "ffn_norm_weight";
+			case op_types::inp_embd:
+				return os << "inp_embd";
+			case op_types::inp_tokens:
+				return os << "inp_tokens";
+			case op_types::inp_pos:
+				return os << "inp_pos";
+			case op_types::inp_out_ids:
+				return os << "inp_out_ids";
+			case op_types::cache_k:
+				return os << "cache_k";
+			case op_types::cache_v:
+				return os << "cache_v";
+			case op_types::kq_mask:
+				return os << "kq_mask";
+			case op_types::norm_attn_norm:
+				return os << "norm_attn_norm";
+			case op_types::qcur_mul_mat:
+				return os << "qcur_mul_mat";
+			case op_types::qcur_reshaped:
+				return os << "qcur_reshaped";
+			case op_types::qcur_rope:
+				return os << "qcur_rope";
+			case op_types::kcur_mul_mat:
+				return os << "kcur_mul_mat";
+			case op_types::kcur_reshaped:
+				return os << "kcur_reshaped";
+			case op_types::kcur_rope:
+				return os << "kcur_rope";
+			case op_types::vcur_mul_mat:
+				return os << "vcur_mul_mat";
+			case op_types::k_cache_view:
+				return os << "k_cache_view";
+			case op_types::k_cache_view_copy:
+				return os << "k_cache_view_copy";
+			case op_types::vcur_transposed:
+				return os << "vcur_transposed";
+			case op_types::v_cache_view:
+				return os << "v_cache_view";
+			case op_types::v_cache_view_copy:
+				return os << "v_cache_view_copy";
+			case op_types::v:
+				return os << "v";
+			case op_types::k:
+				return os << "k";
+			case op_types::q:
+				return os << "q";
+			case op_types::kq:
+				return os << "kq";
+			case op_types::kq_soft_max:
+				return os << "kq_soft_max";
+			case op_types::kqv:
+				return os << "kqv";
+			case op_types::kqv_merged:
+				return os << "kqv_merged";
+			case op_types::kqv_merged_cont:
+				return os << "kqv_merged_cont";
+			case op_types::kqv_out:
+				return os << "kqv_out";
+			case op_types::ffn_inp:
+				return os << "ffn_inp";
+			case op_types::ffn_inp_norm_out_ffn_norm:
+				return os << "ffn_inp_norm_out_ffn_norm";
+			case op_types::norm_out:
+				return os << "norm_out";
+			case op_types::ffn_norm:
+				return os << "ffn_norm";
+			case op_types::ffn_gate:
+				return os << "ffn_gate";
+			case op_types::ffn_silu:
+				return os << "ffn_silu";
+			case op_types::ffn_up:
+				return os << "ffn_up";
+			case op_types::ffn_gate_par:
+				return os << "ffn_gate_par";
+			case op_types::ffn_out:
+				return os << "ffn_out";
+			case op_types::l_out:
+				return os << "l_out";
+			case op_types::attn_residual:
+				return os << "attn_residual";
+			case op_types::prev_residual:
+				return os << "prev_residual";
+			case op_types::final_norm:
+				return os << "final_norm";
+			case op_types::result_norm:
+				return os << "result_norm";
+			case op_types::result_output:
+				return os << "result_output";
+			case op_types::count:
+				return os << "count";
+			default:
+				return os << "unknown_op_type(" << static_cast<uint16_t>(type) << ")";
+		}
+	}
+
+	template<integral_or_enum_types value_type> constexpr kernel_types get_kernel_type_from_llm_op(value_type op) {
 		switch (static_cast<op_types>(op)) {
 			case op_types::inp_tokens:
 			case op_types::inp_pos:
@@ -520,9 +686,9 @@ namespace nihilus {
 			case op_types::ffn_gate_par:
 			case op_types::result_norm:
 				return kernel_types::mul;
-			case op_types::qcur:
-			case op_types::kcur:
-			case op_types::vcur:
+			case op_types::qcur_mul_mat:
+			case op_types::kcur_mul_mat:
+			case op_types::vcur_mul_mat:
 			case op_types::kq:
 			case op_types::kqv:
 			case op_types::kqv_out:
@@ -854,6 +1020,7 @@ namespace nihilus {
 		model_format format{};
 		float norm_epsilon{};
 		bool benchmark{};
+		bool dev{};
 	};
 
 	struct cli_params {
@@ -890,19 +1057,19 @@ namespace nihilus {
 
 	template<model_config config_new> struct config_holder {
 		static constexpr model_config config{ config_new };
-	};	
+	};
 
 	template<model_config config> class file_loader {
 	  public:
 		explicit file_loader(const std::filesystem::path& filePath) {
 			if (!std::filesystem::exists(filePath)) {
-				static constexpr auto location = get_source_location();
+				static constexpr auto location = std::source_location::current();
 				nihilus_exception<config, "file_loader - Path does not exist", location, void*>::impl();
 			}
 
 			std::ifstream file(filePath, std::ios::binary | std::ios::ate);
 			if (!file) {
-				static constexpr auto location = get_source_location();
+				static constexpr auto location = std::source_location::current();
 				nihilus_exception<config, "file_loader - Failed to open file", location, void*>::impl();
 			}
 
@@ -911,7 +1078,7 @@ namespace nihilus {
 			if (size != -1) {
 				contents.resize(static_cast<uint64_t>(size));
 				if (!file.read(contents.data(), size)) {
-					static constexpr auto location = get_source_location();
+					static constexpr auto location = std::source_location::current();
 					nihilus_exception<config, "file_loader - Failed to read file", location, void*>::impl();
 				}
 			}
@@ -933,19 +1100,19 @@ namespace nihilus {
 	  public:
 		file_saver(const std::filesystem::path& path, const void* data, uint64_t size) {
 			if (!data || size == 0) {
-				static constexpr auto location = get_source_location();
+				static constexpr auto location = std::source_location::current();
 				nihilus_exception<config, "file_saver - Cannot save null or empty data to file: ", location, void*>::impl(path.string());
 			}
 
 			std::ofstream file(path, std::ios::binary | std::ios::trunc);
 			if (!file) {
-				static constexpr auto location = get_source_location();
+				static constexpr auto location = std::source_location::current();
 				nihilus_exception<config, "file_saver - Cannot save null or empty data to file: ", location, void*>::impl(path.string());
 			}
 
 			file.write(static_cast<const char*>(data), static_cast<std::streamsize>(size));
 			if (!file) {
-				static constexpr auto location = get_source_location();
+				static constexpr auto location = std::source_location::current();
 				nihilus_exception<config, "file_saver - Cannot save null or empty data to file: ", location, void*>::impl(path.string());
 			}
 		}

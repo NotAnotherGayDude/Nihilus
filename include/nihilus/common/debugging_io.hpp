@@ -251,6 +251,14 @@ namespace nihilus {
 		return os;
 	}
 
+	struct comparison_result {
+		std::string result_output{};
+		bool result{ true };
+		NIHILUS_INLINE operator bool() {
+			return result;
+		}
+	};
+
 	struct intermediary_tensor {
 		std::vector<uint64_t> dims{ [] {
 			std::vector<uint64_t> return_values{};
@@ -258,9 +266,9 @@ namespace nihilus {
 			return return_values;
 		}() };
 
-		NIHILUS_FORCE_INLINE intermediary_tensor() noexcept = default;
+		NIHILUS_INLINE intermediary_tensor() noexcept = default;
 
-		NIHILUS_FORCE_INLINE intermediary_tensor(const intermediary_tensor& other) {
+		NIHILUS_INLINE intermediary_tensor(const intermediary_tensor& other) {
 			dims = other.dims;
 			data = other.data;
 			name = other.name;
@@ -268,7 +276,7 @@ namespace nihilus {
 			op	 = other.op;
 		}
 
-		NIHILUS_FORCE_INLINE intermediary_tensor(intermediary_tensor&& other) noexcept {
+		NIHILUS_INLINE intermediary_tensor(intermediary_tensor&& other) noexcept {
 			dims = detail::move(other.dims);
 			data = detail::move(other.data);
 			name = detail::move(other.name);
@@ -276,7 +284,7 @@ namespace nihilus {
 			op	 = other.op;
 		}
 
-		NIHILUS_FORCE_INLINE intermediary_tensor& operator=(const intermediary_tensor& other) {
+		NIHILUS_INLINE intermediary_tensor& operator=(const intermediary_tensor& other) {
 			if (this != &other) {
 				dims = other.dims;
 				data = other.data;
@@ -287,7 +295,7 @@ namespace nihilus {
 			return *this;
 		}
 
-		NIHILUS_FORCE_INLINE intermediary_tensor& operator=(intermediary_tensor&& other) noexcept {
+		NIHILUS_INLINE intermediary_tensor& operator=(intermediary_tensor&& other) noexcept {
 			if (this != &other) {
 				dims = detail::move(other.dims);
 				data = detail::move(other.data);
@@ -299,7 +307,7 @@ namespace nihilus {
 		}
 
 		// YOUR EXISTING CONSTRUCTORS...
-		NIHILUS_FORCE_INLINE intermediary_tensor(const intermediary_ggml_tensor& other) {
+		NIHILUS_INLINE intermediary_tensor(const intermediary_ggml_tensor& other) {
 			dims = other.dims;
 			data = other.data;
 			name = other.name;
@@ -307,7 +315,7 @@ namespace nihilus {
 			op	 = convert_ggml_op_to_nihilus_kernel(other.op);
 		}
 
-		template<core_traits_type tensor_type> NIHILUS_FORCE_INLINE intermediary_tensor(tensor_type& other, const std::string& name_new, uint64_t current_block) {
+		template<core_traits_types tensor_type> NIHILUS_INLINE intermediary_tensor(tensor_type& other, const std::string& name_new, uint64_t current_block) {
 			using output_type = typename tensor_type::output_type;
 			dims[0]			  = other[0];
 			dims[1]			  = other[1];
@@ -315,7 +323,7 @@ namespace nihilus {
 			dims[3]			  = other[3];
 			source_type		  = source_types::nihilus;
 			data.resize(128);
-			if constexpr (array_type<decltype(other.data)>) {
+			if constexpr (array_types<decltype(other.data)>) {
 				if (other.data[current_block]) {
 					std::memcpy(data.data(), other.data[current_block], 128);
 				}
@@ -333,28 +341,36 @@ namespace nihilus {
 		source_types source_type{ source_types::ggml };
 		data_types type{};
 		kernel_types op{};
-		NIHILUS_FORCE_INLINE bool operator==(intermediary_tensor& other) const {
+		NIHILUS_INLINE comparison_result operator==(const intermediary_tensor& other) const {
+			comparison_result return_value{};
+			std::stringstream stream{};
 			if (op != other.op) {
-				std::cout << "Incorret op-types:, For Tensor: " << name << ", LHS of source type: " << ( int32_t )source_type
+				stream << "Incorret op-types:, For Tensor: " << name << ", LHS of source type: " << ( int32_t )source_type
 						  << ", RHS of source type: " << ( int32_t )other.source_type << std::endl;
-				std::cout << "LHS OP: " << ( int32_t )op << std::endl;
-				std::cout << "RHS OP: " << ( int32_t )other.op << std::endl;
-				return false;
+				stream << "LHS OP: " << op << std::endl;
+				stream << "RHS OP: " << other.op << std::endl;
+				return_value.result = false;
+				return_value.result_output = stream.str();
+				return return_value;
 			}
 			if (type != other.type) {
-				std::cout << "Incorret Types:, For Tensor: " << name << ", LHS of source type: " << ( int32_t )source_type
+				stream << "Incorret Types:, For Tensor: " << name << ", LHS of source type: " << ( int32_t )source_type
 						  << ", RHS of source type: " << ( int32_t )other.source_type << std::endl;
-				std::cout << "LHS TYPE: " << ( int32_t )type << std::endl;
-				std::cout << "RHS TYPE: " << ( int32_t )other.type << std::endl;
-				return false;
+				stream << "LHS TYPE: " << ( int32_t )type << std::endl;
+				stream << "RHS TYPE: " << ( int32_t )other.type << std::endl;
+				return_value.result		   = false;
+				return_value.result_output = stream.str();
+				return return_value;
 			}
 
 			if (dims != other.dims) {
-				std::cout << "Incorret Dims:, For Tensor: " << name << ", LHS of source type: " << ( int32_t )source_type
+				stream << "Incorret Dims:, For Tensor: " << name << ", LHS of source type: " << ( int32_t )source_type
 						  << ", RHS of source type: " << ( int32_t )other.source_type << std::endl;
-				std::cout << "LHS Dims: " << dims << std::endl;
-				std::cout << "RHS Dims: " << other.dims << std::endl;
-				return false;
+				stream << "LHS Dims: " << dims << std::endl;
+				stream << "RHS Dims: " << other.dims << std::endl;
+				return_value.result		   = false;
+				return_value.result_output = stream.str();
+				return return_value;
 			}
 			uint64_t this_dims	= dims[0] * dims[1] * dims[2] * dims[3];
 			uint64_t other_dims = other.dims[0] * other.dims[1] * other.dims[2] * other.dims[3];
@@ -375,14 +391,18 @@ namespace nihilus {
 			}
 
 			if (equal_data) {
-				std::cout << "Incorret Data:, For Tensor: " << name << std::endl;
-				std::cout << "At Index: " << equal_data << std::endl;
-				std::cout << "LHS Data: " << data << std::endl;
-				std::cout << "RHS Data: " << other.data << std::endl;
-				return false;
+				stream << "Incorret Data:, For Tensor: " << name << std::endl;
+				stream << "At Index: " << equal_data << std::endl;
+				stream << "LHS Data: " << data << std::endl;
+				stream << "RHS Data: " << other.data << std::endl;
+				return_value.result		   = false;
+				return_value.result_output = stream.str();
+				return return_value;
 			}
 
-			return dims == other.dims && name == other.name;
+			bool result{ dims == other.dims && name == other.name };
+			return_value.result = result;
+			return return_value;
 		}
 	};
 }
@@ -396,7 +416,7 @@ namespace jsonifier {
 
 namespace nihilus {
 
-	NIHILUS_FORCE_INLINE std::string convert_op_to_string(op_types type, uint64_t current_block) {
+	NIHILUS_INLINE std::string convert_op_to_string(op_types type, uint64_t current_block) {
 		std::string block{ std::to_string(current_block) };
 		switch (type) {
 			case op_types::norm_attn_norm: {
@@ -407,6 +427,9 @@ namespace nihilus {
 			}
 			case op_types::qcur_rope: {
 				return "Qcur-" + block;
+			}
+			case op_types::kcur_rope: {
+				return "Kcur-" + block;
 			}
 			case op_types::qcur_reshaped: {
 				return "Qcur-" + block + " (reshaped)";
@@ -543,25 +566,37 @@ namespace nihilus {
 				intermediary_tensor tensor_new{ tensor, tensor_name, current_block };
 
 				if (current_leafs.contains(tensor_name)) {
-					bool return_value{ tensor_new == current_leafs.at(tensor_name) };
+					auto return_value{ tensor_new == current_leafs.at(tensor_name) };
 					if (!return_value) {
-						std::cout << "Found an op of name: " << tensor_name << ", OF TYPE: " << ( int32_t )tensor.type << " (iteration " << iteration << ")" << std::endl;
+						std::cout << "Found an op of name: " << tensor_name << ", OF TYPE: " << tensor.type << " (iteration " << iteration << ")" << std::endl;
+						std::cout << return_value.result_output << std::endl;
 					}
 					return return_value;
 				} else if (current_nodes.contains(tensor_name)) {
-					bool return_value{ tensor_new == current_nodes.at(tensor_name) };
+					auto return_value{ tensor_new == current_nodes.at(tensor_name) };
 					if (!return_value) {
-						std::cout << "Found an op of name: " << tensor_name << ", OF TYPE: " << ( int32_t )tensor.type << " (iteration " << iteration << ")" << std::endl;
+						std::cout << "Found an op of name: " << tensor_name << ", OF TYPE: " << tensor.type << " (iteration " << iteration << ")" << std::endl;
+						std::cout << return_value.result_output << std::endl;
 					}
 					return return_value;
-				} else {
-					std::cout << "Not Found: Tensor of name: " << tensor_name << ", OF TYPE: " << ( int32_t )tensor.type << " (iteration " << iteration << ")" << std::endl;
-					return false;
 				}
+			} else {
+				std::cout << "Not Found: Tensor of name: " << tensor_name << ", OF TYPE: " << tensor.type << " (iteration " << iteration << ")" << std::endl;
+				return false;
 			}
 			return false;
 		}
 	};
 
 }
+#else
+
+namespace nihilus {
+	struct tensor_debugger {
+		template<typename tensor_type> static bool compare_tensor_data(tensor_type& tensor, uint64_t current_block, uint64_t iteration) {
+			return false;
+		}
+	};
+}
+
 #endif

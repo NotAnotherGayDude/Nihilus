@@ -29,17 +29,17 @@ RealTimeChris (Chris M.)
 namespace nihilus {
 
 	template<model_config config> struct memory_buffer : public allocator<uint8_t> {
-		using value_type  = uint8_t;
-		using alloc		  = allocator<value_type>;
-		using pointer	  = value_type*;
-		using uint64_type = uint64_t;
+		using value_type   = uint8_t;
+		using alloc		   = allocator<value_type>;
+		using pointer	   = value_type*;
+		using uint64_types = uint64_t;
 
-		NIHILUS_FORCE_INLINE memory_buffer() noexcept = default;
+		NIHILUS_INLINE memory_buffer() noexcept = default;
 
-		NIHILUS_FORCE_INLINE memory_buffer& operator=(const memory_buffer&) noexcept = delete;
-		NIHILUS_FORCE_INLINE memory_buffer(const memory_buffer&) noexcept			 = delete;
+		NIHILUS_INLINE memory_buffer& operator=(const memory_buffer&) noexcept = delete;
+		NIHILUS_INLINE memory_buffer(const memory_buffer&) noexcept			   = delete;
 
-		NIHILUS_FORCE_INLINE memory_buffer& operator=(memory_buffer&& other) noexcept {
+		NIHILUS_INLINE memory_buffer& operator=(memory_buffer&& other) noexcept {
 			if (this != &other) {
 				std::swap(current_offset, other.current_offset);
 				std::swap(data_val, other.data_val);
@@ -48,11 +48,11 @@ namespace nihilus {
 			return *this;
 		}
 
-		NIHILUS_FORCE_INLINE memory_buffer(memory_buffer&& other) noexcept {
+		NIHILUS_INLINE memory_buffer(memory_buffer&& other) noexcept {
 			*this = detail::move(other);
 		}
 
-		NIHILUS_FORCE_INLINE void init(uint64_t size) noexcept {
+		NIHILUS_INLINE void init(uint64_t size) noexcept {
 			if (data_val) {
 				clear();
 			}
@@ -60,25 +60,25 @@ namespace nihilus {
 			size_val = size;
 		}
 
-		NIHILUS_FORCE_INLINE void deinit() noexcept {
+		NIHILUS_INLINE void deinit() noexcept {
 			clear();
 		}
 
-		NIHILUS_FORCE_INLINE uint64_type size() noexcept {
+		NIHILUS_INLINE uint64_types size() noexcept {
 			return size_val;
 		}
 
-		NIHILUS_FORCE_INLINE pointer data() noexcept {
+		NIHILUS_INLINE pointer data() noexcept {
 			return data_val;
 		}
 
-		NIHILUS_FORCE_INLINE void* claim_memory(uint64_t amount_to_claim) noexcept {
+		NIHILUS_INLINE void* claim_memory(uint64_t amount_to_claim) noexcept {
 			static constexpr uint64_t alignment = cpu_alignment;
 
 			uint64_t aligned_amount = round_up_to_multiple<alignment>(amount_to_claim);
 
 			if (current_offset + aligned_amount > size_val) {
-				static constexpr auto location = get_source_location();
+				static constexpr auto location = std::source_location::current();
 				return nihilus_exception<config, "memory_buffer overflow - not enough memory allocated", location, void*>::impl();
 			}
 
@@ -87,16 +87,16 @@ namespace nihilus {
 			return return_value;
 		}
 
-		NIHILUS_FORCE_INLINE ~memory_buffer() noexcept {
+		NIHILUS_INLINE ~memory_buffer() noexcept {
 			clear();
 		}
 
 	  protected:
-		uint64_type current_offset{};
+		uint64_types current_offset{};
 		value_type* data_val{};
-		uint64_type size_val{};
+		uint64_types size_val{};
 
-		NIHILUS_FORCE_INLINE void clear() noexcept {
+		NIHILUS_INLINE void clear() noexcept {
 			if (data_val) {
 				alloc::deallocate(data_val);
 				data_val = nullptr;

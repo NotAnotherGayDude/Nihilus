@@ -37,7 +37,7 @@ namespace nihilus {
 	template<typename data_types> struct type_traits;
 
 	template<typename derived_type> struct total_bytes_size {
-		NIHILUS_FORCE_INLINE constexpr static uint64_t total_byte_size(const array<uint64_t, 4>& dims) {
+		NIHILUS_INLINE constexpr static uint64_t total_byte_size(const array<uint64_t, 4>& dims) {
 			uint64_t total_elements = dims[0] * dims[1] * dims[2] * dims[3];
 			uint64_t num_blocks		= (total_elements + derived_type::block_size - 1) / derived_type::block_size;
 			return num_blocks * derived_type::type_size;
@@ -45,7 +45,7 @@ namespace nihilus {
 	};
 
 	template<typename derived_type> struct get_strides {
-		NIHILUS_FORCE_INLINE constexpr static array<uint64_t, 4> impl(const array<uint64_t, 4>& dims) {
+		NIHILUS_INLINE constexpr static array<uint64_t, 4> impl(const array<uint64_t, 4>& dims) {
 			array<uint64_t, 4> return_values{};
 			return_values[0] = derived_type::type_size;
 			return_values[1] = return_values[0] * (dims[0] / derived_type::block_size);
@@ -57,7 +57,7 @@ namespace nihilus {
 	};
 
 	template<typename derived_type> struct get_dynamic_type_traits {
-		NIHILUS_FORCE_INLINE consteval static type_traits_dynamic get_dynamic_type_traits_impl() {
+		NIHILUS_INLINE consteval static type_traits_dynamic get_dynamic_type_traits_impl() {
 			type_traits_dynamic return_values{};
 			return_values.block_size   = derived_type::block_size;
 			return_values.is_quantized = derived_type::is_quantized;
@@ -152,7 +152,7 @@ namespace nihilus {
 		inline static constexpr uint64_t n_rows{ 0 };
 	};
 
-	NIHILUS_FORCE_INLINE type_traits_dynamic get_type_traits(data_types type) {
+	NIHILUS_INLINE type_traits_dynamic get_type_traits(data_types type) {
 		switch (type) {
 			case data_types::f64: {
 				return type_traits<double>::get_dynamic_type_traits_impl();

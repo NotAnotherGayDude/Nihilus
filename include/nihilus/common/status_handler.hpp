@@ -29,19 +29,6 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-	struct source_location_wrapper {
-		const char* file_name{};
-		uint64_t line{};
-	};
-
-	NIHILUS_FORCE_INLINE consteval source_location_wrapper get_source_location(std::source_location location = std::source_location::current()) {
-		return { location.file_name(), location.line() };
-	}
-
-	void test_function() {
-		static constexpr auto new_value = get_source_location();
-	}
-
 	inline std::mutex mutex{};
 
 	enum class log_levels {
@@ -49,7 +36,7 @@ namespace nihilus {
 		status,
 	};
 
-	template<log_levels level> NIHILUS_FORCE_INLINE void log(std::string_view string) {
+	template<log_levels level> NIHILUS_INLINE void log(std::string_view string) {
 		std::unique_lock lock{ mutex };
 		if constexpr (level == log_levels::error) {
 			std::cerr << string << std::endl;
@@ -58,49 +45,46 @@ namespace nihilus {
 		}
 	}
 
-	template<auto config, string_literal error_type, source_location_wrapper source_info, typename return_type = void*> struct nihilus_exception;
+	template<auto config, string_literal error_type, const std::source_location& source_info, typename return_type = void*> struct nihilus_exception;
 
-	template<auto config, string_literal error_type, source_location_wrapper source_info, typename return_type>
+	template<auto config, string_literal error_type, const std::source_location& source_info, typename return_type>
 		requires(!config.exceptions)
 	struct nihilus_exception<config, error_type, source_info, return_type> {
-		NIHILUS_FORCE_INLINE static return_type impl() {
-			static constexpr uint64_t str_length{ strlen(source_info.file_name) };
-			static constexpr string_literal return_value{ "Error: " + error_type + "\nIn File: " + string_literal<str_length>{ source_info.file_name } +
-				"\nOn Line: " + to_string_literal<source_info.line>() + "\n" };
+		NIHILUS_INLINE static return_type impl() {
+			static constexpr uint64_t str_length{ strlen(source_info.file_name()) };
+			static constexpr string_literal return_value{ "Error: " + error_type + "\nIn File: " + string_literal<str_length>{ source_info.file_name() } +
+				"\nOn Line: " + to_string_literal<source_info.line()>() + "\n" };
 			log<log_levels::error>(return_value);
-			test_function();
-			if constexpr (!std::is_void_v<return_type>) {
-				return return_type{};
-			}
+			std::exit(-1);
+			std::unreachable();
 		}
-		NIHILUS_FORCE_INLINE static return_type impl(const std::string& input_string) {
-			static constexpr uint64_t str_length{ strlen(source_info.file_name) };
+		NIHILUS_INLINE static return_type impl(const std::string& input_string) {
+			static constexpr uint64_t str_length{ strlen(source_info.file_name()) };
 			static constexpr string_literal return_value01{ "Error: " + error_type };
-			static constexpr string_literal return_value02{ "\nIn File: " + string_literal<str_length>{ source_info.file_name } +
-				"\nOn Line: " + to_string_literal<source_info.line>() + "\n" };
+			static constexpr string_literal return_value02{ "\nIn File: " + string_literal<str_length>{ source_info.file_name() } +
+				"\nOn Line: " + to_string_literal<source_info.line()>() + "\n" };
 			std::string new_string{ return_value01.operator std::string() + input_string + return_value02.operator std::string() };
 			log<log_levels::error>(new_string);
-			if constexpr (!std::is_void_v<return_type>) {
-				return return_type{};
-			}
+			std::exit(-1);
+			std::unreachable();
 		}
 	};
 
-	template<auto config, string_literal error_type, source_location_wrapper source_info, typename return_type>
+	template<auto config, string_literal error_type, const std::source_location& source_info, typename return_type>
 		requires(config.exceptions)
 	struct nihilus_exception<config, error_type, source_info, return_type> : public std::runtime_error {
-		NIHILUS_FORCE_INLINE static return_type impl() {
-			static constexpr uint64_t str_length{ strlen(source_info.file_name) };
-			static constexpr string_literal return_value{ "Error: " + error_type + "\nIn File: " + string_literal<str_length>{ source_info.file_name } +
-				"\nOn Line: " + to_string_literal<source_info.line>() + "\n" };
+		NIHILUS_INLINE static return_type impl() {
+			static constexpr uint64_t str_length{ strlen(source_info.file_name()) };
+			static constexpr string_literal return_value{ "Error: " + error_type + "\nIn File: " + string_literal<str_length>{ source_info.file_name() } +
+				"\nOn Line: " + to_string_literal<source_info.line()>() + "\n" };
 			throw nihilus_exception(static_cast<std::string_view>(return_value));
 			std::unreachable();
 		}
-		NIHILUS_FORCE_INLINE static return_type impl(const std::string& input_string) {
-			static constexpr uint64_t str_length{ strlen(source_info.file_name) };
+		NIHILUS_INLINE static return_type impl(const std::string& input_string) {
+			static constexpr uint64_t str_length{ strlen(source_info.file_name()) };
 			static constexpr string_literal return_value01{ "Error: " + error_type };
-			static constexpr string_literal return_value02{ "\nIn File: " + string_literal<str_length>{ source_info.file_name } +
-				"\nOn Line: " + to_string_literal<source_info.line>() + "\n" };
+			static constexpr string_literal return_value02{ "\nIn File: " + string_literal<str_length>{ source_info.file_name() } +
+				"\nOn Line: " + to_string_literal<source_info.line()>() + "\n" };
 			std::string new_string{ return_value01.operator std::string() + input_string + return_value02.operator std::string() };
 			throw nihilus_exception(static_cast<std::string_view>(new_string));
 			std::unreachable();
@@ -117,31 +101,30 @@ namespace nihilus {
 	};
 
 	template<auto config, typename value_type> struct status_handler {
-		NIHILUS_FORCE_INLINE status_handler(success_statuses status_new) : status{ status_new } {};
-		template<typename value_type_new> NIHILUS_FORCE_INLINE status_handler(value_type_new&& value_new)
+		NIHILUS_INLINE status_handler(success_statuses status_new) : status{ status_new } {};
+		template<typename value_type_new> NIHILUS_INLINE status_handler(value_type_new&& value_new)
 			: status{ success_statuses::success }, value{ detail::forward<value_type_new>(value_new) } {};
 
-		NIHILUS_FORCE_INLINE operator bool() {
+		NIHILUS_INLINE operator bool() {
 			return status == success_statuses::success;
 		}
 
-		NIHILUS_FORCE_INLINE operator value_type&&() && {
+		NIHILUS_INLINE operator value_type&&() && {
 			return std::move(value);
 		}
 
-		NIHILUS_FORCE_INLINE operator value_type&() & {
+		NIHILUS_INLINE operator value_type&() & {
 			return value;
 		}
 
-		template<string_literal error_type, source_location_wrapper source_info, success_statuses status_new>
-		NIHILUS_FORCE_INLINE static status_handler construct_status(const std::string& input_string) {
+		template<string_literal error_type, const std::source_location& source_info, success_statuses status_new>
+		NIHILUS_INLINE static status_handler construct_status(const std::string& input_string) {
 			status_handler handler_new{ status_new };
 			handler_new.value = nihilus_exception<config, error_type, source_info, value_type>::impl(input_string);
 			return handler_new;
 		}
 
-		template<string_literal error_type, source_location_wrapper source_info, success_statuses status_new>
-		NIHILUS_FORCE_INLINE static status_handler construct_status() {
+		template<string_literal error_type, const std::source_location& source_info, success_statuses status_new> NIHILUS_INLINE static status_handler construct_status() {
 			status_handler handler_new{ status_new };
 			handler_new.value = nihilus_exception<config, error_type, source_info, value_type>::impl();
 			return handler_new;
@@ -155,22 +138,21 @@ namespace nihilus {
 	template<auto config, typename value_type>
 		requires(std::is_void_v<value_type>)
 	struct status_handler<config, value_type> {
-		NIHILUS_FORCE_INLINE status_handler(success_statuses status_new) : status{ status_new } {};
-		template<typename value_type_new> NIHILUS_FORCE_INLINE status_handler(value_type_new&& value_new) : status{ success_statuses::success } {};
+		NIHILUS_INLINE status_handler(success_statuses status_new) : status{ status_new } {};
+		template<typename value_type_new> NIHILUS_INLINE status_handler(value_type_new&& value_new) : status{ success_statuses::success } {};
 
-		NIHILUS_FORCE_INLINE operator bool() {
+		NIHILUS_INLINE operator bool() {
 			return status == success_statuses::success;
 		}
 
-		template<string_literal error_type, source_location_wrapper source_info, success_statuses status_new>
-		NIHILUS_FORCE_INLINE static status_handler construct_status(const std::string& input_string) {
+		template<string_literal error_type, const std::source_location& source_info, success_statuses status_new>
+		NIHILUS_INLINE static status_handler construct_status(const std::string& input_string) {
 			status_handler handler_new{ status_new };
 			nihilus_exception<config, error_type, source_info, value_type>::impl(input_string);
 			return handler_new;
 		}
 
-		template<string_literal error_type, source_location_wrapper source_info, success_statuses status_new>
-		NIHILUS_FORCE_INLINE static status_handler construct_status() {
+		template<string_literal error_type, const std::source_location& source_info, success_statuses status_new> NIHILUS_INLINE static status_handler construct_status() {
 			status_handler handler_new{ status_new };
 			nihilus_exception<config, error_type, source_info, value_type>::impl();
 			return handler_new;

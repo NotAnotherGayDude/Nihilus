@@ -25,44 +25,44 @@ RealTimeChris (Chris model_traits_type.)
 
 namespace nihilus {
 
-	template<nihilus::model_config config, typename... bases> struct core_bases : public bases... {
-		NIHILUS_FORCE_INLINE constexpr core_bases(){};
-		template<template<nihilus::model_config, typename> typename mixin_type, typename... arg_types> NIHILUS_FORCE_INLINE constexpr void impl(arg_types&&... args) const {
+	template<model_config config, typename... bases> struct core_bases : public bases... {
+		NIHILUS_INLINE constexpr core_bases(){};
+		template<template<model_config, typename> typename mixin_type, typename... arg_types> NIHILUS_INLINE constexpr void impl(arg_types&&... args) const {
 			(impl_internal_filtered<mixin_type, bases>(detail::forward<arg_types>(args)...), ...);
 		}
 
-		template<template<nihilus::model_config, typename> typename mixin_type, typename... arg_types> NIHILUS_FORCE_INLINE constexpr void impl(arg_types&&... args) {
+		template<template<model_config, typename> typename mixin_type, typename... arg_types> NIHILUS_INLINE constexpr void impl(arg_types&&... args) {
 			(impl_internal_filtered<mixin_type, bases>(args...), ...);
 		}
 
 	  protected:
-		template<template<nihilus::model_config, typename> typename mixin_type, typename base_type, typename... arg_types>
-		NIHILUS_FORCE_INLINE constexpr void impl_internal_filtered(arg_types&&... args) const {
+		template<template<model_config, typename> typename mixin_type, typename base_type, typename... arg_types>
+		NIHILUS_INLINE constexpr void impl_internal_filtered(arg_types&&... args) const {
 			if constexpr (mixin_type<config, base_type>::filter()) {
 				mixin_type<config, base_type>::impl(*static_cast<const base_type*>(this), detail::forward<arg_types>(args)...);
 			}
 		}
 
 	  protected:
-		template<template<nihilus::model_config, typename> typename mixin_type, typename base_type, typename... arg_types>
-		NIHILUS_FORCE_INLINE constexpr void impl_internal_filtered(arg_types&&... args) {
+		template<template<model_config, typename> typename mixin_type, typename base_type, typename... arg_types>
+		NIHILUS_INLINE constexpr void impl_internal_filtered(arg_types&&... args) {
 			if constexpr (mixin_type<config, base_type>::filter()) {
 				mixin_type<config, base_type>::impl(*static_cast<base_type*>(this), detail::forward<arg_types>(args)...);
 			}
 		}
 	};
 
-	template<nihilus::model_config config, typename index_sequence> struct get_core_bases;
+	template<model_config config, typename index_sequence> struct get_core_bases;
 
-	template<nihilus::model_config config, size_t... index> struct get_core_bases<config, std::index_sequence<index...>> {
-		using type = core_bases<config, nihilus::core_traits<config, static_cast<typename nihilus::model_traits_type<config>::op_type_type>(index)>...>;
+	template<model_config config, size_t... index> struct get_core_bases<config, std::index_sequence<index...>> {
+		using type = core_bases<config, core_traits<config, static_cast<typename model_traits_type<config>::op_type_type>(index)>...>;
 	};
 
-	template<nihilus::model_config config> using get_core_bases_t = typename get_core_bases<config, std::make_index_sequence<static_cast<uint64_t>(op_types::count)>>::type;
+	template<model_config config> using get_core_bases_t = typename get_core_bases<config, std::make_index_sequence<static_cast<uint64_t>(op_types::count)>>::type;
 
 	template<model_config config_new> static constexpr get_core_bases_t<config_new> core_bases_val{};
 
-	template<model_config config_new> struct core_bases_traits {
+	template<model_config config_new> struct core_bases_traits_type {
 		static constexpr uint64_t total_required_bytes{ []() {
 			uint64_t return_value{};
 			core_bases_val<config_new>.template impl<memory_calculator>(return_value);

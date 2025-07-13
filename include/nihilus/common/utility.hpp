@@ -22,26 +22,29 @@ RealTimeChris (Chris M.)
 
 #include <nihilus/common/config.hpp>
 
-namespace nihilus::detail {
+namespace detail {
 
-	template<typename value_type01, typename value_type02> NIHILUS_FORCE_INLINE constexpr value_type01 max(value_type01 val01, value_type02 val02) noexcept {
-		return val01 > static_cast<value_type01>(val02) ? val01 : static_cast<value_type01>(val02);
+	template<typename value_01_type, typename value_02_type>
+	concept convertible_to = std::is_convertible_v<value_02_type, value_01_type>;
+
+	template<typename value_01_type, convertible_to<value_01_type> value_02_type> NIHILUS_INLINE constexpr value_01_type max(value_01_type val01, value_02_type val02) noexcept {
+		return val01 > static_cast<value_01_type>(val02) ? val01 : static_cast<value_01_type>(val02);
 	}
 
-	template<typename value_type01, typename value_type02> NIHILUS_FORCE_INLINE constexpr value_type01 min(value_type01 val01, value_type02 val02) noexcept {
-		return val01 < static_cast<value_type01>(val02) ? val01 : static_cast<value_type01>(val02);
+	template<typename value_01_type, convertible_to<value_01_type> value_02_type> NIHILUS_INLINE constexpr value_01_type min(value_01_type val01, value_02_type val02) noexcept {
+		return val01 < static_cast<value_01_type>(val02) ? val01 : static_cast<value_01_type>(val02);
 	}
 
-	template<class value_type> NIHILUS_FORCE_INLINE constexpr value_type&& forward(std::remove_reference_t<value_type>& _Arg) noexcept {
+	template<class value_type> NIHILUS_INLINE constexpr value_type&& forward(std::remove_reference_t<value_type>& _Arg) noexcept {
 		return static_cast<value_type&&>(_Arg);
 	}
 
-	template<class value_type> NIHILUS_FORCE_INLINE constexpr value_type&& forward(std::remove_reference_t<value_type>&& _Arg) noexcept {
-		static_assert(!std::is_lvalue_reference_v<value_type>, "bad nihilus::detail::forward call");
+	template<class value_type> NIHILUS_INLINE constexpr value_type&& forward(std::remove_reference_t<value_type>&& _Arg) noexcept {
+		static_assert(!std::is_lvalue_reference_v<value_type>, "bad detail::forward call");
 		return static_cast<value_type&&>(_Arg);
 	}
 
-	template<class value_type> NIHILUS_FORCE_INLINE constexpr std::remove_reference_t<value_type>&& move(value_type&& _Arg) noexcept {
+	template<class value_type> NIHILUS_INLINE constexpr std::remove_reference_t<value_type>&& move(value_type&& _Arg) noexcept {
 		return static_cast<std::remove_reference_t<value_type>&&>(_Arg);
 	}
 

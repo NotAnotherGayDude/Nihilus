@@ -25,7 +25,7 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-	template<auto multiple, typename value_type01 = decltype(multiple)> NIHILUS_FORCE_INLINE constexpr value_type01 round_up_to_multiple(value_type01 value) noexcept {
+	template<auto multiple, typename value_01_type = decltype(multiple)> NIHILUS_INLINE constexpr value_01_type round_up_to_multiple(value_01_type value) noexcept {
 		if constexpr ((multiple & (multiple - 1)) == 0) {
 			constexpr auto mulSub1{ multiple - 1 };
 			constexpr auto notMulSub1{ ~mulSub1 };
@@ -43,7 +43,7 @@ namespace nihilus {
 		using const_pointer	   = const value_type_new*;
 		using reference		   = value_type_new&;
 		using const_reference  = const value_type_new&;
-		using uint64_type	   = uint64_t;
+		using uint64_types	   = uint64_t;
 		using difference_type  = std::ptrdiff_t;
 		using allocator_traits = std::allocator_traits<allocator<value_type>>;
 
@@ -51,12 +51,12 @@ namespace nihilus {
 			using other = allocator<U>;
 		};
 
-		NIHILUS_FORCE_INLINE allocator() noexcept = default;
+		NIHILUS_INLINE allocator() noexcept = default;
 
 		template<typename U> allocator(const allocator<U>&) noexcept {
 		}
 
-		NIHILUS_FORCE_INLINE static pointer allocate(uint64_type count_new) noexcept {
+		NIHILUS_INLINE static pointer allocate(uint64_types count_new) noexcept {
 			if NIHILUS_UNLIKELY (count_new == 0) {
 				return nullptr;
 			}
@@ -67,7 +67,7 @@ namespace nihilus {
 #endif
 		}
 
-		NIHILUS_FORCE_INLINE static void deallocate(pointer ptr, uint64_t = 0) noexcept {
+		NIHILUS_INLINE static void deallocate(pointer ptr, uint64_t = 0) noexcept {
 			if NIHILUS_LIKELY (ptr) {
 #if defined(NIHILUS_PLATFORM_WINDOWS) || defined(NIHILUS_PLATFORM_LINUX)
 				_mm_free(ptr);
@@ -77,15 +77,15 @@ namespace nihilus {
 			}
 		}
 
-		template<typename... arg_types> NIHILUS_FORCE_INLINE static void construct(pointer ptr, arg_types&&... args) noexcept {
+		template<typename... arg_types> NIHILUS_INLINE static void construct(pointer ptr, arg_types&&... args) noexcept {
 			new (ptr) value_type(forward<arg_types>(args)...);
 		}
 
-		NIHILUS_FORCE_INLINE static uint64_type maxSize() noexcept {
+		NIHILUS_INLINE static uint64_types maxSize() noexcept {
 			return allocator_traits::max_size(allocator{});
 		}
 
-		NIHILUS_FORCE_INLINE static void destroy(pointer ptr) noexcept {
+		NIHILUS_INLINE static void destroy(pointer ptr) noexcept {
 			ptr->~value_type();
 		}
 	};

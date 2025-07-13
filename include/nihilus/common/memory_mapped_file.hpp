@@ -74,22 +74,22 @@ namespace nihilus {
 
 	class memory_mapped_file {
 	  public:
-		NIHILUS_FORCE_INLINE explicit memory_mapped_file() noexcept = default;
+		NIHILUS_INLINE explicit memory_mapped_file() noexcept = default;
 
-		NIHILUS_FORCE_INLINE explicit memory_mapped_file(std::string_view file_path, uint64_t prefetch_bytes = 0, bool numa_aware = false) : file_path_(file_path) {
+		NIHILUS_INLINE explicit memory_mapped_file(std::string_view file_path, uint64_t prefetch_bytes = 0, bool numa_aware = false) : file_path_(file_path) {
 			map_file(file_path, prefetch_bytes, numa_aware);
 			lock_memory();
 		}
 
-		NIHILUS_FORCE_INLINE ~memory_mapped_file() {
+		NIHILUS_INLINE ~memory_mapped_file() {
 			unmap_file();
 		}
 
-		NIHILUS_FORCE_INLINE memory_mapped_file(memory_mapped_file&& other) noexcept {
+		NIHILUS_INLINE memory_mapped_file(memory_mapped_file&& other) noexcept {
 			*this = detail::move(other);
 		}
 
-		NIHILUS_FORCE_INLINE memory_mapped_file& operator=(memory_mapped_file&& other) noexcept {
+		NIHILUS_INLINE memory_mapped_file& operator=(memory_mapped_file&& other) noexcept {
 			if (this != &other) {
 				unmap_file();
 
@@ -120,15 +120,15 @@ namespace nihilus {
 		memory_mapped_file(const memory_mapped_file&)			 = delete;
 		memory_mapped_file& operator=(const memory_mapped_file&) = delete;
 
-		NIHILUS_FORCE_INLINE void* data() const noexcept {
+		NIHILUS_INLINE void* data() const noexcept {
 			return mapped_data_;
 		}
 
-		NIHILUS_FORCE_INLINE uint64_t size() const noexcept {
+		NIHILUS_INLINE uint64_t size() const noexcept {
 			return file_size_;
 		}
 
-		NIHILUS_FORCE_INLINE static bool memory_mapping_supported() noexcept {
+		NIHILUS_INLINE static bool memory_mapping_supported() noexcept {
 #if defined(_POSIX_MAPPED_FILES) || defined(NIHILUS_PLATFORM_WINDOWS)
 			return true;
 #else
@@ -149,7 +149,7 @@ namespace nihilus {
 		std::vector<std::pair<uint64_t, uint64_t>> mapped_fragments_;
 #endif
 
-		NIHILUS_FORCE_INLINE void map_file(std::string_view file_path, uint64_t prefetch_bytes, bool numa_aware) {
+		NIHILUS_INLINE void map_file(std::string_view file_path, uint64_t prefetch_bytes, bool numa_aware) {
 #if defined(NIHILUS_PLATFORM_WINDOWS)
 			( void )numa_aware;
 			std::string_view file_path_str(file_path);
@@ -283,7 +283,7 @@ namespace nihilus {
 #endif
 		}
 
-		NIHILUS_FORCE_INLINE void unmap_file() {
+		NIHILUS_INLINE void unmap_file() {
 #if defined(NIHILUS_PLATFORM_WINDOWS)
 			if (mapped_data_) {
 				UnmapViewOfFile(mapped_data_);
@@ -314,7 +314,7 @@ namespace nihilus {
 			file_size_ = 0;
 		}
 
-		NIHILUS_FORCE_INLINE void unmap_fragment(uint64_t first, uint64_t last) {
+		NIHILUS_INLINE void unmap_fragment(uint64_t first, uint64_t last) {
 #if defined(NIHILUS_PLATFORM_WINDOWS)
 			( void )first;
 			( void )last;
@@ -363,7 +363,7 @@ namespace nihilus {
 #endif
 		}
 
-		NIHILUS_FORCE_INLINE void lock_memory() {
+		NIHILUS_INLINE void lock_memory() {
 #if defined(NIHILUS_PLATFORM_WINDOWS)
 			if (mapped_data_ && file_size_ > 0) {
 				VirtualLock(mapped_data_, file_size_);

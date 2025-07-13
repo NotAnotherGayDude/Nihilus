@@ -81,9 +81,10 @@ int main(int argc, char** argv) {
 	try {
 		static constexpr auto model_config = nihilus::generate_model_config(nihilus::model_generations::v3, model_size, nihilus::kernel_type_profiles::q8_gqa,
 			nihilus::model_arches::llama, false);
-		nihilus::cli_params cli_args_final = nihilus::harbinger<model_config>::parse_cli_arguments(argc, argv);
+		static constexpr auto model_config01 = nihilus::update_model_config_benchmark(model_config, true);
+		nihilus::cli_params cli_args_final	 = nihilus::harbinger<model_config01>::parse_cli_arguments(argc, argv);
 		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 4, 2, true, "Token">::runBenchmark<"nihilus">([&] {
-			auto model_new{ nihilus::harbinger<model_config>::parse_model_graph_data(cli_args_final) };
+			auto model_new{ nihilus::harbinger<model_config01>::parse_model_graph_data(cli_args_final) };
 			while (model_new->process_input(cli_args_final.prompt)) {
 			}
 			bnch_swt::doNotOptimizeAway(cli_args_final.n_tokens);

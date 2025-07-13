@@ -30,7 +30,7 @@
 
 namespace nihilus {
 
-	template<uint64_t sizeVal> struct string_literal {
+	template<uint64_t size_val> struct string_literal {
 		using value_type	  = char;
 		using const_reference = const value_type&;
 		using reference		  = value_type&;
@@ -38,11 +38,11 @@ namespace nihilus {
 		using pointer		  = value_type*;
 		using size_type		  = uint64_t;
 
-		inline static constexpr size_type length{ sizeVal > 0 ? sizeVal - 1 : 0 };
+		inline static constexpr size_type length{ size_val > 0 ? size_val - 1 : 0 };
 
 		constexpr string_literal() noexcept = default;
 
-		constexpr string_literal(const char (&str)[sizeVal]) noexcept {
+		constexpr string_literal(const char (&str)[size_val]) noexcept {
 			for (uint64_t x = 0; x < length; ++x) {
 				values[x] = str[x];
 			}
@@ -65,34 +65,34 @@ namespace nihilus {
 		}
 
 		template<size_type sizeNew> constexpr auto operator+=(const string_literal<sizeNew>& str) const noexcept {
-			string_literal<sizeNew + sizeVal - 1> new_literal{};
+			string_literal<sizeNew + size_val - 1> new_literal{};
 			std::copy(values, values + size(), new_literal.data());
 			std::copy(str.data(), str.data() + sizeNew, new_literal.data() + size());
 			return new_literal;
 		}
 
 		template<size_type sizeNew> constexpr auto operator+=(const value_type (&str)[sizeNew]) const noexcept {
-			string_literal<sizeNew + sizeVal - 1> new_literal{};
+			string_literal<sizeNew + size_val - 1> new_literal{};
 			std::copy(values, values + size(), new_literal.data());
 			std::copy(str, str + sizeNew, new_literal.data() + size());
 			return new_literal;
 		}
 
 		template<size_type sizeNew> constexpr auto operator+(const string_literal<sizeNew>& str) const noexcept {
-			string_literal<sizeNew + sizeVal - 1> new_literal{};
+			string_literal<sizeNew + size_val - 1> new_literal{};
 			std::copy(values, values + size(), new_literal.data());
 			std::copy(str.data(), str.data() + sizeNew, new_literal.data() + size());
 			return new_literal;
 		}
 
 		template<size_type sizeNew> constexpr auto operator+(const value_type (&str)[sizeNew]) const noexcept {
-			string_literal<sizeNew + sizeVal - 1> new_literal{};
+			string_literal<sizeNew + size_val - 1> new_literal{};
 			std::copy(values, values + size(), new_literal.data());
 			std::copy(str, str + sizeNew, new_literal.data() + size());
 			return new_literal;
 		}
 
-		template<size_type sizeNew> constexpr friend auto operator+(const value_type (&lhs)[sizeNew], const string_literal<sizeVal>& str) noexcept {
+		template<size_type sizeNew> constexpr friend auto operator+(const value_type (&lhs)[sizeNew], const string_literal<size_val>& str) noexcept {
 			string_literal<sizeNew> sl_new{};
 			std::copy_n(lhs, sizeNew, sl_new.data());
 			return sl_new + str;
@@ -110,12 +110,12 @@ namespace nihilus {
 			return length;
 		}
 
-		template<typename string_type> constexpr operator string_type() const noexcept {
-			NIHILUS_ALIGN(cpu_alignment) string_type return_values{ values, length };
+		template<typename string_types> constexpr operator string_types() const noexcept {
+			NIHILUS_ALIGN(cpu_alignment) string_types return_values{ values, length };
 			return return_values;
 		}
 
-		NIHILUS_ALIGN(cpu_alignment) value_type values[sizeVal] {};
+		NIHILUS_ALIGN(cpu_alignment) value_type values[size_val] {};
 	};
 
 	template<uint64_t size> std::ostream& operator<<(std::ostream& os, const string_literal<size>& input) noexcept {

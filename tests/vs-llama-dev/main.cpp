@@ -112,13 +112,15 @@ static constexpr nihilus::model_sizes model_size{ LLAMA_MODEL_SIZE };
 
 int main(int argc, char** argv) {
 	try {
-		static constexpr auto model_config = nihilus::generate_model_config(nihilus::model_generations::v3, model_size, nihilus::kernel_type_profiles::q8_gqa,
-			nihilus::model_arches::llama, false);
-		nihilus::cli_params cli_args_final{ nihilus::harbinger<model_config>::parse_cli_arguments(argc, argv) };
-		auto model_new{ nihilus::harbinger<model_config>::parse_model_graph_data(cli_args_final) };
-		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 2, 1, true, "Token">::runBenchmark<"nihilus">([&] {
+		static constexpr auto model_config =
+			nihilus::generate_model_config(nihilus::model_generations::v3, model_size, nihilus::kernel_type_profiles::q8_gqa, nihilus::model_arches::llama, false);
+		static constexpr auto model_config01 = nihilus::update_model_config_dev(model_config, true);
+		nihilus::cli_params cli_args_final	 = nihilus::harbinger<model_config01>::parse_cli_arguments(argc, argv);
+		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 4, 2, true, "Token">::runBenchmark<"nihilus">([&] {
+			auto model_new{ nihilus::harbinger<model_config01>::parse_model_graph_data(cli_args_final) };
 			while (model_new->process_input(cli_args_final.prompt)) {
 			}
+			bnch_swt::doNotOptimizeAway(cli_args_final.n_tokens);
 			return cli_args_final.n_tokens;
 		});
 		std::string return_value{};
@@ -950,7 +952,7 @@ int main(int argc, char** argv) {
 			common_sampler_free(smpl);
 
 			llama_backend_free();
-
+			current_iteration = 0;
 			ggml_threadpool_free_fn(threadpool);
 			ggml_threadpool_free_fn(threadpool_batch);
 			return static_cast<int32_t>(token_count - 2);

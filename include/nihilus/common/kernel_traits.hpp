@@ -28,9 +28,9 @@ namespace nihilus {
 
 	enum class kernel_trait_static_assert_errors {
 		Sorry_but_these_output_types_are_not_the_same,
-		Sorry_but_these_input_type01_types_are_not_the_same,
-		Sorry_but_these_input_type02_types_are_not_the_same,
-		Sorry_but_these_input_type03_types_are_not_the_same,
+		Sorry_but_these_input_types01_types_are_not_the_same,
+		Sorry_but_these_input_types02_types_are_not_the_same,
+		Sorry_but_these_input_types03_types_are_not_the_same,
 		MUL_Input_dimensions_0_must_match,
 		MUL_Output_dimensions_0_must_match_inputs,
 		MUL_Broadcasting_requires_input02_1_equals_1_or_matching_dimensions_1,
@@ -133,7 +133,7 @@ namespace nihilus {
 	template<size_t... indices> struct core_trait_dims;
 
 	template<uint64_t dim00_new, uint64_t dim01_new, uint64_t dim02_new, uint64_t dim03_new> struct core_trait_dims<dim00_new, dim01_new, dim02_new, dim03_new> {
-		static constexpr array<bool, 4> runtime_dims{ false, false, false, false };
+		static constexpr bool runtime_dims{ false };
 		static constexpr uint64_t dim00{ dim00_new };
 		static constexpr uint64_t dim01{ dim01_new };
 		static constexpr uint64_t dim02{ dim02_new };
@@ -145,17 +145,17 @@ namespace nihilus {
 
 		const uint64_t* dims[4]{ &dim00, &dim01, &dim02, &dim03 };
 
-		NIHILUS_FORCE_INLINE static constexpr array<uint64_t, 4> get_array() {
+		NIHILUS_INLINE static constexpr array<uint64_t, 4> get_array() {
 			return { { dim00, dim01, dim02, dim03 } };
 		}
 
-		NIHILUS_FORCE_INLINE uint64_t operator[](uint64_t index) const {
+		NIHILUS_INLINE uint64_t operator[](uint64_t index) const {
 			return *dims[index];
 		}
 	};
 
 	template<uint64_t dim00_new, uint64_t dim01_new, uint64_t dim02_new, uint64_t dim03_new> struct core_trait_dims<dim00_new, dim01_new, dim02_new, dim03_new, 0> {
-		static constexpr array<bool, 4> runtime_dims{ true, false, false, false };
+		static constexpr bool runtime_dims{ true };
 		uint64_t dim00{ dim00_new };
 		static constexpr uint64_t dim01{ dim01_new };
 		static constexpr uint64_t dim02{ dim02_new };
@@ -163,21 +163,21 @@ namespace nihilus {
 
 		const uint64_t* dims[4]{ &dim00, &dim01, &dim02, &dim03 };
 
-		NIHILUS_FORCE_INLINE static constexpr array<uint64_t, 4> get_array() {
+		NIHILUS_INLINE static constexpr array<uint64_t, 4> get_array() {
 			return { { dim00_new, dim01_new, dim02_new, dim03_new } };
 		}
 
-		NIHILUS_FORCE_INLINE uint64_t& get_mutable_dim() {
+		NIHILUS_INLINE uint64_t& get_mutable_dim() {
 			return dim00;
 		}
 
-		NIHILUS_FORCE_INLINE uint64_t operator[](uint64_t index) const {
+		NIHILUS_INLINE uint64_t operator[](uint64_t index) const {
 			return *dims[index];
 		}
 	};
 
 	template<uint64_t dim00_new, uint64_t dim01_new, uint64_t dim02_new, uint64_t dim03_new> struct core_trait_dims<dim00_new, dim01_new, dim02_new, dim03_new, 1> {
-		static constexpr array<bool, 4> runtime_dims{ true, false, false, false };
+		static constexpr bool runtime_dims{ true };
 		static constexpr uint64_t dim00{ dim00_new };
 		uint64_t dim01{ dim01_new };
 		static constexpr uint64_t dim02{ dim02_new };
@@ -185,21 +185,21 @@ namespace nihilus {
 
 		const uint64_t* dims[4]{ &dim00, &dim01, &dim02, &dim03 };
 
-		NIHILUS_FORCE_INLINE static constexpr array<uint64_t, 4> get_array() {
+		NIHILUS_INLINE static constexpr array<uint64_t, 4> get_array() {
 			return { { dim00_new, dim01_new, dim02_new, dim03_new } };
 		}
 
-		NIHILUS_FORCE_INLINE uint64_t& get_mutable_dim() {
+		NIHILUS_INLINE uint64_t& get_mutable_dim() {
 			return dim01;
 		}
 
-		NIHILUS_FORCE_INLINE uint64_t operator[](uint64_t index) const {
+		NIHILUS_INLINE uint64_t operator[](uint64_t index) const {
 			return *dims[index];
 		}
 	};
 
 	template<uint64_t dim00_new, uint64_t dim01_new, uint64_t dim02_new, uint64_t dim03_new> struct core_trait_dims<dim00_new, dim01_new, dim02_new, dim03_new, 2> {
-		static constexpr array<bool, 4> runtime_dims{ true, false, false, false };
+		static constexpr bool runtime_dims{ true };
 		static constexpr uint64_t dim00{ dim00_new };
 		static constexpr uint64_t dim01{ dim01_new };
 		uint64_t dim02{ dim02_new };
@@ -207,15 +207,15 @@ namespace nihilus {
 
 		const uint64_t* dims[4]{ &dim00, &dim01, &dim02, &dim03 };
 
-		NIHILUS_FORCE_INLINE static constexpr array<uint64_t, 4> get_array() {
+		NIHILUS_INLINE static constexpr array<uint64_t, 4> get_array() {
 			return { { dim00_new, dim01_new, dim02_new, dim03_new } };
 		}
 
-		NIHILUS_FORCE_INLINE uint64_t& get_mutable_dim() {
+		NIHILUS_INLINE uint64_t& get_mutable_dim() {
 			return dim02;
 		}
 
-		NIHILUS_FORCE_INLINE uint64_t operator[](uint64_t index) const {
+		NIHILUS_INLINE uint64_t operator[](uint64_t index) const {
 			return *dims[index];
 		}
 	};
@@ -246,32 +246,41 @@ namespace nihilus {
 	template<model_config config, kernel_types kernel_type, op_types op_type01, op_types op_type02, op_types op_type03, typename... dimensions_type> using get_new_dims_3_t =
 		typename get_new_dims<kernel_type, core_traits<config, op_type01>, core_traits<config, op_type02>, core_traits<config, op_type03>, dimensions_type...>::type;
 
-	template<auto op_type, kernel_types kernel_type, single_input core_type, typename output_type, typename input_type01>
-	struct kernel_base<op_type, kernel_type, core_type, output_type, input_type01> {
-		using input01									 = input_type01;
+	template<model_config config, kernel_types kernel_type, op_types op_type> using get_new_dims_1_2_t =
+		typename get_new_dims<kernel_type, core_traits<config, op_type>>::type;
+
+	template<model_config config, kernel_types kernel_type, op_types op_type01, op_types op_type02> using get_new_dims_2_2_t =
+		typename get_new_dims<kernel_type, core_traits<config, op_type01>, core_traits<config, op_type02>>::type;
+
+	template<model_config config, kernel_types kernel_type, op_types op_type01, op_types op_type02, op_types op_type03> using get_new_dims_3_2_t =
+		typename get_new_dims<kernel_type, core_traits<config, op_type01>, core_traits<config, op_type02>, core_traits<config, op_type03>>::type;
+
+	template<auto op_type, kernel_types kernel_type, single_input_types core_type, typename output_type, typename input_01_type>
+	struct kernel_base<op_type, kernel_type, core_type, output_type, input_01_type> {
+		using input01									 = input_01_type;
 		using output									 = output_type;
 		static constexpr auto dims01					 = core_type::get_array();
-		static constexpr auto dims02					 = core_type::input_type01::get_array();
+		static constexpr auto dims02					 = core_type::input_01_type::get_array();
 		static constexpr auto strides01					 = core_type::strides;
-		static constexpr auto strides02					 = core_type::input_type01::strides;
+		static constexpr auto strides02					 = core_type::input_01_type::strides;
 		static constexpr uint64_t total_elements		 = dims01[0] * dims01[1] * dims01[2] * dims01[3];
 		static constexpr uint64_t input01_total_elements = dims02[0] * dims02[1] * dims02[2] * dims02[3];
 		static_assert(static_assert_printer<( std::is_same_v<output_type, typename core_type::output_type> ),
-			kernel_trait_static_assert_errors::Sorry_but_these_output_types_are_not_the_same, kernel_base, core_type, output_type, input_type01>::impl);
-		static_assert(static_assert_printer<( std::is_same_v<input_type01, typename core_type::input_type01::output_type> ),
-			kernel_trait_static_assert_errors::Sorry_but_these_input_type01_types_are_not_the_same, kernel_base, core_type, output_type, input_type01>::impl);
+			kernel_trait_static_assert_errors::Sorry_but_these_output_types_are_not_the_same, kernel_base, core_type, output_type, input_01_type>::impl);
+		static_assert(static_assert_printer<( std::is_same_v<input_01_type, typename core_type::input_01_type::output_type> ),
+			kernel_trait_static_assert_errors::Sorry_but_these_input_types01_types_are_not_the_same, kernel_base, core_type, output_type, input_01_type>::impl);
 	};
 
-	template<kernel_types kernel_type, typename input_type01> struct kernel_base_new<kernel_type, input_type01> {
-		using input01									 = input_type01;
+	template<kernel_types kernel_type, typename input_01_type> struct kernel_base_new<kernel_type, input_01_type> {
+		using input01									 = input_01_type;
 		static constexpr auto dims01					 = input01::get_array();
 		static constexpr auto strides01					 = input01::strides;
 		static constexpr uint64_t input01_total_elements = dims01[0] * dims01[1] * dims01[2] * dims01[3];
 	};
 
-	template<kernel_types kernel_type, typename input_type01, typename input_type02> struct kernel_base_new<kernel_type, input_type01, input_type02> {
-		using input01									 = input_type01;
-		using input02									 = input_type02;
+	template<kernel_types kernel_type, typename input_01_type, typename input_02_type> struct kernel_base_new<kernel_type, input_01_type, input_02_type> {
+		using input01									 = input_01_type;
+		using input02									 = input_02_type;
 		static constexpr auto dims01					 = input01::get_array();
 		static constexpr auto dims02					 = input02::get_array();
 		static constexpr auto strides01					 = input01::strides;
@@ -280,69 +289,69 @@ namespace nihilus {
 		static constexpr uint64_t input02_total_elements = dims02[0] * dims02[1] * dims02[2] * dims02[3];
 	};
 
-	template<auto op_type, kernel_types kernel_type, double_input core_type, typename output_type, typename input_type01, typename input_type02>
-	struct kernel_base<op_type, kernel_type, core_type, output_type, input_type01, input_type02> {
-		using input01									 = typename core_type::input_type01;
-		using input02									 = typename core_type::input_type02;
+	template<auto op_type, kernel_types kernel_type, double_input_types core_type, typename output_type, typename input_01_type, typename input_02_type>
+	struct kernel_base<op_type, kernel_type, core_type, output_type, input_01_type, input_02_type> {
+		using input01									 = typename core_type::input_01_type;
+		using input02									 = typename core_type::input_02_type;
 		using output									 = core_type;
 		static constexpr auto dims01					 = core_type::get_array();
-		static constexpr auto dims02					 = core_type::input_type01::get_array();
-		static constexpr auto dims03					 = core_type::input_type02::get_array();
+		static constexpr auto dims02					 = core_type::input_01_type::get_array();
+		static constexpr auto dims03					 = core_type::input_02_type::get_array();
 		static constexpr auto strides01					 = core_type::strides;
-		static constexpr auto strides02					 = core_type::input_type01::strides;
-		static constexpr auto strides03					 = core_type::input_type02::strides;
+		static constexpr auto strides02					 = core_type::input_01_type::strides;
+		static constexpr auto strides03					 = core_type::input_02_type::strides;
 		static constexpr uint64_t total_elements		 = dims01[0] * dims01[1] * dims01[2] * dims01[3];
 		static constexpr uint64_t input01_total_elements = dims02[0] * dims02[1] * dims02[2] * dims02[3];
 		static constexpr uint64_t input02_total_elements = dims03[0] * dims03[1] * dims03[2] * dims03[3];
 		static_assert(static_assert_printer<( std::is_same_v<output_type, typename core_type::output_type> ),
-			kernel_trait_static_assert_errors::Sorry_but_these_output_types_are_not_the_same, kernel_base, core_type, output_type, input_type01, input_type02>::impl);
-		static_assert(static_assert_printer<( std::is_same_v<input_type01, typename core_type::input_type01::output_type> ),
-			kernel_trait_static_assert_errors::Sorry_but_these_input_type01_types_are_not_the_same, kernel_base, core_type, output_type, input_type01, input_type02>::impl);
-		static_assert(static_assert_printer<( std::is_same_v<input_type02, typename core_type::input_type02::output_type> ),
-			kernel_trait_static_assert_errors::Sorry_but_these_input_type02_types_are_not_the_same, kernel_base, core_type, output_type, input_type01, input_type02>::impl);
+			kernel_trait_static_assert_errors::Sorry_but_these_output_types_are_not_the_same, kernel_base, core_type, output_type, input_01_type, input_02_type>::impl);
+		static_assert(static_assert_printer<( std::is_same_v<input_01_type, typename core_type::input_01_type::output_type> ),
+			kernel_trait_static_assert_errors::Sorry_but_these_input_types01_types_are_not_the_same, kernel_base, core_type, output_type, input_01_type, input_02_type>::impl);
+		static_assert(static_assert_printer<( std::is_same_v<input_02_type, typename core_type::input_02_type::output_type> ),
+			kernel_trait_static_assert_errors::Sorry_but_these_input_types02_types_are_not_the_same, kernel_base, core_type, output_type, input_01_type, input_02_type>::impl);
 	};
 
-	template<auto op_type, kernel_types kernel_type, triple_input core_type, typename output_type, typename input_type01, typename input_type02, typename input_type03>
-	struct kernel_base<op_type, kernel_type, core_type, output_type, input_type01, input_type02, input_type03> {
-		using input01									 = typename core_type::input_type01;
-		using input02									 = typename core_type::input_type02;
-		using input03									 = typename core_type::input_type03;
+	template<auto op_type, kernel_types kernel_type, triple_input_types core_type, typename output_type, typename input_01_type, typename input_02_type, typename input_03_type>
+	struct kernel_base<op_type, kernel_type, core_type, output_type, input_01_type, input_02_type, input_03_type> {
+		using input01									 = typename core_type::input_01_type;
+		using input02									 = typename core_type::input_02_type;
+		using input03									 = typename core_type::input_03_type;
 		using output									 = core_type;
 		static constexpr auto dims01					 = core_type::get_array();
-		static constexpr auto dims02					 = core_type::input_type01::get_array();
-		static constexpr auto dims03					 = core_type::input_type02::get_array();
-		static constexpr auto dims04					 = core_type::input_type03::get_array();
+		static constexpr auto dims02					 = core_type::input_01_type::get_array();
+		static constexpr auto dims03					 = core_type::input_02_type::get_array();
+		static constexpr auto dims04					 = core_type::input_03_type::get_array();
 		static constexpr auto strides01					 = core_type::strides;
-		static constexpr auto strides02					 = core_type::input_type01::strides;
-		static constexpr auto strides03					 = core_type::input_type02::strides;
-		static constexpr auto strides04					 = core_type::input_type03::strides;
+		static constexpr auto strides02					 = core_type::input_01_type::strides;
+		static constexpr auto strides03					 = core_type::input_02_type::strides;
+		static constexpr auto strides04					 = core_type::input_03_type::strides;
 		static constexpr uint64_t total_elements		 = dims01[0] * dims01[1] * dims01[2] * dims01[3];
 		static constexpr uint64_t input01_total_elements = dims02[0] * dims02[1] * dims02[2] * dims02[3];
 		static constexpr uint64_t input02_total_elements = dims03[0] * dims03[1] * dims03[2] * dims03[3];
 		static constexpr uint64_t input03_total_elements = dims04[0] * dims04[1] * dims04[2] * dims04[3];
 		static_assert(static_assert_printer<( std::is_same_v<output_type, typename core_type::output_type> ),
-			kernel_trait_static_assert_errors::Sorry_but_these_output_types_are_not_the_same, kernel_base, core_type, output_type, input_type01, input_type02>::impl);
-		static_assert(static_assert_printer<( std::is_same_v<input_type01, typename core_type::input_type01::output_type> ),
-			kernel_trait_static_assert_errors::Sorry_but_these_input_type01_types_are_not_the_same, kernel_base, core_type, output_type, input_type01, input_type02,
-			input_type03>::impl);
-		static_assert(static_assert_printer<( std::is_same_v<input_type02, typename core_type::input_type02::output_type> ),
-			kernel_trait_static_assert_errors::Sorry_but_these_input_type02_types_are_not_the_same, kernel_base, core_type, output_type, input_type01, input_type02,
-			input_type03>::impl);
-		static_assert(static_assert_printer<( std::is_same_v<input_type03, typename core_type::input_type03::output_type> ),
-			kernel_trait_static_assert_errors::Sorry_but_these_input_type03_types_are_not_the_same, kernel_base, core_type, output_type, input_type01, input_type02,
-			input_type03>::impl);
+			kernel_trait_static_assert_errors::Sorry_but_these_output_types_are_not_the_same, kernel_base, core_type, output_type, input_01_type, input_02_type>::impl);
+		static_assert(static_assert_printer<( std::is_same_v<input_01_type, typename core_type::input_01_type::output_type> ),
+			kernel_trait_static_assert_errors::Sorry_but_these_input_types01_types_are_not_the_same, kernel_base, core_type, output_type, input_01_type, input_02_type,
+			input_03_type>::impl);
+		static_assert(static_assert_printer<( std::is_same_v<input_02_type, typename core_type::input_02_type::output_type> ),
+			kernel_trait_static_assert_errors::Sorry_but_these_input_types02_types_are_not_the_same, kernel_base, core_type, output_type, input_01_type, input_02_type,
+			input_03_type>::impl);
+		static_assert(static_assert_printer<( std::is_same_v<input_03_type, typename core_type::input_03_type::output_type> ),
+			kernel_trait_static_assert_errors::Sorry_but_these_input_types03_types_are_not_the_same, kernel_base, core_type, output_type, input_01_type, input_02_type,
+			input_03_type>::impl);
 	};
 
 	template<auto op_type, kernel_types kernel_type, typename core_type, typename... operand_types> struct kernel_traits;
 
 	template<kernel_types kernel_type, typename... operand_types> struct kernel_traits_new;
 
-	template<auto op_type, double_input core_type> struct kernel_traits<op_type, kernel_types::mul, core_type, typename core_type::output_type,
-		typename core_type::input_type01::output_type, typename core_type::input_type02::output_type>
-		: public kernel_base<op_type, kernel_types::mul, core_type, typename core_type::output_type, typename core_type::input_type01::output_type,
-			  typename core_type::input_type02::output_type> {
-		using base_type				 = kernel_base<op_type, kernel_types::mul, core_type, typename core_type::output_type, typename core_type::input_type01::output_type,
-						 typename core_type::input_type02::output_type>;
+	template<auto op_type, double_input_types core_type> struct kernel_traits<op_type, kernel_types::mul, core_type, typename core_type::output_type,
+		typename core_type::input_01_type::output_type, typename core_type::input_02_type::output_type>
+		: public kernel_base<op_type, kernel_types::mul, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type,
+			  typename core_type::input_02_type::output_type> {
+		using base_type				 = kernel_base<op_type, kernel_types::mul, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type,
+						 typename core_type::input_02_type::output_type>;
 		using input01				 = base_type::input01;
 		using input02				 = base_type::input02;
 		using output				 = base_type::output;
@@ -368,10 +377,10 @@ namespace nihilus {
 			kernel_trait_static_assert_errors::MUL_Total_element_count_must_match_between_input_and_output, kernel_traits, output, input01, input02 > ::impl);
 	};
 
-	template<auto op_type, single_input core_type>
-	struct kernel_traits<op_type, kernel_types::rms_norm, core_type, typename core_type::output_type, typename core_type::input_type01::output_type>
-		: public kernel_base<op_type, kernel_types::rms_norm, core_type, typename core_type::output_type, typename core_type::input_type01::output_type> {
-		using base_type				 = kernel_base<op_type, kernel_types::rms_norm, core_type, typename core_type::output_type, typename core_type::input_type01::output_type>;
+	template<auto op_type, single_input_types core_type>
+	struct kernel_traits<op_type, kernel_types::rms_norm, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type>
+		: public kernel_base<op_type, kernel_types::rms_norm, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type> {
+		using base_type				 = kernel_base<op_type, kernel_types::rms_norm, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type>;
 		using input01				 = base_type::input01;
 		using output				 = base_type::output;
 		static constexpr auto dims01 = base_type::dims01;
@@ -384,18 +393,18 @@ namespace nihilus {
 			output, input01>::impl);
 		static_assert(static_assert_printer<(dims01[3] == dims02[3]), kernel_trait_static_assert_errors::RMS_NORM_Output_dimensions_3_must_match_input_dimensions, kernel_traits,
 			output, input01>::impl);
-		static_assert(static_assert_printer<is_valid_activation_type<typename core_type::input_type01::output_type>,
+		static_assert(static_assert_printer<valid_activation_types<typename core_type::input_01_type::output_type>,
 			kernel_trait_static_assert_errors::RMS_NORM_Input_type_must_be_valid_activation_type, kernel_traits, output, input01>::impl);
-		static_assert(static_assert_printer<is_valid_activation_type<typename core_type::output_type>,
+		static_assert(static_assert_printer<valid_activation_types<typename core_type::output_type>,
 			kernel_trait_static_assert_errors::RMS_NORM_Output_type_must_be_valid_activation_type, kernel_traits, output, input01>::impl);
 		static_assert(static_assert_printer<(base_type::input01_total_elements == base_type::total_elements),
 			kernel_trait_static_assert_errors::RMS_NORM_Total_element_count_must_match_between_input_and_output, kernel_traits, output, input01>::impl);
 	};
 
-	template<auto op_type, single_input core_type>
-	struct kernel_traits<op_type, kernel_types::silu, core_type, typename core_type::output_type, typename core_type::input_type01::output_type>
-		: public kernel_base<op_type, kernel_types::silu, core_type, typename core_type::output_type, typename core_type::input_type01::output_type> {
-		using base_type				 = kernel_base<op_type, kernel_types::silu, core_type, typename core_type::output_type, typename core_type::input_type01::output_type>;
+	template<auto op_type, single_input_types core_type>
+	struct kernel_traits<op_type, kernel_types::silu, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type>
+		: public kernel_base<op_type, kernel_types::silu, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type> {
+		using base_type				 = kernel_base<op_type, kernel_types::silu, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type>;
 		using input01				 = base_type::input01;
 		using output				 = base_type::output;
 		static constexpr auto dims01 = base_type::dims01;
@@ -408,18 +417,18 @@ namespace nihilus {
 			output, input01>::impl);
 		static_assert(static_assert_printer<(dims01[3] == dims02[3]), kernel_trait_static_assert_errors::SILU_Output_dimensions_3_must_match_input_dimensions, kernel_traits,
 			output, input01>::impl);
-		static_assert(static_assert_printer<is_valid_activation_type<typename core_type::input_type01::output_type>,
+		static_assert(static_assert_printer<valid_activation_types<typename core_type::input_01_type::output_type>,
 			kernel_trait_static_assert_errors::SILU_Input_type_must_be_valid_activation_type, kernel_traits, output, input01>::impl);
-		static_assert(static_assert_printer<is_valid_activation_type<typename core_type::output_type>,
+		static_assert(static_assert_printer<valid_activation_types<typename core_type::output_type>,
 			kernel_trait_static_assert_errors::SILU_Output_type_must_be_valid_activation_type, kernel_traits, output, input01>::impl);
 	};
 
-	template<auto op_type, double_input core_type> struct kernel_traits<op_type, kernel_types::softmax, core_type, typename core_type::output_type,
-		typename core_type::input_type01::output_type, typename core_type::input_type02::output_type>
-		: public kernel_base<op_type, kernel_types::softmax, core_type, typename core_type::output_type, typename core_type::input_type01::output_type,
-			  typename core_type::input_type02::output_type> {
-		using base_type				 = kernel_base<op_type, kernel_types::softmax, core_type, typename core_type::output_type, typename core_type::input_type01::output_type,
-						 typename core_type::input_type02::output_type>;
+	template<auto op_type, double_input_types core_type> struct kernel_traits<op_type, kernel_types::softmax, core_type, typename core_type::output_type,
+		typename core_type::input_01_type::output_type, typename core_type::input_02_type::output_type>
+		: public kernel_base<op_type, kernel_types::softmax, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type,
+			  typename core_type::input_02_type::output_type> {
+		using base_type				 = kernel_base<op_type, kernel_types::softmax, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type,
+						 typename core_type::input_02_type::output_type>;
 		using input01				 = base_type::input01;
 		using input02				 = base_type::input02;
 		using output				 = base_type::output;
@@ -438,83 +447,83 @@ namespace nihilus {
 			input01, input02>::impl);*/
 	};
 
-	template<auto op_type, single_input core_type>
-	struct kernel_traits<op_type, kernel_types::reshape, core_type, typename core_type::output_type, typename core_type::input_type01::output_type>
-		: public kernel_base<op_type, kernel_types::reshape, core_type, typename core_type::output_type, typename core_type::input_type01::output_type> {
-		using base_type = kernel_base<op_type, kernel_types::reshape, core_type, typename core_type::output_type, typename core_type::input_type01::output_type>;
+	template<auto op_type, single_input_types core_type>
+	struct kernel_traits<op_type, kernel_types::reshape, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type>
+		: public kernel_base<op_type, kernel_types::reshape, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type> {
+		using base_type = kernel_base<op_type, kernel_types::reshape, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type>;
 		using input01	= base_type::input01;
 		using output	= base_type::output;
 		/*
-		static_assert(static_assert_printer<is_valid_tensor_type<typename core_type::input_type01::output_type>,
+		static_assert(static_assert_printer<valid_tensor_types<typename core_type::input_01_type::output_type>,
 			kernel_trait_static_assert_errors::RESHAPE_Input_type_must_be_valid_tensor_type, kernel_traits, output, input01>::impl);
-		static_assert(static_assert_printer<is_valid_tensor_type<typename core_type::output_type>, kernel_trait_static_assert_errors::RESHAPE_Output_type_must_be_valid_tensor_type,
+		static_assert(static_assert_printer<valid_tensor_types<typename core_type::output_type>, kernel_trait_static_assert_errors::RESHAPE_Output_type_must_be_valid_tensor_type,
 			kernel_traits, output, input01>::impl);
 		static_assert(static_assert_printer<(base_type::input01_total_elements == base_type::total_elements),
 			kernel_trait_static_assert_errors::RESHAPE_Total_element_count_must_be_preserved, kernel_traits, output, input01>::impl);*/
 	};
 
-	template<auto op_type, single_input core_type>
-	struct kernel_traits<op_type, kernel_types::transpose, core_type, typename core_type::output_type, typename core_type::input_type01::output_type>
-		: public kernel_base<op_type, kernel_types::transpose, core_type, typename core_type::output_type, typename core_type::input_type01::output_type> {
-		using base_type = kernel_base<op_type, kernel_types::transpose, core_type, typename core_type::output_type, typename core_type::input_type01::output_type>;
+	template<auto op_type, single_input_types core_type>
+	struct kernel_traits<op_type, kernel_types::transpose, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type>
+		: public kernel_base<op_type, kernel_types::transpose, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type> {
+		using base_type = kernel_base<op_type, kernel_types::transpose, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type>;
 		using input01	= base_type::input01;
 		using output	= base_type::output; /*
-		static_assert(static_assert_printer<is_valid_tensor_type<typename core_type::input_type01::output_type>,
+		static_assert(static_assert_printer<valid_tensor_types<typename core_type::input_01_type::output_type>,
 			kernel_trait_static_assert_errors::TRANSPOSE_Input_type_must_be_valid_tensor_type, kernel_traits, output, input01>::impl);
-		static_assert(static_assert_printer<is_valid_tensor_type<typename core_type::output_type>,
+		static_assert(static_assert_printer<valid_tensor_types<typename core_type::output_type>,
 			kernel_trait_static_assert_errors::TRANSPOSE_Output_type_must_be_valid_tensor_type, kernel_traits, output, input01>::impl);
 		static_assert(static_assert_printer<(base_type::input01_total_elements == base_type::total_elements),
 			kernel_trait_static_assert_errors::TRANSPOSE_Total_element_count_must_be_preserved, kernel_traits, output, input01>::impl);*/
 	};
 
-	template<auto op_type, single_input core_type>
-	struct kernel_traits<op_type, kernel_types::permute, core_type, typename core_type::output_type, typename core_type::input_type01::output_type>
-		: public kernel_base<op_type, kernel_types::permute, core_type, typename core_type::output_type, typename core_type::input_type01::output_type> {
-		using base_type = kernel_base<op_type, kernel_types::permute, core_type, typename core_type::output_type, typename core_type::input_type01::output_type>;
+	template<auto op_type, single_input_types core_type>
+	struct kernel_traits<op_type, kernel_types::permute, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type>
+		: public kernel_base<op_type, kernel_types::permute, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type> {
+		using base_type = kernel_base<op_type, kernel_types::permute, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type>;
 		using input01	= base_type::input01;
 		using output	= base_type::output; /*
-		static_assert(static_assert_printer<is_valid_tensor_type<typename core_type::input_type01::output_type>,
+		static_assert(static_assert_printer<valid_tensor_types<typename core_type::input_01_type::output_type>,
 			kernel_trait_static_assert_errors::PERMUTE_Input_type_must_be_valid_tensor_type, kernel_traits, output, input01>::impl);
-		static_assert(static_assert_printer<is_valid_tensor_type<typename core_type::output_type>, kernel_trait_static_assert_errors::PERMUTE_Output_type_must_be_valid_tensor_type,
+		static_assert(static_assert_printer<valid_tensor_types<typename core_type::output_type>, kernel_trait_static_assert_errors::PERMUTE_Output_type_must_be_valid_tensor_type,
 			kernel_traits, output, input01>::impl);
 		static_assert(static_assert_printer<(base_type::input01_total_elements == base_type::total_elements),
 			kernel_trait_static_assert_errors::PERMUTE_Total_element_count_must_be_preserved, kernel_traits, output, input01>::impl);*/
 	};
 
-	template<auto op_type, single_input core_type>
-	struct kernel_traits<op_type, kernel_types::cont, core_type, typename core_type::output_type, typename core_type::input_type01::output_type>
-		: public kernel_base<op_type, kernel_types::cont, core_type, typename core_type::output_type, typename core_type::input_type01::output_type> {
-		using base_type = kernel_base<op_type, kernel_types::cont, core_type, typename core_type::output_type, typename core_type::input_type01::output_type>;
+	template<auto op_type, single_input_types core_type>
+	struct kernel_traits<op_type, kernel_types::cont, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type>
+		: public kernel_base<op_type, kernel_types::cont, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type> {
+		using base_type = kernel_base<op_type, kernel_types::cont, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type>;
 		using input01	= base_type::input01;
 		using output	= base_type::output; /*
-		static_assert(static_assert_printer<is_valid_tensor_type<typename core_type::input_type01::output_type>,
+		static_assert(static_assert_printer<valid_tensor_types<typename core_type::input_01_type::output_type>,
 			kernel_trait_static_assert_errors::CONT_Input_type_must_be_valid_tensor_type, kernel_traits, output, input01>::impl);
-		static_assert(static_assert_printer<is_valid_tensor_type<typename core_type::output_type>, kernel_trait_static_assert_errors::CONT_Output_type_must_be_valid_tensor_type,
+		static_assert(static_assert_printer<valid_tensor_types<typename core_type::output_type>, kernel_trait_static_assert_errors::CONT_Output_type_must_be_valid_tensor_type,
 			kernel_traits, output, input01>::impl);
 		static_assert(static_assert_printer<(base_type::input01_total_elements == base_type::total_elements),
 			kernel_trait_static_assert_errors::CONT_Total_element_count_must_match_between_input_and_output, kernel_traits, output, input01>::impl);*/
 	};
 
-	template<auto op_type, single_input core_type>
-	struct kernel_traits<op_type, kernel_types::view, core_type, typename core_type::output_type, typename core_type::input_type01::output_type>
-		: public kernel_base<op_type, kernel_types::view, core_type, typename core_type::output_type, typename core_type::input_type01::output_type> {
-		using base_type = kernel_base<op_type, kernel_types::view, core_type, typename core_type::output_type, typename core_type::input_type01::output_type>;
+	template<auto op_type, single_input_types core_type>
+	struct kernel_traits<op_type, kernel_types::view, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type>
+		: public kernel_base<op_type, kernel_types::view, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type> {
+		using base_type = kernel_base<op_type, kernel_types::view, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type>;
 		using input01	= base_type::input01;
 		using output	= base_type::output; /*
-		static_assert(static_assert_printer<is_valid_tensor_type<typename core_type::input_type01::output_type>,
+		static_assert(static_assert_printer<valid_tensor_types<typename core_type::input_01_type::output_type>,
 			kernel_trait_static_assert_errors::VIEW_Input_type_must_be_valid_tensor_type, kernel_traits, output, input01>::impl);
-		static_assert(static_assert_printer<is_valid_tensor_type<typename core_type::output_type>, kernel_trait_static_assert_errors::VIEW_Output_type_must_be_valid_tensor_type,
+		static_assert(static_assert_printer<valid_tensor_types<typename core_type::output_type>, kernel_trait_static_assert_errors::VIEW_Output_type_must_be_valid_tensor_type,
 			kernel_traits, output, input01>::impl);
 		static_assert(static_assert_printer<(base_type::input01_total_elements >= base_type::total_elements),
 			kernel_trait_static_assert_errors::VIEW_Output_cannot_have_more_elements_than_input, kernel_traits, output, input01>::impl);*/
 	};
 
-	template<auto op_type, double_input core_type> struct kernel_traits<op_type, kernel_types::mul_mat, core_type, typename core_type::output_type,
-		typename core_type::input_type01::output_type, typename core_type::input_type02::output_type>
-		: public kernel_base<op_type, kernel_types::mul_mat, core_type, typename core_type::output_type, typename core_type::input_type01::output_type,
-			  typename core_type::input_type02::output_type> {
-		using base_type				 = kernel_base<op_type, kernel_types::mul_mat, core_type, typename core_type::output_type, typename core_type::input_type01::output_type,
-						 typename core_type::input_type02::output_type>;
+	template<auto op_type, double_input_types core_type> struct kernel_traits<op_type, kernel_types::mul_mat, core_type, typename core_type::output_type,
+		typename core_type::input_01_type::output_type, typename core_type::input_02_type::output_type>
+		: public kernel_base<op_type, kernel_types::mul_mat, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type,
+			  typename core_type::input_02_type::output_type> {
+		using base_type				 = kernel_base<op_type, kernel_types::mul_mat, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type,
+						 typename core_type::input_02_type::output_type>;
 		using input01				 = base_type::input01;
 		using input02				 = base_type::input02;
 		using output				 = base_type::output;
@@ -529,11 +538,11 @@ namespace nihilus {
 		static_assert(static_assert_printer<(dims03[3] % dims02[3] == 0), kernel_trait_static_assert_errors::MUL_MAT_Batch_dimension_3_must_match, kernel_traits, output, input01,
 			input02>::impl);
 
-		static_assert(static_assert_printer<is_valid_tensor_type<typename core_type::input_type01::output_type>,
+		static_assert(static_assert_printer<valid_tensor_types<typename core_type::input_01_type::output_type>,
 			kernel_trait_static_assert_errors::MUL_MAT_Input1_type_must_be_valid_tensor_type, kernel_traits, output, input01, input02>::impl);
-		static_assert(static_assert_printer<is_valid_tensor_type<typename core_type::input_type02::output_type>,
+		static_assert(static_assert_printer<valid_tensor_types<typename core_type::input_02_type::output_type>,
 			kernel_trait_static_assert_errors::MUL_MAT_Input2_type_must_be_valid_tensor_type, kernel_traits, output, input01, input02>::impl);
-		static_assert(static_assert_printer<is_valid_tensor_type<typename core_type::output_type>, kernel_trait_static_assert_errors::MUL_MAT_Output_type_must_be_valid_tensor_type,
+		static_assert(static_assert_printer<valid_tensor_types<typename core_type::output_type>, kernel_trait_static_assert_errors::MUL_MAT_Output_type_must_be_valid_tensor_type,
 			kernel_traits, output, input01, input02>::impl);
 
 		static constexpr uint64_t M						   = dims02[0];
@@ -543,9 +552,9 @@ namespace nihilus {
 		static constexpr uint64_t expected_output_elements = M * (dims03[1] == 1 ? 1 : N) * batch_size;*/
 	};
 
-	template<typename input_type01, typename input_type02> struct kernel_traits_new<kernel_types::get_rows, input_type01, input_type02>
-		: public kernel_base_new<kernel_types::get_rows, input_type01, input_type02> {
-		using base_type				 = kernel_base_new<kernel_types::get_rows, input_type01, input_type02>;
+	template<typename input_01_type, typename input_02_type> struct kernel_traits_new<kernel_types::get_rows, input_01_type, input_02_type>
+		: public kernel_base_new<kernel_types::get_rows, input_01_type, input_02_type> {
+		using base_type				 = kernel_base_new<kernel_types::get_rows, input_01_type, input_02_type>;
 		using input01				 = base_type::input01;
 		using input02				 = base_type::input02;
 		using output				 = base_type::output;
@@ -566,23 +575,23 @@ namespace nihilus {
 		//static_assert_printer<(dims03[2] == 1), kernel_trait_static_assert_errors::GET_ROWS_Index_tensor_dimension_2_must_be_1, kernel_traits_new, output, input01, input02>::impl);
 		//static_assert(
 		//			static_assert_printer<(dims03[3] == 1), kernel_trait_static_assert_errors::GET_ROWS_Index_tensor_dimension_3_must_be_1, kernel_traits_new, output, input01, input02>::impl);
-		static_assert(static_assert_printer<is_valid_tensor_type<typename input_type01::output_type>,
+		static_assert(static_assert_printer<valid_tensor_types<typename input_01_type::output_type>,
 			kernel_trait_static_assert_errors::GET_ROWS_Embedding_matrix_type_must_be_valid_tensor_type, kernel_traits_new, output, input01, input02>::impl);
-		static_assert(static_assert_printer<is_integral_type<typename input_type02::output_type>, kernel_trait_static_assert_errors::GET_ROWS_Index_type_must_be_integer_type,
+		static_assert(static_assert_printer<integral_types<typename input_02_type::output_type>, kernel_trait_static_assert_errors::GET_ROWS_Index_type_must_be_integer_type,
 			kernel_traits_new, output, input01, input02>::impl);
-		//static_assert(static_assert_printer<is_valid_tensor_type<typename core_type::output_type>,
+		//static_assert(static_assert_printer<valid_tensor_types<typename core_type::output_type>,
 		//kernel_trait_static_assert_errors::GET_ROWS_Output_type_must_be_valid_tensor_type, kernel_traits_new, output, input01, input02>::impl);
 		static constexpr uint64_t vocab_size	   = dims02[0];
 		static constexpr uint32_t embedding_length = dims02[1];
 		//static constexpr uint64_t sequence_length = dims03[0];
 	};
 
-	template<auto op_type, double_input core_type> struct kernel_traits<op_type, kernel_types::get_rows, core_type, typename core_type::output_type,
-		typename core_type::input_type01::output_type, typename core_type::input_type02::output_type>
-		: public kernel_base<op_type, kernel_types::get_rows, core_type, typename core_type::output_type, typename core_type::input_type01::output_type,
-			  typename core_type::input_type02::output_type> {
-		using base_type				 = kernel_base<op_type, kernel_types::get_rows, core_type, typename core_type::output_type, typename core_type::input_type01::output_type,
-						 typename core_type::input_type02::output_type>;
+	template<auto op_type, double_input_types core_type> struct kernel_traits<op_type, kernel_types::get_rows, core_type, typename core_type::output_type,
+		typename core_type::input_01_type::output_type, typename core_type::input_02_type::output_type>
+		: public kernel_base<op_type, kernel_types::get_rows, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type,
+			  typename core_type::input_02_type::output_type> {
+		using base_type				 = kernel_base<op_type, kernel_types::get_rows, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type,
+						 typename core_type::input_02_type::output_type>;
 		using input01				 = base_type::input01;
 		using input02				 = base_type::input02;
 		using output				 = base_type::output;
@@ -604,23 +613,23 @@ namespace nihilus {
 			static_assert_printer<(dims03[2] == 1), kernel_trait_static_assert_errors::GET_ROWS_Index_tensor_dimension_2_must_be_1, kernel_traits, output, input01, input02>::impl);
 		static_assert(
 			static_assert_printer<(dims03[3] == 1), kernel_trait_static_assert_errors::GET_ROWS_Index_tensor_dimension_3_must_be_1, kernel_traits, output, input01, input02>::impl);
-		static_assert(static_assert_printer<is_valid_tensor_type<typename core_type::input_type01::output_type>,
+		static_assert(static_assert_printer<valid_tensor_types<typename core_type::input_01_type::output_type>,
 			kernel_trait_static_assert_errors::GET_ROWS_Embedding_matrix_type_must_be_valid_tensor_type, kernel_traits, output, input01, input02>::impl);
-		static_assert(static_assert_printer<is_integral_type<typename core_type::input_type02::output_type>,
+		static_assert(static_assert_printer<integral_types<typename core_type::input_02_type::output_type>,
 			kernel_trait_static_assert_errors::GET_ROWS_Index_type_must_be_integer_type, kernel_traits, output, input01, input02>::impl);
-		static_assert(static_assert_printer<is_valid_tensor_type<typename core_type::output_type>,
+		static_assert(static_assert_printer<valid_tensor_types<typename core_type::output_type>,
 			kernel_trait_static_assert_errors::GET_ROWS_Output_type_must_be_valid_tensor_type, kernel_traits, output, input01, input02>::impl);
 		static constexpr uint64_t vocab_size	  = dims02[0];
 		static constexpr uint32_t embedding_length	  = dims02[1];
 		static constexpr uint64_t sequence_length = dims03[0];*/
 	};
 
-	template<auto op_type, triple_input core_type> struct kernel_traits<op_type, kernel_types::rope, core_type, typename core_type::output_type,
-		typename core_type::input_type01::output_type, typename core_type::input_type02::output_type, typename core_type::input_type03::output_type>
-		: public kernel_base<op_type, kernel_types::rope, core_type, typename core_type::output_type, typename core_type::input_type01::output_type,
-			  typename core_type::input_type02::output_type, typename core_type::input_type03::output_type> {
-		using base_type				 = kernel_base<op_type, kernel_types::rope, core_type, typename core_type::output_type, typename core_type::input_type01::output_type,
-						 typename core_type::input_type02::output_type, typename core_type::input_type03::output_type>;
+	template<auto op_type, triple_input_types core_type> struct kernel_traits<op_type, kernel_types::rope, core_type, typename core_type::output_type,
+		typename core_type::input_01_type::output_type, typename core_type::input_02_type::output_type, typename core_type::input_03_type::output_type>
+		: public kernel_base<op_type, kernel_types::rope, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type,
+			  typename core_type::input_02_type::output_type, typename core_type::input_03_type::output_type> {
+		using base_type				 = kernel_base<op_type, kernel_types::rope, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type,
+						 typename core_type::input_02_type::output_type, typename core_type::input_03_type::output_type>;
 		using input01				 = base_type::input01;
 		using input02				 = base_type::input02;
 		using input03				 = base_type::input03;
@@ -656,12 +665,12 @@ namespace nihilus {
 	template<auto op_type, typename core_type01, typename core_type02> struct kernel_traits<op_type, kernel_types::add, core_type01, core_type02>
 		: public kernel_base<op_type, kernel_types::add, core_type01, core_type02> {};
 
-	template<auto op_type, double_input core_type> struct kernel_traits<op_type, kernel_types::add, core_type, typename core_type::output_type,
-		typename core_type::input_type01::output_type, typename core_type::input_type02::output_type>
-		: public kernel_base<op_type, kernel_types::add, core_type, typename core_type::output_type, typename core_type::input_type01::output_type,
-			  typename core_type::input_type02::output_type> {
-		using base_type				 = kernel_base<op_type, kernel_types::add, core_type, typename core_type::output_type, typename core_type::input_type01::output_type,
-						 typename core_type::input_type02::output_type>;
+	template<auto op_type, double_input_types core_type> struct kernel_traits<op_type, kernel_types::add, core_type, typename core_type::output_type,
+		typename core_type::input_01_type::output_type, typename core_type::input_02_type::output_type>
+		: public kernel_base<op_type, kernel_types::add, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type,
+			  typename core_type::input_02_type::output_type> {
+		using base_type				 = kernel_base<op_type, kernel_types::add, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type,
+						 typename core_type::input_02_type::output_type>;
 		using input01				 = base_type::input01;
 		using input02				 = base_type::input02;
 		using output				 = base_type::output;
@@ -684,23 +693,23 @@ namespace nihilus {
 			input01, input02>::impl);
 		static_assert(static_assert_printer<(dims01[3] == dims02[3]), kernel_trait_static_assert_errors::ADD_Output_dimensions_3_must_match_input_dimensions, kernel_traits, output,
 			input01, input02>::impl);
-		static_assert(static_assert_printer<is_valid_tensor_type<typename core_type::input_type01::output_type>,
+		static_assert(static_assert_printer<valid_tensor_types<typename core_type::input_01_type::output_type>,
 			kernel_trait_static_assert_errors::ADD_Input1_type_must_be_valid_tensor_type, kernel_traits, output, input01, input02>::impl);
-		static_assert(static_assert_printer<is_valid_tensor_type<typename core_type::input_type02::output_type>,
+		static_assert(static_assert_printer<valid_tensor_types<typename core_type::input_02_type::output_type>,
 			kernel_trait_static_assert_errors::ADD_Input2_type_must_be_valid_tensor_type, kernel_traits, output, input01, input02>::impl);
-		static_assert(static_assert_printer<is_valid_tensor_type<typename core_type::output_type>, kernel_trait_static_assert_errors::ADD_Output_type_must_be_valid_tensor_type,
+		static_assert(static_assert_printer<valid_tensor_types<typename core_type::output_type>, kernel_trait_static_assert_errors::ADD_Output_type_must_be_valid_tensor_type,
 			kernel_traits, output, input01, input02>::impl);
 		static constexpr auto get_dims() {
 			return dims01;
 		}
 	};
 
-	template<auto op_type, double_input core_type> struct kernel_traits<op_type, kernel_types::sub, core_type, typename core_type::output_type,
-		typename core_type::input_type01::output_type, typename core_type::input_type02::output_type>
-		: public kernel_base<op_type, kernel_types::sub, core_type, typename core_type::output_type, typename core_type::input_type01::output_type,
-			  typename core_type::input_type02::output_type> {
-		using base_type				 = kernel_base<op_type, kernel_types::sub, core_type, typename core_type::output_type, typename core_type::input_type01::output_type,
-						 typename core_type::input_type02::output_type>;
+	template<auto op_type, double_input_types core_type> struct kernel_traits<op_type, kernel_types::sub, core_type, typename core_type::output_type,
+		typename core_type::input_01_type::output_type, typename core_type::input_02_type::output_type>
+		: public kernel_base<op_type, kernel_types::sub, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type,
+			  typename core_type::input_02_type::output_type> {
+		using base_type				 = kernel_base<op_type, kernel_types::sub, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type,
+						 typename core_type::input_02_type::output_type>;
 		using input01				 = base_type::input01;
 		using input02				 = base_type::input02;
 		using output				 = base_type::output;
@@ -724,20 +733,20 @@ namespace nihilus {
 			input01, input02>::impl);
 		static_assert(static_assert_printer<(dims01[3] == dims02[3]), kernel_trait_static_assert_errors::SUB_Output_dimensions_3_must_match_input_dimensions, kernel_traits, output,
 			input01, input02>::impl);
-		static_assert(static_assert_printer<is_valid_tensor_type<typename core_type::input_type01::output_type>,
+		static_assert(static_assert_printer<valid_tensor_types<typename core_type::input_01_type::output_type>,
 			kernel_trait_static_assert_errors::SUB_Input1_type_must_be_valid_tensor_type, kernel_traits, output, input01, input02>::impl);
-		static_assert(static_assert_printer<is_valid_tensor_type<typename core_type::input_type02::output_type>,
+		static_assert(static_assert_printer<valid_tensor_types<typename core_type::input_02_type::output_type>,
 			kernel_trait_static_assert_errors::SUB_Input2_type_must_be_valid_tensor_type, kernel_traits, output, input01, input02>::impl);
-		static_assert(static_assert_printer<is_valid_tensor_type<typename core_type::output_type>, kernel_trait_static_assert_errors::SUB_Output_type_must_be_valid_tensor_type,
+		static_assert(static_assert_printer<valid_tensor_types<typename core_type::output_type>, kernel_trait_static_assert_errors::SUB_Output_type_must_be_valid_tensor_type,
 			kernel_traits, output, input01, input02>::impl);*/
 	};
 
-	template<auto op_type, double_input core_type> struct kernel_traits<op_type, kernel_types::add_rms_norm_mul, core_type, typename core_type::output_type,
-		typename core_type::input_type01::output_type, typename core_type::input_type02::output_type>
-		: public kernel_base<op_type, kernel_types::add_rms_norm_mul, core_type, typename core_type::output_type, typename core_type::input_type01::output_type,
-			  typename core_type::input_type02::output_type> {
-		using base_type = kernel_base<op_type, kernel_types::add_rms_norm_mul, core_type, typename core_type::output_type, typename core_type::input_type01::output_type,
-			typename core_type::input_type02::output_type>;
+	template<auto op_type, double_input_types core_type> struct kernel_traits<op_type, kernel_types::add_rms_norm_mul, core_type, typename core_type::output_type,
+		typename core_type::input_01_type::output_type, typename core_type::input_02_type::output_type>
+		: public kernel_base<op_type, kernel_types::add_rms_norm_mul, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type,
+			  typename core_type::input_02_type::output_type> {
+		using base_type = kernel_base<op_type, kernel_types::add_rms_norm_mul, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type,
+			typename core_type::input_02_type::output_type>;
 		using input01	= base_type::input01;
 		using input02	= base_type::input02;
 		using output	= base_type::output;
@@ -761,26 +770,26 @@ namespace nihilus {
 			input01, input02>::impl);
 		static_assert(static_assert_printer<(dims01[3] == dims02[3]), kernel_trait_static_assert_errors::SUB_Output_dimensions_3_must_match_input_dimensions, kernel_traits, output,
 			input01, input02>::impl);
-		static_assert(static_assert_printer<is_valid_tensor_type<typename core_type::input_type01::output_type>,
+		static_assert(static_assert_printer<valid_tensor_types<typename core_type::input_01_type::output_type>,
 			kernel_trait_static_assert_errors::SUB_Input1_type_must_be_valid_tensor_type, kernel_traits, output, input01, input02>::impl);
-		static_assert(static_assert_printer<is_valid_tensor_type<typename core_type::input_type02::output_type>,
+		static_assert(static_assert_printer<valid_tensor_types<typename core_type::input_02_type::output_type>,
 			kernel_trait_static_assert_errors::SUB_Input2_type_must_be_valid_tensor_type, kernel_traits, output, input01, input02>::impl);
-		static_assert(static_assert_printer<is_valid_tensor_type<typename core_type::output_type>, kernel_trait_static_assert_errors::SUB_Output_type_must_be_valid_tensor_type,
+		static_assert(static_assert_printer<valid_tensor_types<typename core_type::output_type>, kernel_trait_static_assert_errors::SUB_Output_type_must_be_valid_tensor_type,
 			kernel_traits, output, input01, input02>::impl);*/
 	};
 
-	template<auto op_type, single_input core_type>
-	struct kernel_traits<op_type, kernel_types::copy, core_type, typename core_type::output_type, typename core_type::input_type01::output_type>
-		: public kernel_base<op_type, kernel_types::copy, core_type, typename core_type::output_type, typename core_type::input_type01::output_type> {
-		using base_type				 = kernel_base<op_type, kernel_types::copy, core_type, typename core_type::output_type, typename core_type::input_type01::output_type>;
+	template<auto op_type, single_input_types core_type>
+	struct kernel_traits<op_type, kernel_types::copy, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type>
+		: public kernel_base<op_type, kernel_types::copy, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type> {
+		using base_type				 = kernel_base<op_type, kernel_types::copy, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type>;
 		using input01				 = base_type::input01;
 		using output				 = base_type::output;
 		static constexpr auto dims01 = base_type::dims01;
 		static constexpr auto dims02 = base_type::dims02;
 		/*
-		static_assert(static_assert_printer<is_valid_tensor_type<typename core_type::input_type01::output_type>,
+		static_assert(static_assert_printer<valid_tensor_types<typename core_type::input_01_type::output_type>,
 			kernel_trait_static_assert_errors::COPY_Source_type_must_be_valid_tensor_type, kernel_traits, input01>::impl);
-		static_assert(static_assert_printer<is_valid_tensor_type<typename core_type::output_type>,
+		static_assert(static_assert_printer<valid_tensor_types<typename core_type::output_type>,
 			kernel_trait_static_assert_errors::COPY_Destination_type_must_be_valid_tensor_type, kernel_traits, input01>::impl);
 		static constexpr uint64_t source_elements = dims01[0] * dims01[1] * dims01[2] * dims01[3];
 		static constexpr uint64_t dest_elements	  = dims02[0] * dims02[1] * dims02[2] * dims02[3];
@@ -788,9 +797,9 @@ namespace nihilus {
 			kernel_traits, input01>::impl);*/
 	};
 
-	template<auto op_type, single_input core_type> struct kernel_traits<op_type, kernel_types::none, core_type, typename core_type::input_type01::output_type>
-		: public kernel_base<op_type, kernel_types::none, core_type, typename core_type::input_type01::output_type> {
-		static_assert(static_assert_printer<is_valid_tensor_type<typename core_type::input_type01::output_type>,
+	template<auto op_type, single_input_types core_type> struct kernel_traits<op_type, kernel_types::none, core_type, typename core_type::input_01_type::output_type>
+		: public kernel_base<op_type, kernel_types::none, core_type, typename core_type::input_01_type::output_type> {
+		static_assert(static_assert_printer<valid_tensor_types<typename core_type::input_01_type::output_type>,
 			kernel_trait_static_assert_errors::NONE_Type_must_be_valid_tensor_type, kernel_traits>::impl);
 	};
 

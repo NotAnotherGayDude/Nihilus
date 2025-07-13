@@ -92,7 +92,7 @@ namespace nihilus {
 	template<typename value_type>
 	concept gt_16 = value_type::length > 16 && !eq_16<value_type> && !eq_32<value_type> && !eq_64<value_type>;
 
-	template<uint64_t index, typename string_type> static constexpr auto string_literal_from_view(string_type str) noexcept {
+	template<uint64_t index, typename string_types> static constexpr auto string_literal_from_view(string_types str) noexcept {
 		string_literal<index + 1> sl{};
 		std::copy_n(str.data(), str.size(), sl.values);
 		sl[index] = '\0';
@@ -124,7 +124,7 @@ namespace nihilus {
 	template<typename sl_type, std::remove_cvref_t<sl_type> string_new> struct string_literal_comparitor;
 
 	template<equals_0 sl_type, std::remove_cvref_t<sl_type> string_new> struct string_literal_comparitor<sl_type, string_new> {
-		NIHILUS_FORCE_INLINE static bool impl(const char*) noexcept {
+		NIHILUS_INLINE static bool impl(const char*) noexcept {
 			return true;
 		}
 	};
@@ -132,7 +132,7 @@ namespace nihilus {
 	template<gt_0_lt_16 sl_type, std::remove_cvref_t<sl_type> string_new> struct string_literal_comparitor<sl_type, string_new> {
 		inline static constexpr auto string_lit{ string_new };
 		inline static constexpr auto newCount{ string_lit.size() };
-		NIHILUS_FORCE_INLINE static bool impl(const char* str) noexcept {
+		NIHILUS_INLINE static bool impl(const char* str) noexcept {
 			if constexpr (newCount > 8) {
 				NIHILUS_ALIGN(16) static constexpr auto values_new{ pack_values<string_lit>() };
 				nihilus_simd_int_128 data1{};
@@ -187,7 +187,7 @@ namespace nihilus {
 	template<eq_16 sl_type, std::remove_cvref_t<sl_type> string_new> struct string_literal_comparitor<sl_type, string_new> {
 		inline static constexpr auto new_literal{ string_new };
 		NIHILUS_ALIGN(16) inline static constexpr auto values_new { pack_values<new_literal>() };
-		NIHILUS_FORCE_INLINE static bool impl(const char* str) noexcept {
+		NIHILUS_INLINE static bool impl(const char* str) noexcept {
 			NIHILUS_ALIGN(16) char values_to_load[16];
 			std::memcpy(values_to_load, str, 16);
 			const nihilus_simd_int_128 data1{ gather_values<nihilus_simd_int_128>(values_to_load) };
@@ -203,7 +203,7 @@ namespace nihilus {
 	template<eq_32 sl_type, std::remove_cvref_t<sl_type> string_new> struct string_literal_comparitor<sl_type, string_new> {
 		inline static constexpr auto new_literal{ string_new };
 		NIHILUS_ALIGN(32) inline static constexpr auto values_new { pack_values<new_literal>() };
-		NIHILUS_FORCE_INLINE static bool impl(const char* str) noexcept {
+		NIHILUS_INLINE static bool impl(const char* str) noexcept {
 			NIHILUS_ALIGN(32) char values_to_load[32];
 			std::memcpy(values_to_load, str, 32);
 			const nihilus_simd_int_256 data1{ gather_values<nihilus_simd_int_256>(values_to_load) };
@@ -218,7 +218,7 @@ namespace nihilus {
 	template<eq_64 sl_type, sl_type string_new> struct string_literal_comparitor<sl_type, string_new> {
 		inline static constexpr auto new_literal{ string_new };
 		NIHILUS_ALIGN(64) inline static constexpr auto values_new { pack_values<new_literal>() };
-		NIHILUS_FORCE_INLINE static bool impl(const char* str) noexcept {
+		NIHILUS_INLINE static bool impl(const char* str) noexcept {
 			NIHILUS_ALIGN(64) char values_to_load[64];
 			std::memcpy(values_to_load, str, 64);
 			const nihilus_simd_int_512 data1{ gather_values<nihilus_simd_int_512>(values_to_load) };
@@ -242,7 +242,7 @@ namespace nihilus {
 		inline static constexpr auto string{ offset_into_literal<string_new, get_offset_into_literal_size(string_new.size())>() };
 		inline static constexpr auto string_size = string.size();
 		inline static constexpr auto string_newer{ offset_new_literal<string_new, string_size>() };
-		NIHILUS_FORCE_INLINE static bool impl(const char* str) noexcept {
+		NIHILUS_INLINE static bool impl(const char* str) noexcept {
 			if (!string_literal_comparitor<decltype(string), string>::impl(str)) {
 				return false;
 			} else {
@@ -252,7 +252,7 @@ namespace nihilus {
 		}
 	};
 
-	template<string_literal string_literal> NIHILUS_FORCE_INLINE bool string_literal_comparison(const char* string) {
+	template<string_literal string_literal> NIHILUS_INLINE bool string_literal_comparison(const char* string) {
 		using sl_type = decltype(string_literal);
 		return string_literal_comparitor<sl_type, string_literal>::impl(string);
 	}

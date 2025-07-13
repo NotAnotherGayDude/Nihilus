@@ -100,16 +100,16 @@ jobs:
       run: |
         export DYLD_LIBRARY_PATH="${GITHUB_WORKSPACE}/../Install/lib:$DYLD_LIBRARY_PATH"
         chmod +x "${GITHUB_WORKSPACE}/../Install/bin/nihilus_performance"
-        "${GITHUB_WORKSPACE}/../Install/bin/nihilus_performance" -m installed-to/Llama-3.2-3B-Instruct-Q8_0.gguf -p "What is the meaning of life?" -s 0 -n 32 -no-cnv -t 1 
+        "${GITHUB_WORKSPACE}/../Install/bin/nihilus_performance" -m installed-to/Llama-3.2-3B-Instruct-Q8_0.gguf -p "What is the meaning of life?" -s 0 -n 4 -no-cnv -t 1 
     
     - name: Set Library Path and Run Model (Linux)
       if: runner.os == 'Linux'
       run: |
         export LD_LIBRARY_PATH="${GITHUB_WORKSPACE}/../Install/lib:$LD_LIBRARY_PATH"
         chmod +x "${GITHUB_WORKSPACE}/../Install/bin/nihilus_performance"
-        "${GITHUB_WORKSPACE}/../Install/bin/nihilus_performance" -m installed-to/Llama-3.2-3B-Instruct-Q8_0.gguf -p "What is the meaning of life?" -s 0 -n 32 -no-cnv -t 1 
+        "${GITHUB_WORKSPACE}/../Install/bin/nihilus_performance" -m installed-to/Llama-3.2-3B-Instruct-Q8_0.gguf -p "What is the meaning of life?" -s 0 -n 4 -no-cnv -t 1 
     
     - name: Run Model (Windows)
       if: runner.os == 'Windows'
       run: |
-        & "${env:GITHUB_WORKSPACE}\..\Install\bin\nihilus_performance.exe" -m installed-to/Llama-3.2-3B-Instruct-Q8_0.gguf -p "What is the meaning of life?" -s 0 -n 32 -no-cnv -t 1 
+        & "${env:GITHUB_WORKSPACE}\..\Install\bin\nihilus_performance.exe" -m installed-to/Llama-3.2-3B-Instruct-Q8_0.gguf -p "What is the meaning of life?" -s 0 -n 4 -no-cnv -t 1 
