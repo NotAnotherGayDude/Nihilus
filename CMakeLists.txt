@@ -73,7 +73,7 @@ add_library("${PROJECT_NAME}" "${NIHILUS_STATIC_DEFINITION}" "${NIHILUS_STATIC_S
 add_library("${PROJECT_NAME}::${PROJECT_NAME}" ALIAS "${PROJECT_NAME}")
 
 file(GLOB_RECURSE NIHILUS_HEADERS CONFIGURE_DEPENDS 
-    "${CMAKE_CURRENT_SOURCE_DIR}/include/nihilus/*.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/include/*"
 )
 
 set_target_properties(
@@ -416,7 +416,7 @@ target_compile_definitions(
 set(CONFIG_FILE_NAME "${PROJECT_NAME}Config.cmake")
 set(EXPORTED_TARGETS_NAME "${PROJECT_NAME}Targets")
 set(EXPORTED_TARGETS_FILE_NAME "${EXPORTED_TARGETS_NAME}.cmake")
-set(EXPORTED_TARGETS_FILE_PATH "share/nihilus/${EXPORTED_TARGETS_FILE_NAME}")
+set(EXPORTED_TARGETS_FILE_PATH "share/nihilus-incl/${EXPORTED_TARGETS_FILE_NAME}")
 
 include(CMakePackageConfigHelpers)
 configure_package_config_file(

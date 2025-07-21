@@ -9,7 +9,7 @@
 
 #include <BnchSwt/BenchmarkSuite.hpp>
 #include <../src/llama-context.h>
-#include <nihilus/index.hpp>
+#include <nihilus>
 #include <llama.h>
 #include "common/arg.h"
 #include "common/chat.h"
@@ -53,6 +53,18 @@ static void print_usage(int argc, char** argv) {
 	LOG("\n");
 }
 
+static bool file_exists(const std::string& path) {
+	std::ifstream f(path.c_str());
+	return f.good();
+}
+
+static bool file_is_empty(const std::string& path) {
+	std::ifstream f;
+	f.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+	f.open(path.c_str(), std::ios::in | std::ios::binary | std::ios::ate);
+	return f.tellg() == 0;
+}
+
 #if defined(__unix__) || (defined(__APPLE__) && defined(__MACH__)) || defined(_WIN32)
 static void sigint_handler(int signo) {
 	if (signo == SIGINT) {
@@ -73,164 +85,6 @@ static void sigint_handler(int signo) {
 	}
 }
 #endif
-
-
-enum class FunctionType { Linear, Quadratic, Sinusoidal };
-
-struct FitResult {
-	FunctionType type;
-	std::array<float, 4> params;// only 2–3 used depending on function
-	float error;
-};
-
-class ParametricFitter32 {
-  public:
-	static constexpr int BlockSize		= 32;
-	static constexpr float FitThreshold = 1e-2f;
-
-	static std::optional<FitResult> fit(const float* values) {
-		if (auto linear = fit_linear(values); linear.has_value() && linear->error < FitThreshold)
-			return linear;
-
-		if (auto quad = fit_quadratic(values); quad.has_value() && quad->error < FitThreshold)
-			return quad;
-
-		if (auto sine = fit_sinusoidal(values); sine.has_value() && sine->error < FitThreshold)
-			return sine;
-
-		return std::nullopt;
-	}
-
-  private:
-	static std::optional<FitResult> fit_linear(const float* v) {
-		float sum_i = 0, sum_y = 0, sum_iy = 0, sum_i2 = 0;
-		for (int i = 0; i < BlockSize; ++i) {
-			sum_i += i;
-			sum_y += v[i];
-			sum_iy += i * v[i];
-			sum_i2 += i * i;
-		}
-
-		float denom = BlockSize * sum_i2 - sum_i * sum_i;
-		if (denom == 0)
-			return std::nullopt;
-
-		float a = (BlockSize * sum_iy - sum_i * sum_y) / denom;
-		float b = (sum_y - a * sum_i) / BlockSize;
-
-		float error = 0.0f;
-		for (int i = 0; i < BlockSize; ++i) {
-			float est  = a * i + b;
-			float diff = v[i] - est;
-			error += diff * diff;
-		}
-
-		return FitResult{ FunctionType::Linear, { a, b, 0.0f, 0.0f }, error };
-	}
-
-	static std::optional<FitResult> fit_quadratic(const float* v) {
-		float S0 = BlockSize;
-		float S1 = 0, S2 = 0, S3 = 0, S4 = 0;
-		float T0 = 0, T1 = 0, T2 = 0;
-
-		for (int i = 0; i < BlockSize; ++i) {
-			float x	 = i;
-			float y	 = v[i];
-			float x2 = x * x;
-			float x3 = x2 * x;
-			float x4 = x3 * x;
-
-			S1 += x;
-			S2 += x2;
-			S3 += x3;
-			S4 += x4;
-
-			T0 += y;
-			T1 += x * y;
-			T2 += x2 * y;
-		}
-
-		float A[3][4] = {
-			{ S0, S1, S2, T0 },
-			{ S1, S2, S3, T1 },
-			{ S2, S3, S4, T2 },
-		};
-
-		if (!gauss_jordan(A, 3))
-			return std::nullopt;
-
-		float a = A[2][3];
-		float b = A[1][3];
-		float c = A[0][3];
-
-		float error = 0.0f;
-		for (int i = 0; i < BlockSize; ++i) {
-			float est  = a * i * i + b * i + c;
-			float diff = v[i] - est;
-			error += diff * diff;
-		}
-
-		return FitResult{ FunctionType::Quadratic, { a, b, c, 0.0f }, error };
-	}
-
-	static std::optional<FitResult> fit_sinusoidal(const float* v) {
-		float a = 1.0f, b = 0.2f, c = 0.0f;
-		float lr = 0.0005f;
-
-		for (int step = 0; step < 3000; ++step) {
-			float da = 0, db = 0, dc = 0;
-			for (int i = 0; i < BlockSize; ++i) {
-				float pred = a * std::sin(b * i + c);
-				float err  = pred - v[i];
-				da += err * std::sin(b * i + c);
-				db += err * a * i * std::cos(b * i + c);
-				dc += err * a * std::cos(b * i + c);
-			}
-			a -= lr * 2 * da;
-			b -= lr * 2 * db;
-			c -= lr * 2 * dc;
-		}
-
-		float error = 0.0f;
-		for (int i = 0; i < BlockSize; ++i) {
-			float pred = a * std::sin(b * i + c);
-			float diff = v[i] - pred;
-			error += diff * diff;
-		}
-
-		return FitResult{ FunctionType::Sinusoidal, { a, b, c, 0.0f }, error };
-	}
-
-	static bool gauss_jordan(float A[3][4], int n) {
-		for (int i = 0; i < n; ++i) {
-			int maxRow = i;
-			for (int k = i + 1; k < n; ++k) {
-				if (std::abs(A[k][i]) > std::abs(A[maxRow][i])) {
-					maxRow = k;
-				}
-			}
-			for (int k = i; k <= n; ++k)
-				std::swap(A[i][k], A[maxRow][k]);
-
-			if (std::abs(A[i][i]) < 1e-6f)
-				return false;
-
-			float div = A[i][i];
-			for (int k = 0; k <= n; ++k)
-				A[i][k] /= div;
-
-			for (int j = 0; j < n; ++j) {
-				if (j == i)
-					continue;
-				float factor = A[j][i];
-				for (int k = 0; k <= n; ++k) {
-					A[j][k] -= factor * A[i][k];
-				}
-			}
-		}
-		return true;
-	}
-};
 
 #if !defined(LLAMA_MODEL_SIZE)
 static constexpr nihilus::model_sizes model_size{ nihilus::model_sizes::llm_8B };
@@ -257,6 +111,30 @@ int main(int argc, char** argv) {
 			// save choice to use color for later
 			// (note for later: this is a slightly awkward choice)
 			console::init(params.simple_io, params.use_color);
+			atexit([]() {
+				console::cleanup();
+			});
+
+			if (params.embedding) {
+				LOG_ERR("************\n");
+				LOG_ERR("%s: please use the 'embedding' tool for embedding calculations\n", __func__);
+				LOG_ERR("************\n\n");
+
+				return 0;
+			}
+
+			if (params.n_ctx != 0 && params.n_ctx < 8) {
+				LOG_WRN("%s: warning: minimum context size is 8, using minimum size.\n", __func__);
+				params.n_ctx = 8;
+			}
+
+			if (params.rope_freq_base != 0.0) {
+				LOG_WRN("%s: warning: changing RoPE frequency base to %g.\n", __func__, params.rope_freq_base);
+			}
+
+			if (params.rope_freq_scale != 0.0) {
+				LOG_WRN("%s: warning: scaling RoPE frequency by %g.\n", __func__, params.rope_freq_scale);
+			}
 
 			LOG_INF("%s: llama backend init\n", __func__);
 
@@ -284,6 +162,8 @@ int main(int argc, char** argv) {
 				LOG_ERR("%s: error: unable to load model\n", __func__);
 				return 1;
 			}
+
+			auto* mem = llama_get_memory(ctx);
 
 			const llama_vocab* vocab = llama_model_get_vocab(model);
 			auto chat_templates		 = common_chat_templates_init(model, params.chat_template);
@@ -323,7 +203,42 @@ int main(int argc, char** argv) {
 			}
 
 			llama_attach_threadpool(ctx, threadpool, threadpool_batch);
-			const uint32_t n_ctx = llama_n_ctx(ctx);
+
+			const int n_ctx_train = llama_model_n_ctx_train(model);
+			const int n_ctx		  = llama_n_ctx(ctx);
+
+			if (n_ctx > n_ctx_train) {
+				LOG_WRN("%s: model was trained on only %d context tokens (%d specified)\n", __func__, n_ctx_train, n_ctx);
+			}
+
+			// auto enable conversation mode if chat template is available
+			const bool has_chat_template = common_chat_templates_was_explicit(chat_templates.get());
+			if (params.conversation_mode == COMMON_CONVERSATION_MODE_AUTO) {
+				if (has_chat_template) {
+					LOG_INF("%s: chat template is available, enabling conversation mode (disable it with -no-cnv)\n", __func__);
+					params.conversation_mode = COMMON_CONVERSATION_MODE_ENABLED;
+				} else {
+					params.conversation_mode = COMMON_CONVERSATION_MODE_DISABLED;
+				}
+			}
+
+			// in case user force-activate conversation mode (via -cnv) without proper chat template, we show a warning
+			if (params.conversation_mode && !has_chat_template) {
+				LOG_WRN("%s: chat template is not available or is not supported. This may cause the model to output suboptimal responses\n", __func__);
+			}
+
+			// print chat template example in conversation mode
+			if (params.conversation_mode) {
+				if (params.enable_chat_template) {
+					if (!params.prompt.empty() && params.system_prompt.empty()) {
+						LOG_WRN("*** User-specified prompt will pre-start conversation, did you mean to set --system-prompt (-sys) instead?\n");
+					}
+
+					LOG_INF("%s: chat template example:\n%s\n", __func__, common_chat_format_example(chat_templates.get(), params.use_jinja).c_str());
+				} else {
+					LOG_INF("%s: in-suffix/prefix is specified, chat template will be disabled\n", __func__);
+				}
+			}
 
 			// print system information
 			{
@@ -334,6 +249,25 @@ int main(int argc, char** argv) {
 
 			std::string path_session = params.path_prompt_cache;
 			std::vector<llama_token> session_tokens;
+
+			if (!path_session.empty()) {
+				LOG_INF("%s: attempting to load saved session from '%s'\n", __func__, path_session.c_str());
+				if (!file_exists(path_session)) {
+					LOG_INF("%s: session file does not exist, will create.\n", __func__);
+				} else if (file_is_empty(path_session)) {
+					LOG_INF("%s: The session file is empty. A new session will be initialized.\n", __func__);
+				} else {
+					// The file exists and is not empty
+					session_tokens.resize(n_ctx);
+					size_t n_token_count_out = 0;
+					if (!llama_state_load_file(ctx, path_session.c_str(), session_tokens.data(), session_tokens.capacity(), &n_token_count_out)) {
+						LOG_ERR("%s: failed to load session file '%s'\n", __func__, path_session.c_str());
+						return 1;
+					}
+					session_tokens.resize(n_token_count_out);
+					LOG_INF("%s: loaded a session with prompt size of %d tokens\n", __func__, ( int )session_tokens.size());
+				}
+			}
 
 			const bool add_bos = llama_vocab_get_add_bos(vocab) && !params.use_jinja;
 			if (!llama_model_has_encoder(model)) {
@@ -357,13 +291,52 @@ int main(int argc, char** argv) {
 
 			std::string prompt;
 			{
-				prompt = params.prompt;
+				if (params.conversation_mode && params.enable_chat_template) {
+					if (!params.system_prompt.empty()) {
+						// format the system prompt (will use template default if empty)
+						chat_add_and_format("system", params.system_prompt);
+					}
 
-				LOG_DBG("tokenize the prompt\n");
-				embd_inp = common_tokenize(ctx, prompt, true, true);
+					if (!params.prompt.empty()) {
+						// format and append the user prompt
+						chat_add_and_format("user", params.prompt);
+					} else {
+						waiting_for_first_input = true;
+					}
+
+					if (!params.system_prompt.empty() || !params.prompt.empty()) {
+						common_chat_templates_inputs inputs;
+						inputs.messages				 = chat_msgs;
+						inputs.add_generation_prompt = !params.prompt.empty();
+
+						prompt = common_chat_templates_apply(chat_templates.get(), inputs).prompt;
+					}
+				} else {
+					// otherwise use the prompt as is
+					prompt = params.prompt;
+				}
+
+				if (params.interactive_first || !prompt.empty() || session_tokens.empty()) {
+					LOG_DBG("tokenize the prompt\n");
+					embd_inp = common_tokenize(ctx, prompt, true, true);
+				} else {
+					LOG_DBG("use session tokens\n");
+					embd_inp = session_tokens;
+				}
 
 				LOG_DBG("prompt: \"%s\"\n", prompt.c_str());
 				LOG_DBG("tokens: %s\n", string_from(ctx, embd_inp).c_str());
+			}
+
+			// Should not run without any tokens
+			if (!waiting_for_first_input && embd_inp.empty()) {
+				if (add_bos) {
+					embd_inp.push_back(llama_vocab_bos(vocab));
+					LOG_WRN("embd_inp was considered empty and bos was added: %s\n", string_from(ctx, embd_inp).c_str());
+				} else {
+					LOG_ERR("input is empty\n");
+					return -1;
+				}
 			}
 
 			// Tokenize negative prompt
@@ -374,6 +347,75 @@ int main(int argc, char** argv) {
 
 			// debug message about similarity of saved session, if applicable
 			size_t n_matching_session_tokens = 0;
+			if (!session_tokens.empty()) {
+				for (llama_token id: session_tokens) {
+					if (n_matching_session_tokens >= embd_inp.size() || id != embd_inp[n_matching_session_tokens]) {
+						break;
+					}
+					n_matching_session_tokens++;
+				}
+				if (params.prompt.empty() && n_matching_session_tokens == embd_inp.size()) {
+					LOG_INF("%s: using full prompt from session file\n", __func__);
+				} else if (n_matching_session_tokens >= embd_inp.size()) {
+					LOG_INF("%s: session file has exact match for prompt!\n", __func__);
+				} else if (n_matching_session_tokens < (embd_inp.size() / 2)) {
+					LOG_WRN("%s: session file has low similarity to prompt (%zu / %zu tokens); will mostly be reevaluated\n", __func__, n_matching_session_tokens, embd_inp.size());
+				} else {
+					LOG_INF("%s: session file matches %zu / %zu tokens of prompt\n", __func__, n_matching_session_tokens, embd_inp.size());
+				}
+
+				// remove any "future" tokens that we might have inherited from the previous session
+				llama_memory_seq_rm(mem, -1, n_matching_session_tokens, -1);
+			}
+
+			LOG_DBG("recalculate the cached logits (check): embd_inp.size() %zu, n_matching_session_tokens %zu, embd_inp.size() %zu, session_tokens.size() %zu\n", embd_inp.size(),
+				n_matching_session_tokens, embd_inp.size(), session_tokens.size());
+
+			// if we will use the cache for the full prompt without reaching the end of the cache, force
+			// reevaluation of the last token to recalculate the cached logits
+			if (!embd_inp.empty() && n_matching_session_tokens == embd_inp.size() && session_tokens.size() > embd_inp.size()) {
+				LOG_DBG("recalculate the cached logits (do): session_tokens.resize( %zu )\n", embd_inp.size() - 1);
+
+				session_tokens.resize(embd_inp.size() - 1);
+			}
+
+			// number of tokens to keep when resetting context
+			if (params.n_keep < 0 || params.n_keep > ( int )embd_inp.size()) {
+				params.n_keep = ( int )embd_inp.size();
+			} else {
+				params.n_keep += add_bos;// always keep the BOS token
+			}
+
+			if (params.conversation_mode) {
+				if (params.single_turn && !params.prompt.empty()) {
+					params.interactive		 = false;
+					params.interactive_first = false;
+				} else {
+					params.interactive_first = true;
+				}
+			}
+
+			// enable interactive mode if interactive start is specified
+			if (params.interactive_first) {
+				params.interactive = true;
+			}
+
+			if (params.verbose_prompt) {
+				LOG_INF("%s: prompt: '%s'\n", __func__, params.prompt.c_str());
+				LOG_INF("%s: number of tokens in prompt = %zu\n", __func__, embd_inp.size());
+				for (int i = 0; i < ( int )embd_inp.size(); i++) {
+					LOG_INF("%6d -> '%s'\n", embd_inp[i], common_token_to_piece(ctx, embd_inp[i]).c_str());
+				}
+
+				if (params.n_keep > add_bos) {
+					LOG_INF("%s: static prompt based on n_keep: '", __func__);
+					for (int i = 0; i < params.n_keep; i++) {
+						LOG_CNT("%s", common_token_to_piece(ctx, embd_inp[i]).c_str());
+					}
+					LOG_CNT("'\n");
+				}
+				LOG_INF("\n");
+			}
 
 			// ctrl+C handling
 			{
@@ -391,6 +433,46 @@ int main(int argc, char** argv) {
 #endif
 			}
 
+			if (params.interactive) {
+				LOG_INF("%s: interactive mode on.\n", __func__);
+
+				if (!params.antiprompt.empty()) {
+					for (const auto& antiprompt: params.antiprompt) {
+						LOG_INF("Reverse prompt: '%s'\n", antiprompt.c_str());
+						if (params.verbose_prompt) {
+							auto tmp = common_tokenize(ctx, antiprompt, false, true);
+							for (int i = 0; i < ( int )tmp.size(); i++) {
+								LOG_INF("%6d -> '%s'\n", tmp[i], common_token_to_piece(ctx, tmp[i]).c_str());
+							}
+						}
+					}
+				}
+
+				if (params.input_prefix_bos) {
+					LOG_INF("Input prefix with BOS\n");
+				}
+
+				if (!params.input_prefix.empty()) {
+					LOG_INF("Input prefix: '%s'\n", params.input_prefix.c_str());
+					if (params.verbose_prompt) {
+						auto tmp = common_tokenize(ctx, params.input_prefix, true, true);
+						for (int i = 0; i < ( int )tmp.size(); i++) {
+							LOG_INF("%6d -> '%s'\n", tmp[i], common_token_to_piece(ctx, tmp[i]).c_str());
+						}
+					}
+				}
+
+				if (!params.input_suffix.empty()) {
+					LOG_INF("Input suffix: '%s'\n", params.input_suffix.c_str());
+					if (params.verbose_prompt) {
+						auto tmp = common_tokenize(ctx, params.input_suffix, false, true);
+						for (int i = 0; i < ( int )tmp.size(); i++) {
+							LOG_INF("%6d -> '%s'\n", tmp[i], common_token_to_piece(ctx, tmp[i]).c_str());
+						}
+					}
+				}
+			}
+
 			smpl = common_sampler_init(model, sparams);
 			if (!smpl) {
 				LOG_ERR("%s: failed to initialize sampling subsystem\n", __func__);
@@ -403,18 +485,54 @@ int main(int argc, char** argv) {
 
 			LOG_INF("generate: n_ctx = %d, n_batch = %d, n_predict = %d, n_keep = %d\n", n_ctx, params.n_batch, params.n_predict, params.n_keep);
 
+			// group-attention state
+			// number of grouped KV tokens so far (used only if params.grp_attn_n > 1)
+			int ga_i = 0;
+
 			const int ga_n = params.grp_attn_n;
 			const int ga_w = params.grp_attn_w;
+
+			if (ga_n != 1) {
+				GGML_ASSERT(ga_n > 0 && "grp_attn_n must be positive");// NOLINT
+				GGML_ASSERT(ga_w % ga_n == 0 && "grp_attn_w must be a multiple of grp_attn_n");// NOLINT
+				//GGML_ASSERT(n_ctx_train % ga_w == 0     && "n_ctx_train must be a multiple of grp_attn_w");    // NOLINT
+				//GGML_ASSERT(n_ctx >= n_ctx_train * ga_n && "n_ctx must be at least n_ctx_train * grp_attn_n"); // NOLINT
+				LOG_INF("self-extend: n_ctx_train = %d, grp_attn_n = %d, grp_attn_w = %d\n", n_ctx_train, ga_n, ga_w);
+			}
 			LOG_INF("\n");
+
+			if (params.interactive) {
+				const char* control_message;
+				if (params.multiline_input) {
+					control_message = " - To return control to the AI, end your input with '\\'.\n"
+									  " - To return control without starting a new line, end your input with '/'.\n";
+				} else {
+					control_message = " - Press Return to return control to the AI.\n"
+									  " - To return control without starting a new line, end your input with '/'.\n"
+									  " - If you want to submit another line, end your input with '\\'.\n";
+				}
+				LOG_INF("== Running in interactive mode. ==\n");
+#if defined(__unix__) || (defined(__APPLE__) && defined(__MACH__)) || defined(_WIN32)
+				LOG_INF(" - Press Ctrl+C to interject at any time.\n");
+#endif
+				LOG_INF("%s", control_message);
+				if (params.conversation_mode && params.enable_chat_template && params.system_prompt.empty()) {
+					LOG_INF(" - Not using system message. To change it, set a different value via -sys PROMPT\n");
+				}
+				LOG_INF("\n");
+
+				is_interacting = params.interactive_first;
+			}
 
 			bool is_antiprompt		  = false;
 			bool input_echo			  = true;
 			bool display			  = true;
 			bool need_to_save_session = !path_session.empty() && n_matching_session_tokens < embd_inp.size();
 
-			int n_past	   = 0;
-			int n_remain   = params.n_predict;
-			int n_consumed = 0;
+			int n_past			   = 0;
+			int n_remain		   = params.n_predict;
+			int n_consumed		   = 0;
+			int n_session_consumed = 0;
 
 			std::vector<int> input_tokens;
 			g_input_tokens = &input_tokens;
@@ -433,13 +551,128 @@ int main(int argc, char** argv) {
 			// single-token antiprompts
 			std::vector<llama_token> antiprompt_token;
 
+			for (const std::string& antiprompt: params.antiprompt) {
+				auto ids = ::common_tokenize(ctx, antiprompt, false, true);
+				if (ids.size() == 1) {
+					antiprompt_token.push_back(ids[0]);
+				}
+			}
+
+			if (llama_model_has_encoder(model)) {
+				int enc_input_size		   = embd_inp.size();
+				llama_token* enc_input_buf = embd_inp.data();
+
+				if (llama_encode(ctx, llama_batch_get_one(enc_input_buf, enc_input_size))) {
+					LOG_ERR("%s : failed to eval\n", __func__);
+					return 1;
+				}
+
+				llama_token decoder_start_token_id = llama_model_decoder_start_token(model);
+				if (decoder_start_token_id == LLAMA_TOKEN_NULL) {
+					decoder_start_token_id = llama_vocab_bos(vocab);
+				}
+
+				embd_inp.clear();
+				embd_inp.push_back(decoder_start_token_id);
+			}
+
 			while ((n_remain != 0 && !is_antiprompt) || params.interactive) {
-				++token_count;
 				// predict
 				if (!embd.empty()) {
 					// Note: (n_ctx - 4) here is to match the logic for commandline prompt handling via
 					// --prompt or --file which uses the same value.
-					uint32_t max_embd_size = n_ctx - 4;
+					int max_embd_size = n_ctx - 4;
+
+					// Ensure the input doesn't exceed the context size by truncating embd if necessary.
+					if (( int )embd.size() > max_embd_size) {
+						const int skipped_tokens = ( int )embd.size() - max_embd_size;
+						embd.resize(max_embd_size);
+
+						console::set_display(console::error);
+						LOG_WRN("<<input too long: skipped %d token%s>>", skipped_tokens, skipped_tokens != 1 ? "s" : "");
+						console::set_display(console::reset);
+					}
+
+					if (ga_n == 1) {
+						// infinite text generation via context shifting
+						// if we run out of context:
+						// - take the n_keep first tokens from the original prompt (via n_past)
+						// - take half of the last (n_ctx - n_keep) tokens and recompute the logits in batches
+
+						if (n_past + ( int )embd.size() >= n_ctx) {
+							if (!params.ctx_shift) {
+								LOG_DBG("\n\n%s: context full and context shift is disabled => stopping\n", __func__);
+								break;
+							}
+
+							if (params.n_predict == -2) {
+								LOG_DBG("\n\n%s: context full and n_predict == -%d => stopping\n", __func__, params.n_predict);
+								break;
+							}
+
+							const int n_left	= n_past - params.n_keep;
+							const int n_discard = n_left / 2;
+
+							LOG_DBG("context full, swapping: n_past = %d, n_left = %d, n_ctx = %d, n_keep = %d, n_discard = %d\n", n_past, n_left, n_ctx, params.n_keep, n_discard);
+
+							llama_memory_seq_rm(mem, 0, params.n_keep, params.n_keep + n_discard);
+							llama_memory_seq_add(mem, 0, params.n_keep + n_discard, n_past, -n_discard);
+
+							n_past -= n_discard;
+
+							LOG_DBG("after swap: n_past = %d\n", n_past);
+
+							LOG_DBG("embd: %s\n", string_from(ctx, embd).c_str());
+
+							LOG_DBG("clear session path\n");
+							path_session.clear();
+						}
+					} else {
+						// context extension via Self-Extend
+						while (n_past >= ga_i + ga_w) {
+							const int ib = (ga_n * ga_i) / ga_w;
+							const int bd = (ga_w / ga_n) * (ga_n - 1);
+							const int dd = (ga_w / ga_n) - ib * bd - ga_w;
+
+							LOG_DBG("\n");
+							LOG_DBG("shift: [%6d, %6d] + %6d -> [%6d, %6d]\n", ga_i, n_past, ib * bd, ga_i + ib * bd, n_past + ib * bd);
+							LOG_DBG("div:   [%6d, %6d] / %6d -> [%6d, %6d]\n", ga_i + ib * bd, ga_i + ib * bd + ga_w, ga_n, (ga_i + ib * bd) / ga_n,
+								(ga_i + ib * bd + ga_w) / ga_n);
+							LOG_DBG("shift: [%6d, %6d] + %6d -> [%6d, %6d]\n", ga_i + ib * bd + ga_w, n_past + ib * bd, dd, ga_i + ib * bd + ga_w + dd, n_past + ib * bd + dd);
+
+							llama_memory_seq_add(mem, 0, ga_i, n_past, ib * bd);
+							llama_memory_seq_div(mem, 0, ga_i + ib * bd, ga_i + ib * bd + ga_w, ga_n);
+							llama_memory_seq_add(mem, 0, ga_i + ib * bd + ga_w, n_past + ib * bd, dd);
+
+							n_past -= bd;
+
+							ga_i += ga_w / ga_n;
+
+							LOG_DBG("\nn_past_old = %d, n_past = %d, ga_i = %d\n\n", n_past + bd, n_past, ga_i);
+						}
+					}
+
+					// try to reuse a matching prefix from the loaded session instead of re-eval (via n_past)
+					if (n_session_consumed < ( int )session_tokens.size()) {
+						size_t i = 0;
+						for (; i < embd.size(); i++) {
+							if (embd[i] != session_tokens[n_session_consumed]) {
+								session_tokens.resize(n_session_consumed);
+								break;
+							}
+
+							n_past++;
+							n_session_consumed++;
+
+							if (n_session_consumed >= ( int )session_tokens.size()) {
+								++i;
+								break;
+							}
+						}
+						if (i > 0) {
+							embd.erase(embd.begin(), embd.begin() + i);
+						}
+					}
 
 					for (int i = 0; i < ( int )embd.size(); i += params.n_batch) {
 						int n_eval = ( int )embd.size() - i;
@@ -448,16 +681,24 @@ int main(int argc, char** argv) {
 						}
 
 						LOG_DBG("eval: %s\n", string_from(ctx, embd).c_str());
-						//stop_watch_val.reset();
+
 						if (llama_decode(ctx, llama_batch_get_one(&embd[i], n_eval))) {
 							LOG_ERR("%s : failed to eval\n", __func__);
 							return 1;
 						}
-						//stop_watch_val.add_time();
 
 						n_past += n_eval;
 
 						LOG_DBG("n_past = %d\n", n_past);
+						// Display total tokens alongside total time
+						if (params.n_print > 0 && n_past % params.n_print == 0) {
+							LOG_DBG("\n\033[31mTokens consumed so far = %d / %d \033[0m\n", n_past, n_ctx);
+						}
+					}
+
+					if (!embd.empty() && !path_session.empty()) {
+						session_tokens.insert(session_tokens.end(), embd.begin(), embd.end());
+						n_session_consumed = session_tokens.size();
 					}
 				}
 
@@ -495,7 +736,7 @@ int main(int argc, char** argv) {
 
 						// push the prompt in the sampling context in order to apply repetition penalties later
 						// for the prompt, we don't apply grammar rules
-						common_sampler_accept(smpl, embd_inp[n_consumed], /* accept_grammar=  */ false);
+						common_sampler_accept(smpl, embd_inp[n_consumed], /* accept_grammar= */ false);
 
 						++n_consumed;
 						if (( int )embd.size() >= params.n_batch) {
@@ -510,8 +751,7 @@ int main(int argc, char** argv) {
 						const std::string token_str = common_token_to_piece(ctx, id, params.special);
 
 						// Console/Stream Output
-						return_value.append(token_str.c_str());
-						//LOG("%s", token_str.c_str());
+						LOG("%s", token_str.c_str());
 
 						// Record Displayed Tokens To Log
 						// Note: Generated tokens are created one by one hence this check
@@ -670,7 +910,7 @@ int main(int argc, char** argv) {
 							}
 
 							bool format_chat	 = params.conversation_mode && params.enable_chat_template;
-							std::string user_inp = format_chat ? chat_add_and_format("user", move(buffer)) : move(buffer);
+							std::string user_inp = format_chat ? chat_add_and_format("user", std::move(buffer)) : std::move(buffer);
 							// TODO: one inconvenient of current chat template implementation is that we can't distinguish between user input and special tokens (prefix/postfix)
 							const auto line_pfx = common_tokenize(ctx, params.input_prefix, false, true);
 							const auto line_inp = common_tokenize(ctx, user_inp, false, format_chat);
@@ -733,12 +973,18 @@ int main(int argc, char** argv) {
 				}
 			}
 
+			if (!path_session.empty() && params.prompt_cache_all && !params.prompt_cache_ro) {
+				LOG("\n%s: saving final output to session file '%s'\n", __func__, path_session.c_str());
+				llama_state_save_file(ctx, path_session.c_str(), session_tokens.data(), session_tokens.size());
+			}
+
 			LOG("\n\n");
 			common_perf_print(ctx, smpl);
 
 			common_sampler_free(smpl);
 
 			llama_backend_free();
+
 			ggml_threadpool_free_fn(threadpool);
 			ggml_threadpool_free_fn(threadpool_batch);
 			return static_cast<int32_t>(token_count - 2);
@@ -748,9 +994,9 @@ int main(int argc, char** argv) {
 			static constexpr auto model_config = nihilus::generate_model_config(nihilus::model_generations::v3, model_size, nihilus::kernel_type_profiles::q8_gqa,
 				nihilus::model_arches::llama, false);
 			nihilus::cli_params cli_args_final{ nihilus::harbinger<model_config>::parse_cli_arguments(argc, argv) };
-			nihilus::model<model_config> model_newer{ cli_args_final };
-			while (model_newer.process_input(cli_args_final.prompt)) {
-			}
+			//nihilus::model<model_config> model_newer{ cli_args_final };
+			//while (model_newer.process_input(cli_args_final.prompt)) {
+			//}
 			return cli_args_final.n_tokens;
 		});
 		std::cout << return_value << std::endl;

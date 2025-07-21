@@ -108,7 +108,7 @@ endif()
 set(SIMD_FLAG "${SIMD_FLAG}" CACHE STRING "AVX flags" FORCE)
 set(NIHILUS_CPU_INSTRUCTIONS "${NIHILUS_CPU_INSTRUCTIONS}" CACHE STRING "CPU Instruction Sets" FORCE)
 
-file(WRITE "${CMAKE_CURRENT_SOURCE_DIR}/Include/nihilus/cpu/simd/nihilus_cpu_instructions.hpp" "/*
+file(WRITE "${CMAKE_CURRENT_SOURCE_DIR}/Include/nihilus-incl/cpu/simd/nihilus_cpu_instructions.hpp" "/*
 Copyright (c) 2025 RealTimeChris (Chris M.)
 
 This file is part of software offered under a restricted-use license to a designated Licensee,

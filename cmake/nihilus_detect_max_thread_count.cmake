@@ -54,7 +54,7 @@ set(NIHILUS_MAX_THREAD_COUNT "${NIHILUS_MAX_THREAD_COUNT_NEW}" CACHE STRING "CPU
 
 endif()
 
-file(WRITE "${CMAKE_CURRENT_SOURCE_DIR}/Include/nihilus/cpu/simd/nihilus_thread_count.hpp" "/*
+file(WRITE "${CMAKE_CURRENT_SOURCE_DIR}/Include/nihilus-incl/cpu/simd/nihilus_thread_count.hpp" "/*
 Copyright (c) 2025 RealTimeChris (Chris M.)
 
 This file is part of software offered under a restricted-use license to a designated Licensee,
@@ -76,6 +76,7 @@ RealTimeChris (Chris M.)
 #pragma once
 
 #include <cstdint>
-
-static constexpr uint64_t max_thread_count{ ${NIHILUS_MAX_THREAD_COUNT} };
+struct max_thread_count_holder {
+	static constexpr uint64_t max_thread_count{ ${NIHILUS_MAX_THREAD_COUNT} };
+};
 ")

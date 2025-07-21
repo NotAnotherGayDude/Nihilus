@@ -71,7 +71,7 @@ jobs:
     
     - name: Configure CMake
       run: |
-        cmake -S . -B ./Build -DCMAKE_BUILD_TYPE=Release -DLLAMA_CURL=OFF -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=TRUE -DCMAKE_INSTALL_RPATH="@loader_path/../lib" -DNIHILUS_CLEAN=TRUE -DGGML_METAL=OFF -DNIHILUS_MODEL_SIZE_OVERRIDE=nihilus::model_sizes::llm_3B
+        cmake -S . -B ./Build -DCMAKE_BUILD_TYPE=Release -DLLAMA_CURL=OFF -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=TRUE -DCMAKE_INSTALL_RPATH="@loader_path/../lib" -DNIHILUS_CLEAN=TRUE -DGGML_METAL=OFF -DNIHILUS_MODEL_SIZE_OVERRIDE=nihilus::model_sizes::llm_8B
     
     - name: Build Project
       run: |
@@ -88,19 +88,19 @@ jobs:
     - name: Download Model (Linux/macOS)
       if: runner.os != 'Windows'
       run: |
-        wget -O installed-to/Llama-3.2-3B-Instruct-Q8_0.gguf https://huggingface.co/bartowski/Llama-3.2-3B-Instruct-GGUF/resolve/main/Llama-3.2-3B-Instruct-Q8_0.gguf
+        wget -O installed-to/Meta-Llama-3.1-8B-Instruct-Q8_0.gguf https://huggingface.co/bartowski/Meta-Llama-3.1-8B-Instruct-GGUF/resolve/main/Meta-Llama-3.1-8B-Instruct-Q8_0.gguf?download=true
     
     - name: Download Model (Windows)
       if: runner.os == 'Windows'
       run: |
-        Invoke-WebRequest -Uri "https://huggingface.co/bartowski/Llama-3.2-3B-Instruct-GGUF/resolve/main/Llama-3.2-3B-Instruct-Q8_0.gguf" -OutFile "installed-to/Llama-3.2-3B-Instruct-Q8_0.gguf"
+        Invoke-WebRequest -Uri "https://huggingface.co/bartowski/Meta-Llama-3.1-8B-Instruct-GGUF/resolve/main/Meta-Llama-3.1-8B-Instruct-Q8_0.gguf?download=true" -OutFile "installed-to/Meta-Llama-3.1-8B-Instruct-Q8_0.gguf"
     
     - name: Set Library Path and Run Model (macOS)
       if: runner.os == 'macOS'
       run: |
         export DYLD_LIBRARY_PATH="${GITHUB_WORKSPACE}/../Install/lib:$DYLD_LIBRARY_PATH"
         chmod +x "${GITHUB_WORKSPACE}/../Install/bin/nihilus_performance"
-        "${GITHUB_WORKSPACE}/../Install/bin/nihilus_performance" -m installed-to/Llama-3.2-3B-Instruct-Q8_0.gguf -p "What is the meaning of life?" -s 0 -n 8 -no-cnv -t 1 > llm_output_macos.txt 2>&1
+        "${GITHUB_WORKSPACE}/../Install/bin/nihilus_performance" -m installed-to/Meta-Llama-3.1-8B-Instruct-Q8_0.gguf -p "What is the meaning of life?" -s 0 -n 8 -no-cnv -t 1 > llm_output_macos.txt 2>&1
         echo "=== Nihilus LLM OUTPUT (macOS) ==="
         cat llm_output_macos.txt
         echo "=== END OUTPUT ==="
@@ -128,7 +128,7 @@ jobs:
       run: |
         export LD_LIBRARY_PATH="${GITHUB_WORKSPACE}/../Install/lib:$LD_LIBRARY_PATH"
         chmod +x "${GITHUB_WORKSPACE}/../Install/bin/nihilus_performance"
-        "${GITHUB_WORKSPACE}/../Install/bin/nihilus_performance" -m installed-to/Llama-3.2-3B-Instruct-Q8_0.gguf -p "What is the meaning of life?" -s 0 -n 8 -no-cnv -t 1 > llm_output_linux.txt 2>&1
+        "${GITHUB_WORKSPACE}/../Install/bin/nihilus_performance" -m installed-to/Meta-Llama-3.1-8B-Instruct-Q8_0.gguf -p "What is the meaning of life?" -s 0 -n 8 -no-cnv -t 1 > llm_output_linux.txt 2>&1
         echo "=== Nihilus LLM OUTPUT (Linux) ==="
         cat llm_output_linux.txt
         echo "=== END OUTPUT ==="
@@ -154,7 +154,7 @@ jobs:
     - name: Run Model (Windows)
       if: runner.os == 'Windows'
       run: |
-        & "${env:GITHUB_WORKSPACE}\..\Install\bin\nihilus_performance.exe" -m installed-to/Llama-3.2-3B-Instruct-Q8_0.gguf -p "What is the meaning of life?" -s 0 -n 8 -no-cnv -t 1 > llm_output_windows.txt 2>&1
+        & "${env:GITHUB_WORKSPACE}\..\Install\bin\nihilus_performance.exe" -m installed-to/Meta-Llama-3.1-8B-Instruct-Q8_0.gguf -p "What is the meaning of life?" -s 0 -n 8 -no-cnv -t 1 > llm_output_windows.txt 2>&1
         Write-Host "=== Nihilus LLM OUTPUT (Windows) ==="
         Get-Content llm_output_windows.txt
         Write-Host "=== END OUTPUT ==="

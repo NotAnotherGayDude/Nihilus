@@ -30,14 +30,14 @@ project(
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 
-include(FetchContent)
-FetchContent_Declare(
-  benchmarksuite
-  GIT_REPOSITORY https://github.com/realtimechris/benchmarksuite.git
-  GIT_TAG main
-  GIT_SHALLOW TRUE
-)
-FetchContent_MakeAvailable(benchmarksuite)
+#include(FetchContent)
+#FetchContent_Declare(
+  #benchmarksuite
+  #GIT_REPOSITORY https://github.com/realtimechris/benchmarksuite.git
+  #GIT_TAG main
+  #GIT_SHALLOW TRUE
+#)
+#FetchContent_MakeAvailable(benchmarksuite)
 
 add_executable(
   "nihilus_performance" 
@@ -45,7 +45,7 @@ add_executable(
 
 target_link_libraries(
 	"nihilus_performance" PUBLIC 
-	nihilus::nihilus BenchmarkSuite::BenchmarkSuite
+	nihilus::nihilus #BenchmarkSuite::BenchmarkSuite
 )
 
 if (MSVC)

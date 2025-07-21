@@ -9,7 +9,7 @@
 
 #include <BnchSwt/BenchmarkSuite.hpp>
 #include <../src/llama-context.h>
-#include <nihilus/index.hpp>
+#include <nihilus>
 #include "arg.h"
 #include "common.h"
 #include "console.h"
@@ -113,10 +113,10 @@ static constexpr nihilus::model_sizes model_size{ LLAMA_MODEL_SIZE };
 int main(int argc, char** argv) {
 	try {
 		static constexpr auto model_config =
-			nihilus::generate_model_config(nihilus::model_generations::v3, model_size, nihilus::kernel_type_profiles::q8_gqa, nihilus::model_arches::llama, false);
+			nihilus::generate_model_config(nihilus::model_generations::v3, model_size, nihilus::kernel_type_profiles::q8_gqa, nihilus::model_arches::llama, true);
 		static constexpr auto model_config01 = nihilus::update_model_config_dev(model_config, true);
 		nihilus::cli_params cli_args_final	 = nihilus::harbinger<model_config01>::parse_cli_arguments(argc, argv);
-		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 4, 2, true, "Token">::runBenchmark<"nihilus">([&] {
+		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 1, 1, true, "Token">::runBenchmark<"nihilus">([&] {
 			auto model_new{ nihilus::harbinger<model_config01>::parse_model_graph_data(cli_args_final) };
 			while (model_new->process_input(cli_args_final.prompt)) {
 			}
@@ -124,7 +124,7 @@ int main(int argc, char** argv) {
 			return cli_args_final.n_tokens;
 		});
 		std::string return_value{};
-		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 2, 1, true, "Token">::runBenchmark<"llama.cpp">([&] {
+		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 1, 1, true, "Token">::runBenchmark<"llama.cpp">([&] {
 			return_value.clear();
 			size_t token_count{};
 
@@ -958,7 +958,7 @@ int main(int argc, char** argv) {
 			return static_cast<int32_t>(token_count - 2);
 		});
 		std::cout << return_value << std::endl;
-		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 2, 1, true, "Token">::printResults();
+		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 1, 1, true, "Token">::printResults();
 	} catch (const std::exception& error) {
 		std::cout << "Error: " << error.what() << std::endl;
 	}

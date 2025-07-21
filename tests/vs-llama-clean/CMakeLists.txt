@@ -50,8 +50,7 @@ FetchContent_MakeAvailable(benchmarksuite)
 
 add_executable(
   "nihilus_performance" 
-  "./main.cpp"
- "save_tensor.h")
+  "./main.cpp")
 
 add_subdirectory("./common")
 
