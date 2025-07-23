@@ -28,8 +28,10 @@ RealTimeChris (Chris M.)
 #include <nihilus-incl/common/array.hpp>
 #include <filesystem>
 #include <iostream>
+#include <fstream>
 #include <cstdint>
 #include <chrono>
+#include <vector>
 #include <thread>
 #include <mutex>
 #include <latch>
@@ -80,9 +82,12 @@ namespace nihilus {
 
 	template<typename value_type> struct parse_core;
 
+#if defined(NIHILUS_DEV) || defined(NIHILUS_BENCHMARK)
 	static constexpr auto spinlock_time{ 172000 };
+#endif
 
 	struct alignas(64) atomic_flag_wrapper {
+		using value_type							  = typename std::atomic_signed_lock_free::value_type;
 		NIHILUS_INLINE atomic_flag_wrapper() noexcept = default;
 		NIHILUS_INLINE atomic_flag_wrapper& operator=(const atomic_flag_wrapper&) noexcept {
 			return *this;
@@ -92,7 +97,7 @@ namespace nihilus {
 		}
 
 		NIHILUS_INLINE void store(int64_t value_new) {
-			flag.store(value_new, std::memory_order_release);
+			flag.store(static_cast<value_type>(value_new), std::memory_order_release);
 		}
 
 		NIHILUS_INLINE int64_t load() {
@@ -116,11 +121,11 @@ namespace nihilus {
 		}
 
 		NIHILUS_INLINE int64_t fetch_add(int64_t value) {
-			return flag.fetch_add(value, std::memory_order_acq_rel);
+			return flag.fetch_add(static_cast<value_type>(value), std::memory_order_acq_rel);
 		}
 
 		NIHILUS_INLINE int64_t fetch_sub(int64_t value) {
-			return flag.fetch_sub(value, std::memory_order_acq_rel);
+			return flag.fetch_sub(static_cast<value_type>(value), std::memory_order_acq_rel);
 		}
 
 		NIHILUS_INLINE bool test() {
@@ -128,7 +133,7 @@ namespace nihilus {
 		}
 
 		NIHILUS_INLINE void wait(int64_t value) {
-			flag.wait(value, std::memory_order_acquire);
+			flag.wait(static_cast<value_type>(value), std::memory_order_acquire);
 		}
 
 	  protected:
@@ -136,7 +141,7 @@ namespace nihilus {
 	};
 
 	struct alignas(64) op_latch {
-		NIHILUS_INLINE op_latch()							= default;
+		NIHILUS_INLINE op_latch() = default;
 		atomic_flag_wrapper global_flag{};
 		alignas(64) int64_t thread_count{};
 
@@ -145,15 +150,28 @@ namespace nihilus {
 			global_flag.store(0);
 		}
 
-		NIHILUS_INLINE void arrive_and_wait() {
-			auto new_value = global_flag.fetch_add(1);
-			bool wait{ (new_value < thread_count - 1) };
+		NIHILUS_INLINE int64_t arrive_and_wait_get_thread(int64_t& thread_index) {
+			thread_index = global_flag.fetch_add(1);
+			bool wait{ (thread_index < thread_count - 1) };
 			if (wait) {
-				global_flag.wait(new_value + 1);
+				global_flag.wait(thread_index);
 			} else {
-				global_flag.notify_all();
 				global_flag.store(0);
+				global_flag.notify_all();
 			}
+			return thread_count;
+		}
+
+		NIHILUS_INLINE void arrive_and_wait() {
+			auto thread_index = global_flag.fetch_add(1);
+			bool wait{ (thread_index < thread_count - 1) };
+			if (wait) {
+				global_flag.wait(thread_index);
+			} else {
+				global_flag.store(0);
+				global_flag.notify_all();
+			}
+			return;
 		}
 	};
 
@@ -166,6 +184,10 @@ namespace nihilus {
 
 		NIHILUS_INLINE void init(int64_t thread_count_new) {
 			thread_count = thread_count_new;
+			flag.store(0);
+		}
+
+		NIHILUS_INLINE void reset() {
 			flag.store(0);
 		}
 
@@ -269,13 +291,13 @@ namespace nihilus {
 		}
 
 		NIHILUS_INLINE void add_time() noexcept {
-			std::unique_lock lock{ mutex };
+			std::unique_lock<std::mutex> lock{ mutex };
 			values.emplace_back(total_time_elapsed());
 			reset();
 		}
 
 		NIHILUS_INLINE uint64_t get_average() noexcept {
-			std::unique_lock lock{ mutex };
+			std::unique_lock<std::mutex> lock{ mutex };
 			uint64_t total_time{};
 			for (auto& value: values) {
 				total_time += get_value_as_uint(value);
@@ -306,6 +328,9 @@ namespace nihilus {
 			return get_value_as_uint(get_current_time()) - get_value_as_uint(start_time_units.load(std::memory_order_acquire));
 		}
 
+		NIHILUS_INLINE ~stop_watch() {
+		}
+
 	  protected:
 		std::atomic<time_type> total_time_units{};
 		std::atomic<time_type> start_time_units{};
@@ -328,8 +353,6 @@ namespace nihilus {
 			}
 		}
 	};
-
-	inline stop_watch<std::chrono::nanoseconds> stop_watch_val_nihilus{ 0 };
 
 	template<auto current_index, auto enum_count> NIHILUS_INLINE constexpr std::string_view get_enum_name() {
 		std::string_view return_string{ std::source_location::current().function_name() };
@@ -365,33 +388,35 @@ namespace nihilus {
 		count,
 	};
 
-	NIHILUS_INLINE constexpr const char* get_type_name(data_types type) {
+	template<typename enum_type>
+		requires(std::is_same_v<data_types, enum_type>)
+	NIHILUS_INLINE constexpr const char* get_type_name(enum_type type) {
 		switch (type) {
-			case data_types::f64: {
+			case enum_type::f64: {
 				return "double";
 			}
-			case data_types::f32: {
+			case enum_type::f32: {
 				return "float_32";
 			}
-			case data_types::f16: {
+			case enum_type::f16: {
 				return "float_16";
 			}
-			case data_types::q8_0: {
+			case enum_type::q8_0: {
 				return "q8_0";
 			}
-			case data_types::i64: {
+			case enum_type::i64: {
 				return "int64_t";
 			}
-			case data_types::i32: {
+			case enum_type::i32: {
 				return "int32_t";
 			}
-			case data_types::i16: {
+			case enum_type::i16: {
 				return "int16_t";
 			}
-			case data_types::i8: {
+			case enum_type::i8: {
 				return "int8_t";
 			}
-			case data_types::count: {
+			default: {
 				return "count";
 			}
 		}
@@ -426,68 +451,70 @@ namespace nihilus {
 				std::remove_cvref_t<value_type>::kernel_type == kernel_types::copy;
 	};
 
-	NIHILUS_INLINE std::ostream& operator<<(std::ostream& os, kernel_types type) {
+	template<typename enum_type>
+		requires(std::is_same_v<kernel_types, enum_type>)
+	NIHILUS_INLINE std::ostream& operator<<(std::ostream& os, enum_type type) {
 		switch (type) {
-			case kernel_types::none:
+			case enum_type::none:
 				os << "none";
 				return os;
-			case kernel_types::add_rms_norm_mul:
+			case enum_type::add_rms_norm_mul:
 				os << "add_rms_norm_mul";
 				return os;
-			case kernel_types::get_rows:
+			case enum_type::get_rows:
 				os << "get_rows";
 				return os;
-			case kernel_types::rms_norm_mul:
+			case enum_type::rms_norm_mul:
 				os << "rms_norm_mul";
 				return os;
-			case kernel_types::rms_norm:
+			case enum_type::rms_norm:
 				os << "rms_norm";
 				return os;
-			case kernel_types::mul:
+			case enum_type::mul:
 				os << "mul";
 				return os;
-			case kernel_types::mul_mat:
+			case enum_type::mul_mat:
 				os << "mul_mat";
 				return os;
-			case kernel_types::reshape:
+			case enum_type::reshape:
 				os << "reshape";
 				return os;
-			case kernel_types::permute:
+			case enum_type::permute:
 				os << "permute";
 				return os;
-			case kernel_types::transpose:
+			case enum_type::transpose:
 				os << "transpose";
 				return os;
-			case kernel_types::view:
+			case enum_type::view:
 				os << "view";
 				return os;
-			case kernel_types::cont:
+			case enum_type::cont:
 				os << "cont";
 				return os;
-			case kernel_types::copy:
+			case enum_type::copy:
 				os << "copy";
 				return os;
-			case kernel_types::rope:
+			case enum_type::rope:
 				os << "rope";
 				return os;
-			case kernel_types::softmax:
+			case enum_type::softmax:
 				os << "softmax";
 				return os;
-			case kernel_types::silu:
+			case enum_type::silu:
 				os << "silu";
 				return os;
-			case kernel_types::add:
+			case enum_type::add:
 				os << "add";
 				return os;
-			case kernel_types::sub:
+			case enum_type::sub:
 				os << "sub";
 				return os;
-			case kernel_types::count:
+			case enum_type::count:
+				[[fallthrough]];
+			default: {
 				os << "count";
 				return os;
-			default:
-				os << "unknown_kernel_type(" << static_cast<uint8_t>(type) << ")";
-				return os;
+			}
 		}
 	}
 
@@ -553,198 +580,198 @@ namespace nihilus {
 		count
 	};
 
-	NIHILUS_INLINE std::ostream& operator<<(std::ostream& os, op_types type) {
+	template<typename enum_type>
+		requires(std::is_same_v<op_types, enum_type>)
+	NIHILUS_INLINE std::ostream& operator<<(std::ostream& os, enum_type type) {
 		switch (type) {
-			case op_types::token_embd_weight:
+			case enum_type::token_embd_weight:
 				return os << "token_embd_weight";
-			case op_types::rope_freqs_weight:
+			case enum_type::rope_freqs_weight:
 				return os << "rope_freqs_weight";
-			case op_types::output_weight:
+			case enum_type::output_weight:
 				return os << "output_weight";
-			case op_types::output_norm_weight:
+			case enum_type::output_norm_weight:
 				return os << "output_norm_weight";
-			case op_types::attn_q_weight:
+			case enum_type::attn_q_weight:
 				return os << "attn_q_weight";
-			case op_types::attn_k_weight:
+			case enum_type::attn_k_weight:
 				return os << "attn_k_weight";
-			case op_types::attn_v_weight:
+			case enum_type::attn_v_weight:
 				return os << "attn_v_weight";
-			case op_types::attn_output_weight:
+			case enum_type::attn_output_weight:
 				return os << "attn_output_weight";
-			case op_types::attn_norm_weight:
+			case enum_type::attn_norm_weight:
 				return os << "attn_norm_weight";
-			case op_types::ffn_gate_weight:
+			case enum_type::ffn_gate_weight:
 				return os << "ffn_gate_weight";
-			case op_types::ffn_up_weight:
+			case enum_type::ffn_up_weight:
 				return os << "ffn_up_weight";
-			case op_types::ffn_down_weight:
+			case enum_type::ffn_down_weight:
 				return os << "ffn_down_weight";
-			case op_types::ffn_norm_weight:
+			case enum_type::ffn_norm_weight:
 				return os << "ffn_norm_weight";
-			case op_types::inp_embd:
+			case enum_type::inp_embd:
 				return os << "inp_embd";
-			case op_types::inp_tokens:
+			case enum_type::inp_tokens:
 				return os << "inp_tokens";
-			case op_types::inp_pos:
+			case enum_type::inp_pos:
 				return os << "inp_pos";
-			case op_types::inp_out_ids:
+			case enum_type::inp_out_ids:
 				return os << "inp_out_ids";
-			case op_types::cache_k:
+			case enum_type::cache_k:
 				return os << "cache_k";
-			case op_types::cache_v:
+			case enum_type::cache_v:
 				return os << "cache_v";
-			case op_types::kq_mask:
+			case enum_type::kq_mask:
 				return os << "kq_mask";
-			case op_types::norm_attn_norm:
+			case enum_type::norm_attn_norm:
 				return os << "norm_attn_norm";
-			case op_types::qcur_mul_mat:
+			case enum_type::qcur_mul_mat:
 				return os << "qcur_mul_mat";
-			case op_types::qcur_reshaped:
+			case enum_type::qcur_reshaped:
 				return os << "qcur_reshaped";
-			case op_types::qcur_rope:
+			case enum_type::qcur_rope:
 				return os << "qcur_rope";
-			case op_types::kcur_mul_mat:
+			case enum_type::kcur_mul_mat:
 				return os << "kcur_mul_mat";
-			case op_types::kcur_reshaped:
+			case enum_type::kcur_reshaped:
 				return os << "kcur_reshaped";
-			case op_types::kcur_rope:
+			case enum_type::kcur_rope:
 				return os << "kcur_rope";
-			case op_types::vcur_mul_mat:
+			case enum_type::vcur_mul_mat:
 				return os << "vcur_mul_mat";
-			case op_types::k_cache_view:
+			case enum_type::k_cache_view:
 				return os << "k_cache_view";
-			case op_types::k_cache_view_copy:
+			case enum_type::k_cache_view_copy:
 				return os << "k_cache_view_copy";
-			case op_types::vcur_transposed:
+			case enum_type::vcur_transposed:
 				return os << "vcur_transposed";
-			case op_types::v_cache_view:
+			case enum_type::v_cache_view:
 				return os << "v_cache_view";
-			case op_types::v_cache_view_copy:
+			case enum_type::v_cache_view_copy:
 				return os << "v_cache_view_copy";
-			case op_types::v:
+			case enum_type::v:
 				return os << "v";
-			case op_types::k:
+			case enum_type::k:
 				return os << "k";
-			case op_types::q:
+			case enum_type::q:
 				return os << "q";
-			case op_types::kq:
+			case enum_type::kq:
 				return os << "kq";
-			case op_types::kq_soft_max:
+			case enum_type::kq_soft_max:
 				return os << "kq_soft_max";
-			case op_types::kqv:
+			case enum_type::kqv:
 				return os << "kqv";
-			case op_types::kqv_merged:
+			case enum_type::kqv_merged:
 				return os << "kqv_merged";
-			case op_types::kqv_merged_cont:
+			case enum_type::kqv_merged_cont:
 				return os << "kqv_merged_cont";
-			case op_types::kqv_out:
+			case enum_type::kqv_out:
 				return os << "kqv_out";
-			case op_types::ffn_inp:
+			case enum_type::ffn_inp:
 				return os << "ffn_inp";
-			case op_types::ffn_inp_norm_out_ffn_norm:
+			case enum_type::ffn_inp_norm_out_ffn_norm:
 				return os << "ffn_inp_norm_out_ffn_norm";
-			case op_types::ffn_gate:
+			case enum_type::ffn_gate:
 				return os << "ffn_gate";
-			case op_types::ffn_silu:
+			case enum_type::ffn_silu:
 				return os << "ffn_silu";
-			case op_types::ffn_up:
+			case enum_type::ffn_up:
 				return os << "ffn_up";
-			case op_types::ffn_gate_par:
+			case enum_type::ffn_gate_par:
 				return os << "ffn_gate_par";
-			case op_types::ffn_out:
+			case enum_type::ffn_out:
 				return os << "ffn_out";
-			case op_types::l_out:
+			case enum_type::l_out:
 				return os << "l_out";
-			case op_types::final_norm:
+			case enum_type::final_norm:
 				return os << "final_norm";
-			case op_types::result_norm:
+			case enum_type::result_norm:
 				return os << "result_norm";
-			case op_types::result_output:
+			case enum_type::result_output:
 				return os << "result_output";
-			case op_types::attn_residual:
+			case enum_type::attn_residual:
 				return os << "attn_residual";
-			case op_types::prev_residual:
+			case enum_type::prev_residual:
 				return os << "prev_residual";
-			case op_types::count:
-				return os << "count";
 			default:
-				return os << "unknown_op_type(" << static_cast<uint16_t>(type) << ")";
+				return os << "count";
 		}
 	}
 
-	template<integral_or_enum_types value_type> constexpr kernel_types get_kernel_type_from_llm_op(value_type op) {
-		switch (static_cast<op_types>(op)) {
-			case op_types::inp_tokens:
-			case op_types::inp_pos:
-			case op_types::inp_out_ids:
-			case op_types::token_embd_weight:
-			case op_types::rope_freqs_weight:
-			case op_types::output_weight:
-			case op_types::output_norm_weight:
-			case op_types::attn_q_weight:
-			case op_types::attn_k_weight:
-			case op_types::attn_v_weight:
-			case op_types::attn_output_weight:
-			case op_types::attn_norm_weight:
-			case op_types::ffn_gate_weight:
-			case op_types::ffn_up_weight:
-			case op_types::ffn_down_weight:
-			case op_types::ffn_norm_weight:
-			case op_types::cache_k:
-			case op_types::cache_v:
-			case op_types::kq_mask:
+	template<enum_types enum_type> constexpr kernel_types get_kernel_type_from_llm_op(enum_type op) {
+		switch (op) {
+			case enum_type::inp_tokens:
+			case enum_type::inp_pos:
+			case enum_type::inp_out_ids:
+			case enum_type::token_embd_weight:
+			case enum_type::rope_freqs_weight:
+			case enum_type::output_weight:
+			case enum_type::output_norm_weight:
+			case enum_type::attn_q_weight:
+			case enum_type::attn_k_weight:
+			case enum_type::attn_v_weight:
+			case enum_type::attn_output_weight:
+			case enum_type::attn_norm_weight:
+			case enum_type::ffn_gate_weight:
+			case enum_type::ffn_up_weight:
+			case enum_type::ffn_down_weight:
+			case enum_type::ffn_norm_weight:
+			case enum_type::cache_k:
+			case enum_type::cache_v:
+			case enum_type::kq_mask:
 				return kernel_types::none;
-			case op_types::inp_embd:
+			case enum_type::inp_embd:
 				return kernel_types::get_rows;
-			case op_types::final_norm:
+			case enum_type::final_norm:
 				return kernel_types::rms_norm;
-			case op_types::ffn_gate_par:
-			case op_types::result_norm:
+			case enum_type::ffn_gate_par:
+			case enum_type::result_norm:
 				return kernel_types::mul;
-			case op_types::qcur_mul_mat:
-			case op_types::kcur_mul_mat:
-			case op_types::vcur_mul_mat:
-			case op_types::kq:
-			case op_types::kqv:
-			case op_types::kqv_out:
-			case op_types::ffn_gate:
-			case op_types::ffn_up:
-			case op_types::ffn_out:
-			case op_types::result_output:
+			case enum_type::qcur_mul_mat:
+			case enum_type::kcur_mul_mat:
+			case enum_type::vcur_mul_mat:
+			case enum_type::kq:
+			case enum_type::kqv:
+			case enum_type::kqv_out:
+			case enum_type::ffn_gate:
+			case enum_type::ffn_up:
+			case enum_type::ffn_out:
+			case enum_type::result_output:
 				return kernel_types::mul_mat;
-			case op_types::qcur_reshaped:
-			case op_types::kcur_reshaped:
+			case enum_type::qcur_reshaped:
+			case enum_type::kcur_reshaped:
 				return kernel_types::reshape;
-			case op_types::q:
-			case op_types::kqv_merged:
+			case enum_type::q:
+			case enum_type::kqv_merged:
 				return kernel_types::permute;
-			case op_types::vcur_transposed:
+			case enum_type::vcur_transposed:
 				return kernel_types::transpose;
-			case op_types::k_cache_view:
-			case op_types::v_cache_view:
-			case op_types::v:
-			case op_types::k:
+			case enum_type::k_cache_view:
+			case enum_type::v_cache_view:
+			case enum_type::v:
+			case enum_type::k:
 				return kernel_types::view;
-			case op_types::kqv_merged_cont:
+			case enum_type::kqv_merged_cont:
 				return kernel_types::cont;
-			case op_types::k_cache_view_copy:
-			case op_types::v_cache_view_copy:
+			case enum_type::k_cache_view_copy:
+			case enum_type::v_cache_view_copy:
 				return kernel_types::copy;
-			case op_types::qcur_rope:
-			case op_types::kcur_rope:
+			case enum_type::qcur_rope:
+			case enum_type::kcur_rope:
 				return kernel_types::rope;
-			case op_types::kq_soft_max:
+			case enum_type::kq_soft_max:
 				return kernel_types::softmax;
-			case op_types::ffn_silu:
+			case enum_type::ffn_silu:
 				return kernel_types::silu;
-			case op_types::ffn_inp:
-			case op_types::l_out:
+			case enum_type::ffn_inp:
+			case enum_type::l_out:
 				return kernel_types::add;
-			case op_types::norm_attn_norm:
+			case enum_type::norm_attn_norm:
 				return kernel_types::rms_norm_mul;
-			case op_types::ffn_inp_norm_out_ffn_norm:
+			case enum_type::ffn_inp_norm_out_ffn_norm:
 				return kernel_types::add_rms_norm_mul;
-			case op_types::count:
+			case enum_type::count:
 			default:
 				return kernel_types::none;
 		}
@@ -936,8 +963,6 @@ namespace nihilus {
 		llm_27B,
 		count,
 	};
-
-	static constexpr int32_t token_null{ -1 };
 
 	enum class tokenizer_types {
 		none,

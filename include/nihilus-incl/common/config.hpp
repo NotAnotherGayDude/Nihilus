@@ -86,10 +86,8 @@ RealTimeChris (Chris M.)
 #endif
 
 #if defined(__x86_64__) || defined(_M_X64)
-	#define NIHILUS_ARCH_X86_64 1
 	#include <immintrin.h>
 #elif defined(__aarch64__) || defined(_M_ARM64)
-	#define NIHILUS_ARCH_ARM64 1
 	#include <arm_sve.h>
 	#include <arm_neon.h>
 #else
@@ -97,12 +95,12 @@ RealTimeChris (Chris M.)
 #endif
 
 NIHILUS_INLINE void nihilus_pause() noexcept {
-#if defined(NIHILUS_ARCH_X86_64)
+#if defined(NIHILUS_ARCH_X64)
 	_mm_pause();
 #elif defined(NIHILUS_ARCH_ARM64)
-	__asm__ __volatile__("yield"::: "memory");
+	__asm__ __volatile__("yield" ::: "memory");
 #else
-	__asm__ __volatile__(""::: "memory");
+	__asm__ __volatile__("" ::: "memory");
 #endif
 }
 

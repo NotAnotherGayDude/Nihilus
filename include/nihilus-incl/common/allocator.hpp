@@ -28,11 +28,11 @@ namespace nihilus {
 
 	template<auto multiple, typename value_01_type = decltype(multiple)> NIHILUS_INLINE constexpr value_01_type round_up_to_multiple(value_01_type value) noexcept {
 		if constexpr ((multiple & (multiple - 1)) == 0) {
-			constexpr auto mulSub1{ multiple - 1 };
-			constexpr auto notMulSub1{ ~mulSub1 };
+			constexpr value_01_type mulSub1{ multiple - 1 };
+			constexpr value_01_type notMulSub1{ static_cast<value_01_type>(~mulSub1) };
 			return (value + (mulSub1)) & notMulSub1;
 		} else {
-			const auto remainder = value % multiple;
+			const value_01_type remainder = value % multiple;
 			return remainder == 0 ? value : value + (multiple - remainder);
 		}
 	}

@@ -91,9 +91,6 @@ namespace nihilus {
 	concept array_types = vector_subscriptable<value_type> && has_data<value_type> && has_size<value_type>;
 
 	template<typename value_type>
-	concept has_array_data_types = requires(std::remove_cvref_t<value_type>) { array_types<decltype(std::remove_cvref_t<value_type>::data)>; };
-
-	template<typename value_type>
 	concept core_traits_types = requires(std::remove_cvref_t<value_type>) {
 		typename std::remove_cvref_t<value_type>::output_type;
 		std::remove_cvref_t<value_type>::data;
@@ -133,7 +130,20 @@ namespace nihilus {
 	concept active_op_types = requires() { std::remove_cvref_t<value_type>::run_checkers; };
 
 	template<typename value_type>
+	concept active_input_types = requires() { std::remove_cvref_t<value_type>::runtime_dims; };
+
+	template<typename value_type>
 	concept has_return_type = requires() { typename std::remove_cvref_t<value_type>::return_type; };
+
+	template<typename value_type>
+	concept is_integral_constant = requires() {
+		typename std::remove_cvref_t<value_type>::value_type;
+		{ std::remove_cvref_t<value_type>::value } -> std::same_as<typename std::remove_cvref_t<value_type>::value_type>;
+	};
+
+	template<typename value_01_type, typename value_02_type>
+	concept is_indexable =
+		std::is_same_v<value_01_type, value_02_type> || std::integral<value_01_type> || is_integral_constant<value_01_type> || is_integral_constant<value_02_type>;
 
 	// from
 	// https://stackoverflow.com/questions/16337610/how-to-know-if-a-type-is-a-specialization-of-stdvector
@@ -170,5 +180,8 @@ namespace nihilus {
 
 	template<typename value_type>
 	concept triple_input_types = std::remove_cvref_t<value_type>::input_type == input_types::three;
+
+	template<typename value_type>
+	concept enum_types = std::is_enum_v<std::remove_cvref_t<value_type>>;
 
 }

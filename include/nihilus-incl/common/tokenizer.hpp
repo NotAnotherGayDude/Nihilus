@@ -39,18 +39,18 @@ namespace nihilus {
 	};
 
 	struct bpe_token {
-		std::string token;
-		float score;
-		int32_t id;
+		std::string token{};
+		float score{};
+		int32_t id{};
 	};
 
 	template<model_config config, typename derived_type, model_arches arch, tokenizer_types> struct tokenizer;
 
 	struct nihilus_symbol {
-		const char* text;
-		int32_t prev;
-		int32_t next;
-		uint64_t n;
+		const char* text{};
+		int32_t prev{};
+		int32_t next{};
+		uint64_t n{};
 	};
 
 	struct nihilus_bigram_bpe {
@@ -63,15 +63,15 @@ namespace nihilus {
 		using queue_storage = vector<nihilus_bigram_bpe>;
 		using queue			= std::priority_queue<nihilus_bigram_bpe, queue_storage, comparator>;
 
-		std::string text;
-		uint64_t size;
-		int32_t right;
-		int32_t left;
-		int32_t rank;
+		std::string text{};
+		uint64_t size{};
+		int32_t right{};
+		int32_t left{};
+		int32_t rank{};
 	};
 
 	struct pair_hash {
-		NIHILUS_INLINE uint64_t operator()(const std::pair<std::string_view, std::string_view>& p) const {
+		NIHILUS_INLINE uint64_t operator()(const std::pair<std::string_view, std::string_view>& p) const noexcept {
 			return std::hash<std::string_view>{}(p.first) ^ (std::hash<std::string_view>{}(p.second) << 1);
 		}
 	};
@@ -84,7 +84,7 @@ namespace nihilus {
 		NIHILUS_INLINE tokenizer() noexcept {
 			candidate_tokens.reserve(32768);
 			cumulative_probs.reserve(32768);
-		};
+		}
 
 		NIHILUS_INLINE void tokenize_init(int32_t* output_tokens) {
 			output_tokens[0] = tokenizer_traits_type::special_bos_id;
@@ -118,7 +118,7 @@ namespace nihilus {
 			return temp_tokens.size();
 		}
 
-		NIHILUS_INLINE uint64_t tokenize(std::string_view input_text, int32_t*) {
+		NIHILUS_INLINE uint64_t tokenize(std::string_view input_text, int32_t* output_tokens) {
 			vector<int32_t> temp_tokens;
 			if constexpr (tokenizer_traits_type::add_bos && tokenizer_traits_type::special_bos_id > 0) {
 				temp_tokens.push_back(static_cast<int32_t>(tokenizer_traits_type::special_bos_id));
@@ -135,7 +135,7 @@ namespace nihilus {
 			}
 
 			for (uint64_t i = 0; i < temp_tokens.size(); ++i) {
-				//output_tokens[i] = temp_tokens[i];
+				output_tokens[i] = temp_tokens[i];
 			}
 
 #if defined(NIHILUS_DEV)
@@ -148,7 +148,7 @@ namespace nihilus {
 		struct nihilus_rng {
 			uint64_t state{};
 
-			NIHILUS_INLINE nihilus_rng(uint64_t seed = 0) : state(seed == 0 ? std::chrono::high_resolution_clock::now().time_since_epoch().count() : seed) {
+			NIHILUS_INLINE nihilus_rng(uint64_t seed = 0) : state(seed == 0 ? static_cast<uint64_t>(std::chrono::high_resolution_clock::now().time_since_epoch().count()) : seed) {
 			}
 
 			NIHILUS_INLINE uint64_t next() {
@@ -177,18 +177,18 @@ namespace nihilus {
 		};
 
 		struct token_prob {
-			int32_t token_id;
-			float probability;
+			int32_t token_id{};
+			float probability{};
 
 			NIHILUS_INLINE bool operator>(const token_prob& other) const {
 				return probability > other.probability;
 			}
 		};
 
-		mutable vector<token_prob> candidate_tokens;
-		mutable vector<float> cumulative_probs;
-		mutable nihilus_rng rng;
-		mutable float mirostat_mu = 0.0f;
+		mutable vector<token_prob> candidate_tokens{};
+		mutable vector<float> cumulative_probs{};
+		mutable float mirostat_mu{};
+		mutable nihilus_rng rng{};
 
 		NIHILUS_INLINE void apply_temperature(float* logits, uint64_t vocab_size, float temperature) const {
 			if (temperature == 1.0f)
@@ -206,12 +206,12 @@ namespace nihilus {
 				return;
 
 			for (uint64_t i = 0; i < recent_count; ++i) {
-				int32_t token = recent_tokens[i];
-				if (token >= 0 && token < static_cast<int32_t>(tokens.size())) {
-					if (logits[token] > 0.0f) {
-						logits[token] /= penalty;
+				int32_t token_new = recent_tokens[i];
+				if (token_new >= 0 && token_new < static_cast<int32_t>(tokens.size())) {
+					if (logits[token_new] > 0.0f) {
+						logits[token_new] /= penalty;
 					} else {
-						logits[token] *= penalty;
+						logits[token_new] *= penalty;
 					}
 				}
 			}
@@ -363,9 +363,9 @@ namespace nihilus {
 				return std::string_view{};
 			}
 		}() };
-		std::unordered_map<std::pair<std::string_view, std::string_view>, int32_t, pair_hash> bpe_ranks;
-		nihilus_bigram_bpe::queue work_queue;
-		vector<nihilus_symbol> symbols;
+		std::unordered_map<std::pair<std::string_view, std::string_view>, int32_t, pair_hash> bpe_ranks{};
+		nihilus_bigram_bpe::queue work_queue{};
+		vector<nihilus_symbol> symbols{};
 
 		NIHILUS_INLINE vector<std::string> gpt2_style_split(std::string_view text) {
 			vector<std::string> result;
@@ -383,7 +383,7 @@ namespace nihilus {
 			uint64_t i		   = 0;
 
 			while (i < text.length()) {
-				std::string token;
+				std::string token_new;
 				while (i < text.length() && is_space(text[i])) {
 					i++;
 				}
@@ -394,40 +394,40 @@ namespace nihilus {
 				if (is_first_word) {
 					if (is_alpha(text[i])) {
 						while (i < text.length() && is_alpha(text[i])) {
-							token += text[i];
+							token_new += text[i];
 							i++;
 						}
 					} else if (is_digit(text[i])) {
 						while (i < text.length() && is_digit(text[i])) {
-							token += text[i];
+							token_new += text[i];
 							i++;
 						}
 					} else {
-						token += text[i];
+						token_new += text[i];
 						i++;
 					}
 					is_first_word = false;
 				} else {
 					if (is_alpha(text[i])) {
-						token += "Ġ";
+						token_new += "Ġ";
 						while (i < text.length() && is_alpha(text[i])) {
-							token += text[i];
+							token_new += text[i];
 							i++;
 						}
 					} else if (is_digit(text[i])) {
-						token += "Ġ";
+						token_new += "Ġ";
 						while (i < text.length() && is_digit(text[i])) {
-							token += text[i];
+							token_new += text[i];
 							i++;
 						}
 					} else {
-						token += text[i];
+						token_new += text[i];
 						i++;
 					}
 				}
 
-				if (!token.empty()) {
-					result.push_back(token);
+				if (!token_new.empty()) {
+					result.push_back(token_new);
 				}
 			}
 
@@ -559,30 +559,33 @@ namespace nihilus {
 			return 1;
 		}
 
-		NIHILUS_INLINE void print_tokenization_debug(std::string_view input_text, const vector<int32_t>& tokens) {
+		NIHILUS_INLINE void print_tokenization_debug(std::string_view input_text, const vector<int32_t>& tokens_new) {
 			std::cout << "=== NIHILUS BPE TOKENIZATION DEBUG ===" << std::endl;
 			std::cout << "system_info: n_threads = " << std::thread::hardware_concurrency() << " | NIHILUS ENGINE | BPE VOCAB | 432% FASTER |" << std::endl;
 			//std::cout << "tokenizer_traits_type: " << static_cast<int32_t>(tokenizer_traits_type) << " (BPE)" << std::endl;
 			std::cout << "pre_type: " << pre << std::endl;
 			std::cout << "Input text: \"" << input_text << "\"" << std::endl;
-			std::cout << "Token count: " << tokens.size() << std::endl;
+			std::cout << "Token count: " << tokens_new.size() << std::endl;
 
 			std::cout << "Tokens: ";
-			for (uint64_t i = 0; i < tokens.size(); ++i) {
-				std::cout << "[" << i << "]=" << tokens[i];
-				if (i < tokens.size() - 1)
+			for (uint64_t i = 0; i < tokens_new.size(); ++i) {
+				std::cout << "[" << i << "]=" << tokens_new[i];
+				if (i < tokens_new.size() - 1)
 					std::cout << " ";
 			}
 			std::cout << std::endl;
 
 			std::cout << "Token strings: ";
-			for (uint64_t i = 0; i < tokens.size(); ++i) {
-				std::cout << "[" << i << "]=" << tokens[i];
-				if (i < tokens.size() - 1)
+			for (uint64_t i = 0; i < tokens_new.size(); ++i) {
+				std::cout << "[" << i << "]=" << tokens_new[i];
+				if (i < tokens_new.size() - 1)
 					std::cout << " ";
 			}
 			std::cout << std::endl;
 			std::cout << "=================================" << std::endl;
+		}
+
+		NIHILUS_INLINE ~tokenizer() {
 		}
 	};
 

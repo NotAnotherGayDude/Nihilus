@@ -82,9 +82,9 @@ namespace nihilus {
 			return temp;
 		}
 
-		NIHILUS_INLINE friend constexpr array_iterator operator+(const difference_type offSet, array_iterator _Next) noexcept {
-			_Next += offSet;
-			return _Next;
+		NIHILUS_INLINE friend constexpr array_iterator operator+(const difference_type offSet, array_iterator next) noexcept {
+			next += offSet;
+			return next;
 		}
 
 		NIHILUS_INLINE constexpr array_iterator& operator-=(const difference_type offSet) noexcept {

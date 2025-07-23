@@ -337,7 +337,7 @@ namespace nihilus {
 			dims[3]			  = other[3];
 			source_type		  = source_types::nihilus;
 			array<uint64_t, 4> dims{ other[0], other[1], other[2], other[3] };
-			byte_size		  = get_type_traits(type_traits<typename tensor_type::output_type>::type).total_byte_size(dims);
+			byte_size = get_type_traits(type_traits<typename tensor_type::output_type>::type).total_byte_size(dims);
 			uint64_t byte_count{ detail::min(other.total_required_bytes, 128) };
 			data.resize(byte_count);
 			std::cout << "BYTE COUNT: " << byte_count << std::endl;
@@ -739,7 +739,7 @@ namespace nihilus {
 
 namespace nihilus {
 	struct tensor_debugger {
-		template<typename tensor_type> static bool compare_tensor_data(tensor_type& tensor, uint64_t current_block, uint64_t iteration) {
+		template<typename tensor_type> static bool compare_tensor_data(tensor_type&, uint64_t, uint64_t) {
 			return false;
 		}
 	};

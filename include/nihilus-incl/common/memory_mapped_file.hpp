@@ -140,16 +140,17 @@ namespace nihilus {
 		}
 
 	  protected:
-		std::string_view file_path_;
-		void* mapped_data_	= nullptr;
-		uint64_t file_size_ = 0;
+		std::string_view file_path_{};
+		uint64_t file_size_{};
+		void* mapped_data_{};
 
 #if defined(NIHILUS_PLATFORM_WINDOWS)
-		HANDLE file_handle_	   = INVALID_HANDLE_VALUE;
-		HANDLE mapping_handle_ = nullptr;
+		HANDLE file_handle_{};
+		;
+		HANDLE mapping_handle_{};
 #else
-		int32_t file_descriptor_ = -1;
-		vector<std::pair<uint64_t, uint64_t>> mapped_fragments_;
+		int32_t file_descriptor_{};
+		vector<std::pair<uint64_t, uint64_t>> mapped_fragments_{};
 #endif
 
 		NIHILUS_INLINE void map_file(std::string_view file_path, uint64_t prefetch_bytes, bool numa_aware) {

@@ -24,20 +24,26 @@ RealTimeChris (Chris M.)
 #include <nihilus-incl/common/config.hpp>
 #include <nihilus-incl/common/utility.hpp>
 #include <type_traits>
+#include <iostream>
 #include <concepts>
+#include <memory>
 #include <mutex>
 
 namespace nihilus {
-
-	inline std::mutex mutex{};
 
 	enum class log_levels {
 		error,
 		status,
 	};
 
+	NIHILUS_INLINE std::mutex* get_log_mutex() {
+		static std::mutex mutex;
+		return &mutex;
+	}
+
 	template<log_levels level> NIHILUS_INLINE void log(std::string_view string) {
-		std::unique_lock lock{ mutex };
+		static auto* reference = get_log_mutex();
+		std::unique_lock<std::mutex> lock{ *reference };
 		if constexpr (level == log_levels::error) {
 			std::cerr << string << std::endl;
 		} else {
@@ -88,6 +94,7 @@ namespace nihilus {
 		}
 
 	  protected:
-		nihilus_exception(std::string_view new_value) : std::runtime_error(static_cast<std::string>(new_value)) {};
+		nihilus_exception(std::string_view new_value) : std::runtime_error(static_cast<std::string>(new_value)) {
+		}
 	};
 }

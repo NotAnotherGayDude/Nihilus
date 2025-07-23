@@ -21,6 +21,7 @@ RealTimeChris (Chris M.)
 #pragma once
 
 #include <nihilus-incl/common/config.hpp>
+#include <new>
 
 namespace detail {
 
@@ -41,17 +42,17 @@ namespace detail {
 		return val01 < static_cast<value_01_type>(val02) ? val01 : static_cast<value_01_type>(val02);
 	}
 
-	template<class value_type> NIHILUS_INLINE constexpr value_type&& forward(std::remove_reference_t<value_type>& _Arg) noexcept {
-		return static_cast<value_type&&>(_Arg);
+	template<class value_type> NIHILUS_INLINE constexpr value_type&& forward(std::remove_reference_t<value_type>& arg) noexcept {
+		return static_cast<value_type&&>(arg);
 	}
 
-	template<class value_type> NIHILUS_INLINE constexpr value_type&& forward(std::remove_reference_t<value_type>&& _Arg) noexcept {
+	template<class value_type> NIHILUS_INLINE constexpr value_type&& forward(std::remove_reference_t<value_type>&& arg) noexcept {
 		static_assert(!std::is_lvalue_reference_v<value_type>, "bad detail::forward call");
-		return static_cast<value_type&&>(_Arg);
+		return static_cast<value_type&&>(arg);
 	}
 
-	template<class value_type> NIHILUS_INLINE constexpr std::remove_reference_t<value_type>&& move(value_type&& _Arg) noexcept {
-		return static_cast<std::remove_reference_t<value_type>&&>(_Arg);
-	}	
+	template<class value_type> NIHILUS_INLINE constexpr std::remove_reference_t<value_type>&& move(value_type&& arg) noexcept {
+		return static_cast<std::remove_reference_t<value_type>&&>(arg);
+	}
 
 }

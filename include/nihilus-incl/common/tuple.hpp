@@ -30,24 +30,27 @@ RealTimeChris (Chris M.)
 #if defined(NIHILUS_TUPLET_NO_UNIQUE_ADDRESS) && !NIHILUS_TUPLET_NO_UNIQUE_ADDRESS
 	#define NIHILUS_TUPLET_NO_UNIQUE_ADDRESS
 #else
-	#if _MSVC_LANG >= 202002L && (!defined __clang__)
+	#if defined(_MSVC_LANG)
+		#if _MSVC_LANG >= 202002L && (!defined __clang__)
 
-		#define NIHILUS_TUPLET_HAS_NO_UNIQUE_ADDRESS 1
-		#define NIHILUS_TUPLET_NO_UNIQUE_ADDRESS [[msvc::no_unique_address]]
+			#define NIHILUS_TUPLET_HAS_NO_UNIQUE_ADDRESS 1
+			#define NIHILUS_TUPLET_NO_UNIQUE_ADDRESS [[msvc::no_unique_address]]
 
-	#elif _MSC_VER
-		#define NIHILUS_TUPLET_HAS_NO_UNIQUE_ADDRESS 0
-		#define NIHILUS_TUPLET_NO_UNIQUE_ADDRESS
-
-	#elif __cplusplus > 201703L && (__has_cpp_attribute(no_unique_address))
-
-		#define NIHILUS_TUPLET_HAS_NO_UNIQUE_ADDRESS 1
-		#define NIHILUS_TUPLET_NO_UNIQUE_ADDRESS [[no_unique_address]]
-
+		#elif _MSC_VER
+			#define NIHILUS_TUPLET_HAS_NO_UNIQUE_ADDRESS 0
+			#define NIHILUS_TUPLET_NO_UNIQUE_ADDRESS
+		#endif
 	#else
-		#define NIHILUS_TUPLET_HAS_NO_UNIQUE_ADDRESS 0
-		#define NIHILUS_TUPLET_NO_UNIQUE_ADDRESS
+		#if __cplusplus > 201703L && (__has_cpp_attribute(no_unique_address))
+			#define NIHILUS_TUPLET_HAS_NO_UNIQUE_ADDRESS 1
+			#define NIHILUS_TUPLET_NO_UNIQUE_ADDRESS [[no_unique_address]]
+
+		#else
+			#define NIHILUS_TUPLET_HAS_NO_UNIQUE_ADDRESS 0
+			#define NIHILUS_TUPLET_NO_UNIQUE_ADDRESS
+		#endif
 	#endif
+
 #endif
 
 namespace nihilus {

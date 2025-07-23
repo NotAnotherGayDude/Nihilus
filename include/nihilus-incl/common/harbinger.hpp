@@ -147,7 +147,7 @@ namespace nihilus {
 			return return_value;
 		}
 
-		NIHILUS_INLINE static auto serialize_model(serializer_params params) {
+		NIHILUS_INLINE static auto serialize_model(serializer_params) {
 			//return model_serializer<config>::impl(params);
 		}
 
@@ -164,48 +164,48 @@ namespace nihilus {
 			return parse_cli_arguments(cli_args);
 		}
 
-		NIHILUS_INLINE static cli_params parse_cli_arguments(const vector<std::string>& command_line) {
+		inline static cli_params parse_cli_arguments(const vector<std::string>& command_line) {
 			cli_params result{};
 			std::string current_flag{};
 			bool expect_value = false;
 
-			for (const auto& token: command_line) {
-				if (token.empty())
+			for (const auto& token_new: command_line) {
+				if (token_new.empty())
 					continue;
 
-				if (token[0] == '-') {
-					current_flag = token;
-					if (token == "-m" || token == "-t" || token == "-p" || token == "-s" || token == "-n" || token == "-b") {
+				if (token_new[0] == '-') {
+					current_flag = token_new;
+					if (token_new == "-m" || token_new == "-t" || token_new == "-p" || token_new == "-s" || token_new == "-n" || token_new == "-b") {
 						expect_value = true;
 					} else {
 						expect_value = false;
 					}
 				} else if (expect_value) {
 					if (current_flag == "-m") {
-						result.model_file = token;
+						result.model_file = token_new;
 					} else if (current_flag == "-t") {
 						try {
-							result.thread_count = std::stoull(token);
+							result.thread_count = std::stoull(token_new);
 						} catch (const std::exception&) {
 							result.thread_count = 1;
 						}
 					} else if (current_flag == "-p") {
-						result.prompt = token;
+						result.prompt = token_new;
 					} else if (current_flag == "-s") {
 						try {
-							result.seed = std::stoull(token);
+							result.seed = std::stoull(token_new);
 						} catch (const std::exception&) {
 							result.seed = 0;
 						}
 					} else if (current_flag == "-n") {
 						try {
-							result.n_tokens = std::stoull(token);
+							result.n_tokens = std::stoull(token_new);
 						} catch (const std::exception&) {
 							result.n_tokens = 0;
 						}
 					} else if (current_flag == "-b") {
 						try {
-							result.batch_size = std::stoull(token);
+							result.batch_size = std::stoull(token_new);
 						} catch (const std::exception&) {
 							result.batch_size = 512;
 						}

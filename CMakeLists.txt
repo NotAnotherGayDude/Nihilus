@@ -28,7 +28,7 @@ set(ENV{CMAKE_INSTALL_PREFIX} "${CMAKE_SOURCE_DIR}/../Install")
 if (NIHILUS_DEV)
     include(FetchContent)
     FetchContent_Declare(
-        Jsonifier
+        "Jsonifier"
         GIT_REPOSITORY https://github.com/realtimechris/jsonifier.git
         GIT_TAG        dev-new
     )
@@ -45,8 +45,8 @@ option(NIHILUS_MODEL_SIZE_OVERRIDE "For manually setting which model size gets u
 project(
     "${PROJECT_NAME}"
     VERSION "1.0.0"
-    DESCRIPTION "Nihilus: RealTime Tensor Math - You trained the model. Nihilus gives it a voice."
-    LANGUAGES CXX
+    DESCRIPTION "Nihilus: You trained the model. Nihilus gives it a voice."
+    LANGUAGES "CXX"
 )
 
 if (BUILDING_FOR_RUST)
@@ -62,11 +62,9 @@ else()
 endif()
 
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64")
-    set(NIHILUS_ARCH_X64 TRUE)
-    set(NIHILUS_BUILD_ALL_X64_VARIANTS TRUE)
+    set(NIHILUS_ARCH "NIHILUS_ARCH_X64 ")
 elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|ARM64|arm64")
-    set(NIHILUS_ARCH_ARM64 TRUE)
-    set(NIHILUS_BUILD_ALL_ARM_VARIANTS TRUE)
+    set(NIHILUS_ARCH "NIHILUS_ARCH_ARM64")
 endif()
 
 add_library("${PROJECT_NAME}" "${NIHILUS_STATIC_DEFINITION}" "${NIHILUS_STATIC_SOURCES}")
@@ -108,292 +106,69 @@ include("cmake/nihilus_detect_architecture.cmake")
 
 set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 
+set(NIHILUS_CLANG_COMPILE_FLAGS
+    "-O3;-ftrivial-auto-var-init=pattern;-Rpass=loop-vectorize;-Rpass-missed=loop-vectorize;-Rpass-analysis=loop-vectorize;-flto=thin"
+    "-ffast-math;-funroll-loops;-fslp-vectorize;-fforce-enable-int128;-ftemplate-backtrace-limit=0;-fconstexpr-backtrace-limit=0;-fconstexpr-depth=2048;-ftemplate-depth=2048;-fconstexpr-steps=2000000"
+    "-fno-stack-protector;-fomit-frame-pointer;-fno-plt;-fno-semantic-interposition;-fno-common;-fmerge-all-constants;-fno-ident;-fno-use-cxa-atexit;-fvisibility=hidden;-fvisibility-inlines-hidden"
+    "-fdata-sections;-ffunction-sections;-Wall;-Wextra;-Wpedantic;-Weverything;-Wconversion;-Wsign-conversion;-Wfloat-conversion;-Wnull-dereference;-Wuninitialized"
+    "-Wdouble-promotion;-Wformat=2;-Wformat-security;-Walloca;-Warray-bounds;-Wcast-align;-Wcast-qual;-Wctor-dtor-privacy;-Wdate-time;-Wextra-semi"
+    "-Wimplicit-fallthrough;-Winvalid-pch;-Wmissing-declarations;-Wmissing-include-dirs;-Wnon-virtual-dtor;-Wold-style-cast;-Woverloaded-virtual;-Wredundant-decls;-Wsign-promo"
+    "-Wswitch-default;-Wswitch-enum;-Wundef;-Wunused-macros;-Wno-c++98-compat;-Wno-c++98-compat-pedantic;-Wno-unsafe-buffer-usage;-Wno-padded;-Wno-c++20-compat"
+)
+
+if (UNIX)
+    set(NIHILUS_CLANG_COMPILE_FLAGS "${NIHILUS_CLANG_COMPILE_FLAGS};-Wno-nan-infinity-disabled")
+endif()
+
+set(NIHILUS_GCC_COMPILE_FLAGS
+    "-O3;-Ofast;-flto=auto;-ffast-math;-funroll-loops;-ftree-vectorize;-ftree-slp-vectorize;-fgcse-after-reload;-fipa-cp-clone;-floop-interchange;-floop-unroll-and-jam;-fpeel-loops"
+    "-fpredictive-commoning;-ftrivial-auto-var-init=pattern;-freorder-blocks-and-partition;-fipa-ra;-fsplit-paths;-ftree-loop-distribute-patterns;-ftree-loop-distribution;-ftree-partial-pre;-funswitch-loops;-fversion-loops-for-strides"
+    "-fgraphite-identity;-floop-nest-optimize;-ftemplate-backtrace-limit=0;-fconstexpr-loop-limit=1000000;-fconstexpr-ops-limit=2000000;-ftemplate-depth=2048;-fno-stack-protector;-fomit-frame-pointer"
+    "-fno-plt;-fno-semantic-interposition;-fno-common;-fmerge-all-constants;-fdevirtualize-at-ltrans;-fipa-pta;-fno-ident;-fvisibility=hidden;-fvisibility-inlines-hidden;-fdata-sections;-ffunction-sections"
+    "-Wall;-Wextra;-Wpedantic;-Wconversion;-Wsign-conversion;-Wfloat-conversion;-Wnull-dereference;-Wuninitialized;-Wmaybe-uninitialized;-Wduplicated-cond;-Wduplicated-branches;-Wlogical-op"
+    "-Wrestrict;-Wdouble-promotion;-Wformat=2;-Wformat-security;-Wformat-overflow=2;-Wformat-truncation=2;-Wstringop-overflow=4;-Walloc-zero;-Walloca;-Warray-bounds=2;-Wattribute-alias=2;-Wcast-align=strict"
+    "-Wcast-qual;-Wcatch-value=3;-Wconditionally-supported;-Wctor-dtor-privacy;-Wdate-time;-Wextra-semi;-Wimplicit-fallthrough=5;-Winvalid-pch;-Wmissing-declarations;-Wmissing-include-dirs;-Wnoexcept;-Wnon-virtual-dtor"
+    "-Wold-style-cast;-Woverloaded-virtual;-Wredundant-decls;-Wsign-promo;-Wstrict-null-sentinel;-Wstrict-overflow=5;-Wsuggest-attribute=cold;-Wsuggest-attribute=const;-Wsuggest-attribute=format;-Wsuggest-attribute=malloc"
+    "-Wsuggest-attribute=noreturn;-Wsuggest-attribute=pure;-Wsuggest-final-methods;-Wsuggest-final-types;-Wsuggest-override;-Wswitch-default;-Wswitch-enum;-Wsync-nand;-Wtrampolines;-Wundef;-Wunused-const-variable=2"
+    "-Wunused-macros;-Wuseless-cast;-Wzero-as-null-pointer-constant;-Wplacement-new=2;-Wvla;-Weffc++"
+)
+
+set(NIHILUS_MSVC_COMPILE_FLAGS
+    "/Ob3;/Ot;/Oy;/GT;/GL;/fp:fast;/Qpar;/Qvec-report:2;/constexpr:depth2048;/constexpr:backtrace0;/constexpr:steps1000000;/GS-;/Gy;/Gw;/Zc:inline;/Zc:throwingNew;/W4;/Wall;/permissive-;/Zc:__cplusplus"
+    "/Zc:alignedNew;/Zc:auto;/Zc:forScope;/Zc:implicitNoexcept;/Zc:noexceptTypes;/Zc:referenceBinding;/Zc:rvalueCast;/Zc:sizedDealloc;/Zc:strictStrings;/Zc:ternary;/Zc:wchar_t;/wd4820"
+)
+
+set(NIHILUS_LINUX_LINK_FLAGS "-Wl,--gc-sections;-Wl,--strip-debug;-Wl,--build-id=none")
+set(NIHILUS_MACOS_LINK_FLAGS "-Wl,-dead_strip")
+set(NIHILUS_MSVC_LINK_FLAGS "/LTCG;/DYNAMICBASE:NO;/OPT:REF;/OPT:ICF;/INCREMENTAL:NO;/MACHINE:X64;/DEBUG:NONE")
+
 target_compile_options(${PROJECT_NAME} "${NIHILUS_PRIVATE_DEFINITION}"
-    ${AVX_FLAG}
-    $<$<CXX_COMPILER_ID:Clang>:
-        -O3
-        -Ofast
-        -ftrivial-auto-var-init=pattern
-        -menable-unsafe-fp-math
-        -Rpass=loop-vectorize
-        -Rpass-missed=loop-vectorize
-        -Rpass-analysis=loop-vectorize
-        -flto=thin
-        -ffast-math
-        -funroll-loops
-        -fslp-vectorize
-        -fforce-enable-int128
-        -ftemplate-backtrace-limit=0
-        -fconstexpr-backtrace-limit=0
-        -fconstexpr-depth=2048
-        -ftemplate-depth=2048
-        -fconstexpr-ops-limit=2000000
-        -fno-stack-protector
-        -fomit-frame-pointer
-        -fno-plt
-        -fno-semantic-interposition
-        -fno-common
-        -fmerge-all-constants        
-        -fno-ident
-        -fno-use-cxa-atexit
-        -fvisibility=hidden
-        -fvisibility-inlines-hidden
-        -fdata-sections
-        -ffunction-sections
-        -Wall
-        -Wextra
-        -Wpedantic
-        -Weverything
-        -Wno-c++98-compat
-        -Wno-c++98-compat-pedantic
-        -Wno-padded
-        -Wno-documentation
-        -Wno-documentation-unknown-command
-        -Wno-exit-time-destructors
-        -Wno-global-constructors
-        -Wno-weak-vtables
-        -Wno-missing-prototypes
-        -Wno-missing-variable-declarations
-        -Wconversion
-        -Wsign-conversion
-        -Wfloat-conversion
-        -Wnull-dereference
-        -Wuninitialized
-        -Wmaybe-uninitialized
-        -Wduplicated-cond
-        -Wduplicated-branches
-        -Wlogical-op
-        -Wrestrict
-        -Wdouble-promotion
-        -Wformat=2
-        -Wformat-security
-        -Wformat-overflow=2
-        -Wformat-truncation=2
-        -Wstringop-overflow=4
-        -Walloc-zero
-        -Walloca
-        -Warray-bounds=2
-        -Wattribute-alias=2
-        -Wcast-align=strict
-        -Wcast-qual
-        -Wcatch-value=3
-        -Wconditionally-supported
-        -Wctor-dtor-privacy
-        -Wdate-time
-        -Wextra-semi
-        -Wimplicit-fallthrough=5
-        -Winvalid-pch
-        -Wmissing-declarations
-        -Wmissing-include-dirs
-        -Wnoexcept
-        -Wnon-virtual-dtor
-        -Wold-style-cast
-        -Woverloaded-virtual
-        -Wredundant-decls
-        -Wsign-promo
-        -Wstrict-null-sentinel
-        -Wstrict-overflow=5
-        -Wsuggest-attribute=cold
-        -Wsuggest-attribute=const
-        -Wsuggest-attribute=format
-        -Wsuggest-attribute=malloc
-        -Wsuggest-attribute=noreturn
-        -Wsuggest-attribute=pure
-        -Wsuggest-final-methods
-        -Wsuggest-final-types
-        -Wsuggest-override
-        -Wswitch-default
-        -Wswitch-enum
-        -Wsync-nand
-        -Wtrampolines
-        -Wundef
-        -Wunused-const-variable=2
-        -Wunused-macros
-        -Wuseless-cast
-        -Wzero-as-null-pointer-constant
-    >
-
-    $<$<CXX_COMPILER_ID:GNU>:
-        -O3
-        -Ofast
-        -march=native
-        -mtune=native
-        -flto=auto
-        -ffast-math
-        -funroll-loops
-        -ftree-vectorize
-        -ftree-slp-vectorize
-        -fgcse-after-reload
-        -fipa-cp-clone
-        -floop-interchange
-        -floop-unroll-and-jam
-        -fpeel-loops
-        -fpredictive-commoning
-        -ftrivial-auto-var-init=pattern
-        -freorder-blocks-and-partition
-        -fipa-ra
-        -fsplit-paths
-        -ftree-loop-distribute-patterns
-        -ftree-loop-distribution
-        -ftree-partial-pre
-        -funswitch-loops
-        -fversion-loops-for-strides
-        -fgraphite-identity
-        -floop-nest-optimize        
-        -ftemplate-backtrace-limit=0
-        -fconstexpr-loop-limit=1000000
-        -fconstexpr-ops-limit=2000000
-        -ftemplate-depth=2048
-        -fno-stack-protector
-        -fomit-frame-pointer
-        -fno-plt
-        -fno-semantic-interposition
-        -fno-common
-        -fmerge-all-constants
-        -fdevirtualize-at-ltrans
-        -fipa-pta
-        -fno-ident
-        -fvisibility=hidden
-        -fvisibility-inlines-hidden
-        -fdata-sections
-        -ffunction-sections
-        -Wall
-        -Wextra
-        -Wpedantic
-        -Wconversion
-        -Wsign-conversion
-        -Wfloat-conversion
-        -Wnull-dereference
-        -Wuninitialized
-        -Wmaybe-uninitialized
-        -Wduplicated-cond
-        -Wduplicated-branches
-        -Wlogical-op
-        -Wrestrict
-        -Wdouble-promotion
-        -Wformat=2
-        -Wformat-security
-        -Wformat-overflow=2
-        -Wformat-truncation=2
-        -Wstringop-overflow=4
-        -Walloc-zero
-        -Walloca
-        -Warray-bounds=2
-        -Wattribute-alias=2
-        -Wcast-align=strict
-        -Wcast-qual
-        -Wcatch-value=3
-        -Wconditionally-supported
-        -Wctor-dtor-privacy
-        -Wdate-time
-        -Wextra-semi
-        -Wimplicit-fallthrough=5
-        -Winvalid-pch
-        -Wmissing-declarations
-        -Wmissing-include-dirs
-        -Wnoexcept
-        -Wnon-virtual-dtor
-        -Wold-style-cast
-        -Woverloaded-virtual
-        -Wredundant-decls
-        -Wsign-promo
-        -Wstrict-null-sentinel
-        -Wstrict-overflow=5
-        -Wsuggest-attribute=cold
-        -Wsuggest-attribute=const
-        -Wsuggest-attribute=format
-        -Wsuggest-attribute=malloc
-        -Wsuggest-attribute=noreturn
-        -Wsuggest-attribute=pure
-        -Wsuggest-final-methods
-        -Wsuggest-final-types
-        -Wsuggest-override
-        -Wswitch-default
-        -Wswitch-enum
-        -Wsync-nand
-        -Wtrampolines
-        -Wundef
-        -Wunused-const-variable=2
-        -Wunused-macros
-        -Wuseless-cast
-        -Wzero-as-null-pointer-constant
-        -Wplacement-new=2
-        -Wvla
-        -Weffc++
-    >
-
-    $<$<CXX_COMPILER_ID:MSVC>:
-        /Ob3
-        /Ot
-        /Oy
-        /GT
-        /GL
-        /fp:fast
-        /Qpar
-        /Qvec-report:2
-        /constexpr:depth2048
-        /constexpr:backtrace0
-        /constexpr:steps1000000
-        /GS-
-        /Gy
-        /Gw
-        /Zc:inline
-        /Zc:throwingNew
-        /W4
-        /Wall
-        /permissive-
-        /Zc:__cplusplus
-        /Zc:alignedNew
-        /Zc:auto
-        /Zc:forScope
-        /Zc:implicitNoexcept
-        /Zc:noexceptTypes
-        /Zc:referenceBinding
-        /Zc:rvalueCast
-        /Zc:sizedDealloc
-        /Zc:strictStrings
-        /Zc:ternary
-        /Zc:wchar_t
-        /wd4820
-    >
+    "${SIMD_FLAG}"
+    "$<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:${NIHILUS_CLANG_COMPILE_FLAGS}>"
+    "$<$<CXX_COMPILER_ID:GNU>:${NIHILUS_GCC_COMPILE_FLAGS}>"
+    "$<$<CXX_COMPILER_ID:MSVC>:${NIHILUS_MSVC_COMPILE_FLAGS}>"
 )
 
 target_link_options(${PROJECT_NAME} "${NIHILUS_PRIVATE_DEFINITION}"
-    $<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:GNU>>:
-        $<$<CONFIG:Release>:-flto>
-        -Wl,--gc-sections
-        $<$<PLATFORM_ID:Linux>:
-            -Wl,--strip-debug
-            -Wl,--build-id=none
-        >
-    >
-
-    $<$<CXX_COMPILER_ID:MSVC>:
-        $<$<CONFIG:Release>:/LTCG>
-        /DYNAMICBASE:NO
-        /OPT:REF
-        /OPT:ICF
-        /INCREMENTAL:NO
-        /MACHINE:X64
-        $<$<CONFIG:Release>:/DEBUG:NONE>
-    >
+    "$<$<CONFIG:Release>:$<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>,$<CXX_COMPILER_ID:GNU>>:-flto>>"
+    "$<$<AND:$<CXX_COMPILER_ID:GNU>,$<PLATFORM_ID:Linux>>:${NIHILUS_LINUX_LINK_FLAGS}>"
+    "$<$<AND:$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>,$<PLATFORM_ID:Darwin>>:${NIHILUS_MACOS_LINK_FLAGS}>"
+    "$<$<AND:$<CXX_COMPILER_ID:Clang>,$<PLATFORM_ID:Linux>>:${NIHILUS_LINUX_LINK_FLAGS}>"
+    "$<$<AND:$<CXX_COMPILER_ID:MSVC>,$<CONFIG:Release>>:${NIHILUS_MSVC_LINK_FLAGS}>"
 )
 
 target_compile_definitions(${PROJECT_NAME} "${NIHILUS_PRIVATE_DEFINITION}"
-    $<$<CONFIG:Release>:
-        GSL_UNENFORCED_ON_CONTRACT_VIOLATION
-        SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_OFF
-        $<$<CXX_COMPILER_ID:MSVC>:
-            _SECURE_SCL=0
-            _HAS_ITERATOR_DEBUGGING=0
-            _ITERATOR_DEBUG_LEVEL=0
-            WIN32_LEAN_AND_MEAN
-            NOMINMAX
-        >
-    >
+    "$<$<CONFIG:Release>:GSL_UNENFORCED_ON_CONTRACT_VIOLATION>"
+    "$<$<CONFIG:Release>:SPDLOG_ACTIVE_LEVEL=SPDLOG_LEVEL_OFF>"
+    "$<$<CONFIG:Release>:$<$<CXX_COMPILER_ID:MSVC>:_SECURE_SCL=0>>"
+    "$<$<CONFIG:Release>:$<$<CXX_COMPILER_ID:MSVC>:_HAS_ITERATOR_DEBUGGING=0>>"
+    "$<$<CONFIG:Release>:$<$<CXX_COMPILER_ID:MSVC>:_ITERATOR_DEBUG_LEVEL=0>>"
+    "$<$<CONFIG:Release>:$<$<CXX_COMPILER_ID:MSVC>:WIN32_LEAN_AND_MEAN>>"
+    "$<$<CONFIG:Release>:$<$<CXX_COMPILER_ID:MSVC>:NOMINMAX>>"
+    "${NIHILUS_ARCH}"
     "$<$<NOT:$<STREQUAL:${NIHILUS_MODEL_SIZE_OVERRIDE},OFF>>:LLAMA_MODEL_SIZE=${NIHILUS_MODEL_SIZE_OVERRIDE}>"
-    CONSTEXPR_EVERYTHING
-    ENABLE_CONSTEXPR_MATH
+    "CONSTEXPR_EVERYTHING"
+    "ENABLE_CONSTEXPR_MATH"
 )
 
 target_compile_options(

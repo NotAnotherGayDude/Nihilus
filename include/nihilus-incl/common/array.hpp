@@ -29,16 +29,6 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-	template<typename value_type>
-	concept is_integral_constant = requires() {
-		typename std::remove_cvref_t<value_type>::value_type;
-		{ std::remove_cvref_t<value_type>::value } -> std::same_as<typename std::remove_cvref_t<value_type>::value_type>;
-	};
-
-	template<typename value_01_type, typename value_02_type>
-	concept is_indexable =
-		std::is_same_v<value_01_type, value_02_type> || std::integral<value_01_type> || is_integral_constant<value_01_type> || is_integral_constant<value_02_type>;
-
 	enum class array_static_assert_errors {
 		invalid_index_type,
 	};
@@ -68,7 +58,7 @@ namespace nihilus {
 			for (uint64_t x = 0; x < values.size(); ++x) {
 				data_val[x] = values.begin()[x];
 			}
-		};
+		}
 
 		NIHILUS_INLINE constexpr array(const array& other)
 			requires(std::is_copy_constructible_v<value_type>)
@@ -121,8 +111,8 @@ namespace nihilus {
 			: data_val{ static_cast<value_type>(forward<Args>(args))... } {
 		}
 
-		NIHILUS_INLINE constexpr void fill(const value_type& _Value) {
-			std::fill_n(data_val, static_cast<int64_t>(size_new), _Value);
+		NIHILUS_INLINE constexpr void fill(const value_type& value) {
+			std::fill_n(data_val, static_cast<int64_t>(size_new), value);
 		}
 
 		NIHILUS_INLINE constexpr iterator begin() noexcept {

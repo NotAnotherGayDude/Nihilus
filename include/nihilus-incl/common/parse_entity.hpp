@@ -32,7 +32,7 @@ namespace nihilus {
 
 	template<typename class_type_new, typename member_type_new> struct decompose_types<member_type_new class_type_new::*> {
 		using member_type = member_type_new;
-		using class_type = class_type_new;
+		using class_type  = class_type_new;
 	};
 
 	template<typename value_type> using remove_class_pointer_t = typename decompose_types<value_type>::member_type;
@@ -77,7 +77,7 @@ namespace nihilus {
 	} && std::is_member_pointer_v<decltype(std::remove_cvref_t<value_type>::member_ptr)>;
 
 	template<auto... values, size_t... indices> inline static constexpr auto create_value_impl(std::index_sequence<indices...>) {
-		static_assert((parse_entity_types<decltype(values)>, ...), "Sorry, but they must all be parse_entities passed to this function!");
+		static_assert((parse_entity_types<decltype(values)> + ...), "Sorry, but they must all be parse_entities passed to this function!");
 		return make_tuple(values...);
 	}
 
@@ -113,7 +113,7 @@ namespace nihilus {
 
 	template<typename value_type, typename iterator_newer> struct hash_map {
 		NIHILUS_INLINE static uint64_t find_index(iterator_newer iter, iterator_newer end) noexcept {
-			return find_matching_element<value_type>(iter, end - iter);
+			return find_matching_element<value_type>(iter, static_cast<uint64_t>(end - iter));
 		}
 	};
 

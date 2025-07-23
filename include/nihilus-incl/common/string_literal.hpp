@@ -27,6 +27,7 @@
 #include <nihilus-incl/common/config.hpp>
 #include <type_traits>
 #include <algorithm>
+#include <ostream>
 
 namespace nihilus {
 
@@ -118,6 +119,8 @@ namespace nihilus {
 		NIHILUS_ALIGN(cpu_alignment) value_type values[size_val] {};
 	};
 
+	template<uint64_t size> string_literal(char (&)[size]) -> string_literal<size>;
+
 	template<uint64_t size> std::ostream& operator<<(std::ostream& os, const string_literal<size>& input) noexcept {
 		os << input.operator std::string_view();
 		return os;
@@ -148,7 +151,7 @@ namespace nihilus {
 			temp = number;
 		}
 		do {
-			*--ptr = '0' + (temp % 10);
+			*--ptr = static_cast<char>(static_cast<int64_t>('0') + (temp % 10ll));
 			temp /= 10;
 		} while (temp != 0);
 		return string_literal<numDigits + 1>{ buffer };

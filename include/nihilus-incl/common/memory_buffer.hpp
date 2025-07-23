@@ -46,16 +46,15 @@ namespace nihilus {
 			return std::numeric_limits<uint64_t>::max();
 		}
 
-		NIHILUS_INLINE constexpr void claim_space(op_types type, size_type size_new) {
+		NIHILUS_INLINE constexpr void claim_space(op_types type) {
 			for (uint64_t x = 0; x < allocations.size(); ++x) {
 				if (allocations[x].start == -1) {
-
 				}
 			}
 			allocations[type];
 		}
 
-		NIHILUS_INLINE constexpr void free_space(op_types type, size_type size_new) {
+		NIHILUS_INLINE constexpr void free_space(op_types type) {
 			allocations[type].start = -1;
 			allocations[type].size	= -1;
 		}
@@ -145,13 +144,12 @@ namespace nihilus {
 		}
 
 		NIHILUS_INLINE void* claim_memory(uint64_t offset_to_claim) noexcept {
-			static constexpr uint64_t alignment = cpu_alignment;
-			uint64_t aligned_amount				= round_up_to_multiple<alignment>(offset_to_claim);
+			uint64_t aligned_amount = round_up_to_multiple<cpu_alignment>(offset_to_claim);
 			if (aligned_amount > size_val) {
 				static constexpr auto location = std::source_location::current();
 				nihilus_exception<config, "memory_buffer - not enough memory allocated!", location>::impl();
 			}
-			pointer return_value				= data_val + aligned_amount;
+			pointer return_value = data_val + aligned_amount;
 			return return_value;
 		}
 

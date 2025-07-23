@@ -137,8 +137,8 @@ namespace nihilus {
 				NIHILUS_ALIGN(16) static constexpr auto values_new{ pack_values<string_lit>() };
 				nihilus_simd_int_128 data1{};
 				std::memcpy(&data1, str, newCount);
-				const nihilus_simd_int_128 data2{ gather_values<nihilus_simd_int_128>(values_new.data()) };
-				return !opTest(opXor(data1, data2));
+				const nihilus_simd_int_128 data2{ gather_values<nihilus_simd_int_128_t>(values_new.data()) };
+				return !opTest<nihilus_simd_int_128_t>(opXor<nihilus_simd_int_128_t, nihilus_simd_int_128_t>(data1, data2));
 			} else if constexpr (newCount == 8) {
 				static constexpr auto values_new{ pack_values<string_lit>() };
 				uint64_t l;
@@ -179,7 +179,7 @@ namespace nihilus {
 			} else {
 				return true;
 			}
-		};
+		}
 	};
 
 #if defined(NIHILUS_AVX2) || defined(NIHILUS_AVX512) || defined(NIHILUS_NEON) || defined(NIHILUS_SVE2)
@@ -190,9 +190,9 @@ namespace nihilus {
 		NIHILUS_INLINE static bool impl(const char* str) noexcept {
 			NIHILUS_ALIGN(16) char values_to_load[16];
 			std::memcpy(values_to_load, str, 16);
-			const nihilus_simd_int_128 data1{ gather_values<nihilus_simd_int_128>(values_to_load) };
-			const nihilus_simd_int_128 data2{ gather_values<nihilus_simd_int_128>(values_new.data()) };
-			return !opTest(opXor(data1, data2));
+			const nihilus_simd_int_128 data1{ gather_values<nihilus_simd_int_128_t>(values_to_load) };
+			const nihilus_simd_int_128 data2{ gather_values<nihilus_simd_int_128_t>(values_new.data()) };
+			return !opTest<nihilus_simd_int_128_t>(opXor<nihilus_simd_int_128_t, nihilus_simd_int_128_t>(data1, data2));
 		}
 	};
 
@@ -206,9 +206,9 @@ namespace nihilus {
 		NIHILUS_INLINE static bool impl(const char* str) noexcept {
 			NIHILUS_ALIGN(32) char values_to_load[32];
 			std::memcpy(values_to_load, str, 32);
-			const nihilus_simd_int_256 data1{ gather_values<nihilus_simd_int_256>(values_to_load) };
-			const nihilus_simd_int_256 data2{ gather_values<nihilus_simd_int_256>(values_new.data()) };
-			return !opTest(opXor(data1, data2));
+			const nihilus_simd_int_256 data1{ gather_values<nihilus_simd_int_256_t>(values_to_load) };
+			const nihilus_simd_int_256 data2{ gather_values<nihilus_simd_int_256_t>(values_new.data()) };
+			return !opTest<nihilus_simd_int_256_t>(opXor<nihilus_simd_int_256_t, nihilus_simd_int_256_t>(data1, data2));
 		}
 	};
 

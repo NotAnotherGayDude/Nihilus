@@ -66,7 +66,7 @@ namespace nihilus {
 			for (uint64_t x = 0; x < gguf_file.tensor_count; ++x) {
 				uint64_t absolute_offset = tensor_data_start + tensor_infos[x].offset;
 				ptr.map_pointer(data[tensor_infos[x].op_type][tensor_infos[x].layer_number], absolute_offset);
-			};
+			}
 			return gguf_file;
 		}
 	};

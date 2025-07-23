@@ -26,6 +26,10 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
+	NIHILUS_INLINE constexpr uint64_t count_elements(const array<uint64_t, 4>& dims) {
+		return dims[0] * dims[1] * dims[2] * dims[3];
+	}
+
 	struct type_traits_dynamic {
 		uint64_t block_size{};
 		uint64_t type_size{};
@@ -39,7 +43,7 @@ namespace nihilus {
 
 		NIHILUS_INLINE constexpr uint64_t total_byte_size(const array<uint64_t, 4>& dims) const {
 			array<uint64_t, 4> strides{};
-			strides[0]		 = type_size;
+			strides[0] = type_size;
 			strides[1] = strides[0] * (dims[0] / block_size);
 			for (int32_t i = 2; i < 4; i++) {
 				strides[i] = strides[i - 1] * dims[i - 1];
@@ -48,12 +52,12 @@ namespace nihilus {
 			uint64_t blck_size = block_size;
 			if (blck_size == 1) {
 				nbytes = type_size;
-				for (int i = 0; i < 4; ++i) {
+				for (uint64_t i = 0; i < 4; ++i) {
 					nbytes += (dims[i] - 1) * strides[i];
 				}
 			} else {
 				nbytes = dims[0] * strides[0] / blck_size;
-				for (int i = 1; i < 4; ++i) {
+				for (uint64_t i = 1; i < 4; ++i) {
 					nbytes += (dims[i] - 1) * strides[i];
 				}
 			}
@@ -69,12 +73,12 @@ namespace nihilus {
 			constexpr uint64_t blck_size = derived_type::block_size;
 			if constexpr (blck_size == 1) {
 				nbytes = derived_type::type_size;
-				for (int i = 0; i < 4; ++i) {
+				for (uint64_t i = 0; i < 4; ++i) {
 					nbytes += (dims[i] - 1) * strides[i];
 				}
 			} else {
 				nbytes = dims[0] * strides[0] / blck_size;
-				for (int i = 1; i < 4; ++i) {
+				for (uint64_t i = 1; i < 4; ++i) {
 					nbytes += (dims[i] - 1) * strides[i];
 				}
 			}
@@ -190,34 +194,31 @@ namespace nihilus {
 		inline static constexpr uint64_t n_rows{ 0 };
 	};
 
-	NIHILUS_INLINE constexpr type_traits_dynamic get_type_traits(data_types type) {
-		switch (type) {
-			case data_types::f64: {
+	template<typename enum_type> NIHILUS_INLINE constexpr type_traits_dynamic get_type_traits(enum_type type) {
+		switch (static_cast<uint64_t>(type)) {
+			case static_cast<uint64_t>(enum_type::f64): {
 				return type_traits<double>::get_dynamic_type_traits_impl();
 			}
-			case data_types::f32: {
+			case static_cast<uint64_t>(enum_type::f32): {
 				return type_traits<float>::get_dynamic_type_traits_impl();
 			}
-			case data_types::f16: {
+			case static_cast<uint64_t>(enum_type::f16): {
 				return type_traits<int16_t>::get_dynamic_type_traits_impl();
 			}
-			case data_types::q8_0: {
+			case static_cast<uint64_t>(enum_type::q8_0): {
 				return type_traits<block_q8_0<half>>::get_dynamic_type_traits_impl();
 			}
-			case data_types::i64: {
+			case static_cast<uint64_t>(enum_type::i64): {
 				return type_traits<int64_t>::get_dynamic_type_traits_impl();
 			}
-			case data_types::i32: {
+			case static_cast<uint64_t>(enum_type::i32): {
 				return type_traits<int32_t>::get_dynamic_type_traits_impl();
 			}
-			case data_types::i16: {
+			case static_cast<uint64_t>(enum_type::i16): {
 				return type_traits<int16_t>::get_dynamic_type_traits_impl();
 			}
-			case data_types::i8: {
+			case static_cast<uint64_t>(enum_type::i8): {
 				return type_traits<int8_t>::get_dynamic_type_traits_impl();
-			}
-			case data_types::count: {
-				return {};
 			}
 			default: {
 				return {};

@@ -21,7 +21,6 @@ RealTimeChris (Chris model_traits_type.)
 #pragma once
 
 #include <nihilus-incl/common/behavioral_axes.hpp>
-#include <latch>
 
 namespace nihilus {
 
@@ -41,8 +40,7 @@ namespace nihilus {
 
 	  protected:
 		template<template<model_config, typename> typename mixin_type, typename base_type, typename... arg_types>
-		NIHILUS_INLINE constexpr void impl_internal_filtered(arg_types&&... args) const {
-			( void )(args, ...);
+		NIHILUS_INLINE constexpr void impl_internal_filtered([[maybe_unused]] arg_types&&... args) const {
 			if constexpr (mixin_type<config, base_type>::filter()) {
 				if constexpr (has_return_type<mixin_type<config, base_type>>) {
 					while (!mixin_type<config, base_type>::impl(*static_cast<const base_type*>(this), detail::forward<arg_types>(args)...)) {
@@ -55,8 +53,7 @@ namespace nihilus {
 
 	  protected:
 		template<template<model_config, typename> typename mixin_type, typename base_type, typename... arg_types>
-		NIHILUS_INLINE constexpr void impl_internal_filtered(arg_types&&... args) {
-			( void )(args, ...);
+		NIHILUS_INLINE constexpr void impl_internal_filtered([[maybe_unused]] arg_types&&... args) {
 			if constexpr (mixin_type<config, base_type>::filter()) {
 				if constexpr (has_return_type<mixin_type<config, base_type>>) {
 					while (!mixin_type<config, base_type>::impl(*static_cast<base_type*>(this), detail::forward<arg_types>(args)...)) {
@@ -78,13 +75,13 @@ namespace nihilus {
 
 	template<model_config config_new> static constexpr get_core_bases_t<config_new> core_bases_val{};
 
-	template<uint64_t max_depth> NIHILUS_INLINE constexpr uint64_t calculate_peak_concurrent_memory(const array<depth_and_bytes, op_types::count>& depths) {
-		array<depth_and_bytes, op_types::count> depths_new{ depths };
+	template<uint64_t max_depth> NIHILUS_INLINE constexpr uint64_t calculate_peak_concurrent_memory(const array<depth_and_bytes, op_types::count>& depths_new) {
+		array<depth_and_bytes, op_types::count> depths_newer{ depths_new };
 		array<uint64_t, max_depth> depth_byte_counts{};
 
 		for (uint64_t x = 0; x < max_depth; ++x) {
-			for (uint64_t y = 0; y < depths.size(); ++y) {
-				depth_byte_counts[x] += depths_new[y].required_bytes;
+			for (uint64_t y = 0; y < depths_new.size(); ++y) {
+				depth_byte_counts[x] += static_cast<uint64_t>(depths_newer[y].required_bytes);
 			}
 		}
 
@@ -97,8 +94,8 @@ namespace nihilus {
 		return max_size;
 	}
 
-	constexpr std::size_t alignment = cpu_alignment;
-	constexpr std::size_t align_up(std::size_t x) {
+	constexpr int64_t alignment = cpu_alignment;
+	constexpr int64_t align_up(int64_t x) {
 		return (x + (alignment - 1)) & ~(alignment - 1);
 	}
 
@@ -106,31 +103,24 @@ namespace nihilus {
 		return !(a_end < b_start || b_end < a_start);
 	}
 
-	constexpr memory_plan compute_offsets(array<depth_and_bytes, op_types::count> tensors, std::size_t max_size_guess ) {
-		memory_plan result{ max_size_guess };
-		std::size_t alloc_count	   = 0;
-		std::size_t current_offset = 0;
+	constexpr memory_plan compute_offsets(array<depth_and_bytes, op_types::count> tensors, int64_t max_size_guess) {
+		memory_plan result{ static_cast<uint64_t>(max_size_guess) };
+		//int64_t  alloc_count	   = 0;
+		int64_t current_offset = 0;
 
 		for (uint64_t x = 0; x < tensors.size(); ++x) {
 			result.offsets[x].offset = current_offset;
-			current_offset		  += tensors[x].required_bytes;
+			current_offset += tensors[x].required_bytes;
 		}
 
-		result.memory_total = current_offset;
+		result.memory_total = static_cast<uint64_t>(current_offset);
 		return result;
 	}
 
 	template<model_config config_new> struct core_bases_traits_type {
-		using model_traits_type = model_traits_type<config_new>;
 		static constexpr uint64_t max_depth{ []() {
 			uint64_t return_value{};
 			core_bases_val<config_new>.template impl<max_depth_calculator>(return_value);
-			return return_value;
-		}() };
-
-		static constexpr uint64_t allocation_count{ []() {
-			uint64_t return_value{};
-			core_bases_val<config_new>.template impl<memory_planner>(return_value);
 			return return_value;
 		}() };
 		static constexpr auto depths{ []() {
