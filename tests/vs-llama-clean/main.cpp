@@ -993,11 +993,11 @@ int main(int argc, char** argv) {
 		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 2, 1, true, "Token">::runBenchmark<"nihilus">([&] {
 			static constexpr auto model_config = nihilus::generate_model_config(nihilus::model_generations::v3, model_size, nihilus::kernel_type_profiles::q8_gqa,
 				nihilus::model_arches::llama, false);
-			nihilus::cli_params cli_args_final{ nihilus::harbinger<model_config>::parse_cli_arguments(argc, argv) };
-			//nihilus::model<model_config> model_newer{ cli_args_final };
-			//while (model_newer.process_input(cli_args_final.prompt)) {
+			nihilus::cli_params cli_args{ nihilus::harbinger<model_config>::parse_cli_arguments(argc, argv) };
+			//nihilus::model<model_config> model_newer{ cli_args };
+			//while (model_newer.process_input(cli_args.prompt)) {
 			//}
-			return cli_args_final.n_tokens;
+			return cli_args.n_tokens;
 		});
 		std::cout << return_value << std::endl;
 		std::cout << return_value << std::endl;

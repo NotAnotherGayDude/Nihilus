@@ -28,49 +28,9 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-	template<uint64_t alloc_count, uint64_t size_val> class memory_counter {
-	  public:
-		using size_type = uint64_t;
-
-		struct allocation {
-			int64_t start{ -1 };
-			int64_t size{ 0 };
-		};
-
-		NIHILUS_INLINE uint64_t get_next_lowest_offset(uint64_t startind_index = 0) {
-			for (uint64_t x = startind_index; x < allocations.size(); ++x) {
-				if (allocations[x].start == -1) {
-					return x;
-				}
-			}
-			return std::numeric_limits<uint64_t>::max();
-		}
-
-		NIHILUS_INLINE constexpr void claim_space(op_types type) {
-			for (uint64_t x = 0; x < allocations.size(); ++x) {
-				if (allocations[x].start == -1) {
-				}
-			}
-			allocations[type];
-		}
-
-		NIHILUS_INLINE constexpr void free_space(op_types type) {
-			allocations[type].start = -1;
-			allocations[type].size	= -1;
-		}
-
-		NIHILUS_INLINE constexpr size_type total_size() const {
-			return size_val;
-		}
-
-	  protected:
-		array<allocation, alloc_count> allocations{};
-		uint64_t remaining_space{};
-	};
-
-	template<model_config config> struct memory_buffer : public allocator<uint8_t> {
+	template<model_config config> struct memory_buffer : public allocator<uint8_t, cpu_alignment> {
 		using value_type   = uint8_t;
-		using alloc		   = allocator<value_type>;
+		using alloc		   = allocator<value_type, cpu_alignment>;
 		using pointer	   = value_type*;
 		using uint64_types = uint64_t;
 		using size_type	   = uint64_t;

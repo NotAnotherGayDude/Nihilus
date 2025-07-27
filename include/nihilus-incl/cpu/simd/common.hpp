@@ -25,33 +25,12 @@ RealTimeChris (Chris M.)
 namespace nihilus {
 
 	union m128x {
-		template<typename value_type> constexpr m128x(value_type arg01, value_type arg02, value_type arg03, value_type arg04, value_type arg05, value_type arg06, value_type arg07,
-			value_type arg08, value_type arg09, value_type arg10, value_type arg11, value_type arg12, value_type arg13, value_type arg14, value_type arg15,
-			value_type arg16) noexcept {
-			m128x_uint64[0] = static_cast<size_t>(arg01);
-			m128x_uint64[0] |= static_cast<size_t>(arg02) << 8;
-			m128x_uint64[0] |= static_cast<size_t>(arg03) << 16;
-			m128x_uint64[0] |= static_cast<size_t>(arg04) << 24;
-			m128x_uint64[0] |= static_cast<size_t>(arg05) << 32;
-			m128x_uint64[0] |= static_cast<size_t>(arg06) << 40;
-			m128x_uint64[0] |= static_cast<size_t>(arg07) << 48;
-			m128x_uint64[0] |= static_cast<size_t>(arg08) << 56;
-			m128x_uint64[1] = static_cast<size_t>(arg09);
-			m128x_uint64[1] |= static_cast<size_t>(arg10) << 8;
-			m128x_uint64[1] |= static_cast<size_t>(arg11) << 16;
-			m128x_uint64[1] |= static_cast<size_t>(arg12) << 24;
-			m128x_uint64[1] |= static_cast<size_t>(arg13) << 32;
-			m128x_uint64[1] |= static_cast<size_t>(arg14) << 40;
-			m128x_uint64[1] |= static_cast<size_t>(arg15) << 48;
-			m128x_uint64[1] |= static_cast<size_t>(arg16) << 56;
-		}
-
-		constexpr m128x(size_t argOne, size_t argTwo) noexcept {
+		NIHILUS_INLINE m128x(uint64_t argOne, uint64_t argTwo) noexcept {
 			m128x_uint64[0] = argOne;
 			m128x_uint64[1] = argTwo;
 		}
 
-		constexpr m128x() noexcept {
+		NIHILUS_INLINE m128x() noexcept {
 			m128x_uint64[0] = 0;
 			m128x_uint64[1] = 0;
 		}
@@ -64,13 +43,13 @@ namespace nihilus {
 		uint8_t m128x_uint8[16];
 		int16_t m128x_uint16[8];
 		int32_t m128x_uint32[4];
-		size_t m128x_uint64[2];
+		uint64_t m128x_uint64[2];
 #else
 		int64_t m128x_int64[2];
 		int32_t m128x_int32[4];
 		int16_t m128x_int16[8];
 		int8_t m128x_int8[16]{};
-		size_t m128x_uint64[2];
+		uint64_t m128x_uint64[2];
 		int32_t m128x_uint32[4];
 		int16_t m128x_uint16[8];
 		uint8_t m128x_uint8[16];
@@ -157,12 +136,20 @@ namespace nihilus {
 
 	#define blsr(value) _blsr_u64(value)
 
-	template<uint16_types value_type> NIHILUS_INLINE value_type tzcnt(value_type value) noexcept {
+	template<uint16_types value_type> NIHILUS_INLINE static value_type tzcnt(const value_type value) noexcept {
 	#if defined(NIHILUS_LINUX)
 		return __tzcnt_u16(value);
 	#else
 		return _tzcnt_u16(value);
 	#endif
+	}
+
+	template<uint32_types value_type> NIHILUS_INLINE static value_type tzcnt(const value_type value) noexcept {
+		return _tzcnt_u32(value);
+	}
+
+	template<uint64_types value_type> NIHILUS_INLINE static value_type tzcnt(const value_type value) noexcept {
+		return _tzcnt_u64(value);
 	}
 
 	template<nihilus_simd_128_types nihilus_simd_int_types_new> NIHILUS_INLINE static auto gather_values(const void* str) noexcept {
@@ -253,54 +240,127 @@ namespace nihilus {
 
 #endif
 
-	NIHILUS_INLINE static constexpr float fp32_from_bits(uint32_t w) {
+#if !defined(NIHILUS_AVX512) && !defined(NIHILUS_AVX2) && !defined(NIHILUS_NEON) && !defined(NIHILUS_SVE2)
+
+	#define blsr(value) (value & (value - 1))
+
+	template<typename value_type>
+		requires(sizeof(value_type) == 8)
+	NIHILUS_INLINE m128x mm128LoadUSi128(const value_type* ptr) noexcept {
+		m128x returnValues{};
+		returnValues.m128x_uint64[0] = ptr[0];
+		returnValues.m128x_uint64[1] = ptr[1];
+		return returnValues;
+	}
+
+	NIHILUS_INLINE m128x mm128LoadUSi128(const m128x* ptr) noexcept {
+		m128x returnValues{ *ptr };
+		return returnValues;
+	}
+
+	template<typename simd_int_t01, typename simd_int_t02> NIHILUS_INLINE m128x mm128XorSi128(const simd_int_t01& valOne, const simd_int_t02& valTwo) noexcept {
+		m128x value{};
+		std::copy(valOne.m128x_uint64, valOne.m128x_uint64 + 2, value.m128x_uint64);
+		value.m128x_uint64[0] ^= valTwo.m128x_uint64[0];
+		value.m128x_uint64[1] ^= valTwo.m128x_uint64[1];
+		return value;
+	}
+
+	template<typename simd_int_t01, typename simd_int_t02> NIHILUS_INLINE bool mm128TestzSi128(simd_int_t01& valOneNew, simd_int_t02& valTwo) noexcept {
+		std::remove_const_t<simd_int_t01> valOne{ valOneNew };
+		valOne.m128x_uint64[0] &= valTwo.m128x_uint64[0];
+		valOne.m128x_uint64[1] &= valTwo.m128x_uint64[1];
+		return valOne.m128x_uint64[0] == 0 && valOne.m128x_uint64[1] == 0;
+	}
+
+	template<nihilus_simd_128_types simd_int_t01> NIHILUS_INLINE static auto opTest(const typename simd_int_t01::type& value) noexcept {
+		return !mm128TestzSi128(value, value);
+	}
+
+	template<nihilus_simd_128_types simd_int_t01, nihilus_simd_128_types simd_int_t02>
+	NIHILUS_INLINE static auto opXor(const typename simd_int_t01::type& value, const typename simd_int_t02::type& other) noexcept {
+		return mm128XorSi128(value, other);
+	}
+
+	template<nihilus_simd_128_types nihilus_simd_int_types_new> NIHILUS_INLINE static auto gather_values(const void* str) noexcept {
+		return mm128LoadUSi128(static_cast<const m128x*>(str));
+	}
+
+	template<uint_types value_type> NIHILUS_INLINE static value_type tzcnt(value_type value) noexcept {
+		if (value == 0) {
+			return sizeof(value_type) * 8;
+		}
+
+		value_type count{};
+		while ((value & 1) == 0) {
+			value >>= 1;
+			++count;
+		}
+
+		return count;
+	}
+
+#endif
+
+	NIHILUS_INLINE static constexpr float fp32_from_bits(uint32_t w) noexcept {
 		return std::bit_cast<float>(w);
 	}
 
-	NIHILUS_INLINE static constexpr uint32_t fp32_to_bits(float f) {
+	NIHILUS_INLINE static constexpr uint32_t fp32_to_bits(float f) noexcept {
 		return std::bit_cast<uint32_t>(f);
 	}
 
-	template<typename value_type> NIHILUS_INLINE value_type post_cmp_tzcnt(value_type value) noexcept {
-		return tzcnt(value);
-	}
+	struct alignas(64) float_holder {
+		NIHILUS_INLINE float_holder() noexcept : value{} {
+		}
 
-	NIHILUS_INLINE static constexpr float fabsf_constexpr(float x) noexcept {
-		return (x < 0.0f) ? -x : x;
-	}
+		NIHILUS_INLINE float_holder(float new_value) noexcept : value{ new_value } {
+		}
 
-	NIHILUS_INLINE static constexpr float compute_fp16_to_fp32(half h) {
-		const uint32_t w	 = static_cast<uint32_t>(h << 16);
-		const uint32_t sign	 = w & 0x80000000;
+		NIHILUS_INLINE operator float() const noexcept {
+			return value;
+		}
+
+		NIHILUS_INLINE operator float&() noexcept {
+			return value;
+		}
+
+	  protected:
+		alignas(64) float value{};
+	};
+
+	NIHILUS_INLINE static constexpr float compute_fp16_to_fp32(half h) noexcept { 
+		const uint32_t w	 = static_cast<uint32_t>(h) << 16;
+		const uint32_t sign	 = w & 0x80000000u;
 		const uint32_t two_w = w + w;
 
-		const uint32_t exp_offset	 = static_cast<uint32_t>(0xE0) << 23;
-		constexpr float exp_scale	 = fp32_from_bits(static_cast<uint32_t>(0x7800000));
-		const float normalized_value = fp32_from_bits((two_w >> 4) + exp_offset) * exp_scale;
+		constexpr uint32_t exp_offset = 0xE0u << 23;
+		constexpr float exp_scale	  = fp32_from_bits(0x7800000u);
+		const float normalized_value  = fp32_from_bits((two_w >> 4) + exp_offset) * exp_scale;
 
-		constexpr const uint32_t magic_mask = static_cast<uint32_t>(126) << 23;
-		constexpr const float magic_bias	= 0.5f;
-		const float denormalized_value		= fp32_from_bits((two_w >> 17) | magic_mask) - magic_bias;
+		constexpr uint32_t magic_mask  = 126u << 23;
+		constexpr float magic_bias	   = 0.5f;
+		const float denormalized_value = fp32_from_bits((two_w >> 17) | magic_mask) - magic_bias;
 
-		constexpr const uint32_t denormalized_cutoff = static_cast<uint32_t>(1) << 27;
-		const uint32_t result						 = sign | (two_w < denormalized_cutoff ? fp32_to_bits(denormalized_value) : fp32_to_bits(normalized_value));
+		constexpr uint32_t denormalized_cutoff = 1u << 27;
+		const uint32_t result				   = sign | (two_w < denormalized_cutoff ? fp32_to_bits(denormalized_value) : fp32_to_bits(normalized_value));
 		return fp32_from_bits(result);
 	}
 
-	NIHILUS_INLINE const float* get_fp16_to_fp32_array() {
-		static const float* fp16_to_fp32_array = []() {
-			static float array[1 << 16];
+	NIHILUS_INLINE const auto& get_fp16_to_fp32_array() noexcept { 
+		alignas(64) static vector<float_holder> fp16_to_fp32_array = []() {
+			alignas(64) static vector<float_holder> return_values_new;
+			return_values_new.resize((1 << 16));
 			for (uint64_t i = 0; i < (1 << 16); ++i) {
-				array[i] = compute_fp16_to_fp32(static_cast<half>(i));
+				return_values_new[i] = compute_fp16_to_fp32(static_cast<uint64_t>(i));
 			}
-			return array;
+			return return_values_new;
 		}();
 		return fp16_to_fp32_array;
 	}
 
-	NIHILUS_INLINE static float fp16_to_fp32(half h) {
-		static const float* reference = get_fp16_to_fp32_array();
-		return reference[static_cast<uint64_t>(h)];
+	NIHILUS_INLINE static float fp16_to_fp32(uint16_t h) noexcept { 
+		return get_fp16_to_fp32_array()[static_cast<uint64_t>(h)];
 	}
 
 }

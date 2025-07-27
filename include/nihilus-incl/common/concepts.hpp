@@ -147,20 +147,9 @@ namespace nihilus {
 
 	// from
 	// https://stackoverflow.com/questions/16337610/how-to-know-if-a-type-is-a-specialization-of-stdvector
-	template<typename, template<auto, typename...> typename> constexpr bool is_specialization_config_v = false;
-
-	template<template<auto, typename...> typename value_type, auto config, typename... arg_types>
-	constexpr bool is_specialization_config_v<value_type<config, arg_types...>, value_type> = true;
-
-	// from
-	// https://stackoverflow.com/questions/16337610/how-to-know-if-a-type-is-a-specialization-of-stdvector
 	template<typename, template<typename...> typename> constexpr bool is_specialization_v = false;
 
 	template<template<typename...> typename value_type, typename... arg_types> constexpr bool is_specialization_v<value_type<arg_types...>, value_type> = true;
-
-	template<typename, template<auto...> typename> constexpr bool is_specialization_val_v = false;
-
-	template<template<auto...> typename value_type, auto... arg_types> constexpr bool is_specialization_val_v<value_type<arg_types...>, value_type> = true;
 
 	enum class input_types : uint8_t {
 		none  = 1 << 0,

@@ -126,6 +126,136 @@ namespace nihilus {
 		nihilus,
 	};
 
+	float f16_to_f32(uint16_t f16_bits) {
+		uint32_t sign = (f16_bits & 0x8000) << 16;
+		uint32_t exp  = (f16_bits & 0x7C00);
+		uint32_t frac = (f16_bits & 0x03FF);
+
+		if (exp == 0x7C00) {
+			exp = 0xFF << 23;
+			frac <<= 13;
+		} else if (exp != 0) {
+			exp = ((exp >> 10) - 15 + 127) << 23;
+			frac <<= 13;
+		} else if (frac != 0) {
+			exp = 127 - 14;
+			while ((frac & 0x0400) == 0) {
+				frac <<= 1;
+				exp--;
+			}
+			frac = (frac & 0x03FF) << 13;
+			exp <<= 23;
+		}
+
+		uint32_t result = sign | exp | frac;
+		return *reinterpret_cast<float*>(&result);
+	}
+
+	void print_typed_data(std::ostream& stream, const std::vector<uint8_t>& data, data_types type) {
+		if (data.empty()) {
+			stream << "[empty]\n";
+			return;
+		}
+
+		stream << "[";
+
+		switch (type) {
+			case data_types::f32: {
+				const float* values = reinterpret_cast<const float*>(data.data());
+				size_t count		= data.size() / sizeof(float);
+				for (size_t i = 0; i < count; ++i) {
+					if (i > 0)
+						stream << ", ";
+					stream << std::fixed << std::setprecision(6) << values[i];
+				}
+				break;
+			}
+
+			case data_types::f16: {
+				const uint16_t* values = reinterpret_cast<const uint16_t*>(data.data());
+				size_t count		   = data.size() / sizeof(uint16_t);
+				for (size_t i = 0; i < count; ++i) {
+					if (i > 0)
+						stream << ", ";
+					stream << std::fixed << std::setprecision(6) << f16_to_f32(values[i]);
+				}
+				break;
+			}
+
+			case data_types::q8_0: {
+				const uint8_t* values = reinterpret_cast<const uint8_t*>(data.data());
+				size_t count		  = data.size();
+				for (size_t i = 0; i < count; ++i) {
+					if (i > 0)
+						stream << ", ";
+					stream << static_cast<int>(values[i]);
+				}
+				break;
+			}
+
+			case data_types::i8: {
+				const int8_t* values = reinterpret_cast<const int8_t*>(data.data());
+				size_t count		 = data.size();
+				for (size_t i = 0; i < count; ++i) {
+					if (i > 0)
+						stream << ", ";
+					stream << static_cast<int>(values[i]);
+				}
+				break;
+			}
+
+			case data_types::i16: {
+				const int16_t* values = reinterpret_cast<const int16_t*>(data.data());
+				size_t count		  = data.size() / sizeof(int16_t);
+				for (size_t i = 0; i < count; ++i) {
+					if (i > 0)
+						stream << ", ";
+					stream << values[i];
+				}
+				break;
+			}
+
+			case data_types::i32: {
+				const int32_t* values = reinterpret_cast<const int32_t*>(data.data());
+				size_t count		  = data.size() / sizeof(int32_t);
+				for (size_t i = 0; i < count; ++i) {
+					if (i > 0)
+						stream << ", ";
+					stream << values[i];
+				}
+				break;
+			}
+
+			case data_types::i64: {
+				const int64_t* values = reinterpret_cast<const int64_t*>(data.data());
+				size_t count		  = data.size() / sizeof(int64_t);
+				for (size_t i = 0; i < count; ++i) {
+					if (i > 0)
+						stream << ", ";
+					stream << values[i];
+				}
+				break;
+			}
+
+			case data_types::f64: {
+				const double* values = reinterpret_cast<const double*>(data.data());
+				size_t count		 = data.size() / sizeof(double);
+				for (size_t i = 0; i < count; ++i) {
+					if (i > 0)
+						stream << ", ";
+					stream << std::fixed << std::setprecision(10) << values[i];
+				}
+				break;
+			}
+
+			default:
+				stream << "unknown_type";
+				break;
+		}
+
+		stream << "]\n";
+	}
+
 	struct intermediary_ggml_tensor {
 		std::array<uint64_t, 4> dims{};
 		vector<std::string> dims_string{ [] {
@@ -365,6 +495,137 @@ namespace nihilus {
 		data_types type{};
 		uint64_t byte_size{};
 		kernel_types op{};
+
+		constexpr double get_tolerance_for_type(data_types type) const {
+			switch (type) {
+				case data_types::f32:
+					return 1e-3;
+				case data_types::f16:
+					return 1e-3;
+				case data_types::f64:
+					return 1e-12;
+				case data_types::i8:
+				case data_types::i16:
+				case data_types::i32:
+				case data_types::i64:
+				case data_types::q8_0:
+					return 0.0;
+				default:
+					return 1e-4;
+			}
+		}
+
+		bool compare_tensor_data_smart(const std::vector<uint8_t>& data1, const std::vector<uint8_t>& data2, data_types type, std::stringstream& stream,
+			size_t max_differences = 5) const {
+			if (data1.size() != data2.size()) {
+				stream << "Size mismatch: " << data1.size() << " vs " << data2.size() << std::endl;
+				return false;
+			}
+
+			if (data1.empty()) {
+				return true;
+			}
+
+			double tolerance		 = get_tolerance_for_type(type);
+			size_t differences_found = 0;
+			bool has_differences	 = false;
+
+			switch (type) {
+				case data_types::f32: {
+					const float* vals1 = reinterpret_cast<const float*>(data1.data());
+					const float* vals2 = reinterpret_cast<const float*>(data2.data());
+					size_t count	   = data1.size() / sizeof(float);
+
+					for (size_t i = 0; i < count; ++i) {
+						double diff = fabs(static_cast<double>(vals1[i]) - static_cast<double>(vals2[i]));
+
+						bool both_nan = isnan(vals1[i]) && isnan(vals2[i]);
+						bool both_inf = isinf(vals1[i]) && isinf(vals2[i]) && (signbit(vals1[i]) == signbit(vals2[i]));
+
+						if (both_nan || both_inf) {
+							continue;
+						}
+
+						if (diff > tolerance) {
+							has_differences = true;
+							if (differences_found < max_differences) {
+								stream << "f32 difference at index " << i << ": " << std::scientific << std::setprecision(10) << vals1[i] << " vs " << vals2[i]
+									   << " (diff: " << diff << ", tolerance: " << tolerance << ")" << std::endl;
+								differences_found++;
+							}
+						}
+					}
+					break;
+				}
+
+				case data_types::f16: {
+					const uint16_t* vals1 = reinterpret_cast<const uint16_t*>(data1.data());
+					const uint16_t* vals2 = reinterpret_cast<const uint16_t*>(data2.data());
+					size_t count		  = data1.size() / sizeof(uint16_t);
+
+					for (size_t i = 0; i < count; ++i) {
+						float f1	= f16_to_f32(vals1[i]);
+						float f2	= f16_to_f32(vals2[i]);
+						double diff = fabs(static_cast<double>(f1) - static_cast<double>(f2));
+
+						if (diff > tolerance) {
+							has_differences = true;
+							if (differences_found < max_differences) {
+								stream << "f16 difference at index " << i << ": " << std::fixed << std::setprecision(6) << f1 << " vs " << f2 << " (diff: " << std::scientific
+									   << diff << ")" << std::endl;
+								differences_found++;
+							}
+						}
+					}
+					break;
+				}
+
+				case data_types::f64: {
+					const double* vals1 = reinterpret_cast<const double*>(data1.data());
+					const double* vals2 = reinterpret_cast<const double*>(data2.data());
+					size_t count		= data1.size() / sizeof(double);
+
+					for (size_t i = 0; i < count; ++i) {
+						double diff = fabs(vals1[i] - vals2[i]);
+
+						if (diff > tolerance) {
+							has_differences = true;
+							if (differences_found < max_differences) {
+								stream << "f64 difference at index " << i << ": " << std::scientific << std::setprecision(15) << vals1[i] << " vs " << vals2[i]
+									   << " (diff: " << diff << ")" << std::endl;
+								differences_found++;
+							}
+						}
+					}
+					break;
+				}
+
+				case data_types::i8:
+				case data_types::i16:
+				case data_types::i32:
+				case data_types::i64:
+				case data_types::q8_0:
+				default: {
+					for (size_t i = 0; i < data1.size(); ++i) {
+						if (data1[i] != data2[i]) {
+							has_differences = true;
+							if (differences_found < max_differences) {
+								stream << "Byte difference at index " << i << ": " << static_cast<int>(data1[i]) << " vs " << static_cast<int>(data2[i]) << std::endl;
+								differences_found++;
+							}
+						}
+					}
+					break;
+				}
+			}
+
+			if (has_differences && differences_found >= max_differences) {
+				stream << "... (showing first " << max_differences << " differences)" << std::endl;
+			}
+
+			return !has_differences;
+		}
+
 		NIHILUS_INLINE comparison_result operator==(const intermediary_tensor& other) const {
 			comparison_result return_value{};
 			std::stringstream stream{};
@@ -408,27 +669,15 @@ namespace nihilus {
 				return_value.result_output = stream.str();
 				return return_value;
 			}
-			uint64_t this_dims	= dims[0] * dims[1] * dims[2] * dims[3];
-			uint64_t other_dims = other.dims[0] * other.dims[1] * other.dims[2] * other.dims[3];
-			array<uint64_t, 4> dims_new{ other.dims[0], other.dims[1], other.dims[2], other.dims[3] };
-			uint64_t other_size = detail::min(data.size(), other.data.size());
-			int64_t equal_data{};
-			if (other_size) {
-				equal_data = std::memcmp(data.data(), other.data.data(), other_size);
-				for (int32_t i = 0; i < other_size; i++) {
-					if (data.data()[i] != other.data.data()[i]) {
-						stream << "Difference at index: " << i << ", " << +data[i] << " vs " << +other.data[i] << std::endl;
-						equal_data = 1;
-						break;
-					}
-				}
-			}
 
-			if (equal_data) {
+			bool data_equal = compare_tensor_data_smart(data, other.data, type, stream);
+
+			if (!data_equal) {
 				stream << "Incorrect Data:, For Tensor: " << name << std::endl;
-				stream << "At Index: " << equal_data << std::endl;
-				stream << "LHS Data: " << data << std::endl;
-				stream << "RHS Data: " << other.data << std::endl;
+				stream << "LHS Data: " << std::endl;
+				print_typed_data(stream, data, other.type);
+				stream << "RHS Data: " << std::endl;
+				print_typed_data(stream, other.data, other.type);
 				return_value.result		   = false;
 				return_value.result_output = stream.str();
 				return return_value;
@@ -442,10 +691,10 @@ namespace nihilus {
 }
 
 namespace jsonifier {
-	template<> struct core<nihilus::intermediary_ggml_tensor> {
-		using value_type = nihilus::intermediary_ggml_tensor;
+	template<> struct core<nihilus::intermediary_tensor> {
+		using value_type = nihilus::intermediary_tensor;
 		static constexpr auto parseValue =
-			jsonifier::createValue<&value_type::dims, &value_type::name, &value_type::op, &value_type::type, &value_type::data, &value_type::byte_size, &value_type::dims_string>();
+			jsonifier::createValue<&value_type::dims, &value_type::name, &value_type::op, &value_type::type, &value_type::data, &value_type::byte_size>();
 	};
 }
 
@@ -622,113 +871,40 @@ namespace nihilus {
 		}
 	}
 
-	vector<vector<intermediary_tensor>> get_tensors_multi_iteration(std::string_view base_path, std::string_view base_name) {
-		vector<vector<intermediary_tensor>> return_values{};
-
-		for (int32_t iteration = 0;; ++iteration) {
-			std::string filename = std::string(base_path) + "/" + std::string(base_name) + "_" + std::to_string(iteration) + ".json";
-
-			std::ifstream test_file(filename);
-			if (!test_file.good()) {
-				break;
-			}
-			test_file.close();
-
-			vector<intermediary_ggml_tensor> iteration_ggml{};
-			vector<intermediary_tensor> iteration_tensors{};
-
-			try {
-				static constexpr model_config config{};
-				file_loader<config> file_loader{ filename };
-				jsonifier::jsonifier_core parser{};
-				parser.parseJson<jsonifier::parse_options{ .minified = false }>(iteration_ggml, file_loader.operator const std::string&());
-
-				for (auto& value: iteration_ggml) {
-					iteration_tensors.emplace_back(value);
-				}
-
-				for (auto& value: parser.getErrors()) {
-					std::cout << "Iteration " << iteration << " - Error: " << value << std::endl;
-				}
-
-				return_values.push_back(move(iteration_tensors));
-
-			} catch (const std::exception& e) {
-				std::cout << "Failed to parse iteration " << iteration << ": " << e.what() << std::endl;
-				break;
-			}
-		}
-
-		return return_values;
-	}
-
 	template<typename value_type>
 	concept has_mutable_dims = requires(std::remove_cvref_t<value_type> value) { value.get_mutable_dim(); };
 
 	struct tensor_debugger {
-		inline static vector<vector<intermediary_tensor>> leaf_iterations{ get_tensors_multi_iteration("C:/users/chris/source/repos/ft-tl", "Leaf_Data") };
-
-		inline static vector<vector<intermediary_tensor>> node_iterations{ get_tensors_multi_iteration("C:/users/chris/source/repos/ft-tl", "Node_Data") };
-
-		static const vector<intermediary_tensor>& get_leaf_iteration(uint64_t iteration) {
-			static const vector<intermediary_tensor> empty{};
-			return (iteration < leaf_iterations.size()) ? leaf_iterations[iteration] : empty;
-		}
-
-		static const vector<intermediary_tensor>& get_node_iteration(uint64_t iteration) {
-			static const vector<intermediary_tensor> empty{};
-			return (iteration < node_iterations.size()) ? node_iterations[iteration] : empty;
-		}
-
-		static int64_t contains(const std::string& tensor, const vector<intermediary_tensor>& ref_tensors) {
-			for (uint64_t x = 0; x < ref_tensors.size(); ++x) {
-				if (ref_tensors[x].name == tensor) {
-					return x;
-				}
-			}
-			return -1;
-		}
-
-		static uint64_t get_iteration_count() {
-			return detail::max(leaf_iterations.size(), node_iterations.size());
-		}
+		inline static jsonifier::jsonifier_core parser{};
 
 		template<typename tensor_type> static bool compare_tensor_data(tensor_type& tensor, uint64_t current_block, uint64_t iteration, uint64_t runtime_dim) {
 			if constexpr (has_mutable_dims<tensor_type>) {
 				tensor.get_mutable_dim() = runtime_dim;
 			}
-			std::string tensor_name{ convert_op_to_string(tensor.type, current_block) };
-			const auto& current_leafs = get_leaf_iteration(iteration);
-			const auto& current_nodes = get_node_iteration(iteration);
+			std::string file_name{ convert_op_to_string(tensor.type, current_block) + "-" + std::to_string(iteration) + ".json" };
+			file_loader<model_config{}> file{ file_name };
+			std::string new_string = file.operator const std::string&();
+			intermediary_tensor tensor_newer{ tensor, convert_op_to_string(tensor.type, current_block), current_block };
+			intermediary_tensor tensor_new{};
+			parser.parseJson(tensor_new, new_string);
 			std::stringstream stream{};
-			if (!tensor_name.empty()) {
-				intermediary_tensor tensor_new{ tensor, tensor_name, current_block };
-
-				if (auto index = contains(tensor_name, current_leafs); index != -1) {
-					auto return_value{ tensor_new == current_leafs.at(index) };
-					if (!return_value) {
-						stream << "Found an op of name: " << tensor_name << ", OF TYPE: " << tensor.type << " (iteration " << iteration << ")" << std::endl;
-						stream << return_value.result_output;
-						log<log_levels::status>(stream.str());
-					} else {
-						stream << "Found an op of name: " << tensor_name << ", OF TYPE: " << tensor.type << " (iteration " << iteration << ")" << std::endl;
-						log<log_levels::status>(stream.str());
-					}
-					return return_value;
-				} else if (auto index = contains(tensor_name, current_nodes); index != -1) {
-					auto return_value{ tensor_new == current_nodes.at(index) };
-					if (!return_value) {
-						stream << "Found an op of name: " << tensor_name << ", OF TYPE: " << tensor.type << " (iteration " << iteration << ")" << std::endl;
-						stream << return_value.result_output;
-						log<log_levels::status>(stream.str());
-					} else {
-						stream << "Found an op of name: " << tensor_name << ", OF TYPE: " << tensor.type << " (iteration " << iteration << ")" << std::endl;
-						log<log_levels::status>(stream.str());
-					}
-					return return_value;
+			if (!new_string.empty()) {
+				auto return_value{ tensor_newer == tensor_new };
+				if (!return_value) {
+					stream << "Not Equal: Tensor of name: " << convert_op_to_string(tensor.type, current_block) << ", OF TYPE: " << tensor.type << " (iteration " << iteration
+						   << ")" << std::endl;
+					stream << return_value.result_output;
+					log<log_levels::status>(stream.str());
+				} else {
+					stream << "Found an equal op of name: " << convert_op_to_string(tensor.type, current_block) << ", OF TYPE: " << tensor.type << " (iteration " << iteration
+						   << ")" << std::endl;
+					log<log_levels::status>(stream.str());
 				}
+				return return_value;
+			} else {
+				stream << "Not Found: Tensor of name: " << convert_op_to_string(tensor.type, current_block) << ", OF TYPE: " << tensor.type << " (iteration " << iteration << ")"
+					   << std::endl;
 			}
-			stream << "Not Found: Tensor of name: " << tensor_name << ", OF TYPE: " << tensor.type << " (iteration " << iteration << ")" << std::endl;
 			log<log_levels::status>(stream.str());
 			return false;
 		}

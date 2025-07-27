@@ -153,15 +153,15 @@ namespace nihilus {
 		return type_list<first_t<value_type, Q>...>{};
 	}
 
-	template<typename... outer> static constexpr auto getOuterBases(type_list<outer...>) {
+	template<typename... outer> static constexpr auto get_outer_bases(type_list<outer...>) {
 		return (repeat_type<outer>(base_list_t<type_t<outer>>{}) + ...);
 	}
 
-	template<typename... inner> static constexpr auto getInnerBases(type_list<inner...>) {
+	template<typename... inner> static constexpr auto get_inner_bases(type_list<inner...>) {
 		return (base_list_t<type_t<inner>>{} + ...);
 	}
 
-	template<typename value_type, typename... outer, typename... inner> static constexpr auto tuple_catImpl(value_type tupleVal, type_list<outer...>, type_list<inner...>)
+	template<typename value_type, typename... outer, typename... inner> static constexpr auto tuple_cat_impl(value_type tupleVal, type_list<outer...>, type_list<inner...>)
 		-> tuple<type_t<inner>...> {
 		return { { { static_cast<forward_as_t<type_t<outer>&&, inner>>(tupleVal.identity_t<outer>::value).value }... } };
 	}
@@ -183,9 +183,9 @@ namespace nihilus {
 			using big_tuple = tuple<std::decay_t<value_type>...>;
 #endif
 			using outer_bases	 = base_list_t<big_tuple>;
-			constexpr auto outer = getOuterBases(outer_bases{});
-			constexpr auto inner = getInnerBases(outer_bases{});
-			return tuple_catImpl(big_tuple{ { { static_cast<value_type&&>(ts) }... } }, outer, inner);
+			constexpr auto outer = get_outer_bases(outer_bases{});
+			constexpr auto inner = get_inner_bases(outer_bases{});
+			return tuple_cat_impl(big_tuple{ { { static_cast<value_type&&>(ts) }... } }, outer, inner);
 		}
 	}
 

@@ -79,28 +79,18 @@ static constexpr nihilus::model_sizes model_size{ LLAMA_MODEL_SIZE };
 
 int main(int argc, char** argv) {
 	try {
-		for (size_t x = 0; x < argc; ++x) {
-			if (argv[x][0] == '-' && argv[x][1] == 't') {
-				std::cout << "THREAD COUNT BEFORE: " << argv[x + 1] << std::endl;
-				std::string string{ std::to_string(max_thread_count_holder::max_thread_count / 4) };
-				//argv[x + 1][0] = string[0];
-				//argv[x + 1][1] = string[1];
-				std::cout << "THREAD COUNT AFTER: " << argv[x + 1] << std::endl;
-			}
-		}
-		char values[2][3]{ "w", "-t" };
 		static constexpr auto model_config = nihilus::generate_model_config(nihilus::model_generations::v3, model_size, nihilus::kernel_type_profiles::q8_gqa,
 			nihilus::model_arches::llama, false);
 		static constexpr auto model_config01 = nihilus::update_model_config_benchmark(model_config, true);
 
-		nihilus::cli_params cli_args_final	 = nihilus::harbinger<model_config01>::parse_cli_arguments(argc, argv);
+		nihilus::cli_params cli_args	 = nihilus::harbinger<model_config01>::parse_cli_arguments(argc, argv);
 
 		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 4, 2, true, "Token">::runBenchmark<"nihilus">([&] {
-			auto model_new{ nihilus::harbinger<model_config01>::parse_model_graph_data(cli_args_final) };
-			while (model_new->process_input(cli_args_final.prompt)) {
+			auto model_new{ nihilus::harbinger<model_config01>::parse_model_graph_data(cli_args) };
+			while (model_new->process_input(cli_args.prompt)) {
 			}
-			bnch_swt::doNotOptimizeAway(cli_args_final.n_tokens);
-			return cli_args_final.n_tokens;
+			bnch_swt::doNotOptimizeAway(cli_args.n_tokens);
+			return cli_args.n_tokens;
 		});
 		test::stop_watch stop_watch_val{ 0 };
 		std::string return_value{};
@@ -108,7 +98,7 @@ int main(int argc, char** argv) {
 		llama_context* ctx{};
 		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 4, 2, true, "Token">::runBenchmark<"llama.cpp">([&] {
 			return_value.clear();
-			uint64_t token_count{ cli_args_final.n_tokens };
+			uint64_t token_count{ cli_args.n_tokens };
 			g_params = &params;
 			if (!common_params_parse(argc, argv, params, LLAMA_EXAMPLE_MAIN, print_usage)) {
 				return 1;
@@ -604,8 +594,8 @@ int main(int argc, char** argv) {
 			llama_backend_free();
 			ggml_threadpool_free_fn(threadpool);
 			ggml_threadpool_free_fn(threadpool_batch);
-			bnch_swt::doNotOptimizeAway(cli_args_final.n_tokens);
-			return static_cast<int32_t>(cli_args_final.n_tokens);
+			bnch_swt::doNotOptimizeAway(cli_args.n_tokens);
+			return static_cast<int32_t>(cli_args.n_tokens);
 		});
 
 		std::cout << return_value << std::endl;

@@ -39,8 +39,6 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-	template<typename value_type> struct alignas(detail::hardware_constructive_interference_size) aligned_vector : public std::vector<value_type, allocator<value_type>> {};
-
 	template<typename value_type> struct vector : public std::vector<value_type> {};
 
 	static constexpr array<bool, 256> alpha_table{ [] {
@@ -445,10 +443,9 @@ namespace nihilus {
 	};
 
 	template<typename value_type>
-	concept remapped_op_types = requires {
-		requires std::remove_cvref_t<value_type>::kernel_type == kernel_types::view || std::remove_cvref_t<value_type>::kernel_type == kernel_types::reshape ||
-				std::remove_cvref_t<value_type>::kernel_type == kernel_types::permute || std::remove_cvref_t<value_type>::kernel_type == kernel_types::transpose ||
-				std::remove_cvref_t<value_type>::kernel_type == kernel_types::copy;
+	concept remapped_op_types = requires(std::remove_cvref_t<value_type> value) {
+		requires value.kernel_type == kernel_types::view || value.kernel_type == kernel_types::reshape || value.kernel_type == kernel_types::permute ||
+				 value.kernel_type == kernel_types::transpose || value.kernel_type == kernel_types::copy;
 	};
 
 	template<typename enum_type>
@@ -1048,6 +1045,7 @@ namespace nihilus {
 		kernel_type_profiles kernel_profile{};
 		model_arches arch{};
 		bool exceptions{};
+		std::istream* input_stream{};
 		uint64_t max_thread_count{};
 		uint64_t cpu_arch_index{};
 		uint64_t default_max_context_length{};
@@ -1107,13 +1105,13 @@ namespace nihilus {
 		explicit file_loader(const std::filesystem::path& filePath) {
 			if (!std::filesystem::exists(filePath)) {
 				static constexpr auto location = std::source_location::current();
-				nihilus_exception<config, "file_loader - Path does not exist", location>::impl();
+				//nihilus_exception<config, "file_loader - Path does not exist", location>::impl(filePath.string());
 			}
 
 			std::ifstream file(filePath, std::ios::binary | std::ios::ate);
 			if (!file) {
 				static constexpr auto location = std::source_location::current();
-				nihilus_exception<config, "file_loader - Failed to open file", location>::impl();
+				//nihilus_exception<config, "file_loader - Failed to open file", location>::impl();
 			}
 
 			const std::streamsize size = file.tellg();
@@ -1122,7 +1120,7 @@ namespace nihilus {
 				contents.resize(static_cast<uint64_t>(size));
 				if (!file.read(contents.data(), size)) {
 					static constexpr auto location = std::source_location::current();
-					nihilus_exception<config, "file_loader - Failed to read file", location>::impl();
+					//nihilus_exception<config, "file_loader - Failed to read file", location>::impl();
 				}
 			}
 		}

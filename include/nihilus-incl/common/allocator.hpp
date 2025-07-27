@@ -37,7 +37,7 @@ namespace nihilus {
 		}
 	}
 
-	template<typename value_type_new> class allocator {
+	template<typename value_type_new, uint64_t alignment> class allocator {
 	  public:
 		using value_type	   = value_type_new;
 		using pointer		   = value_type_new*;
@@ -46,15 +46,15 @@ namespace nihilus {
 		using const_reference  = const value_type_new&;
 		using uint64_types	   = uint64_t;
 		using difference_type  = std::ptrdiff_t;
-		using allocator_traits = std::allocator_traits<allocator<value_type>>;
+		using allocator_traits = std::allocator_traits<allocator<value_type, alignment>>;
 
 		template<typename U> struct rebind {
-			using other = allocator<U>;
+			using other = allocator<U, alignment>;
 		};
 
 		NIHILUS_INLINE allocator() noexcept = default;
 
-		template<typename U> allocator(const allocator<U>&) noexcept {
+		template<typename U> allocator(const allocator<U, alignment>&) noexcept {
 		}
 
 		NIHILUS_INLINE static pointer allocate(uint64_types count_new) noexcept {
@@ -62,9 +62,9 @@ namespace nihilus {
 				return nullptr;
 			}
 #if defined(NIHILUS_PLATFORM_WINDOWS) || defined(NIHILUS_PLATFORM_LINUX)
-			return static_cast<value_type*>(_mm_malloc(round_up_to_multiple<cpu_alignment>(count_new * sizeof(value_type)), cpu_alignment));
+			return static_cast<value_type*>(_mm_malloc(round_up_to_multiple<alignment>(count_new * sizeof(value_type)), alignment));
 #else
-			return static_cast<value_type*>(aligned_alloc(cpu_alignment, round_up_to_multiple<cpu_alignment>(count_new * sizeof(value_type))));
+			return static_cast<value_type*>(aligned_alloc(alignment, round_up_to_multiple<alignment>(count_new * sizeof(value_type))));
 #endif
 		}
 

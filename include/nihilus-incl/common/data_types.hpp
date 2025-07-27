@@ -35,7 +35,7 @@ namespace nihilus {
 	using token	   = int32_t;
 
 	template<typename half_type> struct block_q8_0 {
-		half_type d;
+		uint16_t d;
 		int8_t qs[Q_SIZE];
 	};
 	static_assert(sizeof(block_q8_0<half>) == sizeof(half) + Q_SIZE, "Wrong q8_0 block size/padding.");

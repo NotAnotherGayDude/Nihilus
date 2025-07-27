@@ -25,12 +25,6 @@ RealTimeChris (Chris M.)
 
 namespace detail {
 
-#if defined(NIHILUS_PLATFORM_MAC)
-	static constexpr uint64_t hardware_constructive_interference_size{ 64 };
-#else
-	static constexpr uint64_t hardware_constructive_interference_size{ std::hardware_constructive_interference_size };
-#endif
-
 	template<typename value_01_type, typename value_02_type>
 	concept convertible_to = std::is_convertible_v<value_02_type, value_01_type>;
 

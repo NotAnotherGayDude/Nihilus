@@ -28,14 +28,14 @@ RealTimeChris (Chris M.)
 namespace nihilus {
 
 	NIHILUS_INLINE static consteval auto generate_model_config(model_generations model_generation, model_sizes model_size, kernel_type_profiles kernel_profile, model_arches arch,
-		bool exceptions = false, uint64_t max_thread_count_new = max_thread_count_holder::max_thread_count, uint64_t cpu_arch_index_new = cpu_arch_index,
-		uint64_t default_max_context_length = 1024, kv_cache_strategies cache_strategy = kv_cache_strategies::paged, bool use_gradient_checkpointing = false,
-		rope_scaling_types rope_scaling = rope_scaling_types::linear, tokenizer_pre_types tokenizer_pre_type = tokenizer_pre_types::llama3, uint64_t kv_cache_block_size = 16,
-		bool use_rotary_embeddings = true, bool use_flash_attention = true, norm_types rms_norm_type = norm_types::rms_standard,
+		bool exceptions = false, std::istream* input_stream = nullptr, uint64_t max_thread_count_new = max_thread_count_holder::max_thread_count,
+		uint64_t cpu_arch_index_new = cpu_arch_index, uint64_t default_max_context_length = 1024, kv_cache_strategies cache_strategy = kv_cache_strategies::paged,
+		bool use_gradient_checkpointing = false, rope_scaling_types rope_scaling = rope_scaling_types::linear, tokenizer_pre_types tokenizer_pre_type = tokenizer_pre_types::llama3,
+		uint64_t kv_cache_block_size = 16, bool use_rotary_embeddings = true, bool use_flash_attention = true, norm_types rms_norm_type = norm_types::rms_standard,
 		tokenizer_types tokenizer_type = tokenizer_types::bpe, model_format format = model_format::gguf, float norm_epsilon = 1e-6f, bool benchmark = false, bool dev = false) {
-		model_config config{ model_generation, model_size, kernel_profile, arch, exceptions, max_thread_count_new, cpu_arch_index_new, default_max_context_length, cache_strategy,
-			use_gradient_checkpointing, rope_scaling, tokenizer_pre_type, kv_cache_block_size, use_rotary_embeddings, use_flash_attention, rms_norm_type, tokenizer_type, format,
-			norm_epsilon, benchmark, dev };
+		model_config config{ model_generation, model_size, kernel_profile, arch, exceptions, input_stream, max_thread_count_new, cpu_arch_index_new, default_max_context_length,
+			cache_strategy, use_gradient_checkpointing, rope_scaling, tokenizer_pre_type, kv_cache_block_size, use_rotary_embeddings, use_flash_attention, rms_norm_type,
+			tokenizer_type, format, norm_epsilon, benchmark, dev };
 		return config;
 	}
 

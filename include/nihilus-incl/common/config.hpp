@@ -137,3 +137,6 @@ template<bool value, auto enum_error, auto... values> struct static_assert_print
 		}
 	}() };
 };
+
+
+inline std::atomic_uint64_t current_count{};

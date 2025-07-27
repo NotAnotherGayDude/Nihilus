@@ -62,7 +62,7 @@ else()
 endif()
 
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "x86_64|AMD64")
-    set(NIHILUS_ARCH "NIHILUS_ARCH_X64 ")
+    set(NIHILUS_ARCH "NIHILUS_ARCH_X64")
 elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|ARM64|arm64")
     set(NIHILUS_ARCH "NIHILUS_ARCH_ARM64")
 endif()
@@ -98,7 +98,7 @@ target_include_directories(
 )
 
 target_link_libraries(
-    "${PROJECT_NAME}" "${NIHILUS_PRIVATE_DEFINITION}" $<$<STREQUAL:$<UPPER_CASE:${NIHILUS_DEV}>,TRUE>:Jsonifier::Jsonifier>
+    "${PROJECT_NAME}" "${NIHILUS_PRIVATE_DEFINITION}" "$<$<STREQUAL:$<UPPER_CASE:${NIHILUS_DEV}>,TRUE>:Jsonifier::Jsonifier">
 )
 
 include("cmake/nihilus_detect_max_thread_count.cmake")
@@ -113,10 +113,10 @@ set(NIHILUS_CLANG_COMPILE_FLAGS
     "-fdata-sections;-ffunction-sections;-Wall;-Wextra;-Wpedantic;-Weverything;-Wconversion;-Wsign-conversion;-Wfloat-conversion;-Wnull-dereference;-Wuninitialized"
     "-Wdouble-promotion;-Wformat=2;-Wformat-security;-Walloca;-Warray-bounds;-Wcast-align;-Wcast-qual;-Wctor-dtor-privacy;-Wdate-time;-Wextra-semi"
     "-Wimplicit-fallthrough;-Winvalid-pch;-Wmissing-declarations;-Wmissing-include-dirs;-Wnon-virtual-dtor;-Wold-style-cast;-Woverloaded-virtual;-Wredundant-decls;-Wsign-promo"
-    "-Wswitch-default;-Wswitch-enum;-Wundef;-Wunused-macros;-Wno-c++98-compat;-Wno-c++98-compat-pedantic;-Wno-unsafe-buffer-usage;-Wno-padded;-Wno-c++20-compat"
+    "-Wswitch-default;-Wswitch-enum;-Wundef;-Wunused-macros;-Wno-c++98-compat;-Wno-c++98-compat-pedantic;-Wno-unsafe-buffer-usage;-Wno-padded;-Wno-c++20-compat;-Wno-exit-time-destructors"
 )
 
-if (UNIX)
+if ("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
     set(NIHILUS_CLANG_COMPILE_FLAGS "${NIHILUS_CLANG_COMPILE_FLAGS};-Wno-nan-infinity-disabled")
 endif()
 
@@ -169,20 +169,6 @@ target_compile_definitions(${PROJECT_NAME} "${NIHILUS_PRIVATE_DEFINITION}"
     "$<$<NOT:$<STREQUAL:${NIHILUS_MODEL_SIZE_OVERRIDE},OFF>>:LLAMA_MODEL_SIZE=${NIHILUS_MODEL_SIZE_OVERRIDE}>"
     "CONSTEXPR_EVERYTHING"
     "ENABLE_CONSTEXPR_MATH"
-)
-
-target_compile_options(
-    "${PROJECT_NAME}" "${NIHILUS_PRIVATE_DEFINITION}"
-    "${NIHILUS_COMMON_COMPILE_FLAGS}"
-)
-
-target_link_options(
-    "${PROJECT_NAME}" "${NIHILUS_PRIVATE_DEFINITION}"
-    "${NIHILUS_COMMON_LINK_OPTIONS}"
-)
-
-target_compile_definitions(
-    "${PROJECT_NAME}" "${NIHILUS_PRIVATE_DEFINITION}" 
     "$<$<STREQUAL:${NIHILUS_ASAN_ENABLED},TRUE>:NIHILUS_ASAN_ENABLED>"
     "$<$<STREQUAL:${NIHILUS_DEV},TRUE>:NIHILUS_DEV>"
     "$<$<STREQUAL:${NIHILUS_BENCHMARK},TRUE>:NIHILUS_BENCHMARK>"

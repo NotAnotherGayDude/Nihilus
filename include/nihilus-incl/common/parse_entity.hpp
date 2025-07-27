@@ -39,13 +39,13 @@ namespace nihilus {
 
 	template<typename value_type> using remove_member_pointer_t = typename decompose_types<value_type>::class_type;
 
-	template<typename value_type, auto element> NIHILUS_INLINE decltype(auto) get_member(value_type& value) {
-		using V = std::remove_cvref_t<decltype(element)>;
-		if constexpr (std::is_member_object_pointer_v<V>) {
+	template<typename value_type_new, auto element> NIHILUS_INLINE decltype(auto) get_member(value_type_new& value) {
+		using value_type = std::remove_cvref_t<decltype(element)>;
+		if constexpr (std::is_member_object_pointer_v<value_type>) {
 			return value.*element;
-		} else if constexpr (std::is_member_function_pointer_v<V>) {
+		} else if constexpr (std::is_member_function_pointer_v<value_type>) {
 			return element;
-		} else if constexpr (std::is_pointer_v<V>) {
+		} else if constexpr (std::is_pointer_v<value_type>) {
 			return *element;
 		} else {
 			return element;

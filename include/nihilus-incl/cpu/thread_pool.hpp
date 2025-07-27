@@ -167,7 +167,6 @@ namespace nihilus {
 			for (uint64_t x = 0; x < static_cast<uint64_t>(thread_count); ++x) {
 				threads[x] = std::thread{ function_ptrs[x], this, x };
 			}
-			core_base_type::template impl<execution_planner>(thread_count);
 		}
 
 		template<bool raise_priority = false> NIHILUS_INLINE void thread_function(uint64_t thread_index) {
@@ -179,16 +178,13 @@ namespace nihilus {
 				if (!stop.load()) {
 					core_base_type::template impl<global_input_thread_function>();
 					for (uint64_t x = 0; x < model_traits_type<config>::block_count; ++x) {
-						core_base_type::template impl<per_block_thread_function>();
+						core_base_type::template impl<per_block_thread_function>(x);
 						if constexpr (config.dev) {
 							perf_base<config>::perf_stats.debug_counter.arrive_and_wait();
 							if (thread_index == 0) {
 								core_base_type::template impl<tensor_debugger_impl>(x, perf_base<config>::perf_stats.current_iteration,
 									perf_base<config>::perf_stats.runtime_dimensions[thread_index]);
 							}
-						}
-						if (thread_index == 0) {
-							core_base_type::template impl<run_checker_resetter>();
 						}
 					}
 					core_base_type::template impl<global_output_thread_function>();
@@ -198,6 +194,7 @@ namespace nihilus {
 		}
 
 		NIHILUS_INLINE void execute_tasks(uint64_t runtime_dimensions_new) {
+			core_base_type::template impl<execution_planner>(thread_count);
 			core_base_type::template impl<dim_updater>(runtime_dimensions_new);
 			if constexpr (config.dev) {
 				for (uint64_t x = 0; x < threads.size(); ++x) {

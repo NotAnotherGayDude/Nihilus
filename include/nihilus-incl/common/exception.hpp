@@ -36,14 +36,9 @@ namespace nihilus {
 		status,
 	};
 
-	NIHILUS_INLINE std::mutex* get_log_mutex() {
-		static std::mutex mutex;
-		return &mutex;
-	}
-
 	template<log_levels level> NIHILUS_INLINE void log(std::string_view string) {
-		static auto* reference = get_log_mutex();
-		std::unique_lock<std::mutex> lock{ *reference };
+		static std::mutex mutex_new{};
+		std::unique_lock<std::mutex> lock{ mutex_new };
 		if constexpr (level == log_levels::error) {
 			std::cerr << string << std::endl;
 		} else {

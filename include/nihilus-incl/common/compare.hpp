@@ -37,17 +37,17 @@ namespace nihilus {
 	template<uint64_t length> using convert_length_to_int_t = typename convert_length_to_int<length>::type;
 
 	template<string_literal string>
-		requires(string.length == 0)
+		requires(string.size() == 0)
 	static constexpr auto pack_values() {
 		return uint8_t{};
 	}
 
 	template<string_literal string>
-		requires(string.length > 0 && string.length <= 8)
+		requires(string.size() > 0 && string.size() <= 8)
 	static constexpr auto pack_values() {
-		convert_length_to_int_t<string.length> return_values{};
-		for (uint64_t x = 0; x < string.length; ++x) {
-			return_values |= static_cast<convert_length_to_int_t<string.length>>(static_cast<uint64_t>(string[x]) << ((x % 8) * 8));
+		convert_length_to_int_t<string.size()> return_values{};
+		for (uint64_t x = 0; x < string.size(); ++x) {
+			return_values |= static_cast<convert_length_to_int_t<string.size()>>(static_cast<uint64_t>(string[x]) << ((x % 8) * 8));
 		}
 		return return_values;
 	}
@@ -63,11 +63,11 @@ namespace nihilus {
 	}
 
 	template<string_literal string>
-		requires(string.length != 0 && string.length > 8)
+		requires(string.size() != 0 && string.size() > 8)
 	static constexpr auto pack_values() {
-		NIHILUS_ALIGN(16) array<uint64_t, round_up_to_multiple<16>(get_packing_size<string.length>())> return_values{};
-		for (uint64_t x = 0; x < string.length; ++x) {
-			if (x / 8 < (string.length / 8) + 1) {
+		NIHILUS_ALIGN(16) array<uint64_t, round_up_to_multiple<16>(get_packing_size<string.size()>())> return_values{};
+		for (uint64_t x = 0; x < string.size(); ++x) {
+			if (x / 8 < (string.size() / 8) + 1) {
 				return_values[x / 8] |= (static_cast<uint64_t>(string[x]) << ((x % 8) * 8));
 			}
 		}
@@ -75,22 +75,22 @@ namespace nihilus {
 	}
 
 	template<typename value_type>
-	concept equals_0 = value_type::length == 0;
+	concept equals_0 = value_type::size() == 0;
 
 	template<typename value_type>
-	concept gt_0_lt_16 = value_type::length > 0 && value_type::length < 16;
+	concept gt_0_lt_16 = value_type::size() > 0 && value_type::size() < 16;
 
 	template<typename value_type>
-	concept eq_16 = value_type::length == 16 && cpu_alignment >= 16;
+	concept eq_16 = value_type::size() == 16;
 
 	template<typename value_type>
-	concept eq_32 = value_type::length == 32 && cpu_alignment >= 32;
+	concept eq_32 = value_type::size() == 32;
 
 	template<typename value_type>
-	concept eq_64 = value_type::length == 64 && cpu_alignment >= 64;
+	concept eq_64 = value_type::size() == 64;
 
 	template<typename value_type>
-	concept gt_16 = value_type::length > 16 && !eq_16<value_type> && !eq_32<value_type> && !eq_64<value_type>;
+	concept gt_16 = value_type::size() > 16 && !eq_16<value_type> && !eq_32<value_type> && !eq_64<value_type>;
 
 	template<uint64_t index, typename string_types> static constexpr auto string_literal_from_view(string_types str) noexcept {
 		string_literal<index + 1> sl{};
@@ -100,7 +100,7 @@ namespace nihilus {
 	}
 
 	template<string_literal string, uint64_t offset> static constexpr auto offset_new_literal() noexcept {
-		constexpr uint64_t originalSize = string.length;
+		constexpr uint64_t originalSize = string.size();
 		constexpr uint64_t newSize		= (offset >= originalSize) ? 0 : originalSize - offset;
 		string_literal<newSize + 1> sl{};
 		if constexpr (newSize > 0) {
@@ -111,7 +111,7 @@ namespace nihilus {
 	}
 
 	template<string_literal string, uint64_t offset> static constexpr auto offset_into_literal() noexcept {
-		constexpr uint64_t originalSize = string.length;
+		constexpr uint64_t originalSize = string.size();
 		constexpr uint64_t newSize		= (offset >= originalSize) ? originalSize : offset;
 		string_literal<newSize + 1> sl{};
 		if constexpr (newSize > 0) {
@@ -182,8 +182,6 @@ namespace nihilus {
 		}
 	};
 
-#if defined(NIHILUS_AVX2) || defined(NIHILUS_AVX512) || defined(NIHILUS_NEON) || defined(NIHILUS_SVE2)
-
 	template<eq_16 sl_type, std::remove_cvref_t<sl_type> string_new> struct string_literal_comparitor<sl_type, string_new> {
 		inline static constexpr auto new_literal{ string_new };
 		NIHILUS_ALIGN(16) inline static constexpr auto values_new { pack_values<new_literal>() };
@@ -195,8 +193,6 @@ namespace nihilus {
 			return !opTest<nihilus_simd_int_128_t>(opXor<nihilus_simd_int_128_t, nihilus_simd_int_128_t>(data1, data2));
 		}
 	};
-
-#endif
 
 #if defined(NIHILUS_AVX2) || defined(NIHILUS_AVX512) || defined(NIHILUS_SVE2)
 
@@ -221,8 +217,8 @@ namespace nihilus {
 		NIHILUS_INLINE static bool impl(const char* str) noexcept {
 			NIHILUS_ALIGN(64) char values_to_load[64];
 			std::memcpy(values_to_load, str, 64);
-			const nihilus_simd_int_512 data1{ gather_values<nihilus_simd_int_512>(values_to_load) };
-			const nihilus_simd_int_512 data2{ gather_values<nihilus_simd_int_512>(values_new.data()) };
+			const nihilus_simd_int_512 data1{ gather_values<nihilus_simd_int_512_t>(values_to_load) };
+			const nihilus_simd_int_512 data2{ gather_values<nihilus_simd_int_512_t>(values_new.data()) };
 			return !opTest(opXor(data1, data2));
 		}
 	};
