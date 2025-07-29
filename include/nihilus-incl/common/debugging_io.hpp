@@ -538,8 +538,8 @@ namespace nihilus {
 					for (size_t i = 0; i < count; ++i) {
 						double diff = fabs(static_cast<double>(vals1[i]) - static_cast<double>(vals2[i]));
 
-						bool both_nan = isnan(vals1[i]) && isnan(vals2[i]);
-						bool both_inf = isinf(vals1[i]) && isinf(vals2[i]) && (signbit(vals1[i]) == signbit(vals2[i]));
+						bool both_nan = std::isnan(vals1[i]) && std::isnan(vals2[i]);
+						bool both_inf = std::isinf(vals1[i]) && std::isinf(vals2[i]) && (std::signbit(vals1[i]) == std::signbit(vals2[i]));
 
 						if (both_nan || both_inf) {
 							continue;

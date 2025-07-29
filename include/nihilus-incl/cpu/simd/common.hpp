@@ -314,19 +314,19 @@ namespace nihilus {
 		NIHILUS_INLINE float_holder() noexcept : value{} {
 		}
 
-		NIHILUS_INLINE float_holder(float new_value) noexcept : value{ new_value } {
+		NIHILUS_INLINE float_holder(double new_value) noexcept : value{ new_value } {
 		}
 
-		NIHILUS_INLINE operator float() const noexcept {
+		NIHILUS_INLINE operator double() const noexcept {
 			return value;
 		}
 
-		NIHILUS_INLINE operator float&() noexcept {
+		NIHILUS_INLINE operator double&() noexcept {
 			return value;
 		}
 
 	  protected:
-		alignas(64) float value{};
+		alignas(64) double value{};
 	};
 
 	NIHILUS_INLINE static constexpr float compute_fp16_to_fp32(half h) noexcept { 
@@ -352,7 +352,7 @@ namespace nihilus {
 			alignas(64) static vector<float_holder> return_values_new;
 			return_values_new.resize((1 << 16));
 			for (uint64_t i = 0; i < (1 << 16); ++i) {
-				return_values_new[i] = compute_fp16_to_fp32(static_cast<uint64_t>(i));
+				return_values_new[i] = compute_fp16_to_fp32(static_cast<half>(i));
 			}
 			return return_values_new;
 		}();

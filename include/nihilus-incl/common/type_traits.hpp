@@ -157,7 +157,7 @@ namespace nihilus {
 		: public total_bytes_size<type_traits<double>>, public get_strides<type_traits<double>>, public get_dynamic_type_traits<type_traits<double>> {
 		using value_type = double;
 		using quant_type = double;
-		inline static constexpr data_types type{ data_types::f32 };
+		inline static constexpr data_types type{ data_types::f64 };
 		inline static constexpr uint64_t type_size{ sizeof(double) };
 		inline static constexpr bool is_quantized{ false };
 		inline static constexpr uint64_t block_size{ 1 };
