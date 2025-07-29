@@ -79,7 +79,7 @@ namespace nihilus {
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(
-	type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array(), strides)) };
+			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array(), strides)) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::none };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::mmap };
 		static constexpr kernel_types kernel_type{ kernel_types::none };
@@ -174,7 +174,7 @@ namespace nihilus {
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(
-	type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array(), strides)) };
+			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array(), strides)) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::none };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::mmap };
 		static constexpr kernel_types kernel_type{ kernel_types::none };
@@ -198,7 +198,7 @@ namespace nihilus {
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(
-	type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array(), strides)) };
+			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array(), strides)) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::none };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::mmap };
 		static constexpr kernel_types kernel_type{ kernel_types::none };
@@ -215,14 +215,14 @@ namespace nihilus {
 		NIHILUS_INLINE constexpr core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_INLINE constexpr core_traits(core_traits&&) noexcept				 = delete;
 		using model_traits_type														 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
-		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::output_norm_weight_type;
+		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::compute_type;
 		using core_traits_dims_type													 = core_trait_dims<model_traits_type::embedding_length, 1, 1, 1>;
 		static constexpr input_types input_type{ input_types::none };
 		static constexpr uint64_t depth{ 0 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(
-	type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array(), strides)) };
+			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array(), strides)) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::none };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::mmap };
 		static constexpr kernel_types kernel_type{ kernel_types::none };
@@ -239,14 +239,14 @@ namespace nihilus {
 		NIHILUS_INLINE constexpr core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_INLINE constexpr core_traits(core_traits&&) noexcept				 = delete;
 		using model_traits_type														 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
-		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::attn_q_weight_type;
+		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::weight_type;
 		using core_traits_dims_type = core_trait_dims<model_traits_type::embedding_length, model_traits_type::embedding_length, 1, 1>;
 		static constexpr input_types input_type{ input_types::none };
 		static constexpr uint64_t depth{ 0 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(
-	type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array(), strides)) };
+			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array(), strides)) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::none };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::mmap };
 		static constexpr kernel_types kernel_type{ kernel_types::none };
@@ -265,7 +265,7 @@ namespace nihilus {
 		NIHILUS_INLINE constexpr core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_INLINE constexpr core_traits(core_traits&&) noexcept				 = delete;
 		using model_traits_type														 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
-		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::attn_k_weight_type;
+		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::weight_type;
 		using core_traits_dims_type =
 			core_trait_dims<model_traits_type::embedding_length, (model_traits_type::rope_dimension_count * model_traits_type::attention_head_count_kv), 1, 1>;
 		static constexpr input_types input_type{ input_types::none };
@@ -273,7 +273,7 @@ namespace nihilus {
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(
-	type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array(), strides)) };
+			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array(), strides)) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::none };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::mmap };
 		static constexpr kernel_types kernel_type{ kernel_types::none };
@@ -292,7 +292,7 @@ namespace nihilus {
 		NIHILUS_INLINE constexpr core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_INLINE constexpr core_traits(core_traits&&) noexcept				 = delete;
 		using model_traits_type														 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
-		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::attn_v_weight_type;
+		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::weight_type;
 		using core_traits_dims_type =
 			core_trait_dims<model_traits_type::embedding_length, (model_traits_type::rope_dimension_count * model_traits_type::attention_head_count_kv), 1, 1>;
 		static constexpr input_types input_type{ input_types::none };
@@ -300,7 +300,7 @@ namespace nihilus {
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(
-	type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array(), strides)) };
+			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array(), strides)) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::none };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::mmap };
 		static constexpr kernel_types kernel_type{ kernel_types::none };
@@ -317,14 +317,14 @@ namespace nihilus {
 		NIHILUS_INLINE constexpr core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_INLINE constexpr core_traits(core_traits&&) noexcept				 = delete;
 		using model_traits_type														 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
-		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::attn_output_weight_type;
+		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::weight_type;
 		using core_traits_dims_type = core_trait_dims<model_traits_type::embedding_length, model_traits_type::embedding_length, 1, 1>;
 		static constexpr input_types input_type{ input_types::none };
 		static constexpr uint64_t depth{ 0 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(
-	type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array(), strides)) };
+			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array(), strides)) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::none };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::mmap };
 		static constexpr kernel_types kernel_type{ kernel_types::none };
@@ -341,14 +341,14 @@ namespace nihilus {
 		NIHILUS_INLINE constexpr core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_INLINE constexpr core_traits(core_traits&&) noexcept				 = delete;
 		using model_traits_type														 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
-		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::attn_norm_weight_type;
+		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::compute_type;
 		using core_traits_dims_type													 = core_trait_dims<model_traits_type::embedding_length, 1, 1, 1>;
 		static constexpr input_types input_type{ input_types::none };
 		static constexpr uint64_t depth{ 0 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(
-	type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array(), strides)) };
+			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array(), strides)) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::none };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::mmap };
 		static constexpr kernel_types kernel_type{ kernel_types::none };
@@ -365,14 +365,14 @@ namespace nihilus {
 		NIHILUS_INLINE constexpr core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_INLINE constexpr core_traits(core_traits&&) noexcept				 = delete;
 		using model_traits_type														 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
-		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::ffn_gate_weight_type;
+		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::weight_type;
 		using core_traits_dims_type = core_trait_dims<model_traits_type::embedding_length, model_traits_type::feed_forward_length, 1, 1>;
 		static constexpr input_types input_type{ input_types::none };
 		static constexpr uint64_t depth{ 0 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(
-	type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array(), strides)) };
+			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array(), strides)) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::none };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::mmap };
 		static constexpr kernel_types kernel_type{ kernel_types::none };
@@ -389,14 +389,14 @@ namespace nihilus {
 		NIHILUS_INLINE constexpr core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_INLINE constexpr core_traits(core_traits&&) noexcept				 = delete;
 		using model_traits_type														 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
-		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::ffn_up_weight_type;
+		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::weight_type;
 		using core_traits_dims_type = core_trait_dims<model_traits_type::embedding_length, model_traits_type::feed_forward_length, 1, 1>;
 		static constexpr input_types input_type{ input_types::none };
 		static constexpr uint64_t depth{ 0 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(
-	type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array(), strides)) };
+			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array(), strides)) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::none };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::mmap };
 		static constexpr kernel_types kernel_type{ kernel_types::none };
@@ -413,14 +413,14 @@ namespace nihilus {
 		NIHILUS_INLINE constexpr core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_INLINE constexpr core_traits(core_traits&&) noexcept				 = delete;
 		using model_traits_type														 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
-		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::ffn_down_weight_type;
+		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::weight_type;
 		using core_traits_dims_type = core_trait_dims<model_traits_type::feed_forward_length, model_traits_type::embedding_length, 1, 1>;
 		static constexpr input_types input_type{ input_types::none };
 		static constexpr uint64_t depth{ 0 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(
-	type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array(), strides)) };
+			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array(), strides)) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::mmap };
 		static constexpr kernel_types kernel_type{ kernel_types::none };
@@ -437,14 +437,14 @@ namespace nihilus {
 		NIHILUS_INLINE constexpr core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_INLINE constexpr core_traits(core_traits&&) noexcept				 = delete;
 		using model_traits_type														 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
-		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::ffn_norm_weight_type;
+		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::weight_type;
 		using core_traits_dims_type													 = core_trait_dims<model_traits_type::embedding_length, 1, 1, 1>;
 		static constexpr input_types input_type{ input_types::none };
 		static constexpr uint64_t depth{ 0 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(
-	type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array(), strides)) };
+			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array(), strides)) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::mmap };
 		static constexpr kernel_types kernel_type{ kernel_types::none };
@@ -509,7 +509,7 @@ namespace nihilus {
 		NIHILUS_INLINE constexpr core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_INLINE constexpr core_traits(core_traits&&) noexcept				 = delete;
 		using model_traits_type														 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
-		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::kq_mask_type;
+		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::mask_type;
 		using core_traits_dims_type													 = core_trait_dims<model_traits_type::block_count, model_traits_type::block_count, 1, 1>;
 		static constexpr input_types input_type{ input_types::none };
 		static constexpr uint64_t depth{ 0 };
@@ -536,7 +536,7 @@ namespace nihilus {
 		using model_traits_type														 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
 		using input_01_type															 = core_traits<config_new, op_types::token_embd_weight>;
 		using input_02_type															 = core_traits<config_new, op_types::inp_tokens>;
-		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::embedding_type;
+		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::compute_type;
 		using core_traits_dims_type = get_new_dims_2_t<config_new, kernel_types::get_rows, op_types::token_embd_weight, op_types::inp_tokens, runtime_dims<1>>;
 		static constexpr input_types input_type{ input_types::two };
 		static constexpr uint64_t depth{ detail::max(input_01_type::depth, input_02_type::depth) + 1 };
@@ -564,7 +564,7 @@ namespace nihilus {
 		using model_traits_type														 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
 		using input_01_type															 = core_traits<config_new, op_types::inp_embd>;
 		using input_02_type															 = core_traits<config_new, op_types::attn_norm_weight>;
-		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::norm_output_type;
+		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::compute_type;
 		using transform_type														 = output_transform<input_01_type::kernel_type, input_02_type::kernel_type>;
 		using core_traits_dims_type = get_new_dims_2_t<config_new, kernel_types::rms_norm_mul, op_types::inp_embd, op_types::attn_norm_weight, runtime_dims<1>>;
 		static constexpr input_types input_type{ input_types::two };
@@ -579,7 +579,8 @@ namespace nihilus {
 		static constexpr kernel_types kernel_type{ kernel_types::rms_norm_mul };
 		static constexpr op_types type{ op_types::norm_attn_norm };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		array<core_latch, model_traits_type::block_count> run_checkers{};
+		op_latch sync_flag_start{};
+		op_latch sync_flag_end{};
 		output_type* data{};
 	};
 
@@ -594,7 +595,7 @@ namespace nihilus {
 		using model_traits_type														 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
 		using input_01_type															 = core_traits<config_new, op_types::attn_q_weight>;
 		using input_02_type															 = core_traits<config_new, op_types::norm_attn_norm>;
-		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::query_type;
+		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::compute_type;
 		using core_traits_dims_type = get_new_dims_2_t<config_new, kernel_types::mul_mat, op_types::attn_q_weight, op_types::norm_attn_norm, runtime_dims<1>>;
 		static constexpr input_types input_type{ input_types::two };
 		static constexpr uint64_t depth{ detail::max(input_01_type::depth, input_02_type::depth) + 1 };
@@ -623,14 +624,14 @@ namespace nihilus {
 		using transform_type														 = int32_t;
 		using model_traits_type														 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
 		using input_01_type															 = core_traits<config_new, op_types::qcur_mul_mat>;
-		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::query_type;
+		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::compute_type;
 		using core_traits_dims_type = core_trait_dims<model_traits_type::rope_dimension_count, model_traits_type::block_count, 1, 1, 2>;
 		static constexpr input_types input_type{ input_types::one };
 		static constexpr uint64_t depth{ input_01_type::depth + 1 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(
-	type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array(), strides)) };
+			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array(), strides)) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::remap };
 		static constexpr kernel_types kernel_type{ kernel_types::reshape };
@@ -652,7 +653,7 @@ namespace nihilus {
 		using input_01_type															 = core_traits<config_new, op_types::qcur_reshaped>;
 		using input_02_type															 = core_traits<config_new, op_types::inp_pos>;
 		using input_03_type															 = core_traits<config_new, op_types::rope_freqs_weight>;
-		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::query_type;
+		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::compute_type;
 		using core_traits_dims_type = get_new_dims_3_t<config_new, kernel_types::rope, op_types::qcur_reshaped, op_types::inp_pos, op_types::rope_freqs_weight, runtime_dims<2>>;
 		static constexpr input_types input_type{ input_types::three };
 		static constexpr uint64_t depth{ detail::max(input_01_type::depth, input_02_type::depth) + 1 };
@@ -666,7 +667,8 @@ namespace nihilus {
 		static constexpr kernel_types kernel_type{ kernel_types::rope };
 		static constexpr op_types type{ op_types::qcur_rope };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		array<core_latch, model_traits_type::block_count> run_checkers{};
+		op_latch sync_flag_start{};
+		op_latch sync_flag_end{};
 		output_type* data{};
 	};
 
@@ -681,7 +683,7 @@ namespace nihilus {
 		using model_traits_type														 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
 		using input_01_type															 = core_traits<config_new, op_types::attn_k_weight>;
 		using input_02_type															 = core_traits<config_new, op_types::norm_attn_norm>;
-		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::query_type;
+		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::compute_type;
 		using core_traits_dims_type = get_new_dims_2_t<config_new, kernel_types::mul_mat, op_types::attn_k_weight, op_types::norm_attn_norm, runtime_dims<1>>;
 		static constexpr input_types input_type{ input_types::two };
 		static constexpr uint64_t depth{ detail::max(input_01_type::depth, input_02_type::depth) + 1 };
@@ -711,14 +713,14 @@ namespace nihilus {
 		using transform_type														 = int32_t;
 		using model_traits_type														 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
 		using input_01_type															 = core_traits<config_new, op_types::kcur_mul_mat>;
-		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::query_type;
+		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::compute_type;
 		using core_traits_dims_type = core_trait_dims<model_traits_type::rope_dimension_count, model_traits_type::attention_head_count_kv, 1, 1, 2>;
 		static constexpr input_types input_type{ input_types::one };
 		static constexpr uint64_t depth{ input_01_type::depth + 1 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(
-	type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array(), strides)) };
+			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array(), strides)) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::remap };
 		static constexpr kernel_types kernel_type{ kernel_types::reshape };
@@ -740,7 +742,7 @@ namespace nihilus {
 		using input_01_type															 = core_traits<config_new, op_types::kcur_reshaped>;
 		using input_02_type															 = core_traits<config_new, op_types::inp_pos>;
 		using input_03_type															 = core_traits<config_new, op_types::rope_freqs_weight>;
-		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::query_type;
+		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::compute_type;
 		using core_traits_dims_type = get_new_dims_3_t<config_new, kernel_types::rope, op_types::kcur_reshaped, op_types::inp_pos, op_types::rope_freqs_weight, runtime_dims<2>>;
 		static constexpr input_types input_type{ input_types::three };
 		static constexpr uint64_t depth{ detail::max(input_01_type::depth, input_02_type::depth) + 1 };
@@ -754,7 +756,8 @@ namespace nihilus {
 		static constexpr kernel_types kernel_type{ kernel_types::rope };
 		static constexpr op_types type{ op_types::kcur_rope };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		array<core_latch, model_traits_type::block_count> run_checkers{};
+		op_latch sync_flag_start{};
+		op_latch sync_flag_end{};
 		output_type* data{};
 	};
 
@@ -769,7 +772,7 @@ namespace nihilus {
 		using model_traits_type														 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
 		using input_01_type															 = core_traits<config_new, op_types::attn_v_weight>;
 		using input_02_type															 = core_traits<config_new, op_types::norm_attn_norm>;
-		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::value_type;
+		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::compute_type;
 		using core_traits_dims_type = get_new_dims_2_t<config_new, kernel_types::mul_mat, op_types::attn_v_weight, op_types::norm_attn_norm, runtime_dims<1>>;
 		static constexpr input_types input_type{ input_types::two };
 		static constexpr uint64_t depth{ detail::max(input_01_type::depth, input_02_type::depth) + 1 };
@@ -804,7 +807,7 @@ namespace nihilus {
 		static constexpr uint64_t runtime_dim_multiplier{ 1024 };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(
-	type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array(), strides)) };
+			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array(), strides)) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::remap };
 		static constexpr kernel_types kernel_type{ kernel_types::view };
@@ -821,10 +824,11 @@ namespace nihilus {
 		NIHILUS_INLINE constexpr core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type														 = int32_t;
 		using model_traits_type														 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
-		using input_01_type															 = core_traits<config_new, op_types::kcur_rope>;
-		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::query_type;
+		using input_01_type															 = core_traits<config_new, op_types::k_cache_view>;
+		using input_02_type															 = core_traits<config_new, op_types::kcur_rope>;
+		using output_type															 = typename input_01_type::output_type;
 		using core_traits_dims_type													 = core_trait_dims<1, 1, 1, 1, 0>;
-		static constexpr input_types input_type{ input_types::one };
+		static constexpr input_types input_type{ input_types::two };
 		static constexpr uint64_t depth{ input_01_type::depth + 1 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1024 };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
@@ -835,7 +839,8 @@ namespace nihilus {
 		static constexpr kernel_types kernel_type{ kernel_types::copy };
 		static constexpr op_types type{ op_types::k_cache_view_copy };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		array<core_latch, model_traits_type::block_count> run_checkers{};
+		op_latch sync_flag_start{};
+		op_latch sync_flag_end{};
 		output_type* data{};
 	};
 
@@ -849,14 +854,14 @@ namespace nihilus {
 		using transform_type														 = int32_t;
 		using model_traits_type														 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
 		using input_01_type															 = core_traits<config_new, op_types::vcur_mul_mat>;
-		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::value_type;
+		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::compute_type;
 		using core_traits_dims_type													 = core_trait_dims<1, core_traits<config_new, op_types::vcur_mul_mat>::get_array()[0], 1, 1, 0>;
 		static constexpr input_types input_type{ input_types::one };
 		static constexpr uint64_t depth{ input_01_type::depth + 1 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(
-	type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array(), strides)) };
+			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array(), strides)) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::remap };
 		static constexpr kernel_types kernel_type{ kernel_types::transpose };
@@ -881,7 +886,7 @@ namespace nihilus {
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(
-	type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array(), strides)) };
+			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array(), strides)) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::remap };
 		static constexpr kernel_types kernel_type{ kernel_types::view };
@@ -890,7 +895,7 @@ namespace nihilus {
 		output_type* data{};
 	};
 
-	template<model_config config_new> struct core_traits<config_new, op_types::v_cache_view_copy> : public config_holder<config_new>, public core_trait_dims<1, 1024, 1, 1, 0> {
+	template<model_config config_new> struct core_traits<config_new, op_types::v_cache_view_copy> : public config_holder<config_new>, public core_trait_dims<1, 1, 1, 1, 0> {
 		NIHILUS_INLINE constexpr core_traits() noexcept								 = default;
 		NIHILUS_INLINE constexpr core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_INLINE constexpr core_traits(const core_traits&) noexcept			 = delete;
@@ -898,12 +903,13 @@ namespace nihilus {
 		NIHILUS_INLINE constexpr core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type														 = int32_t;
 		using model_traits_type														 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
-		using input_01_type															 = core_traits<config_new, op_types::vcur_transposed>;
-		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::query_type;
-		using core_traits_dims_type													 = core_trait_dims<1, 1024, 1, 1, 0>;
-		static constexpr input_types input_type{ input_types::one };
+		using input_01_type															 = core_traits<config_new, op_types::v_cache_view>;
+		using input_02_type															 = core_traits<config_new, op_types::vcur_transposed>;
+		using output_type															 = typename input_01_type::output_type;
+		using core_traits_dims_type													 = core_trait_dims<1, 1, 1, 1, 0>;
+		static constexpr input_types input_type{ input_types::two };
 		static constexpr uint64_t depth{ input_01_type::depth + 1 };
-		static constexpr uint64_t runtime_dim_multiplier{ 1 };
+		static constexpr uint64_t runtime_dim_multiplier{ 1024 };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(
 			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array(), strides)) };
@@ -912,7 +918,8 @@ namespace nihilus {
 		static constexpr kernel_types kernel_type{ kernel_types::copy };
 		static constexpr op_types type{ op_types::v_cache_view_copy };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		array<core_latch, model_traits_type::block_count> run_checkers{};
+		op_latch sync_flag_start{};
+		op_latch sync_flag_end{};
 		output_type* data{};
 	};
 
@@ -936,7 +943,7 @@ namespace nihilus {
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(
-	type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array(), strides)) };
+			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array(), strides)) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::remap };
 		static constexpr kernel_types kernel_type{ kernel_types::view };
@@ -965,7 +972,7 @@ namespace nihilus {
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(
-	type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array(), strides)) };
+			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array(), strides)) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::remap };
 		static constexpr kernel_types kernel_type{ kernel_types::view };
@@ -985,14 +992,14 @@ namespace nihilus {
 		using transform_type														 = int32_t;
 		using model_traits_type														 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
 		using input_01_type															 = core_traits<config_new, op_types::qcur_rope>;
-		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::query_type;
+		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::compute_type;
 		using core_traits_dims_type = core_trait_dims<model_traits_type::rope_dimension_count, 1, model_traits_type::attention_head_count, 1, 1>;
 		static constexpr input_types input_type{ input_types::one };
 		static constexpr uint64_t depth{ input_01_type::depth + 1 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(
-	type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array(), strides)) };
+			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array(), strides)) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::remap };
 		static constexpr kernel_types kernel_type{ kernel_types::permute };
@@ -1012,7 +1019,7 @@ namespace nihilus {
 		using model_traits_type														 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
 		using input_01_type															 = core_traits<config_new, op_types::k>;
 		using input_02_type															 = core_traits<config_new, op_types::q>;
-		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::attention_score_type;
+		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::compute_type;
 		using core_traits_dims_type = get_new_dims_2_t<config_new, kernel_types::mul_mat, op_types::k, op_types::q, runtime_dims<1>>;
 		static constexpr input_types input_type{ input_types::two };
 		static constexpr uint64_t depth{ detail::max(input_01_type::depth, input_02_type::depth) + 1 };
@@ -1043,7 +1050,7 @@ namespace nihilus {
 		using model_traits_type														 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
 		using input_01_type															 = core_traits<config_new, op_types::kq>;
 		using input_02_type															 = core_traits<config_new, op_types::kq_mask>;
-		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::softmax_type;
+		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::compute_type;
 		using core_traits_dims_type = get_new_dims_2_t<config_new, kernel_types::softmax, op_types::kq, op_types::kq_mask, runtime_dims<1>>;
 		static constexpr input_types input_type{ input_types::two };
 		static constexpr uint64_t depth{ detail::max(input_01_type::depth, input_02_type::depth) + 1 };
@@ -1057,7 +1064,8 @@ namespace nihilus {
 		static constexpr kernel_types kernel_type{ kernel_types::softmax };
 		static constexpr op_types type{ op_types::kq_soft_max };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		array<core_latch, model_traits_type::block_count> run_checkers{};
+		op_latch sync_flag_start{};
+		op_latch sync_flag_end{};
 		output_type* data{};
 	};
 
@@ -1072,7 +1080,7 @@ namespace nihilus {
 		using model_traits_type														 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
 		using input_01_type															 = core_traits<config_new, op_types::v>;
 		using input_02_type															 = core_traits<config_new, op_types::kq_soft_max>;
-		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::value_type;
+		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::compute_type;
 		using core_traits_dims_type = get_new_dims_2_t<config_new, kernel_types::mul_mat, op_types::v, op_types::kq_soft_max, runtime_dims<1>>;
 		static constexpr input_types input_type{ input_types::two };
 		static constexpr uint64_t depth{ detail::max(input_01_type::depth, input_02_type::depth) + 1 };
@@ -1101,14 +1109,14 @@ namespace nihilus {
 		using transform_type														 = int32_t;
 		using model_traits_type														 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
 		using input_01_type															 = core_traits<config_new, op_types::kqv>;
-		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::value_type;
+		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::compute_type;
 		using core_traits_dims_type = core_trait_dims<model_traits_type::rope_dimension_count, model_traits_type::attention_head_count, 1, 1, 2>;
 		static constexpr input_types input_type{ input_types::one };
 		static constexpr uint64_t depth{ input_01_type::depth + 1 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(
-	type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array(), strides)) };
+			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array(), strides)) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::remap };
 		static constexpr kernel_types kernel_type{ kernel_types::permute };
@@ -1127,7 +1135,7 @@ namespace nihilus {
 		using transform_type														 = int32_t;
 		using model_traits_type														 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
 		using input_01_type															 = core_traits<config_new, op_types::kqv_merged>;
-		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::value_type;
+		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::compute_type;
 		using core_traits_dims_type													 = core_trait_dims<model_traits_type::embedding_length, 1, 1, 1, 1>;
 		static constexpr input_types input_type{ input_types::one };
 		static constexpr uint64_t depth{ input_01_type::depth + 1 };
@@ -1136,11 +1144,12 @@ namespace nihilus {
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(
 			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array(), strides)) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
-		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::global };
+		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::remap };
 		static constexpr kernel_types kernel_type{ kernel_types::cont };
 		static constexpr op_types type{ op_types::kqv_merged_cont };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		array<core_latch, model_traits_type::block_count> run_checkers{};
+		op_latch sync_flag_start{};
+		op_latch sync_flag_end{};
 		output_type* data{};
 	};
 
@@ -1155,7 +1164,7 @@ namespace nihilus {
 		using model_traits_type														 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
 		using input_01_type															 = core_traits<config_new, op_types::attn_output_weight>;
 		using input_02_type															 = core_traits<config_new, op_types::kqv_merged_cont>;
-		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::hidden_type;
+		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::compute_type;
 		using core_traits_dims_type = get_new_dims_2_t<config_new, kernel_types::mul_mat, op_types::attn_output_weight, op_types::kqv_merged_cont, runtime_dims<1>>;
 		static constexpr input_types input_type{ input_types::two };
 		static constexpr uint64_t depth{ detail::max(input_01_type::depth, input_02_type::depth) + 1 };
@@ -1185,7 +1194,7 @@ namespace nihilus {
 		using model_traits_type														 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
 		using input_01_type															 = core_traits<config_new, op_types::kqv_out>;
 		using input_02_type															 = core_traits<config_new, op_types::l_out>;
-		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::residual_type;
+		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::compute_type;
 		using core_traits_dims_type = core_trait_dims<model_traits_type::embedding_length, config_new.default_max_context_length, 1, 1, 1>;
 		static constexpr input_types input_type{ input_types::two };
 		static constexpr uint64_t depth{ input_01_type::depth + 1 };
@@ -1199,7 +1208,8 @@ namespace nihilus {
 		static constexpr kernel_types kernel_type{ kernel_types::add };
 		static constexpr op_types type{ op_types::ffn_inp };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		array<core_latch, model_traits_type::block_count> run_checkers{};
+		op_latch sync_flag_start{};
+		op_latch sync_flag_end{};
 		output_type* data{};
 	};
 
@@ -1214,7 +1224,7 @@ namespace nihilus {
 		using model_traits_type														 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
 		using input_01_type															 = core_traits<config_new, op_types::ffn_out>;
 		using input_02_type															 = core_traits<config_new, op_types::ffn_inp>;
-		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::residual_type;
+		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::compute_type;
 		using core_traits_dims_type = core_trait_dims<model_traits_type::embedding_length, config_new.default_max_context_length, 1, 1, 1>;
 		static constexpr input_types input_type{ input_types::two };
 		static constexpr uint64_t depth{ detail::max(input_01_type::depth, input_02_type::depth) + 1 };
@@ -1228,7 +1238,8 @@ namespace nihilus {
 		static constexpr kernel_types kernel_type{ kernel_types::add };
 		static constexpr op_types type{ op_types::l_out };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		array<core_latch, model_traits_type::block_count> run_checkers{};
+		op_latch sync_flag_start{};
+		op_latch sync_flag_end{};
 		output_type* data{};
 	};
 
@@ -1242,7 +1253,7 @@ namespace nihilus {
 		using model_traits_type														 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
 		using input_01_type															 = core_traits<config_new, op_types::kqv_out>;
 		using input_02_type															 = core_traits<config_new, op_types::l_out>;
-		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::residual_type;
+		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::compute_type;
 		using transform_type														 = int32_t;
 		using core_traits_dims_type													 = core_trait_dims<model_traits_type::embedding_length, 1, 1, 1, 1>;
 		static constexpr input_types input_type{ input_types::two };
@@ -1257,7 +1268,8 @@ namespace nihilus {
 		static constexpr kernel_types kernel_type{ kernel_types::add_rms_norm_mul };
 		static constexpr op_types type{ op_types::ffn_inp_norm_out_ffn_norm };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		array<core_latch, model_traits_type::block_count> run_checkers{};
+		op_latch sync_flag_start{};
+		op_latch sync_flag_end{};
 		output_type* data{};
 	};
 
@@ -1272,7 +1284,7 @@ namespace nihilus {
 		using model_traits_type														 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
 		using input_01_type															 = core_traits<config_new, op_types::kqv_out>;
 		using input_02_type															 = core_traits<config_new, op_types::inp_out_ids>;
-		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::residual_type;
+		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::compute_type;
 		using core_traits_dims_type													 = core_trait_dims<model_traits_type::embedding_length, 1, 1, 1>;
 		static constexpr input_types input_type{ input_types::two };
 		static constexpr uint64_t depth{ detail::max(input_01_type::depth, input_02_type::depth) + 1 };
@@ -1301,7 +1313,7 @@ namespace nihilus {
 		using model_traits_type														 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
 		using input_01_type															 = core_traits<config_new, op_types::l_out>;
 		using input_02_type															 = core_traits<config_new, op_types::inp_out_ids>;
-		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::residual_type;
+		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::compute_type;
 		using core_traits_dims_type = core_trait_dims<model_traits_type::embedding_length, config_new.default_max_context_length, 1, 1, 1>;
 		static constexpr input_types input_type{ input_types::two };
 		static constexpr uint64_t depth{ detail::max(input_01_type::depth, input_02_type::depth) + 1 };
@@ -1331,7 +1343,7 @@ namespace nihilus {
 		using model_traits_type														 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
 		using input_01_type															 = core_traits<config_new, op_types::ffn_gate_weight>;
 		using input_02_type															 = core_traits<config_new, op_types::ffn_inp_norm_out_ffn_norm>;
-		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::ffn_intermediate_type;
+		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::compute_type;
 		using core_traits_dims_type = get_new_dims_2_t<config_new, kernel_types::mul_mat, op_types::ffn_gate_weight, op_types::ffn_inp_norm_out_ffn_norm, runtime_dims<1>>;
 		static constexpr input_types input_type{ input_types::two };
 		static constexpr uint64_t depth{ detail::max(input_01_type::depth, input_02_type::depth) + 1 };
@@ -1360,7 +1372,7 @@ namespace nihilus {
 		using transform_type														 = int32_t;
 		using model_traits_type														 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
 		using input_01_type															 = core_traits<config_new, op_types::ffn_gate>;
-		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::ffn_intermediate_type;
+		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::compute_type;
 		using core_traits_dims_type													 = get_new_dims_1_t<config_new, kernel_types::silu, op_types::ffn_gate, runtime_dims<1>>;
 		static constexpr input_types input_type{ input_types::one };
 		static constexpr uint64_t depth{ input_01_type::depth + 1 };
@@ -1374,7 +1386,8 @@ namespace nihilus {
 		static constexpr kernel_types kernel_type{ kernel_types::silu };
 		static constexpr op_types type{ op_types::ffn_silu };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		array<core_latch, model_traits_type::block_count> run_checkers{};
+		op_latch sync_flag_start{};
+		op_latch sync_flag_end{};
 		output_type* data{};
 	};
 
@@ -1390,7 +1403,7 @@ namespace nihilus {
 		using model_traits_type														 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
 		using input_01_type															 = core_traits<config_new, op_types::ffn_up_weight>;
 		using input_02_type															 = core_traits<config_new, op_types::ffn_inp_norm_out_ffn_norm>;
-		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::ffn_intermediate_type;
+		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::compute_type;
 		using core_traits_dims_type = get_new_dims_2_t<config_new, kernel_types::mul_mat, op_types::ffn_up_weight, op_types::ffn_inp_norm_out_ffn_norm, runtime_dims<1>>;
 		static constexpr input_types input_type{ input_types::two };
 		static constexpr uint64_t depth{ detail::max(input_01_type::depth, input_02_type::depth) + 1 };
@@ -1419,7 +1432,7 @@ namespace nihilus {
 		using model_traits_type														 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
 		using input_01_type															 = core_traits<config_new, op_types::ffn_silu>;
 		using input_02_type															 = core_traits<config_new, op_types::ffn_up>;
-		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::ffn_intermediate_type;
+		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::compute_type;
 		using transform_type														 = output_transform<input_01_type::kernel_type, input_02_type::kernel_type>;
 		using core_traits_dims_type = get_new_dims_2_t<config_new, kernel_types::mul, op_types::ffn_silu, op_types::ffn_up, runtime_dims<1>>;
 		static constexpr input_types input_type{ input_types::two };
@@ -1434,7 +1447,8 @@ namespace nihilus {
 		static constexpr kernel_types kernel_type{ kernel_types::mul };
 		static constexpr op_types type{ op_types::ffn_gate_par };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		array<core_latch, model_traits_type::block_count> run_checkers{};
+		op_latch sync_flag_start{};
+		op_latch sync_flag_end{};
 		output_type* data{};
 	};
 
@@ -1449,7 +1463,7 @@ namespace nihilus {
 		using model_traits_type														 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
 		using input_01_type															 = core_traits<config_new, op_types::ffn_down_weight>;
 		using input_02_type															 = core_traits<config_new, op_types::ffn_gate_par>;
-		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::hidden_type;
+		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::compute_type;
 		using core_traits_dims_type = core_trait_dims<model_traits_type::embedding_length, config_new.default_max_context_length, 1, 1, 1>;
 		static constexpr input_types input_type{ input_types::two };
 		static constexpr uint64_t depth{ detail::max(input_01_type::depth, input_02_type::depth) + 1 };
@@ -1478,7 +1492,7 @@ namespace nihilus {
 		using transform_type														 = int32_t;
 		using model_traits_type														 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
 		using input_01_type															 = core_traits<config_new, op_types::l_out>;
-		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::norm_output_type;
+		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::compute_type;
 		using core_traits_dims_type													 = core_trait_dims<model_traits_type::embedding_length, 1, 1, 1>;
 		static constexpr input_types input_type{ input_types::one };
 		static constexpr uint64_t depth{ input_01_type::depth + 1 };
@@ -1506,7 +1520,7 @@ namespace nihilus {
 		using model_traits_type														 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
 		using input_01_type															 = core_traits<config_new, op_types::final_norm>;
 		using input_02_type															 = core_traits<config_new, op_types::output_norm_weight>;
-		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::norm_output_type;
+		using output_type															 = typename input_01_type::output_type;
 		using transform_type														 = output_transform<input_01_type::kernel_type, input_02_type::kernel_type>;
 		using core_traits_dims_type													 = core_trait_dims<model_traits_type::embedding_length, 1, 1, 1>;
 		static constexpr input_types input_type{ input_types::two };

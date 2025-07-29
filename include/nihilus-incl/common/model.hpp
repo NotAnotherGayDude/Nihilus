@@ -73,7 +73,6 @@ namespace nihilus {
 		NIHILUS_INLINE void init(cli_params params) {
 			std::cout << "TOTAL BYTES REQUIRED: " << core_bases_traits_type<config_new>::max_size << std::endl;
 			memory.init(core_bases_traits_type<config_new>::memory_plan_val.memory_total);
-			weight_memory = memory_mapped_file{ params.model_file };
 			array<array<void*, model_traits_type<config_new>::block_count>, op_types::count> data{};
 			this->template impl<weight_mapper>(data);
 			this->template impl<memory_mapper>(core_bases_traits_type<config_new>::memory_plan_val, memory);
@@ -81,6 +80,7 @@ namespace nihilus {
 			if constexpr (config_new.benchmark || config_new.dev) {
 				perf_base<config_new>::perf_stats.load_start = std::chrono::high_resolution_clock::now();
 			}
+			weight_memory									  = memory_mapped_file{ params.model_file };
 			gguf_metadata<config_new> model_construction_data = model_parser<config_new>::parse_model(data, &weight_memory, *static_cast<tokenizer_type*>(this));
 
 			if constexpr (config_new.benchmark || config_new.dev) {

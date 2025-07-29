@@ -194,6 +194,18 @@ namespace nihilus {
 		inline static constexpr uint64_t n_rows{ 0 };
 	};
 
+	template<typename value_type> NIHILUS_INLINE uint64_t get_runtime_byte_size(value_type& core) {
+		array<uint64_t, 4> dims{};
+		dims[0] = core[0];
+		dims[1] = core[1];
+		dims[2] = core[2];
+		dims[3] = core[3];
+		if constexpr (value_type::runtime_dims != 5) {
+			dims[value_type::runtime_dims] = core.get_mutable_dim();
+		}
+		return type_traits<typename value_type::output_type>::total_byte_size(dims, core.strides);
+	}
+
 	template<typename enum_type> NIHILUS_INLINE constexpr type_traits_dynamic get_type_traits(enum_type type) {
 		switch (static_cast<uint64_t>(type)) {
 			case static_cast<uint64_t>(enum_type::f64): {

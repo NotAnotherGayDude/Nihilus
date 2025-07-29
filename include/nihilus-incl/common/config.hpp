@@ -61,11 +61,11 @@ RealTimeChris (Chris M.)
 	#endif
 #else
 	#if defined(NIHILUS_COMPILER_MSVC)
-		#define NIHILUS_INLINE
+		#define NIHILUS_INLINE [[msvc::noinline]]
 	#elif defined(NIHILUS_COMPILER_CLANG)
-		#define NIHILUS_INLINE
+		#define NIHILUS_INLINE noinline
 	#elif defined(NIHILUS_COMPILER_GNUCXX)
-		#define NIHILUS_INLINE
+		#define NIHILUS_INLINE noinline
 	#endif
 #endif
 

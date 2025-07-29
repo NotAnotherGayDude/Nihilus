@@ -41,6 +41,8 @@ namespace nihilus {
 
 	template<typename value_type> struct vector : public std::vector<value_type> {};
 
+	template<typename value_type> struct aligned_vector : public std::vector<value_type, allocator<value_type, 64>> {};
+
 	static constexpr array<bool, 256> alpha_table{ [] {
 		array<bool, 256> return_values{};
 
@@ -85,6 +87,7 @@ namespace nihilus {
 #endif
 
 	struct alignas(64) atomic_flag_wrapper {
+		NIHILUS_ALIGN(64) static constexpr uint32_t spin_cycles { 500000000 };
 		using value_type							  = typename std::atomic_signed_lock_free::value_type;
 		NIHILUS_INLINE atomic_flag_wrapper() noexcept = default;
 		NIHILUS_INLINE atomic_flag_wrapper& operator=(const atomic_flag_wrapper&) noexcept {
@@ -119,11 +122,11 @@ namespace nihilus {
 		}
 
 		NIHILUS_INLINE int64_t fetch_add(int64_t value) {
-			return flag.fetch_add(static_cast<value_type>(value), std::memory_order_acq_rel);
+			return flag.fetch_add(static_cast<value_type>(value), std::memory_order_seq_cst);
 		}
 
 		NIHILUS_INLINE int64_t fetch_sub(int64_t value) {
-			return flag.fetch_sub(static_cast<value_type>(value), std::memory_order_acq_rel);
+			return flag.fetch_sub(static_cast<value_type>(value), std::memory_order_seq_cst);
 		}
 
 		NIHILUS_INLINE bool test() {
@@ -134,8 +137,56 @@ namespace nihilus {
 			flag.wait(static_cast<value_type>(value), std::memory_order_acquire);
 		}
 
+		NIHILUS_INLINE void hybrid_wait(int64_t expected_value) {
+			for (uint32_t i = 0; i < spin_cycles; ++i) {
+				if (flag.load(std::memory_order_acquire) == 0) {
+					return;
+				}
+				nihilus_pause();
+			}
+			while (flag.load(std::memory_order_acquire) != static_cast<value_type>(expected_value)) {
+				flag.wait(static_cast<value_type>(expected_value + 1), std::memory_order_acquire);
+			}
+		}
+
 	  protected:
 		alignas(64) std::atomic_signed_lock_free flag{};
+	};
+
+	template<bool all_blocking> struct linked_latch {
+		alignas(64) int64_t thread_count{};
+		atomic_flag_wrapper completed_dependencies{};
+		atomic_flag_wrapper completed_workers{};
+		atomic_flag_wrapper in_process_workers{};
+		alignas(64) int64_t dependent_count{};
+		alignas(64) aligned_vector<linked_latch*> dependents{};
+
+		NIHILUS_INLINE void init(int64_t thread_count_new) {
+			thread_count = thread_count_new;
+		}
+
+		NIHILUS_INLINE void reset() {
+			completed_dependencies.store(0);
+			in_process_workers.store(0);
+			completed_workers.store(0);
+		}
+
+		NIHILUS_INLINE bool is_ready(int64_t& thread_index) {
+			if (completed_dependencies.load() == dependent_count) {
+				thread_index = in_process_workers.fetch_add(1);
+				return thread_index <= thread_count;
+			} else {
+				return false;
+			}
+		}
+
+		NIHILUS_INLINE void complete_work() {
+			if (completed_workers.fetch_add(1) == thread_count) {
+				for (auto& dependent: dependents) {
+					dependent->completed_dependencies.fetch_add(1);
+				}
+			}
+		}
 	};
 
 	struct alignas(64) op_latch {
@@ -151,11 +202,13 @@ namespace nihilus {
 		NIHILUS_INLINE int64_t arrive_and_wait_get_thread(int64_t& thread_index) {
 			thread_index = global_flag.fetch_add(1);
 			bool wait{ (thread_index < thread_count - 1) };
+
 			if (wait) {
-				global_flag.wait(thread_index);
+
+				global_flag.hybrid_wait(thread_count);
 			} else {
-				global_flag.store(0);
 				global_flag.notify_all();
+				global_flag.store(0);
 			}
 			return thread_count;
 		}
@@ -163,11 +216,12 @@ namespace nihilus {
 		NIHILUS_INLINE void arrive_and_wait() {
 			auto thread_index = global_flag.fetch_add(1);
 			bool wait{ (thread_index < thread_count - 1) };
+
 			if (wait) {
-				global_flag.wait(thread_index);
+				global_flag.hybrid_wait(thread_count);
 			} else {
-				global_flag.store(0);
 				global_flag.notify_all();
+				global_flag.store(0);
 			}
 			return;
 		}
@@ -177,19 +231,24 @@ namespace nihilus {
 		NIHILUS_INLINE core_latch()								= default;
 		NIHILUS_INLINE core_latch& operator=(const core_latch&) = delete;
 		NIHILUS_INLINE core_latch(const core_latch&)			= delete;
+		atomic_flag_wrapper dependency_counter{};
+		alignas(64) int64_t dependency_count{};
 		alignas(64) int64_t thread_count{};
 		atomic_flag_wrapper flag{};
 
-		NIHILUS_INLINE void init(int64_t thread_count_new) {
+		NIHILUS_INLINE void init(int64_t thread_count_new, int64_t dependency_count_new) {
+			dependency_count = dependency_count_new;
 			thread_count = thread_count_new;
 			flag.store(0);
 		}
 
 		NIHILUS_INLINE void reset() {
+			dependency_counter.store(0);
 			flag.store(0);
 		}
 
 		NIHILUS_INLINE int64_t do_we_run() {
+
 			return flag.fetch_add(1);
 		}
 	};
@@ -235,7 +294,7 @@ namespace nihilus {
 		NIHILUS_INLINE void main_wait() {
 			int64_t current_value = global_counter.load();
 			while (current_value > 0) {
-				global_counter.wait(current_value);
+				global_counter.wait(current_value + 1);
 				current_value = global_counter.load();
 			}
 
@@ -445,7 +504,7 @@ namespace nihilus {
 	template<typename value_type>
 	concept remapped_op_types = requires(std::remove_cvref_t<value_type> value) {
 		requires value.kernel_type == kernel_types::view || value.kernel_type == kernel_types::reshape || value.kernel_type == kernel_types::permute ||
-				 value.kernel_type == kernel_types::transpose || value.kernel_type == kernel_types::copy;
+				 value.kernel_type == kernel_types::transpose || value.kernel_type == kernel_types::copy || value.kernel_type == kernel_types::cont;
 	};
 
 	template<typename enum_type>

@@ -83,10 +83,9 @@ int main(int argc, char** argv) {
 			nihilus::model_arches::llama, false);
 		static constexpr auto model_config01 = nihilus::update_model_config_benchmark(model_config, true);
 
-		nihilus::cli_params cli_args	 = nihilus::harbinger<model_config01>::parse_cli_arguments(argc, argv);
-
+		nihilus::cli_params cli_args = nihilus::harbinger<model_config01>::parse_cli_arguments(argc, argv);
+		auto model_new{ nihilus::harbinger<model_config01>::parse_model_graph_data(cli_args) };
 		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 4, 2, true, "Token">::runBenchmark<"nihilus">([&] {
-			auto model_new{ nihilus::harbinger<model_config01>::parse_model_graph_data(cli_args) };
 			while (model_new->process_input(cli_args.prompt)) {
 			}
 			bnch_swt::doNotOptimizeAway(cli_args.n_tokens);
@@ -597,7 +596,7 @@ int main(int argc, char** argv) {
 			bnch_swt::doNotOptimizeAway(cli_args.n_tokens);
 			return static_cast<int32_t>(cli_args.n_tokens);
 		});
-
+		
 		std::cout << return_value << std::endl;
 		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 4, 2, true, "Token">::printResults();
 	} catch (const std::exception& error) {

@@ -117,6 +117,7 @@ int main(int argc, char** argv) {
 		static constexpr auto model_config01 = nihilus::update_model_config_dev(model_config, true);
 		nihilus::cli_params cli_args	 = nihilus::harbinger<model_config01>::parse_cli_arguments(argc, argv);
 		std::string return_value{};
+
 		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 1, 1, true, "Token">::runBenchmark<"nihilus">([&] {
 			auto model_new{ nihilus::harbinger<model_config01>::parse_model_graph_data(cli_args) };
 			while (model_new->process_input(cli_args.prompt)) {

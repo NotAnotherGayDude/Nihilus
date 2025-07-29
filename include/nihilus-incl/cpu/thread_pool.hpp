@@ -113,14 +113,14 @@ namespace nihilus {
 		std::chrono::high_resolution_clock::time_point token_start	  = {};
 		std::chrono::high_resolution_clock::time_point eval_start	  = {};
 		std::chrono::high_resolution_clock::time_point load_start	  = {};
-		double total_prompt_eval_time_ns							  = 0;
-		double total_sampling_time_ns								  = 0;
-		double total_eval_time_ns									  = 0;
-		double total_load_time_ns									  = 0;
-		int32_t generated_token_count								  = 0;
-		int32_t prompt_token_count									  = 0;
-		int32_t total_sampling_runs									  = 0;
-		uint64_t current_iteration									  = 0;
+		double total_prompt_eval_time_ns							  = {};
+		double total_sampling_time_ns								  = {};
+		double total_eval_time_ns									  = {};
+		double total_load_time_ns									  = {};
+		int32_t generated_token_count								  = {};
+		int32_t prompt_token_count									  = {};
+		int32_t total_sampling_runs									  = {};
+		uint64_t current_iteration									  = {};
 		vector<uint64_t> runtime_dimensions							  = {};
 		op_latch debug_counter										  = {};
 	};
@@ -128,7 +128,7 @@ namespace nihilus {
 	template<model_config config> struct perf_base {};
 
 	template<model_config config>
-		requires(config.dev || config.benchmark)
+		requires(config.benchmark || config.dev)
 	struct perf_base<config> {
 		benchmark_stats perf_stats{};
 	};
@@ -139,15 +139,15 @@ namespace nihilus {
 		NIHILUS_INLINE thread_pool& operator=(const thread_pool&) noexcept = delete;
 		NIHILUS_INLINE thread_pool(const thread_pool&) noexcept			   = delete;
 
-		using thread_function_ptr = void (thread_pool::*)(uint64_t);
+		using thread_function_ptr = void (thread_pool::*)();
 
 		template<uint64_t index = 0>
 		static constexpr array<thread_function_ptr, config.max_thread_count> generate_function_ptrs(array<thread_function_ptr, config.max_thread_count> values = {}) {
 			if constexpr (index < config.max_thread_count) {
 				if constexpr (index % 4 == 0 && (index < config.max_thread_count / 3)) {
-					values[index] = &thread_pool::thread_function<true>;
+					values[index] = &thread_pool::thread_function<index>;
 				} else {
-					values[index] = &thread_pool::thread_function<false>;
+					values[index] = &thread_pool::thread_function<index>;
 				}
 				return generate_function_ptrs<index + 1>(values);
 			}
@@ -158,45 +158,46 @@ namespace nihilus {
 			thread_count = static_cast<uint64_t>(thread_count_new);
 			threads.resize(static_cast<uint64_t>(thread_count));
 			thread_latch.init(thread_count_new);
-			if constexpr (config.dev) {
+			if constexpr (config.benchmark) {
 				perf_base<config>::perf_stats.runtime_dimensions.resize(static_cast<uint64_t>(thread_count));
 				perf_base<config>::perf_stats.debug_counter.init(thread_count);
 			}
 			static constexpr auto function_ptrs = generate_function_ptrs();
 
 			for (uint64_t x = 0; x < static_cast<uint64_t>(thread_count); ++x) {
-				threads[x] = std::thread{ function_ptrs[x], this, x };
+				threads[x] = std::thread{ function_ptrs[x], this };
 			}
+			core_base_type::template impl<execution_planner>(thread_count);
 		}
 
-		template<bool raise_priority = false> NIHILUS_INLINE void thread_function(uint64_t thread_index) {
-			if constexpr (raise_priority) {
+		template<uint64_t thread_index> NIHILUS_INLINE void thread_function() {
+			if constexpr (thread_index % 4 == 0 && (thread_index < config.max_thread_count / 3)) {
 				raise_current_thread_priority();
 			}
 			while (!stop.load()) {
 				thread_latch.worker_wait(thread_index);
 				if (!stop.load()) {
-					core_base_type::template impl<global_input_thread_function>();
+					core_base_type::template impl<global_input_thread_function>(thread_index);
 					for (uint64_t x = 0; x < model_traits_type<config>::block_count; ++x) {
-						core_base_type::template impl<per_block_thread_function>(x);
-						if constexpr (config.dev) {
-							perf_base<config>::perf_stats.debug_counter.arrive_and_wait();
-							if (thread_index == 0) {
-								core_base_type::template impl<tensor_debugger_impl>(x, perf_base<config>::perf_stats.current_iteration,
-									perf_base<config>::perf_stats.runtime_dimensions[thread_index]);
-							}
+						core_base_type::template impl<per_block_thread_function>(x, thread_index);
+						if constexpr (config.benchmark) {
+							//perf_base<config>::perf_stats.debug_counter.arrive_and_wait();
+							//if (thread_index == 0) {
+							//core_base_type::template impl<tensor_debugger_impl>(x, perf_base<config>::perf_stats.current_iteration,
+							//perf_base<config>::perf_stats.runtime_dimensions[thread_index]);
+							//}
 						}
 					}
-					core_base_type::template impl<global_output_thread_function>();
+					core_base_type::template impl<global_output_thread_function>(thread_index);
 					thread_latch.arrive_and_wait(thread_index);
 				}
 			}
 		}
 
 		NIHILUS_INLINE void execute_tasks(uint64_t runtime_dimensions_new) {
-			core_base_type::template impl<execution_planner>(thread_count);
+			core_base_type::template impl<run_checker_resetter>(thread_count);
 			core_base_type::template impl<dim_updater>(runtime_dimensions_new);
-			if constexpr (config.dev) {
+			if constexpr (config.benchmark) {
 				for (uint64_t x = 0; x < threads.size(); ++x) {
 					perf_base<config>::perf_stats.runtime_dimensions[x] = runtime_dimensions_new;
 				}
@@ -204,12 +205,6 @@ namespace nihilus {
 			thread_latch.count_down();
 			thread_latch.main_wait();
 		}
-
-	  protected:
-		main_gate_latch thread_latch{};
-		vector<std::thread> threads{};
-		atomic_flag_wrapper stop{};
-		uint64_t thread_count{};
 
 		NIHILUS_INLINE ~thread_pool() {
 			stop.store(true);
@@ -220,6 +215,12 @@ namespace nihilus {
 				}
 			}
 		}
+
+	  protected:
+		main_gate_latch thread_latch{};
+		vector<std::thread> threads{};
+		atomic_flag_wrapper stop{};
+		uint64_t thread_count{};
 	};
 
 }

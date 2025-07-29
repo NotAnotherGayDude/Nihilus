@@ -43,8 +43,7 @@ namespace nihilus {
 		NIHILUS_INLINE constexpr void impl_internal_filtered([[maybe_unused]] arg_types&&... args) const {
 			if constexpr (mixin_type<config, base_type>::filter()) {
 				if constexpr (has_return_type<mixin_type<config, base_type>>) {
-					while (!mixin_type<config, base_type>::impl(*static_cast<const base_type*>(this), detail::forward<arg_types>(args)...)) {
-					}
+					mixin_type<config, base_type>::impl(*static_cast<const base_type*>(this), detail::forward<arg_types>(args)...);
 				} else {
 					mixin_type<config, base_type>::impl(*static_cast<const base_type*>(this), detail::forward<arg_types>(args)...);
 				}
@@ -56,8 +55,7 @@ namespace nihilus {
 		NIHILUS_INLINE constexpr void impl_internal_filtered([[maybe_unused]] arg_types&&... args) {
 			if constexpr (mixin_type<config, base_type>::filter()) {
 				if constexpr (has_return_type<mixin_type<config, base_type>>) {
-					while (!mixin_type<config, base_type>::impl(*static_cast<base_type*>(this), detail::forward<arg_types>(args)...)) {
-					}
+					mixin_type<config, base_type>::impl(*static_cast<base_type*>(this), detail::forward<arg_types>(args)...);
 				} else {
 					mixin_type<config, base_type>::impl(*static_cast<base_type*>(this), detail::forward<arg_types>(args)...);
 				}

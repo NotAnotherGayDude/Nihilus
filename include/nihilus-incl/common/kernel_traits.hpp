@@ -133,7 +133,7 @@ namespace nihilus {
 	template<size_t... indices> struct core_trait_dims;
 
 	template<uint64_t dim00_new, uint64_t dim01_new, uint64_t dim02_new, uint64_t dim03_new> struct core_trait_dims<dim00_new, dim01_new, dim02_new, dim03_new> {
-		static constexpr bool runtime_dims{ false };
+		static constexpr uint64_t runtime_dims{ 5 };
 		static constexpr uint64_t dim00{ dim00_new };
 		static constexpr uint64_t dim01{ dim01_new };
 		static constexpr uint64_t dim02{ dim02_new };
@@ -160,8 +160,8 @@ namespace nihilus {
 	};
 
 	template<uint64_t dim00_new, uint64_t dim01_new, uint64_t dim02_new, uint64_t dim03_new> struct core_trait_dims<dim00_new, dim01_new, dim02_new, dim03_new, 0> {
-		static constexpr bool runtime_dims{ true };
-		uint64_t dim00{ dim00_new };
+		static constexpr uint64_t runtime_dims{ 0 };
+		mutable uint64_t dim00{ dim00_new };
 		static constexpr uint64_t dim01{ dim01_new };
 		static constexpr uint64_t dim02{ dim02_new };
 		static constexpr uint64_t dim03{ dim03_new };
@@ -176,7 +176,7 @@ namespace nihilus {
 			return { { dim00, dim01, dim02, dim03 } };
 		}
 
-		NIHILUS_INLINE uint64_t& get_mutable_dim() {
+		NIHILUS_INLINE uint64_t& get_mutable_dim() const {
 			return dim00;
 		}
 
@@ -186,9 +186,9 @@ namespace nihilus {
 	};
 
 	template<uint64_t dim00_new, uint64_t dim01_new, uint64_t dim02_new, uint64_t dim03_new> struct core_trait_dims<dim00_new, dim01_new, dim02_new, dim03_new, 1> {
-		static constexpr bool runtime_dims{ true };
+		static constexpr uint64_t runtime_dims{ 1 };
 		static constexpr uint64_t dim00{ dim00_new };
-		uint64_t dim01{ dim01_new };
+		mutable uint64_t dim01{ dim01_new };
 		static constexpr uint64_t dim02{ dim02_new };
 		static constexpr uint64_t dim03{ dim03_new };
 
@@ -202,7 +202,7 @@ namespace nihilus {
 			return { { dim00, dim01, dim02, dim03 } };
 		}
 
-		NIHILUS_INLINE uint64_t& get_mutable_dim() {
+		NIHILUS_INLINE uint64_t& get_mutable_dim() const {
 			return dim01;
 		}
 
@@ -212,10 +212,10 @@ namespace nihilus {
 	};
 
 	template<uint64_t dim00_new, uint64_t dim01_new, uint64_t dim02_new, uint64_t dim03_new> struct core_trait_dims<dim00_new, dim01_new, dim02_new, dim03_new, 2> {
-		static constexpr bool runtime_dims{ true };
+		static constexpr uint64_t runtime_dims{ 2 };
 		static constexpr uint64_t dim00{ dim00_new };
 		static constexpr uint64_t dim01{ dim01_new };
-		uint64_t dim02{ dim02_new };
+		mutable uint64_t dim02{ dim02_new };
 		static constexpr uint64_t dim03{ dim03_new };
 
 		const uint64_t* dims[4]{ &dim00, &dim01, &dim02, &dim03 };
@@ -228,7 +228,7 @@ namespace nihilus {
 			return { { dim00, dim01, dim02, dim03 } };
 		}
 
-		NIHILUS_INLINE uint64_t& get_mutable_dim() {
+		NIHILUS_INLINE uint64_t& get_mutable_dim() const {
 			return dim02;
 		}
 
@@ -913,10 +913,10 @@ namespace nihilus {
 			kernel_traits, output, input01, input02>::impl);
 	};
 
-	template<single_input_types core_type>
-	struct kernel_traits<kernel_types::copy, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type>
-		: public kernel_base<kernel_types::copy, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type> {
-		using base_type				 = kernel_base<kernel_types::copy, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type>;
+	template<single_input_types core_type> struct kernel_traits<kernel_types::copy, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type,
+		typename core_type::input_02_type::output_type> : public kernel_base<kernel_types::copy, core_type, typename core_type::output_type,
+															  typename core_type::input_01_type::output_type, typename core_type::input_02_type::output_type> {
+		using base_type				 = kernel_base<kernel_types::copy, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type,typename core_type::input_02_type::output_type>;
 		using input01				 = typename base_type::input01;
 		using output				 = typename base_type::output;
 		static constexpr auto dims01 = base_type::dims01;

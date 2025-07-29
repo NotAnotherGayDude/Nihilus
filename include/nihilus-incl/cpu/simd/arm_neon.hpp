@@ -107,15 +107,9 @@ namespace nihilus {
 		}
 	};
 
-	template<typename transform_type, typename core_type> struct kernel_dispatcher_impl<1, kernel_types::copy, transform_type, core_type, float, float>
-		: public kernel_base<kernel_types::copy, core_type, float, float> {
-		NIHILUS_INLINE static void impl(int64_t, int64_t, core_type&, const typename core_type::input_01_type&) {
-		}
-	};
-
-	template<typename transform_type, typename core_type> struct kernel_dispatcher_impl<1, kernel_types::copy, transform_type, core_type, half, float>
-		: public kernel_base<kernel_types::copy, core_type, half, float> {
-		NIHILUS_INLINE static void impl(int64_t, int64_t, core_type&, const typename core_type::input_01_type&) {
+	template<typename transform_type, typename core_type> struct kernel_dispatcher_impl<1, kernel_types::copy, transform_type, core_type, half, half, float>
+		: public kernel_base<kernel_types::copy, core_type, half, half, float> {
+		NIHILUS_INLINE static void impl(int64_t, int64_t, core_type&, const typename core_type::input_01_type&, const typename core_type::input_02_type&) {
 		}
 	};
 

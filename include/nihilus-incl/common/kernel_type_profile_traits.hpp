@@ -24,94 +24,31 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-	template<typename weight_type_new, typename activation_type_new, typename compute_type_new, typename scale_type_new, typename index_type_new, typename output_type_new>
+	template<typename weight_type_new, typename activation_type_new, typename compute_type_new, typename embedding_type_new, typename logit_type_new, typename input_token_type_new,
+		typename output_token_type_new, typename position_type_new, typename attention_type_new, typename norm_type_new, typename scale_type_new, typename zero_point_type_new,
+		typename kv_cache_type_new, typename mask_type_new, typename index_type_new, typename size_type_new>
 	struct kernel_type_profile_traits_impl {
-		using weight_type			  = weight_type_new;
-		using activation_type		  = activation_type_new;
-		using compute_type			  = compute_type_new;
-		using scale_type			  = scale_type_new;
-		using index_type			  = index_type_new;
-		using output_type			  = output_type_new;
-		using cache_type			  = scale_type_new;
-		using token_embd_weight_type  = weight_type;
-		using attn_q_weight_type	  = weight_type;
-		using attn_k_weight_type	  = weight_type;
-		using attn_v_weight_type	  = weight_type;
-		using attn_output_weight_type = weight_type;
-		using attn_norm_weight_type	  = compute_type;
-		using ffn_gate_weight_type	  = weight_type;
-		using ffn_up_weight_type	  = weight_type;
-		using ffn_down_weight_type	  = weight_type;
-		using ffn_norm_weight_type	  = compute_type;
-		using output_weight_type	  = weight_type;
-		using output_norm_weight_type = output_type_new;
-		using rope_freqs_weight_type  = compute_type;
-		using embedding_type		  = compute_type;
-		using query_type			  = compute_type;
-		using key_type				  = compute_type;
-		using value_type			  = compute_type;
-		using attention_score_type	  = compute_type;
-		using softmax_type			  = compute_type;
-		using hidden_type			  = compute_type;
-		using residual_type			  = compute_type;
-		using norm_output_type		  = compute_type;
-		using ffn_intermediate_type	  = compute_type;
-		using logit_type			  = compute_type;
-		using input_token_type		  = index_type;
-		using output_token_type		  = index_type;
-		using position_type			  = index_type;
-		using kv_cache_type			  = cache_type;
-		using inp_embd_type			  = compute_type;
-		using inp_tokens_type		  = index_type;
-		using inp_pos_type			  = index_type;
-		using inp_out_ids_type		  = index_type;
-		using cache_k_type			  = cache_type;
-		using cache_v_type			  = cache_type;
-		using kq_mask_type			  = compute_type;
-		using norm_types			  = compute_type;
-		using attn_norm_type		  = compute_type;
-		using qcur_type				  = compute_type;
-		using qcur_reshaped_type	  = compute_type;
-		using qcur_rope_type		  = compute_type;
-		using kcur_type				  = compute_type;
-		using kcur_reshaped_type	  = compute_type;
-		using kcur_rope_type		  = compute_type;
-		using vcur_type				  = compute_type;
-		using k_cache_view_type		  = cache_type;
-		using k_cache_view_copy_type  = cache_type;
-		using vcur_transposed_type	  = compute_type;
-		using v_cache_view_type		  = cache_type;
-		using v_cache_view_copy_type  = cache_type;
-		using v_type				  = compute_type;
-		using k_type				  = compute_type;
-		using q_type				  = compute_type;
-		using kq_type				  = compute_type;
-		using kq_soft_max_type		  = compute_type;
-		using kqv_type				  = compute_type;
-		using kqv_merged_type		  = compute_type;
-		using kqv_merged_cont_type	  = compute_type;
-		using kqv_out_type			  = compute_type;
-		using ffn_inp_type			  = compute_type;
-		using norm_out_type			  = compute_type;
-		using ffn_norm_type			  = compute_type;
-		using ffn_gate_type			  = compute_type;
-		using ffn_silu_type			  = compute_type;
-		using ffn_up_type			  = compute_type;
-		using ffn_gate_par_type		  = compute_type;
-		using ffn_out_type			  = compute_type;
-		using l_out_type			  = compute_type;
-		using attn_residual_type	  = compute_type;
-		using prev_residual_type	  = compute_type;
-		using final_norm_type		  = compute_type;
-		using result_norm_type		  = compute_type;
-		using result_output_type	  = compute_type;
+		using weight_type		= weight_type_new;
+		using activation_type	= activation_type_new;
+		using compute_type		= compute_type_new;
+		using embedding_type	= embedding_type_new;
+		using logit_type		= logit_type_new;
+		using attention_type	= attention_type_new;
+		using norm_type			= norm_type_new;
+		using kv_cache_type		= kv_cache_type_new;
+		using input_token_type	= input_token_type_new;
+		using output_token_type = output_token_type_new;
+		using position_type		= position_type_new;
+		using scale_type		= scale_type_new;
+		using zero_point_type	= zero_point_type_new;
+		using mask_type			= mask_type_new;
+		using index_type		= index_type_new;
+		using size_type			= size_type_new;
 	};
 
 	template<kernel_type_profiles kernel_profile> struct kernel_type_profile_traits;
 
-	template<> struct kernel_type_profile_traits<kernel_type_profiles::q8_gqa> : public kernel_type_profile_traits_impl<block_q8_0<half>, float, float, int16_t, int32_t, float> {};
-
-	template<> struct kernel_type_profile_traits<kernel_type_profiles::fp16_mha> : public kernel_type_profile_traits_impl<block_q8_0<half>, float, float, int16_t, int32_t, float> {
-	};
+	template<> struct kernel_type_profile_traits<kernel_type_profiles::q8_gqa> : public kernel_type_profile_traits_impl<block_q8_0<half>, half, float, half, float, int32_t,
+																					 int32_t, int32_t, float, float, half, int8_t, half, float, int32_t, uint64_t> {};
 
 }
