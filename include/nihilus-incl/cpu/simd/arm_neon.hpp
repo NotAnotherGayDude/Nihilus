@@ -163,8 +163,8 @@ namespace nihilus {
 		}
 	}
 
-	template<typename transform_type, typename core_type> struct kernel_dispatcher_impl<1, kernel_types::get_rows, transform_type, core_type, float, block_q8_0<half>, int32_t>
-		: public kernel_base<kernel_types::get_rows, core_type, float, block_q8_0<half>, int32_t> {
+	template<typename transform_type, typename core_type> struct kernel_dispatcher_impl<1, kernel_types::embedding_lookup, transform_type, core_type, float, block_q8_0<half>, int32_t>
+		: public kernel_base<kernel_types::embedding_lookup, core_type, float, block_q8_0<half>, int32_t> {
 		using input_type01 = core_type::input_01_type;
 		using input_type02 = core_type::input_02_type;
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, core_type& output, const typename core_type::input_01_type& input01,
@@ -216,8 +216,8 @@ namespace nihilus {
 		}
 	}
 
-	template<typename transform_type, typename core_type> struct kernel_dispatcher_impl<1, kernel_types::get_rows, transform_type, core_type, float, float, int32_t>
-		: public kernel_base<kernel_types::get_rows, core_type, float, float, int32_t> {
+	template<typename transform_type, typename core_type> struct kernel_dispatcher_impl<1, kernel_types::embedding_lookup, transform_type, core_type, float, float, int32_t>
+		: public kernel_base<kernel_types::embedding_lookup, core_type, float, float, int32_t> {
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, core_type& output, const typename core_type::input_01_type& input01,
 			const typename core_type::input_02_type& input02) {
 			const uint64_t ne00 = input01[0];
@@ -527,6 +527,53 @@ namespace nihilus {
 
 	template<typename transform_type, typename core_type> struct kernel_dispatcher_impl<1, kernel_types::rope, transform_type, core_type, float, float, int32_t, float>
 		: public kernel_base<kernel_types::rope, core_type, float, float, int32_t, float> {
+		NIHILUS_INLINE static void impl(int64_t, int64_t, core_type&, const typename core_type::input_01_type&, const typename core_type::input_02_type&,
+			const typename core_type::input_03_type&) {
+		}
+	};
+
+	template<typename transform_type, typename core_type>
+	struct kernel_dispatcher_impl<1, kernel_types::fused_qkv_rope, transform_type, core_type, float, float, block_q8_0<half>, float> {
+		NIHILUS_INLINE static void impl(int64_t, int64_t, core_type&, const typename core_type::input_01_type&, const typename core_type::input_02_type&,
+			const typename core_type::input_03_type&) {
+		}
+	};
+
+	template<typename transform_type, typename core_type> struct kernel_dispatcher_impl<1, kernel_types::fused_attention, transform_type, core_type, float, float, float> {
+		NIHILUS_INLINE static void impl(int64_t, int64_t, core_type&, const typename core_type::input_01_type&, const typename core_type::input_02_type&) {
+		}
+	};
+
+	template<typename transform_type, typename core_type>
+	struct kernel_dispatcher_impl<1, kernel_types::fused_attn_out, transform_type, core_type, float, float, block_q8_0<half>, float> {
+		NIHILUS_INLINE static void impl(int64_t, int64_t, core_type&, const typename core_type::input_01_type&, const typename core_type::input_02_type&,
+			const typename core_type::input_03_type&) {
+		}
+	};
+
+	template<typename transform_type, typename core_type>
+	struct kernel_dispatcher_impl<1, kernel_types::fused_swiglu, transform_type, core_type, float, float, block_q8_0<half>, block_q8_0<half>, block_q8_0<half>, float> {
+		NIHILUS_INLINE static void impl(int64_t, int64_t, core_type&, const typename core_type::input_01_type&, const typename core_type::input_02_type&,
+			const typename core_type::input_03_type&, const typename core_type::input_04_type&, const typename core_type::input_05_type&) {
+		}
+	};
+
+	template<typename transform_type, typename core_type> struct kernel_dispatcher_impl<1, kernel_types::fused_qkv_rope, transform_type, core_type, float, float, float, float> {
+		NIHILUS_INLINE static void impl(int64_t, int64_t, core_type&, const typename core_type::input_01_type&, const typename core_type::input_02_type&,
+			const typename core_type::input_03_type&) {
+		}
+	};
+
+	template<typename transform_type, typename core_type>
+	struct kernel_dispatcher_impl<1, kernel_types::fused_swiglu, transform_type, core_type, float, float, block_q8_0<half>, block_q8_0<half>, block_q8_0<half>, block_q8_0<half>> {
+		NIHILUS_INLINE static void impl(int64_t, int64_t, core_type&, const typename core_type::input_01_type&, const typename core_type::input_02_type&,
+			const typename core_type::input_03_type&, const typename core_type::input_04_type&, const typename core_type::input_05_type&) {
+		}
+	};
+
+	template<typename transform_type, typename core_type>
+	struct kernel_dispatcher_impl<1, kernel_types::fused_final_proj, transform_type, core_type, float, float, float, block_q8_0<half>>
+		: public kernel_base<kernel_types::fused_final_proj, core_type, float, float, float, block_q8_0<half>> {
 		NIHILUS_INLINE static void impl(int64_t, int64_t, core_type&, const typename core_type::input_01_type&, const typename core_type::input_02_type&,
 			const typename core_type::input_03_type&) {
 		}

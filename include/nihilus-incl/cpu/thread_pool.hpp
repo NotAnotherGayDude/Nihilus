@@ -177,8 +177,8 @@ namespace nihilus {
 			while (!stop.load()) {
 				thread_latch.worker_wait(thread_index);
 				if (!stop.load()) {
-					core_base_type::template impl<global_input_thread_function>(thread_index);
 					for (uint64_t x = 0; x < model_traits_type<config>::block_count; ++x) {
+						core_base_type::template impl<global_input_thread_function>(thread_index);
 						core_base_type::template impl<per_block_thread_function>(x, thread_index);
 						if constexpr (config.benchmark) {
 							//perf_base<config>::perf_stats.debug_counter.arrive_and_wait();
@@ -195,7 +195,7 @@ namespace nihilus {
 		}
 
 		NIHILUS_INLINE void execute_tasks(uint64_t runtime_dimensions_new) {
-			core_base_type::template impl<run_checker_resetter>(thread_count);
+			core_base_type::template impl<latch_resetter>();
 			core_base_type::template impl<dim_updater>(runtime_dimensions_new);
 			if constexpr (config.benchmark) {
 				for (uint64_t x = 0; x < threads.size(); ++x) {

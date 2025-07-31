@@ -127,7 +127,7 @@ namespace nihilus {
 	concept integral_or_enum_types = std::integral<value_type> || std::is_enum_v<std::remove_cvref_t<value_type>>;
 
 	template<typename value_type>
-	concept active_op_types = requires() { std::remove_cvref_t<value_type>::run_checkers; };
+	concept active_op_types = requires() { std::remove_cvref_t<value_type>::latch; };
 
 	template<typename value_type>
 	concept active_input_types = requires() { std::remove_cvref_t<value_type>::runtime_dims; };
@@ -156,19 +156,31 @@ namespace nihilus {
 		one	  = 1 << 1,
 		two	  = 1 << 2,
 		three = 1 << 3,
+		four  = 1 << 4,
+		five  = 1 << 5,
+		six	  = 1 << 6,
 	};
-
-	template<typename value_type>
-	concept no_input_types = std::remove_cvref_t<value_type>::input_type == input_types::none;
 
 	template<typename value_type>
 	concept single_input_types = std::remove_cvref_t<value_type>::input_type == input_types::one;
 
 	template<typename value_type>
-	concept double_input_types = std::remove_cvref_t<value_type>::input_type == input_types::two;
+	concept double_input_types = std::remove_cvref_t<value_type>::input_type == input_types::two && !single_input_types<value_type>;
 
 	template<typename value_type>
-	concept triple_input_types = std::remove_cvref_t<value_type>::input_type == input_types::three;
+	concept triple_input_types = std::remove_cvref_t<value_type>::input_type == input_types::three && !double_input_types<value_type> && !single_input_types<value_type>;
+
+	template<typename value_type>
+	concept quadruple_input_types =
+		std::remove_cvref_t<value_type>::input_type == input_types::four && !triple_input_types<value_type> && !double_input_types<value_type> && !single_input_types<value_type>;
+
+	template<typename value_type>
+	concept quintuple_input_types = std::remove_cvref_t<value_type>::input_type == input_types::five && !quadruple_input_types<value_type> && !triple_input_types<value_type> &&
+		!double_input_types<value_type> && !single_input_types<value_type>;
+
+	template<typename value_type>
+	concept sextuple_input_types = std::remove_cvref_t<value_type>::input_type == input_types::six && !quintuple_input_types<value_type> && !quadruple_input_types<value_type> &&
+		!triple_input_types<value_type> && !double_input_types<value_type> && !single_input_types<value_type>;
 
 	template<typename value_type>
 	concept enum_types = std::is_enum_v<std::remove_cvref_t<value_type>>;
