@@ -22,7 +22,7 @@ RealTimeChris (Chris M.)
 #include <cstdint>
 
 #undef NIHILUS_CPU_INSTRUCTIONS
-#define NIHILUS_CPU_INSTRUCTIONS 0
+#define NIHILUS_CPU_INSTRUCTIONS 1
 
 #define NIHILUS_AVX2_BIT (1 << 0)
 #define NIHILUS_AVX512_BIT (1 << 1)

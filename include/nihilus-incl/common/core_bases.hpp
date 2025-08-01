@@ -79,7 +79,7 @@ namespace nihilus {
 
 		for (uint64_t x = 0; x < max_depth; ++x) {
 			for (uint64_t y = 0; y < depths_new.size(); ++y) {
-				//depth_byte_counts[x] += static_cast<uint64_t>(depths_newer[y].required_bytes);
+				depth_byte_counts[x] += static_cast<uint64_t>(depths_newer[y].required_bytes);
 			}
 		}
 

@@ -250,22 +250,6 @@ namespace nihilus {
 
 #if !defined(NIHILUS_AVX512) && !defined(NIHILUS_AVX2) && !defined(NIHILUS_NEON) && !defined(NIHILUS_SVE2)
 
-	template<uint_types value_type> NIHILUS_INLINE static constexpr value_type lzcnt(const value_type value) noexcept {
-		if (value == 0) {
-			return sizeof(value_type) * 8;
-		}
-
-		value_type count{};
-		value_type mask{ static_cast<value_type>(1) << (std::numeric_limits<value_type>::digits - 1) };
-
-		while ((value & mask) == 0) {
-			++count;
-			mask >>= 1;
-		}
-
-		return count;
-	}
-
 	#define blsr(value) (value & (value - 1))
 
 	template<typename value_type>

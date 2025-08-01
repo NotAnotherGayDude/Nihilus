@@ -118,13 +118,14 @@ int main(int argc, char** argv) {
 		nihilus::cli_params cli_args	 = nihilus::harbinger<model_config01>::parse_cli_arguments(argc, argv);
 		std::string return_value{};
 
+		/*
 		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 1, 1, true, "Token">::runBenchmark<"nihilus">([&] {
 			auto model_new{ nihilus::harbinger<model_config01>::parse_model_graph_data(cli_args) };
 			while (model_new->process_input(cli_args.prompt)) {
 			}
 			bnch_swt::doNotOptimizeAway(cli_args.n_tokens);
 			return cli_args.n_tokens;
-		});
+		});*/
 		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 1, 1, true, "Token">::runBenchmark<"llama.cpp">([&] {
 			return_value.clear();
 			size_t token_count{};

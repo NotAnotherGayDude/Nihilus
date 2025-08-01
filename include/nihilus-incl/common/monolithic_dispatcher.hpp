@@ -32,7 +32,7 @@ namespace nihilus {
 	template<model_config config, device_types dev_type, single_input_types core_type> struct kernel_dispatcher<config, dev_type, core_type> {
 		NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count) {
 			kernel_dispatcher_impl<config.cpu_arch_index, core_type::kernel_type, typename core_type::transform_type, core_type, typename core_type::output_type,
-				typename core_type::input_01_type::output_type>::impl(thread_index, thread_count, params, get_adjacent_value<config, core_type::op_type>::impl(params));
+				typename core_type::input_01_type::output_type>::impl(thread_index, thread_count, params, get_adjacent_value<config, core_type::type, 0>::impl(params));
 		}
 	};
 
@@ -40,7 +40,7 @@ namespace nihilus {
 		NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count) {
 			kernel_dispatcher_impl<config.cpu_arch_index, core_type::kernel_type, typename core_type::transform_type, core_type, typename core_type::output_type,
 				typename core_type::input_01_type::output_type, typename core_type::input_02_type::output_type>::impl(thread_index, thread_count, params,
-				get_adjacent_value<config, core_type::op_type>::impl(params), get_adjacent_value<config, core_type::op_type>::impl(params));
+				get_adjacent_value<config, core_type::type, 0>::impl(params), get_adjacent_value<config, core_type::type, 1>::impl(params));
 		}
 	};
 
@@ -48,40 +48,8 @@ namespace nihilus {
 		NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count) {
 			kernel_dispatcher_impl<config.cpu_arch_index, core_type::kernel_type, typename core_type::transform_type, core_type, typename core_type::output_type,
 				typename core_type::input_01_type::output_type, typename core_type::input_02_type::output_type, typename core_type::input_03_type::output_type>::impl(thread_index,
-				thread_count, params, get_adjacent_value<config, core_type::op_type>::impl(params), get_adjacent_value<config, core_type::op_type>::impl(params),
-				get_adjacent_value<config, core_type::op_type>::impl(params));
-		}
-	};
-
-	template<model_config config, device_types dev_type, quadruple_input_types core_type> struct kernel_dispatcher<config, dev_type, core_type> {
-		NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count) {
-			kernel_dispatcher_impl<config.cpu_arch_index, core_type::kernel_type, typename core_type::transform_type, core_type, typename core_type::output_type,
-				typename core_type::input_01_type::output_type, typename core_type::input_02_type::output_type, typename core_type::input_03_type::output_type,
-				typename core_type::input_04_type::output_type>::impl(thread_index, thread_count, params, get_adjacent_value<config, core_type::op_type>::impl(params),
-				get_adjacent_value<config, core_type::op_type>::impl(params), get_adjacent_value<config, core_type::op_type>::impl(params),
-				get_adjacent_value<config, core_type::op_type>::impl(params));
-		}
-	};
-
-	template<model_config config, device_types dev_type, quintuple_input_types core_type> struct kernel_dispatcher<config, dev_type, core_type> {
-		NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count) {
-			kernel_dispatcher_impl<config.cpu_arch_index, core_type::kernel_type, typename core_type::transform_type, core_type, typename core_type::output_type,
-				typename core_type::input_01_type::output_type, typename core_type::input_02_type::output_type, typename core_type::input_03_type::output_type,
-				typename core_type::input_04_type::output_type, typename core_type::input_05_type::output_type>::impl(thread_index, thread_count, params,
-				get_adjacent_value<config, core_type::op_type>::impl(params), get_adjacent_value<config, core_type::op_type>::impl(params),
-				get_adjacent_value<config, core_type::op_type>::impl(params), get_adjacent_value<config, core_type::op_type>::impl(params),
-				get_adjacent_value<config, core_type::op_type>::impl(params));
-		}
-	};
-
-	template<model_config config, device_types dev_type, sextuple_input_types core_type> struct kernel_dispatcher<config, dev_type, core_type> {
-		NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count) {
-			kernel_dispatcher_impl<config.cpu_arch_index, core_type::kernel_type, typename core_type::transform_type, core_type, typename core_type::output_type,
-				typename core_type::input_01_type::output_type, typename core_type::input_02_type::output_type, typename core_type::input_03_type::output_type,
-				typename core_type::input_04_type::output_type, typename core_type::input_05_type::output_type>::impl(thread_index, thread_count, params,
-				get_adjacent_value<config, core_type::op_type>::impl(params), get_adjacent_value<config, core_type::op_type>::impl(params),
-				get_adjacent_value<config, core_type::op_type>::impl(params), get_adjacent_value<config, core_type::op_type>::impl(params),
-				get_adjacent_value<config, core_type::op_type>::impl(params), get_adjacent_value<config, core_type::op_type>::impl(params));
+				thread_count, params, get_adjacent_value<config, core_type::type, 0>::impl(params), get_adjacent_value<config, core_type::type, 1>::impl(params),
+				get_adjacent_value<config, core_type::type, 2>::impl(params));
 		}
 	};
 

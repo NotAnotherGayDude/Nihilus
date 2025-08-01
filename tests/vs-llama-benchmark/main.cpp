@@ -79,10 +79,10 @@ static constexpr nihilus::model_sizes model_size{ LLAMA_MODEL_SIZE };
 
 int main(int argc, char** argv) {
 	try {
-		constexpr nihilus::linked_latch<true> test_value{};
 		static constexpr auto model_config = nihilus::generate_model_config(nihilus::model_generations::v3, model_size, nihilus::kernel_type_profiles::q8_gqa,
 			nihilus::model_arches::llama, false);
 		static constexpr auto model_config01 = nihilus::update_model_config_benchmark(model_config, true);
+
 		nihilus::cli_params cli_args = nihilus::harbinger<model_config01>::parse_cli_arguments(argc, argv);
 		auto model_new{ nihilus::harbinger<model_config01>::parse_model_graph_data(cli_args) };
 		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 4, 2, true, "Token">::runBenchmark<"nihilus">([&] {

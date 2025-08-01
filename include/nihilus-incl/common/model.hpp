@@ -34,7 +34,7 @@ namespace nihilus {
 		NIHILUS_INLINE model_base(model_config config_new) : config{ config_new } {
 		}
 		model_config config{};
-		virtual bool process_input(const std::string_view params) = 0;
+		virtual bool process_input(const std::string& params) = 0;
 		virtual ~model_base();
 	};
 
@@ -62,7 +62,7 @@ namespace nihilus {
 		model& operator=(const model&) = delete;
 		model(const model&)			   = delete;
 
-		NIHILUS_INLINE bool process_input(const std::string_view input) override {
+		NIHILUS_INLINE bool process_input(const std::string& input) override {
 			tokenizer_type::tokenize_init(get_core<op_type_type::inp_tokens>().data);
 			get_core<op_type_type::inp_pos>().data[1]	  = 1;
 			get_core<op_type_type::inp_out_ids>().data[0] = 1;

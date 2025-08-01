@@ -35,6 +35,30 @@ namespace nihilus {
 		using uint64_types = uint64_t;
 		using size_type	   = uint64_t;
 
+		NIHILUS_INLINE constexpr void claim_space(size_type size_new) {
+			head += size_new;
+		}
+
+		NIHILUS_INLINE constexpr void free_space(size_type size_new) {
+			tail += size_new;
+		}
+
+		NIHILUS_INLINE constexpr size_type get_used_space() {
+			if (tail > head) {
+				return (tail - head + size_val) % size_val;
+			} else {
+				return (head - tail) % size_val;
+			}
+		}
+
+		NIHILUS_INLINE constexpr size_type get_current_head() {
+			return size_val > 0 ? head % size_val : 0;
+		}
+
+		NIHILUS_INLINE constexpr size_type total_size() {
+			return size_val;
+		}
+
 		NIHILUS_INLINE memory_buffer() noexcept = default;
 
 		NIHILUS_INLINE memory_buffer& operator=(const memory_buffer&) noexcept = delete;
@@ -55,7 +79,6 @@ namespace nihilus {
 		}
 
 		NIHILUS_INLINE void init(uint64_t size) noexcept {
-			std::cout << "SIZE: " << size << std::endl;
 			if (data_val) {
 				clear();
 			}

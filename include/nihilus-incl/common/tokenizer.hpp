@@ -441,7 +441,7 @@ namespace nihilus {
 			return {};
 		}
 
-		NIHILUS_INLINE void tokenize_word(const std::string_view word, vector<int32_t>& output) {
+		NIHILUS_INLINE void tokenize_word(const std::string& word, vector<int32_t>& output) {
 			if (word.empty())
 				return;
 
@@ -460,7 +460,7 @@ namespace nihilus {
 			while (offset < word.size()) {
 				nihilus_symbol sym;
 				uint64_t char_len = detail::min(word.size() - offset, static_cast<uint64_t>(unicode_len_utf8(word[offset])));
-				sym.text		  = word.data() + offset;
+				sym.text		  = word.c_str() + offset;
 				sym.n			  = char_len;
 				offset += sym.n;
 				sym.prev = index - 1;

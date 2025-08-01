@@ -58,7 +58,7 @@ namespace nihilus {
 			log<log_levels::error>(return_value);
 			std::exit(-1);
 		}
-		NIHILUS_INLINE static void impl(const std::string_view input_string) {
+		NIHILUS_INLINE static void impl(const std::string& input_string) {
 			static constexpr uint64_t str_length{ strlen(source_info.file_name()) };
 			static constexpr string_literal return_value01{ "Error: " + error_type };
 			static constexpr string_literal return_value02{ "\nIn File: " + string_literal<str_length>{ source_info.file_name() } +
@@ -79,7 +79,7 @@ namespace nihilus {
 				"\nOn Line: " + to_string_literal<source_info.line()>() + "\n" };
 			throw nihilus_exception(static_cast<std::string_view>(return_value));
 		}
-		NIHILUS_INLINE static void impl(const std::string_view input_string) {
+		NIHILUS_INLINE static void impl(const std::string& input_string) {
 			static constexpr uint64_t str_length{ strlen(source_info.file_name()) };
 			static constexpr string_literal return_value01{ "Error: " + error_type };
 			static constexpr string_literal return_value02{ "\nIn File: " + string_literal<str_length>{ source_info.file_name() } +

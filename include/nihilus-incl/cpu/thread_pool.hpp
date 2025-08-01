@@ -170,6 +170,13 @@ namespace nihilus {
 			core_base_type::template impl<execution_planner>(thread_count);
 		}
 
+		template<uint64_t current_index = 0> NIHILUS_INLINE void execute_blocks(uint64_t thread_index) {
+			if constexpr (current_index < model_traits_type<config>::block_count) {
+				core_base_type::template impl<per_block_thread_function>(current_index, thread_index);
+				execute_blocks<current_index + 1>(thread_index);
+			}
+		}
+
 		template<uint64_t thread_index> NIHILUS_INLINE void thread_function() {
 			if constexpr (thread_index % 4 == 0 && (thread_index < config.max_thread_count / 3)) {
 				raise_current_thread_priority();
@@ -177,17 +184,8 @@ namespace nihilus {
 			while (!stop.load()) {
 				thread_latch.worker_wait(thread_index);
 				if (!stop.load()) {
-					for (uint64_t x = 0; x < model_traits_type<config>::block_count; ++x) {
-						core_base_type::template impl<global_input_thread_function>(thread_index);
-						core_base_type::template impl<per_block_thread_function>(x, thread_index);
-						if constexpr (config.benchmark) {
-							//perf_base<config>::perf_stats.debug_counter.arrive_and_wait();
-							//if (thread_index == 0) {
-							//core_base_type::template impl<tensor_debugger_impl>(x, perf_base<config>::perf_stats.current_iteration,
-							//perf_base<config>::perf_stats.runtime_dimensions[thread_index]);
-							//}
-						}
-					}
+					core_base_type::template impl<global_input_thread_function>(thread_index);
+					execute_blocks<0>(thread_index);
 					core_base_type::template impl<global_output_thread_function>(thread_index);
 					thread_latch.arrive_and_wait(thread_index);
 				}
@@ -195,7 +193,7 @@ namespace nihilus {
 		}
 
 		NIHILUS_INLINE void execute_tasks(uint64_t runtime_dimensions_new) {
-			core_base_type::template impl<latch_resetter>();
+			core_base_type::template impl<run_checker_resetter>(thread_count);
 			core_base_type::template impl<dim_updater>(runtime_dimensions_new);
 			if constexpr (config.benchmark) {
 				for (uint64_t x = 0; x < threads.size(); ++x) {

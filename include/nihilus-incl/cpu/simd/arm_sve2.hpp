@@ -220,8 +220,8 @@ namespace nihilus {
 		}
 	}
 
-	template<typename transform_type, typename core_type> struct kernel_dispatcher_impl<2, kernel_types::embedding_lookup, transform_type, core_type, float, block_q8_0<half>, int32_t>
-		: public kernel_base<kernel_types::embedding_lookup, core_type, float, block_q8_0<half>, int32_t> {
+	template<typename transform_type, typename core_type> struct kernel_dispatcher_impl<2, kernel_types::get_rows, transform_type, core_type, float, block_q8_0<half>, int32_t>
+		: public kernel_base<kernel_types::get_rows, core_type, float, block_q8_0<half>, int32_t> {
 		using input_type01 = core_type::input_01_type;
 		using input_type02 = core_type::input_02_type;
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, core_type& output, const typename core_type::input_01_type& input01,
@@ -273,8 +273,8 @@ namespace nihilus {
 		}
 	}
 
-	template<typename transform_type, typename core_type> struct kernel_dispatcher_impl<2, kernel_types::embedding_lookup, transform_type, core_type, float, float, int32_t>
-		: public kernel_base<kernel_types::embedding_lookup, core_type, float, float, int32_t> {
+	template<typename transform_type, typename core_type> struct kernel_dispatcher_impl<2, kernel_types::get_rows, transform_type, core_type, float, float, int32_t>
+		: public kernel_base<kernel_types::get_rows, core_type, float, float, int32_t> {
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, core_type& output, const typename core_type::input_01_type& input01,
 			const typename core_type::input_02_type& input02) {
 			const uint64_t ne00 = input01[0];

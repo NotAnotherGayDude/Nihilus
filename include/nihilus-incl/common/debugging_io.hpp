@@ -418,7 +418,99 @@ namespace nihilus {
 	constexpr kernel_types convert_ggml_op_to_nihilus_kernel(ggml_op op) noexcept {
 		switch (op) {
 			case GGML_OP_GET_ROWS:
-				return kernel_types::embedding_lookup;
+				return kernel_types::get_rows;
+			case GGML_OP_RMS_NORM:
+				return kernel_types::rms_norm;
+			case GGML_OP_MUL:
+				return kernel_types::mul;
+			case GGML_OP_MUL_MAT:
+			case GGML_OP_MUL_MAT_ID:
+				return kernel_types::mul_mat;
+			case GGML_OP_RESHAPE:
+				return kernel_types::reshape;
+			case GGML_OP_PERMUTE:
+				return kernel_types::permute;
+			case GGML_OP_TRANSPOSE:
+				return kernel_types::transpose;
+			case GGML_OP_VIEW:
+				return kernel_types::view;
+			case GGML_OP_CONT:
+				return kernel_types::cont;
+			case GGML_OP_CPY:
+			case GGML_OP_DUP:
+				return kernel_types::copy;
+			case GGML_OP_ROPE:
+				return kernel_types::rope;
+			case GGML_OP_SOFT_MAX:
+				return kernel_types::softmax;
+			case GGML_OP_ADD:
+			case GGML_OP_ADD1:
+				return kernel_types::add;
+			case GGML_OP_SUB:
+				return kernel_types::sub;
+			case GGML_OP_SILU_BACK:
+				return kernel_types::silu;
+			case GGML_OP_NONE:
+			case GGML_OP_ACC:
+			case GGML_OP_DIV:
+			case GGML_OP_SQR:
+			case GGML_OP_SQRT:
+			case GGML_OP_LOG:
+			case GGML_OP_SIN:
+			case GGML_OP_COS:
+			case GGML_OP_SUM:
+			case GGML_OP_SUM_ROWS:
+			case GGML_OP_MEAN:
+			case GGML_OP_ARGMAX:
+			case GGML_OP_COUNT_EQUAL:
+			case GGML_OP_REPEAT:
+			case GGML_OP_REPEAT_BACK:// Repeat backward - not implemented
+			case GGML_OP_CONCAT:// Concatenation - not implemented
+			case GGML_OP_NORM:// Layer norm - could potentially map to rms_norm
+			case GGML_OP_RMS_NORM_BACK:// RMS norm backward - not implemented
+			case GGML_OP_GROUP_NORM:// Group normalization - not implemented
+			case GGML_OP_OUT_PROD:// Outer product - not implemented
+			case GGML_OP_SCALE:// Scaling - could potentially map to mul
+			case GGML_OP_SET:// Set values - not implemented
+			case GGML_OP_GET_ROWS_BACK:// Get rows backward - not implemented
+			case GGML_OP_DIAG:// Diagonal - not implemented
+			case GGML_OP_DIAG_MASK_INF:// Diagonal mask with infinity - not implemented
+			case GGML_OP_DIAG_MASK_ZERO:// Diagonal mask with zero - not implemented
+			case GGML_OP_SOFT_MAX_BACK:// Softmax backward - not implemented
+			case GGML_OP_ROPE_BACK:// ROPE backward - not implemented
+			case GGML_OP_CLAMP:// Clamp values - not implemented
+			case GGML_OP_CONV_TRANSPOSE_1D:// 1D transposed convolution - not implemented
+			case GGML_OP_IM2COL:// Image to column - not implemented
+			case GGML_OP_IM2COL_BACK:// Image to column backward - not implemented
+			case GGML_OP_CONV_TRANSPOSE_2D:// 2D transposed convolution - not implemented
+			case GGML_OP_POOL_1D:// 1D pooling - not implemented
+			case GGML_OP_POOL_2D:// 2D pooling - not implemented
+			case GGML_OP_POOL_2D_BACK:// 2D pooling backward - not implemented
+			case GGML_OP_UPSCALE:// Upscaling - not implemented
+			case GGML_OP_PAD:// Padding - not implemented
+			case GGML_OP_PAD_REFLECT_1D:// 1D reflection padding - not implemented
+			case GGML_OP_ARANGE:// Range generation - not implemented
+			case GGML_OP_TIMESTEP_EMBEDDING:// Timestep embedding - not implemented
+			case GGML_OP_ARGSORT:// Argument sort - not implemented
+			case GGML_OP_LEAKY_RELU:// Leaky ReLU - not implemented
+			case GGML_OP_FLASH_ATTN_EXT:// Flash attention - not implemented
+			case GGML_OP_FLASH_ATTN_BACK:// Flash attention backward - not implemented
+			case GGML_OP_SSM_CONV:// State space model convolution - not implemented
+			case GGML_OP_SSM_SCAN:// State space model scan - not implemented
+			case GGML_OP_WIN_PART:// Window partition - not implemented
+			case GGML_OP_WIN_UNPART:// Window unpartition - not implemented
+			case GGML_OP_GET_REL_POS:// Get relative position - not implemented
+			case GGML_OP_ADD_REL_POS:// Add relative position - not implemented
+			case GGML_OP_RWKV_WKV6:// RWKV WKV6 - not implemented
+			case GGML_OP_GATED_LINEAR_ATTN:// Gated linear attention - not implemented
+			case GGML_OP_UNARY:// Unary operation - not implemented
+			case GGML_OP_MAP_CUSTOM1:// Custom operation 1 - not implemented
+			case GGML_OP_MAP_CUSTOM2:// Custom operation 2 - not implemented
+			case GGML_OP_MAP_CUSTOM3:// Custom operation 3 - not implemented
+			case GGML_OP_CROSS_ENTROPY_LOSS:// Cross entropy loss - not implemented
+			case GGML_OP_CROSS_ENTROPY_LOSS_BACK:// Cross entropy loss backward - not implemented
+			case GGML_OP_OPT_STEP_ADAMW:// AdamW optimizer step - not implemented
+			case GGML_OP_COUNT:// Count sentinel - not a real operation
 			default:
 				return kernel_types::none;
 		}
@@ -507,7 +599,7 @@ namespace nihilus {
 			op	 = convert_ggml_op_to_nihilus_kernel(other.op);
 		}
 
-		template<core_traits_types tensor_type> NIHILUS_INLINE intermediary_tensor(tensor_type& other, const std::string_view name_new, uint64_t current_block) {
+		template<core_traits_types tensor_type> NIHILUS_INLINE intermediary_tensor(tensor_type& other, const std::string& name_new, uint64_t current_block) {
 			using output_type = typename tensor_type::output_type;
 			dims[0]			  = other[0];
 			dims[1]			  = other[1];
@@ -789,7 +881,7 @@ namespace nihilus {
 			return *this;
 		}
 
-		template<core_traits_types tensor_type> NIHILUS_INLINE tensor_wrapper(tensor_type& other, const std::string_view name_new, uint64_t current_block) {
+		template<core_traits_types tensor_type> NIHILUS_INLINE tensor_wrapper(tensor_type& other, const std::string& name_new, uint64_t current_block) {
 			using output_type = typename tensor_type::output_type;
 			dims[0]			  = other[0];
 			dims[1]			  = other[1];
@@ -1042,54 +1134,77 @@ namespace nihilus {
 	NIHILUS_INLINE std::string convert_op_to_string(op_types type, uint64_t current_block) {
 		std::string block{ std::to_string(current_block) };
 		switch (type) {
-			case op_types::attn_q_weight: {
-				return "blk." + block + ".attn_q.weight";
+			case op_types::norm_attn_norm: {
+				return "attn_norm-" + block;
 			}
-			case op_types::attn_k_weight: {
-				return "blk." + block + ".attn_k.weight";
+			case op_types::inp_embd: {
+				return "inp_embd";
 			}
-			case op_types::attn_v_weight: {
-				return "blk." + block + ".attn_v.weight";
+			case op_types::qcur_reshaped: {
+				return "Qcur-" + block + " (reshaped)-02";
 			}
-			case op_types::attn_output_weight: {
-				return "blk." + block + ".attn_output.weight";
+			case op_types::qcur_rope: {
+				return "Qcur-" + block + "-02";
 			}
-			case op_types::attn_norm_weight: {
-				return "blk." + block + ".attn_norm.weight";
+			case op_types::kcur_rope: {
+				return "Kcur-" + block + "-02";
 			}
-			case op_types::ffn_gate_weight: {
-				return "blk." + block + ".ffn_gate.weight";
+			case op_types::kcur_reshaped: {
+				return "Kcur-" + block + " (reshaped)-02";
 			}
-			case op_types::ffn_up_weight: {
-				return "blk." + block + ".ffn_up.weight";
+			case op_types::k_cache_view: {
+				return "k_cache_view-" + block;
 			}
-			case op_types::ffn_down_weight: {
-				return "blk." + block + ".ffn_down.weight";
-			}
-			case op_types::ffn_norm_weight: {
-				return "blk." + block + ".ffn_norm.weight";
-			}
-			case op_types::token_embd_weight: {
-				return "token_embd.weight";
-			}
-			case op_types::rope_freqs_weight: {
-				return "rope_freqs.weight";
-			}
-			case op_types::output_weight: {
-				return "output.weight";
-			}
-			case op_types::output_norm_weight: {
-				return "output_norm.weight";
-			}
-
-			case op_types::inp_tokens: {
-				return "inp_tokens";
+			case op_types::kq_mask: {
+				return "KQ_mask";
 			}
 			case op_types::inp_pos: {
 				return "inp_pos";
 			}
+			case op_types::inp_tokens: {
+				return "inp_tokens";
+			}
 			case op_types::inp_out_ids: {
 				return "inp_out_ids";
+			}
+			case op_types::attn_k_weight: {
+				return "blk." + block + ".attn_k.weight";
+			}
+			case op_types::attn_q_weight: {
+				return "blk." + block + ".attn_q.weight";
+			}
+			case op_types::attn_v_weight: {
+				return "blk." + block + ".attn_v.weight";
+			}
+			case op_types::attn_norm_weight: {
+				return "blk." + block + ".attn_norm.weight";
+			}
+			case op_types::attn_output_weight: {
+				return "blk." + block + ".attn_output.weight";
+			}
+			case op_types::ffn_down_weight: {
+				return "blk." + block + ".ffn_down.weight";
+			}
+			case op_types::ffn_gate_weight: {
+				return "blk." + block + ".ffn_gate.weight";
+			}
+			case op_types::ffn_norm_weight: {
+				return "blk." + block + ".ffn_norm.weight";
+			}
+			case op_types::ffn_up_weight: {
+				return "blk." + block + ".ffn_up.weight";
+			}
+			case op_types::output_norm_weight: {
+				return "output_norm.weight";
+			}
+			case op_types::output_weight: {
+				return "output.weight";
+			}
+			case op_types::rope_freqs_weight: {
+				return "rope_freqs.weight";
+			}
+			case op_types::token_embd_weight: {
+				return "token_embd.weight";
 			}
 			case op_types::cache_k: {
 				return "cache_k_l" + block;
@@ -1097,33 +1212,98 @@ namespace nihilus {
 			case op_types::cache_v: {
 				return "cache_v_l" + block;
 			}
-			case op_types::kq_mask: {
-				return "kq_mask";
+			case op_types::qcur_mul_mat: {
+				return "Qcur-" + block;
 			}
-			case op_types::embedding_lookup: {
-				return "inp_embd";
+			case op_types::kcur_mul_mat: {
+				return "Kcur-" + block;
 			}
-			case op_types::attention_preprocessing: {
-				return "fused_qkv_rope-" + block;
+			case op_types::vcur_mul_mat: {
+				return "Vcur-" + block;
 			}
-			case op_types::attention_computation: {
-				return "fused_attention-" + block;
+			case op_types::k_cache_view_copy: {
+				return "k_cache_view-" + block + " (copy of Kcur-" + block + ")";
 			}
-			case op_types::attention_output: {
-				return "fused_attn_out-" + block;
+			case op_types::vcur_transposed: {
+				return "Vcur-" + block + " (transposed)-02";
 			}
-			case op_types::swiglu_transformation: {
-				return "fused_swiglu-" + block;
+			case op_types::v_cache_view: {
+				return "v_cache_view-" + block;
 			}
-			case op_types::final_projection: {
-				return "fused_final_proj";
+			case op_types::v_cache_view_copy: {
+				return "v_cache_view-" + block + " (copy of Vcur-" + block + " (transposed))";
 			}
-
+			case op_types::v: {
+				return "v-" + block;
+			}
+			case op_types::k: {
+				return "k-" + block;
+			}
+			case op_types::q: {
+				return "q-" + block;
+			}
+			case op_types::kq: {
+				return "kq-" + block;
+			}
+			case op_types::kq_soft_max: {
+				return "kq_soft_max_ext-" + block;
+			}
+			case op_types::kqv: {
+				return "kqv-" + block;
+			}
+			case op_types::kqv_merged: {
+				return "kqv_merged-" + block;
+			}
+			case op_types::kqv_merged_cont: {
+				return "kqv_merged_cont-" + block;
+			}
+			case op_types::kqv_out: {
+				return "kqv_out-" + block;
+			}
+			case op_types::ffn_inp_norm_out_ffn_norm: {
+				return "ffn_norm-" + block;
+			}
+			case op_types::ffn_inp: {
+				return "ffn_inp-" + block;
+			}
+			case op_types::ffn_gate: {
+				return "ffn_gate-" + block;
+			}
+			case op_types::ffn_silu: {
+				return "ffn_silu-" + block;
+			}
+			case op_types::ffn_up: {
+				return "ffn_up-" + block;
+			}
+			case op_types::ffn_gate_par: {
+				return "ffn_gate_par-" + block;
+			}
+			case op_types::ffn_out: {
+				return "ffn_out-" + block;
+			}
+			case op_types::l_out: {
+				return "l_out-" + block;
+			}
+			case op_types::final_norm: {
+				return "norm";
+			}
+			case op_types::result_norm: {
+				return "result_norm";
+			}
+			case op_types::attn_residual: {
+				return "node_1016";
+			}
+			case op_types::prev_residual: {
+				return "node_1017";
+			}
+			case op_types::result_output: {
+				return "result_output";
+			}
 			case op_types::count: {
 				return "count";
 			}
 			default: {
-				return "unknown_op_" + std::to_string(static_cast<uint16_t>(type));
+				return {};
 			}
 		}
 	}
@@ -1134,28 +1314,28 @@ namespace nihilus {
 		inline static jsonifier::jsonifier_core parser{};
 
 		template<typename tensor_type> static bool compare_tensor_data(tensor_type& tensor, uint64_t current_block, uint64_t iteration, uint64_t runtime_dim) {
-			std::string file_name{ convert_op_to_string(tensor.op_type, current_block) + "-" + std::to_string(iteration) + ".json" };
+			std::string file_name{ convert_op_to_string(tensor.type, current_block) + "-" + std::to_string(iteration) + ".json" };
 			file_loader<config> file{ file_name };
-			auto new_string = file.operator const std::string_view();
-			tensor_wrapper tensor_newer{ tensor, convert_op_to_string(tensor.op_type, current_block), current_block };
+			std::string new_string = file.operator const std::string&();
+			tensor_wrapper tensor_newer{ tensor, convert_op_to_string(tensor.type, current_block), current_block };
 			intermediary_tensor tensor_new{};
 			parser.parseJson(tensor_new, new_string);
 			std::stringstream stream{};
 			if (!new_string.empty()) {
 				auto return_value{ tensor_newer == tensor_new };
 				if (!return_value) {
-					stream << "Not Equal: Tensor of name: " << convert_op_to_string(tensor.op_type, current_block) << ", OF TYPE: " << tensor.op_type << " (iteration " << iteration
+					stream << "Not Equal: Tensor of name: " << convert_op_to_string(tensor.type, current_block) << ", OF TYPE: " << tensor.type << " (iteration " << iteration
 						   << ")" << std::endl;
 					stream << return_value.result_output;
 					log<log_levels::status>(stream.str());
 				} else {
-					stream << "Found an equal op of name: " << convert_op_to_string(tensor.op_type, current_block) << ", OF TYPE: " << tensor.op_type << " (iteration " << iteration
+					stream << "Found an equal op of name: " << convert_op_to_string(tensor.type, current_block) << ", OF TYPE: " << tensor.type << " (iteration " << iteration
 						   << ")" << std::endl;
 					log<log_levels::status>(stream.str());
 				}
 				return return_value;
 			} else {
-				stream << "Not Found: Tensor of name: " << convert_op_to_string(tensor.op_type, current_block) << ", OF TYPE: " << tensor.op_type << " (iteration " << iteration << ")"
+				stream << "Not Found: Tensor of name: " << convert_op_to_string(tensor.type, current_block) << ", OF TYPE: " << tensor.type << " (iteration " << iteration << ")"
 					   << std::endl;
 			}
 			log<log_levels::status>(stream.str());
