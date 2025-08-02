@@ -14,7 +14,6 @@
 # 
 # Signed,
 # RealTimeChris (Chris M.)
-# RealTimeChris (Chris M.)
 # 2025
 # */
 
@@ -134,7 +133,7 @@ set(NIHILUS_GCC_COMPILE_FLAGS
 )
 
 set(NIHILUS_MSVC_COMPILE_FLAGS
-    "/Ob3;/Ot;/Oy;/GT;/GL;/fp:fast;/Qpar;/Qvec-report:2;/constexpr:depth2048;/constexpr:backtrace0;/constexpr:steps1000000;/GS-;/Gy;/Gw;/Zc:inline;/Zc:throwingNew;/W4;/Wall;/permissive-;/Zc:__cplusplus"
+    "/Ob3;/Ot;/Oy;/GT;/GL;/fp:fast;/Qpar;/Qvec-report:2;/constexpr:depth2048;/constexpr:backtrace0;/constexpr:steps2000000;/GS-;/Gy;/Gw;/Zc:inline;/Zc:throwingNew;/W4;/Wall;/permissive-;/Zc:__cplusplus"
     "/Zc:alignedNew;/Zc:auto;/Zc:forScope;/Zc:implicitNoexcept;/Zc:noexceptTypes;/Zc:referenceBinding;/Zc:rvalueCast;/Zc:sizedDealloc;/Zc:strictStrings;/Zc:ternary;/Zc:wchar_t;/wd4820"
 )
 

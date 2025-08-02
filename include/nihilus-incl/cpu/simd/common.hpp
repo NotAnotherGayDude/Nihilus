@@ -56,7 +56,7 @@ namespace nihilus {
 #endif
 	};
 
-#if defined(NIHILUS_AVX512)
+#if NIHILUS_AVX512
 	using nihilus_simd_int_128 = __m128i;
 	struct nihilus_simd_int_128_t {
 		using type = __m128i;
@@ -71,7 +71,7 @@ namespace nihilus {
 	};
 	using nihilus_simd_int_t		  = __m256i;
 	using nihilus_string_parsing_type = uint64_t;
-#elif defined(NIHILUS_AVX2)
+#elif NIHILUS_AVX2
 	using nihilus_simd_int_128 = __m128i;
 	struct nihilus_simd_int_128_t {
 		using type = __m128i;
@@ -86,7 +86,7 @@ namespace nihilus {
 	};
 	using nihilus_simd_int			  = __m256i;
 	using nihilus_string_parsing_type = uint32_t;
-#elif defined(NIHILUS_NEON)
+#elif NIHILUS_NEON
 	using nihilus_simd_int_128 = uint8x16_t;
 	struct nihilus_simd_int_128_t {
 		using type = uint8x16_t;
@@ -101,7 +101,7 @@ namespace nihilus {
 	};
 	using nihilus_simd_int_t		  = uint8x16_t;
 	using nihilus_string_parsing_type = uint16_t;
-#elif defined(NIHILUS_SVE)
+#elif NIHILUS_SVE
 	using nihilus_simd_int_128		  = uint8x16_t;
 	using nihilus_simd_int_256		  = uint32_t;
 	using nihilus_simd_int_512		  = uint64_t;
@@ -132,7 +132,21 @@ namespace nihilus {
 	template<typename value_type>
 	concept nihilus_simd_128_types = std::same_as<nihilus_simd_int_128_t, std::remove_cvref_t<value_type>>;
 
-#if defined(NIHILUS_AVX512) || defined(NIHILUS_AVX2)
+	template<uint_types value_type> NIHILUS_INLINE static constexpr value_type tzcnt_constexpr(value_type value) noexcept {
+		if (value == 0) {
+			return sizeof(value_type) * 8;
+		}
+
+		value_type count{};
+		while ((value & 1) == 0) {
+			value >>= 1;
+			++count;
+		}
+
+		return count;
+	}
+
+#if NIHILUS_AVX512 || NIHILUS_AVX2
 
 	#define blsr(value) _blsr_u64(value)
 
@@ -188,7 +202,7 @@ namespace nihilus {
 
 #endif
 
-#if defined(NIHILUS_AVX512)
+#if NIHILUS_AVX512
 
 	template<nihilus_simd_512_types nihilus_simd_int_types_new> NIHILUS_INLINE static auto gather_values(const void* str) noexcept {
 		return _mm512_load_si512(static_cast<const __m512i*>(str));
@@ -205,7 +219,7 @@ namespace nihilus {
 
 #endif
 
-#if defined(NIHILUS_NEON)
+#if NIHILUS_NEON
 
 	#define blsr(value) (value & (value - 1))
 
@@ -248,7 +262,23 @@ namespace nihilus {
 
 #endif
 
-#if !defined(NIHILUS_AVX512) && !defined(NIHILUS_AVX2) && !defined(NIHILUS_NEON) && !defined(NIHILUS_SVE2)
+#if !NIHILUS_AVX512 && !NIHILUS_AVX2 && !NIHILUS_NEON && !NIHILUS_SVE2
+
+	template<uint_types value_type> NIHILUS_INLINE static constexpr value_type lzcnt(const value_type value) noexcept {
+		if (value == 0) {
+			return sizeof(value_type) * 8;
+		}
+
+		value_type count{};
+		value_type mask{ static_cast<value_type>(1) << (std::numeric_limits<value_type>::digits - 1) };
+
+		while ((value & mask) == 0) {
+			++count;
+			mask >>= 1;
+		}
+
+		return count;
+	}
 
 	#define blsr(value) (value & (value - 1))
 
@@ -318,25 +348,6 @@ namespace nihilus {
 		return std::bit_cast<uint32_t>(f);
 	}
 
-	struct alignas(64) float_holder {
-		NIHILUS_INLINE float_holder() noexcept : value{} {
-		}
-
-		NIHILUS_INLINE float_holder(float new_value) noexcept : value{ new_value } {
-		}
-
-		NIHILUS_INLINE operator float() const noexcept {
-			return value;
-		}
-
-		NIHILUS_INLINE operator float&() noexcept {
-			return value;
-		}
-
-	  protected:
-		alignas(64) float value{};
-	};
-
 	NIHILUS_INLINE static constexpr float compute_fp16_to_fp32(half h) noexcept {
 		const uint32_t w	 = static_cast<uint32_t>(h) << 16;
 		const uint32_t sign	 = w & 0x80000000u;
@@ -357,11 +368,13 @@ namespace nihilus {
 
 	NIHILUS_INLINE const auto& get_fp16_to_fp32_array() noexcept {
 		alignas(64) static auto fp16_to_fp32_array = []() {
-			alignas(64) static std::unique_ptr<array<float_holder, (1 << 16)>> return_values_new{ std::make_unique<array<float_holder, (1 << 16)>>() };
+			alignas(64) static std::unique_ptr<array<static_aligned_const<64, float>, (1 << 16)>> return_values_new{
+				std::make_unique<array<static_aligned_const<64, float>, (1 << 16)>>()
+			};
 			for (uint64_t i = 0; i < (1 << 16); ++i) {
 				(*return_values_new)[i] = compute_fp16_to_fp32(static_cast<half>(i));
 			}
-			alignas(64) static array<float_holder, (1 << 16)>& fp16_to_fp32_array_ref{ *return_values_new };
+			alignas(64) static array<static_aligned_const<64, float>, (1 << 16)>& fp16_to_fp32_array_ref{ *return_values_new };
 			return fp16_to_fp32_array_ref;
 		}();
 		return fp16_to_fp32_array;

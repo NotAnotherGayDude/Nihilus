@@ -72,29 +72,34 @@ math(EXPR INSTRUCTION_PRESENT_NEON "(${NIHILUS_CPU_INSTRUCTIONS_NUMERIC} & 0x4)"
 math(EXPR INSTRUCTION_PRESENT_AVX2 "(${NIHILUS_CPU_INSTRUCTIONS_NUMERIC} & 0x1)")
 
 if(INSTRUCTION_PRESENT_SVE2)
-    set(NIHILUS_CPU_INSTRUCTIONS 8)
+    set(NIHILUS_CPU_INSTRUCTIONS 4)
+    set(NIHILUS_CPU_ALIGNMENT 64)
     set(SIMD_FLAG "${NIHILUS_SVE2_FLAGS}")
 elseif(INSTRUCTION_PRESENT_AVX512)
     set(NIHILUS_CPU_INSTRUCTIONS 2)
+    set(NIHILUS_CPU_ALIGNMENT 64)
     set(SIMD_FLAG "${NIHILUS_AVX512_FLAGS}")
 elseif(INSTRUCTION_PRESENT_NEON)
-    set(NIHILUS_CPU_INSTRUCTIONS 4)
+    set(NIHILUS_CPU_ALIGNMENT 16)
+    set(NIHILUS_CPU_INSTRUCTIONS 3)
     set(SIMD_FLAG "${NIHILUS_NEON_FLAGS}")
 elseif(INSTRUCTION_PRESENT_AVX2)
+    set(NIHILUS_CPU_ALIGNMENT 32)
     set(NIHILUS_CPU_INSTRUCTIONS 1)
     set(SIMD_FLAG "${NIHILUS_AVX2_FLAGS}")
 else()
     set(NIHILUS_CPU_INSTRUCTIONS 0)
+    set(NIHILUS_CPU_ALIGNMENT 8)
 endif()
 endif()
 
-if(NIHILUS_CPU_INSTRUCTIONS EQUAL 8)
+if(NIHILUS_CPU_INSTRUCTIONS EQUAL 4)
     set(SIMD_FLAG "${NIHILUS_SVE2_FLAGS}")
     set(INSTRUCTION_SET_NAME "SVE2")
 elseif(NIHILUS_CPU_INSTRUCTIONS EQUAL 2)
     set(SIMD_FLAG "${NIHILUS_AVX512_FLAGS}")
     set(INSTRUCTION_SET_NAME "AVX512")
-elseif(NIHILUS_CPU_INSTRUCTIONS EQUAL 4)
+elseif(NIHILUS_CPU_INSTRUCTIONS EQUAL 3)
     set(SIMD_FLAG "${NIHILUS_NEON_FLAGS}")
     set(INSTRUCTION_SET_NAME "NEON")
 elseif(NIHILUS_CPU_INSTRUCTIONS EQUAL 1)
@@ -107,6 +112,7 @@ endif()
 
 set(SIMD_FLAG "${SIMD_FLAG}" CACHE STRING "SIMD flags" FORCE)
 set(NIHILUS_CPU_INSTRUCTIONS "${NIHILUS_CPU_INSTRUCTIONS}" CACHE STRING "CPU Instruction Sets" FORCE)
+set(NIHILUS_CPU_ALIGNMENT "${NIHILUS_CPU_ALIGNMENT}" CACHE STRING "CPU Alignment" FORCE)
 
 file(WRITE "${CMAKE_SOURCE_DIR}/include/nihilus-incl/cpu/simd/nihilus_cpu_instructions.hpp" "/*
 Copyright (c) 2025 RealTimeChris (Chris M.)
@@ -131,32 +137,27 @@ RealTimeChris (Chris M.)
 
 #include <cstdint>
 
-#undef NIHILUS_CPU_INSTRUCTIONS
-#define NIHILUS_CPU_INSTRUCTIONS ${NIHILUS_CPU_INSTRUCTIONS}
+#undef NIHILUS_CPU_INSTRUCTION_INDEX
+#define NIHILUS_CPU_INSTRUCTION_INDEX ${NIHILUS_CPU_INSTRUCTIONS}
 
-#define NIHILUS_AVX2_BIT (1 << 0)
-#define NIHILUS_AVX512_BIT (1 << 1)
-#define NIHILUS_NEON_BIT (1 << 2)
-#define NIHILUS_SVE2_BIT (1 << 3)
+static constexpr uint64_t arch_alignments[]{ 8, 32, 64, 16, 64 };
 
-#if NIHILUS_CPU_INSTRUCTIONS & NIHILUS_AVX2_BIT
-	#define NIHILUS_AVX2
-static constexpr uint64_t cpu_arch_index{ 1 };
-static constexpr uint64_t cpu_alignment{ 32 };
-#elif NIHILUS_CPU_INSTRUCTIONS & NIHILUS_AVX512_BIT
-	#define NIHILUS_AVX512
-static constexpr uint64_t cpu_arch_index{ 2 };
-static constexpr uint64_t cpu_alignment{ 64 };
-#elif NIHILUS_CPU_INSTRUCTIONS & NIHILUS_NEON_BIT
-	#define NIHILUS_NEON
-static constexpr uint64_t cpu_arch_index{ 1 };
-static constexpr uint64_t cpu_alignment{ 16 };
-#elif NIHILUS_CPU_INSTRUCTIONS & NIHILUS_SVE2_BIT
-	#define NIHILUS_SVE2
-static constexpr uint64_t cpu_arch_index{ 2 };
-static constexpr uint64_t cpu_alignment{ 64 };
-#else
-static constexpr uint64_t cpu_arch_index{ 0 };
-static constexpr uint64_t cpu_alignment{ 8 };
-#endif
+static constexpr uint64_t arch_indices[]{ 0, 1, 2, 1, 2 };
+
+#define NIHILUS_AVX2 NIHILUS_CPU_INSTRUCTION_INDEX & (1) && NIHILUS_ARCH_X64
+#define NIHILUS_AVX512 NIHILUS_CPU_INSTRUCTION_INDEX & (2) && NIHILUS_ARCH_X64
+#define NIHILUS_NEON NIHILUS_CPU_INSTRUCTION_INDEX & (3) && NIHILUS_ARCH_ARM64
+#define NIHILUS_SVE2 NIHILUS_CPU_INSTRUCTION_INDEX & (4) && NIHILUS_ARCH_ARM64
+
+namespace nihilus {
+
+	struct cpu_arch_index_holder {
+		static constexpr uint64_t cpu_arch_index{ arch_indices[NIHILUS_CPU_INSTRUCTION_INDEX] };
+	};
+
+	struct cpu_alignment_holder {
+		static constexpr uint64_t cpu_alignment{ arch_alignments[NIHILUS_CPU_INSTRUCTION_INDEX] };
+	};
+
+}
 ")

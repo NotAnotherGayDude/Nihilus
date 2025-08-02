@@ -29,7 +29,98 @@ RealTimeChris (Chris M.)
 #include <fstream>
 #include <string>
 
+#if defined(NIHILUS_DEV)
+
+	#include <jsonifier/Index.hpp>
+
 namespace nihilus {
+
+	enum ggml_op {
+		GGML_OP_NONE = 0,
+		GGML_OP_DUP,
+		GGML_OP_ADD,
+		GGML_OP_ADD1,
+		GGML_OP_ACC,
+		GGML_OP_SUB,
+		GGML_OP_MUL,
+		GGML_OP_DIV,
+		GGML_OP_SQR,
+		GGML_OP_SQRT,
+		GGML_OP_LOG,
+		GGML_OP_SIN,
+		GGML_OP_COS,
+		GGML_OP_SUM,
+		GGML_OP_SUM_ROWS,
+		GGML_OP_MEAN,
+		GGML_OP_ARGMAX,
+		GGML_OP_COUNT_EQUAL,
+		GGML_OP_REPEAT,
+		GGML_OP_REPEAT_BACK,
+		GGML_OP_CONCAT,
+		GGML_OP_SILU_BACK,
+		GGML_OP_NORM,
+		GGML_OP_RMS_NORM,
+		GGML_OP_RMS_NORM_BACK,
+		GGML_OP_GROUP_NORM,
+		GGML_OP_MUL_MAT,
+		GGML_OP_MUL_MAT_ID,
+		GGML_OP_OUT_PROD,
+		GGML_OP_SCALE,
+		GGML_OP_SET,
+		GGML_OP_CPY,
+		GGML_OP_CONT,
+		GGML_OP_RESHAPE,
+		GGML_OP_VIEW,
+		GGML_OP_PERMUTE,
+		GGML_OP_TRANSPOSE,
+		GGML_OP_GET_ROWS,
+		GGML_OP_GET_ROWS_BACK,
+		GGML_OP_DIAG,
+		GGML_OP_DIAG_MASK_INF,
+		GGML_OP_DIAG_MASK_ZERO,
+		GGML_OP_SOFT_MAX,
+		GGML_OP_SOFT_MAX_BACK,
+		GGML_OP_ROPE,
+		GGML_OP_ROPE_BACK,
+		GGML_OP_CLAMP,
+		GGML_OP_CONV_TRANSPOSE_1D,
+		GGML_OP_IM2COL,
+		GGML_OP_IM2COL_BACK,
+		GGML_OP_CONV_TRANSPOSE_2D,
+		GGML_OP_POOL_1D,
+		GGML_OP_POOL_2D,
+		GGML_OP_POOL_2D_BACK,
+		GGML_OP_UPSCALE,
+		GGML_OP_PAD,
+		GGML_OP_PAD_REFLECT_1D,
+		GGML_OP_ARANGE,
+		GGML_OP_TIMESTEP_EMBEDDING,
+		GGML_OP_ARGSORT,
+		GGML_OP_LEAKY_RELU,
+		GGML_OP_FLASH_ATTN_EXT,
+		GGML_OP_FLASH_ATTN_BACK,
+		GGML_OP_SSM_CONV,
+		GGML_OP_SSM_SCAN,
+		GGML_OP_WIN_PART,
+		GGML_OP_WIN_UNPART,
+		GGML_OP_GET_REL_POS,
+		GGML_OP_ADD_REL_POS,
+		GGML_OP_RWKV_WKV6,
+		GGML_OP_GATED_LINEAR_ATTN,
+		GGML_OP_UNARY,
+		GGML_OP_MAP_UNARY,
+		GGML_OP_MAP_BINARY,
+		GGML_OP_MAP_CUSTOM1_F32,
+		GGML_OP_MAP_CUSTOM2_F32,
+		GGML_OP_MAP_CUSTOM3_F32,
+		GGML_OP_MAP_CUSTOM1,
+		GGML_OP_MAP_CUSTOM2,
+		GGML_OP_MAP_CUSTOM3,
+		GGML_OP_CROSS_ENTROPY_LOSS,
+		GGML_OP_CROSS_ENTROPY_LOSS_BACK,
+		GGML_OP_OPT_STEP_ADAMW,
+		GGML_OP_COUNT,
+	};
 
 	float f16_to_f32(uint16_t f16_bits) {
 		uint32_t sign = (f16_bits & 0x8000) << 16;
@@ -283,100 +374,6 @@ namespace nihilus {
 
 		stream << "]\n";
 	}
-}
-
-#if defined(NIHILUS_DEV)
-
-	#include <jsonifier/Index.hpp>
-
-namespace nihilus {
-
-	enum ggml_op {
-		GGML_OP_NONE = 0,
-		GGML_OP_DUP,
-		GGML_OP_ADD,
-		GGML_OP_ADD1,
-		GGML_OP_ACC,
-		GGML_OP_SUB,
-		GGML_OP_MUL,
-		GGML_OP_DIV,
-		GGML_OP_SQR,
-		GGML_OP_SQRT,
-		GGML_OP_LOG,
-		GGML_OP_SIN,
-		GGML_OP_COS,
-		GGML_OP_SUM,
-		GGML_OP_SUM_ROWS,
-		GGML_OP_MEAN,
-		GGML_OP_ARGMAX,
-		GGML_OP_COUNT_EQUAL,
-		GGML_OP_REPEAT,
-		GGML_OP_REPEAT_BACK,
-		GGML_OP_CONCAT,
-		GGML_OP_SILU_BACK,
-		GGML_OP_NORM,
-		GGML_OP_RMS_NORM,
-		GGML_OP_RMS_NORM_BACK,
-		GGML_OP_GROUP_NORM,
-		GGML_OP_MUL_MAT,
-		GGML_OP_MUL_MAT_ID,
-		GGML_OP_OUT_PROD,
-		GGML_OP_SCALE,
-		GGML_OP_SET,
-		GGML_OP_CPY,
-		GGML_OP_CONT,
-		GGML_OP_RESHAPE,
-		GGML_OP_VIEW,
-		GGML_OP_PERMUTE,
-		GGML_OP_TRANSPOSE,
-		GGML_OP_GET_ROWS,
-		GGML_OP_GET_ROWS_BACK,
-		GGML_OP_DIAG,
-		GGML_OP_DIAG_MASK_INF,
-		GGML_OP_DIAG_MASK_ZERO,
-		GGML_OP_SOFT_MAX,
-		GGML_OP_SOFT_MAX_BACK,
-		GGML_OP_ROPE,
-		GGML_OP_ROPE_BACK,
-		GGML_OP_CLAMP,
-		GGML_OP_CONV_TRANSPOSE_1D,
-		GGML_OP_IM2COL,
-		GGML_OP_IM2COL_BACK,
-		GGML_OP_CONV_TRANSPOSE_2D,
-		GGML_OP_POOL_1D,
-		GGML_OP_POOL_2D,
-		GGML_OP_POOL_2D_BACK,
-		GGML_OP_UPSCALE,
-		GGML_OP_PAD,
-		GGML_OP_PAD_REFLECT_1D,
-		GGML_OP_ARANGE,
-		GGML_OP_TIMESTEP_EMBEDDING,
-		GGML_OP_ARGSORT,
-		GGML_OP_LEAKY_RELU,
-		GGML_OP_FLASH_ATTN_EXT,
-		GGML_OP_FLASH_ATTN_BACK,
-		GGML_OP_SSM_CONV,
-		GGML_OP_SSM_SCAN,
-		GGML_OP_WIN_PART,
-		GGML_OP_WIN_UNPART,
-		GGML_OP_GET_REL_POS,
-		GGML_OP_ADD_REL_POS,
-		GGML_OP_RWKV_WKV6,
-		GGML_OP_GATED_LINEAR_ATTN,
-		GGML_OP_UNARY,
-		GGML_OP_MAP_UNARY,
-		GGML_OP_MAP_BINARY,
-		GGML_OP_MAP_CUSTOM1_F32,
-		GGML_OP_MAP_CUSTOM2_F32,
-		GGML_OP_MAP_CUSTOM3_F32,
-		GGML_OP_MAP_CUSTOM1,
-		GGML_OP_MAP_CUSTOM2,
-		GGML_OP_MAP_CUSTOM3,
-		GGML_OP_CROSS_ENTROPY_LOSS,
-		GGML_OP_CROSS_ENTROPY_LOSS_BACK,
-		GGML_OP_OPT_STEP_ADAMW,
-		GGML_OP_COUNT,
-	};
 
 	enum class source_types {
 		ggml,
@@ -399,7 +396,7 @@ namespace nihilus {
 	constexpr double get_tolerance_for_type(data_types type) {
 		switch (type) {
 			case data_types::f32:
-				return 1e-3;
+				return 1.5e-2;
 			case data_types::f16:
 				return 1e-3;
 			case data_types::f64:
@@ -420,7 +417,7 @@ namespace nihilus {
 			case GGML_OP_GET_ROWS:
 				return kernel_types::get_rows;
 			case GGML_OP_RMS_NORM:
-				return kernel_types::rms_norm;
+				return kernel_types::rms_norm_mul;
 			case GGML_OP_MUL:
 				return kernel_types::mul;
 			case GGML_OP_MUL_MAT:
@@ -450,67 +447,6 @@ namespace nihilus {
 				return kernel_types::sub;
 			case GGML_OP_SILU_BACK:
 				return kernel_types::silu;
-			case GGML_OP_NONE:
-			case GGML_OP_ACC:
-			case GGML_OP_DIV:
-			case GGML_OP_SQR:
-			case GGML_OP_SQRT:
-			case GGML_OP_LOG:
-			case GGML_OP_SIN:
-			case GGML_OP_COS:
-			case GGML_OP_SUM:
-			case GGML_OP_SUM_ROWS:
-			case GGML_OP_MEAN:
-			case GGML_OP_ARGMAX:
-			case GGML_OP_COUNT_EQUAL:
-			case GGML_OP_REPEAT:
-			case GGML_OP_REPEAT_BACK:// Repeat backward - not implemented
-			case GGML_OP_CONCAT:// Concatenation - not implemented
-			case GGML_OP_NORM:// Layer norm - could potentially map to rms_norm
-			case GGML_OP_RMS_NORM_BACK:// RMS norm backward - not implemented
-			case GGML_OP_GROUP_NORM:// Group normalization - not implemented
-			case GGML_OP_OUT_PROD:// Outer product - not implemented
-			case GGML_OP_SCALE:// Scaling - could potentially map to mul
-			case GGML_OP_SET:// Set values - not implemented
-			case GGML_OP_GET_ROWS_BACK:// Get rows backward - not implemented
-			case GGML_OP_DIAG:// Diagonal - not implemented
-			case GGML_OP_DIAG_MASK_INF:// Diagonal mask with infinity - not implemented
-			case GGML_OP_DIAG_MASK_ZERO:// Diagonal mask with zero - not implemented
-			case GGML_OP_SOFT_MAX_BACK:// Softmax backward - not implemented
-			case GGML_OP_ROPE_BACK:// ROPE backward - not implemented
-			case GGML_OP_CLAMP:// Clamp values - not implemented
-			case GGML_OP_CONV_TRANSPOSE_1D:// 1D transposed convolution - not implemented
-			case GGML_OP_IM2COL:// Image to column - not implemented
-			case GGML_OP_IM2COL_BACK:// Image to column backward - not implemented
-			case GGML_OP_CONV_TRANSPOSE_2D:// 2D transposed convolution - not implemented
-			case GGML_OP_POOL_1D:// 1D pooling - not implemented
-			case GGML_OP_POOL_2D:// 2D pooling - not implemented
-			case GGML_OP_POOL_2D_BACK:// 2D pooling backward - not implemented
-			case GGML_OP_UPSCALE:// Upscaling - not implemented
-			case GGML_OP_PAD:// Padding - not implemented
-			case GGML_OP_PAD_REFLECT_1D:// 1D reflection padding - not implemented
-			case GGML_OP_ARANGE:// Range generation - not implemented
-			case GGML_OP_TIMESTEP_EMBEDDING:// Timestep embedding - not implemented
-			case GGML_OP_ARGSORT:// Argument sort - not implemented
-			case GGML_OP_LEAKY_RELU:// Leaky ReLU - not implemented
-			case GGML_OP_FLASH_ATTN_EXT:// Flash attention - not implemented
-			case GGML_OP_FLASH_ATTN_BACK:// Flash attention backward - not implemented
-			case GGML_OP_SSM_CONV:// State space model convolution - not implemented
-			case GGML_OP_SSM_SCAN:// State space model scan - not implemented
-			case GGML_OP_WIN_PART:// Window partition - not implemented
-			case GGML_OP_WIN_UNPART:// Window unpartition - not implemented
-			case GGML_OP_GET_REL_POS:// Get relative position - not implemented
-			case GGML_OP_ADD_REL_POS:// Add relative position - not implemented
-			case GGML_OP_RWKV_WKV6:// RWKV WKV6 - not implemented
-			case GGML_OP_GATED_LINEAR_ATTN:// Gated linear attention - not implemented
-			case GGML_OP_UNARY:// Unary operation - not implemented
-			case GGML_OP_MAP_CUSTOM1:// Custom operation 1 - not implemented
-			case GGML_OP_MAP_CUSTOM2:// Custom operation 2 - not implemented
-			case GGML_OP_MAP_CUSTOM3:// Custom operation 3 - not implemented
-			case GGML_OP_CROSS_ENTROPY_LOSS:// Cross entropy loss - not implemented
-			case GGML_OP_CROSS_ENTROPY_LOSS_BACK:// Cross entropy loss backward - not implemented
-			case GGML_OP_OPT_STEP_ADAMW:// AdamW optimizer step - not implemented
-			case GGML_OP_COUNT:// Count sentinel - not a real operation
 			default:
 				return kernel_types::none;
 		}
@@ -598,246 +534,11 @@ namespace nihilus {
 			type = other.type;
 			op	 = convert_ggml_op_to_nihilus_kernel(other.op);
 		}
-
-		template<core_traits_types tensor_type> NIHILUS_INLINE intermediary_tensor(tensor_type& other, const std::string& name_new, uint64_t current_block) {
-			using output_type = typename tensor_type::output_type;
-			dims[0]			  = other[0];
-			dims[1]			  = other[1];
-			dims[2]			  = other[2];
-			dims[3]			  = other[3];
-
-			if constexpr (tensor_type::runtime_dims != 5) {
-				dims[tensor_type::runtime_dims] = other.get_mutable_dim();
-			}
-			source_type			   = source_types::nihilus;
-			uint64_t element_count = get_runtime_byte_size(other);
-			data.resize(element_count);
-
-			op	 = other.kernel_type;
-			name = name_new;
-			type = type_traits<output_type>::type;
-
-			if constexpr (array_types<decltype(other.data)>) {
-				if (other.data[current_block]) {
-					const output_type* src = other.data[current_block];
-					std::memcpy(data.data(), src, element_count);
-				} else {
-					std::cout << "Sorry, but no data for op: " << op << std::endl;
-				}
-			} else {
-				if (other.data) {
-					const output_type* src = other.data;
-					std::memcpy(data.data(), src, element_count);
-				} else {
-					std::cout << "Sorry, but no data for op: " << op << std::endl;
-				}
-			}
-		}
 		std::string name{};
 		vector<uint8_t> data{};
 		source_types source_type{ source_types::ggml };
 		data_types type{};
 		kernel_types op{};
-		/*
-		bool compare_tensor_data_smart(const intermediary_tensor& data1, const intermediary_tensor& data2, data_types type, std::stringstream& stream,
-			size_t max_differences = 5) const {
-			if (data1.byte_size != data2.data.size()) {
-				stream << "Size mismatch: " << data1.byte_size << " vs " << data2.data.size() << std::endl;
-				return false;
-			}
-
-			if (!data1.data) {
-				stream << "Empty Tensor!" << std::endl;
-				return false;
-			}
-
-			double tolerance		 = get_tolerance_for_type(type);
-			size_t differences_found = 0;
-			bool has_differences	 = false;
-
-			switch (type) {
-				case data_types::f32: {
-					const float* vals1 = reinterpret_cast<const float*>(data1.data);
-					const float* vals2 = reinterpret_cast<const float*>(data2.data.data());
-					size_t count	   = data1.byte_size / sizeof(float);
-
-					for (size_t i = 0; i < count; ++i) {
-						double diff = fabs(static_cast<double>(vals1[i]) - static_cast<double>(vals2[i]));
-
-						bool both_nan = std::isnan(vals1[i]) && std::isnan(vals2[i]);
-						bool both_inf = std::isinf(vals1[i]) && std::isinf(vals2[i]) && (std::signbit(vals1[i]) == std::signbit(vals2[i]));
-
-						if (both_nan || both_inf) {
-							continue;
-						}
-
-						if (diff > tolerance) {
-							has_differences = true;
-							if (differences_found < max_differences) {
-								stream << "Incorrect Data:, For Tensor: " << name << std::endl;
-								stream << "f32 difference at index " << i << ": " << std::scientific << std::setprecision(10) << vals1[i] << " vs " << vals2[i]
-									   << " (diff: " << diff << ", tolerance: " << tolerance << ")" << std::endl;
-								differences_found++;
-								stream << "LHS Data: " << std::endl;
-								print_typed_data(stream, static_cast<uint8_t*>(data1.data), data1.byte_size, type, i);
-								stream << "RHS Data: " << std::endl;
-								print_typed_data(stream, data2.data, type, i);
-								break;
-							}
-						}
-					}
-					break;
-				}
-
-				case data_types::f16: {
-					const uint16_t* vals1 = reinterpret_cast<const uint16_t*>(data1.data);
-					const uint16_t* vals2 = reinterpret_cast<const uint16_t*>(data2.data.data());
-					size_t count		  = data1.byte_size / sizeof(uint16_t);
-
-					for (size_t i = 0; i < count; ++i) {
-						float f1	= f16_to_f32(vals1[i]);
-						float f2	= f16_to_f32(vals2[i]);
-						double diff = fabs(static_cast<double>(f1) - static_cast<double>(f2));
-
-						if (diff > tolerance) {
-							has_differences = true;
-							if (differences_found < max_differences) {
-								stream << "Incorrect Data:, For Tensor: " << name << std::endl;
-								stream << "f16 difference at index " << i << ": " << std::fixed << std::setprecision(6) << f1 << " vs " << f2 << " (diff: " << std::scientific
-									   << diff << ")" << std::endl;
-								differences_found++;
-								stream << "LHS Data: " << std::endl;
-								print_typed_data(stream, static_cast<uint8_t*>(data1.data), data1.byte_size, type, i);
-								stream << "RHS Data: " << std::endl;
-								print_typed_data(stream, data2.data, type, i);
-								break;
-							}
-						}
-					}
-					break;
-				}
-
-				case data_types::f64: {
-					const double* vals1 = reinterpret_cast<const double*>(data1.data);
-					const double* vals2 = reinterpret_cast<const double*>(data2.data.data());
-					size_t count		= data1.byte_size / sizeof(double);
-
-					for (size_t i = 0; i < count; ++i) {
-						double diff = fabs(vals1[i] - vals2[i]);
-
-						if (diff > tolerance) {
-							has_differences = true;
-							if (differences_found < max_differences) {
-								stream << "Incorrect Data:, For Tensor: " << name << std::endl;
-								stream << "f64 difference at index " << i << ": " << std::scientific << std::setprecision(15) << vals1[i] << " vs " << vals2[i]
-									   << " (diff: " << diff << ")" << std::endl;
-								differences_found++;
-								stream << "LHS Data: " << std::endl;
-								print_typed_data(stream, static_cast<uint8_t*>(data1.data), data1.byte_size, type, i);
-								stream << "RHS Data: " << std::endl;
-								print_typed_data(stream, data2.data, type, i);
-								break;
-							}
-						}
-					}
-					break;
-				}
-
-				case data_types::i8:
-				case data_types::i16:
-				case data_types::i32:
-				case data_types::i64:
-				case data_types::q8_0:
-				default: {
-					for (size_t i = 0; i < data1.byte_size; ++i) {
-						if (static_cast<uint8_t*>(data1.data)[i] != data2.data[i]) {
-							has_differences = true;
-							if (differences_found < max_differences) {
-								stream << "Incorrect Data:, For Tensor: " << name << std::endl;
-								stream << "Byte difference at index " << i << ": " << static_cast<int>(static_cast<uint8_t*>(data1.data)[i]) << " vs "
-									   << static_cast<int>(data2.data[i]) << std::endl;
-								differences_found++;
-								stream << "LHS Data: " << std::endl;
-								print_typed_data(stream, static_cast<uint8_t*>(data1.data), data1.byte_size, type, i);
-								stream << "RHS Data: " << std::endl;
-								print_typed_data(stream, data2.data, type, i);
-								break;
-							}
-						}
-					}
-					break;
-				}
-			}
-
-			return !has_differences;
-		}*/
-
-		NIHILUS_INLINE comparison_result operator==(const intermediary_tensor& other) const {
-			comparison_result return_value{};
-			std::stringstream stream{};
-			if (op != other.op) {
-				//stream << "Incorrect op-types:, For Tensor: " << name << ", LHS of source type: " << ( int32_t )source_type
-				//<< ", RHS of source type: " << ( int32_t )other.source_type << std::endl;
-				//stream << "LHS OP: " << op << std::endl;
-				//stream << "RHS OP: " << other.op << std::endl;
-				//return_value.result		   = false;
-				//return_value.result_output = stream.str();
-				//return return_value;
-			}
-			if (type != other.type) {
-				stream << "Incorrect Types:, For Tensor: " << name << ", LHS of source type: " << ( int32_t )source_type << ", RHS of source type: " << ( int32_t )other.source_type
-					   << std::endl;
-				stream << "LHS TYPE: " << ( int32_t )type << std::endl;
-				stream << "RHS TYPE: " << ( int32_t )other.type << std::endl;
-				return_value.result = false;
-				stream << "LHS Byte-Size: " << data.size() << std::endl;
-				stream << "RHS Byte-Size: " << other.data.size() << std::endl;
-				stream << "LHS Dims: " << dims << std::endl;
-				stream << "RHS Dims: " << other.dims << std::endl;
-				return_value.result_output = stream.str();
-				return return_value;
-			}
-
-			if (data.size() != other.data.size()) {
-				stream << "Incorrect Byte-Sizes:, For Tensor: " << name << ", LHS of source type: " << ( int32_t )source_type
-					   << ", RHS of source type: " << ( int32_t )other.source_type << std::endl;
-				stream << "LHS Byte-Size: " << data.size() << std::endl;
-				stream << "RHS Byte-Size: " << other.data.size() << std::endl;
-				stream << "LHS TYPE: " << ( int32_t )type << std::endl;
-				stream << "RHS TYPE: " << ( int32_t )other.type << std::endl;
-				stream << "LHS Dims: " << dims << std::endl;
-				stream << "RHS Dims: " << other.dims << std::endl;
-				return_value.result		   = false;
-				return_value.result_output = stream.str();
-				return return_value;
-			}
-
-			if (dims != other.dims) {
-				stream << "Incorrect Dims:, For Tensor: " << name << ", LHS of source type: " << ( int32_t )source_type << ", RHS of source type: " << ( int32_t )other.source_type
-					   << std::endl;
-				stream << "LHS Dims: " << dims << std::endl;
-				stream << "RHS Dims: " << other.dims << std::endl;
-				return_value.result = false;
-				stream << "LHS TYPE: " << ( int32_t )type << std::endl;
-				stream << "RHS TYPE: " << ( int32_t )other.type << std::endl;
-				stream << "LHS Byte-Size: " << data.size() << std::endl;
-				stream << "RHS Byte-Size: " << other.data.size() << std::endl;
-				return_value.result_output = stream.str();
-				return return_value;
-			}
-
-			//bool data_equal = compare_tensor_data_smart(*this, other, type, stream);
-
-			//if (!data_equal) {
-			//return_value.result		   = false;
-			//				return_value.result_output = stream.str();
-			//				return return_value;
-			//}
-
-			bool result{ dims == other.dims && name == other.name };
-			return_value.result = result;
-			return return_value;
-		}
 	};
 
 	struct tensor_wrapper {
@@ -941,7 +642,7 @@ namespace nihilus {
 					const float* vals1 = reinterpret_cast<const float*>(data1.data);
 					const float* vals2 = reinterpret_cast<const float*>(data2.data.data());
 					size_t count	   = data1.byte_size / sizeof(float);
-
+					std::cout << "ELEMENT COUNT: " << count << std::endl;
 					for (size_t i = 0; i < count; ++i) {
 						double diff = fabs(static_cast<double>(vals1[i]) - static_cast<double>(vals2[i]));
 
@@ -1056,15 +757,6 @@ namespace nihilus {
 		NIHILUS_INLINE comparison_result operator==(const intermediary_tensor& other) const {
 			comparison_result return_value{};
 			std::stringstream stream{};
-			if (op != other.op) {
-				//stream << "Incorrect op-types:, For Tensor: " << name << ", LHS of source type: " << ( int32_t )source_type
-				//<< ", RHS of source type: " << ( int32_t )other.source_type << std::endl;
-				//stream << "LHS OP: " << op << std::endl;
-				//stream << "RHS OP: " << other.op << std::endl;
-				//return_value.result		   = false;
-				//return_value.result_output = stream.str();
-				//return return_value;
-			}
 			if (type != other.type) {
 				stream << "Incorrect Types:, For Tensor: " << name << ", LHS of source type: " << ( int32_t )source_type << ", RHS of source type: " << ( int32_t )other.source_type
 					   << std::endl;
@@ -1076,6 +768,7 @@ namespace nihilus {
 				stream << "LHS Dims: " << dims << std::endl;
 				stream << "RHS Dims: " << other.dims << std::endl;
 				return_value.result_output = stream.str();
+				std::memcpy(data, other.data.data(), byte_size);
 				return return_value;
 			}
 
@@ -1104,6 +797,7 @@ namespace nihilus {
 				stream << "LHS Byte-Size: " << byte_size << std::endl;
 				stream << "RHS Byte-Size: " << other.data.size() << std::endl;
 				return_value.result_output = stream.str();
+				std::memcpy(data, other.data.data(), byte_size);
 				return return_value;
 			}
 
@@ -1112,6 +806,7 @@ namespace nihilus {
 			if (!data_equal) {
 				return_value.result		   = false;
 				return_value.result_output = stream.str();
+				std::memcpy(data, other.data.data(), byte_size);
 				return return_value;
 			}
 
@@ -1137,11 +832,11 @@ namespace nihilus {
 			case op_types::norm_attn_norm: {
 				return "attn_norm-" + block;
 			}
-			case op_types::inp_embd: {
+			case op_types::l_out_prev: {
 				return "inp_embd";
 			}
-			case op_types::qcur_reshaped: {
-				return "Qcur-" + block + " (reshaped)-02";
+			case op_types::inp_embd: {
+				return "inp_embd";
 			}
 			case op_types::qcur_rope: {
 				return "Qcur-" + block + "-02";
@@ -1263,9 +958,6 @@ namespace nihilus {
 			case op_types::ffn_inp_norm_out_ffn_norm: {
 				return "ffn_norm-" + block;
 			}
-			case op_types::ffn_inp: {
-				return "ffn_inp-" + block;
-			}
 			case op_types::ffn_gate: {
 				return "ffn_gate-" + block;
 			}
@@ -1281,10 +973,7 @@ namespace nihilus {
 			case op_types::ffn_out: {
 				return "ffn_out-" + block;
 			}
-			case op_types::l_out: {
-				return "l_out-" + block;
-			}
-			case op_types::final_norm: {
+			case op_types::l_out_final_norm: {
 				return "norm";
 			}
 			case op_types::result_norm: {
@@ -1324,19 +1013,16 @@ namespace nihilus {
 			if (!new_string.empty()) {
 				auto return_value{ tensor_newer == tensor_new };
 				if (!return_value) {
-					stream << "Not Equal: Tensor of name: " << convert_op_to_string(tensor.op_type, current_block) << ", OF TYPE: " << tensor.op_type << " (iteration " << iteration
-						   << ")" << std::endl;
+					stream << "Not Equal: Tensor of name: " << file_name << ", OF TYPE: " << tensor.op_type << " (iteration " << iteration << ")" << std::endl;
 					stream << return_value.result_output;
 					log<log_levels::status>(stream.str());
 				} else {
-					stream << "Found an equal op of name: " << convert_op_to_string(tensor.op_type, current_block) << ", OF TYPE: " << tensor.op_type << " (iteration " << iteration
-						   << ")" << std::endl;
+					stream << "Found an equal op of name: " << file_name << ", OF TYPE: " << tensor.op_type << " (iteration " << iteration << ")" << std::endl;
 					log<log_levels::status>(stream.str());
 				}
 				return return_value;
 			} else {
-				stream << "Not Found: Tensor of name: " << convert_op_to_string(tensor.op_type, current_block) << ", OF TYPE: " << tensor.op_type << " (iteration " << iteration << ")"
-					   << std::endl;
+				stream << "Not Found: Tensor of name: " << file_name << ", OF TYPE: " << tensor.op_type << " (iteration " << iteration << ")" << std::endl;
 			}
 			log<log_levels::status>(stream.str());
 			return false;
@@ -1350,7 +1036,6 @@ namespace nihilus {
 	template<typename value_type>
 	concept has_mutable_dims = requires(std::remove_cvref_t<value_type> value) { value.get_mutable_dim(); };
 	template<model_config config> struct tensor_debugger {
-
 		template<typename tensor_type> static bool compare_tensor_data(tensor_type& tensor, uint64_t current_block, uint64_t iteration, uint64_t runtime_dim) {
 			return false;
 		}

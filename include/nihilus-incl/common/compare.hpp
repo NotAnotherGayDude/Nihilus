@@ -194,7 +194,7 @@ namespace nihilus {
 		}
 	};
 
-#if defined(NIHILUS_AVX2) || defined(NIHILUS_AVX512) || defined(NIHILUS_SVE2)
+#if NIHILUS_AVX2 || NIHILUS_AVX512 || NIHILUS_SVE2
 
 	template<eq_32 sl_type, std::remove_cvref_t<sl_type> string_new> struct string_literal_comparitor<sl_type, string_new> {
 		inline static constexpr auto new_literal{ string_new };
@@ -210,7 +210,7 @@ namespace nihilus {
 
 #endif
 
-#if defined(NIHILUS_AVX512) || defined(NIHILUS_SVE2)
+#if NIHILUS_AVX512 || NIHILUS_SVE2
 	template<eq_64 sl_type, sl_type string_new> struct string_literal_comparitor<sl_type, string_new> {
 		inline static constexpr auto new_literal{ string_new };
 		NIHILUS_ALIGN(64) inline static constexpr auto values_new { pack_values<new_literal>() };
@@ -225,9 +225,9 @@ namespace nihilus {
 #endif
 
 	static constexpr auto get_offset_into_literal_size(uint64_t inputSize) noexcept {
-		if (inputSize >= 64 && cpu_alignment >= 64) {
+		if (inputSize >= 64 && cpu_alignment_holder::cpu_alignment >= 64) {
 			return 64;
-		} else if (inputSize >= 32 && cpu_alignment >= 32) {
+		} else if (inputSize >= 32 && cpu_alignment_holder::cpu_alignment >= 32) {
 			return 32;
 		} else {
 			return 16;

@@ -1,5 +1,5 @@
 /*
-Copyright (c) 2025 RealTimeChris (Chris model_traits_type.)
+Copyright (c) 2025 RealTimeChris (Chris M.)
 
 This file is part of software offered under a restricted-use license to a designated Licensee,
 whose identity is confirmed in writing by the Author.
@@ -14,7 +14,7 @@ License Terms (Summary):
 Full license terms are provided in the LICENSE file distributed with this software.
 
 Signed,
-RealTimeChris (Chris model_traits_type.)
+RealTimeChris (Chris M.)
 2025
 */
 
@@ -38,6 +38,11 @@ namespace nihilus {
 			(impl_internal_filtered<mixin_type, bases>(args...), ...);
 		}
 
+		template<template<model_config, typename, processing_phase> typename mixin_type, processing_phase phase, typename... arg_types>
+		NIHILUS_INLINE constexpr void impl_thread(arg_types&&... args) {
+			(impl_internal_filtered_thread<mixin_type, phase, bases>(args...), ...);
+		}
+
 	  protected:
 		template<template<model_config, typename> typename mixin_type, typename base_type, typename... arg_types>
 		NIHILUS_INLINE constexpr void impl_internal_filtered([[maybe_unused]] arg_types&&... args) const {
@@ -50,7 +55,6 @@ namespace nihilus {
 			}
 		}
 
-	  protected:
 		template<template<model_config, typename> typename mixin_type, typename base_type, typename... arg_types>
 		NIHILUS_INLINE constexpr void impl_internal_filtered([[maybe_unused]] arg_types&&... args) {
 			if constexpr (mixin_type<config, base_type>::filter()) {
@@ -58,6 +62,17 @@ namespace nihilus {
 					mixin_type<config, base_type>::impl(*static_cast<base_type*>(this), detail::forward<arg_types>(args)...);
 				} else {
 					mixin_type<config, base_type>::impl(*static_cast<base_type*>(this), detail::forward<arg_types>(args)...);
+				}
+			}
+		}
+
+		template<template<model_config, typename, processing_phase> typename mixin_type, processing_phase phase, typename base_type, typename... arg_types>
+		NIHILUS_INLINE constexpr void impl_internal_filtered_thread([[maybe_unused]] arg_types&&... args) {
+			if constexpr (mixin_type<config, base_type, phase>::filter()) {
+				if constexpr (has_return_type<mixin_type<config, base_type, phase>>) {
+					mixin_type<config, base_type, phase>::impl(*static_cast<base_type*>(this), detail::forward<arg_types>(args)...);
+				} else {
+					mixin_type<config, base_type, phase>::impl(*static_cast<base_type*>(this), detail::forward<arg_types>(args)...);
 				}
 			}
 		}
@@ -79,7 +94,7 @@ namespace nihilus {
 
 		for (uint64_t x = 0; x < max_depth; ++x) {
 			for (uint64_t y = 0; y < depths_new.size(); ++y) {
-				depth_byte_counts[x] += static_cast<uint64_t>(depths_newer[y].required_bytes);
+				//depth_byte_counts[x] += static_cast<uint64_t>(depths_newer[y].required_bytes);
 			}
 		}
 
@@ -92,7 +107,7 @@ namespace nihilus {
 		return max_size;
 	}
 
-	constexpr int64_t alignment = cpu_alignment;
+	constexpr int64_t alignment = cpu_alignment_holder::cpu_alignment;
 	constexpr int64_t align_up(int64_t x) {
 		return (x + (alignment - 1)) & ~(alignment - 1);
 	}

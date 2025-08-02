@@ -54,18 +54,24 @@ RealTimeChris (Chris M.)
 #if defined(NDEBUG)
 	#if defined(NIHILUS_COMPILER_MSVC)
 		#define NIHILUS_INLINE [[msvc::forceinline]] inline
+		#define NIHILUS_NON_MSVC_INLINE 
 	#elif defined(NIHILUS_COMPILER_CLANG)
 		#define NIHILUS_INLINE inline __attribute__((always_inline))
+		#define NIHILUS_NON_MSVC_INLINE inline __attribute__((always_inline))
 	#elif defined(NIHILUS_COMPILER_GNUCXX)
 		#define NIHILUS_INLINE inline __attribute__((always_inline))
+#define NIHILUS_NON_MSVC_INLINE inline __attribute__((always_inline))
 	#endif
 #else
 	#if defined(NIHILUS_COMPILER_MSVC)
 		#define NIHILUS_INLINE [[msvc::noinline]]
+		#define NIHILUS_NON_MSVC_INLINE [[msvc::noinline]]
 	#elif defined(NIHILUS_COMPILER_CLANG)
 		#define NIHILUS_INLINE noinline
+		#define NIHILUS_NON_MSVC_INLINE noinline
 	#elif defined(NIHILUS_COMPILER_GNUCXX)
 		#define NIHILUS_INLINE noinline
+		#define NIHILUS_NON_MSVC_INLINE noinline
 	#endif
 #endif
 
@@ -85,9 +91,9 @@ RealTimeChris (Chris M.)
 	#define NIHILUS_ALIGN(N) alignas(N)
 #endif
 
-#if defined(__x86_64__) || defined(_M_X64)
+#if NIHILUS_ARCH_X64
 	#include <immintrin.h>
-#elif defined(__aarch64__) || defined(_M_ARM64)
+#elif NIHILUS_ARCH_ARM64
 	#include <arm_sve.h>
 	#include <arm_neon.h>
 #else
@@ -95,9 +101,9 @@ RealTimeChris (Chris M.)
 #endif
 
 NIHILUS_INLINE void nihilus_pause() noexcept {
-#if defined(NIHILUS_ARCH_X64)
+#if NIHILUS_ARCH_X64
 	_mm_pause();
-#elif defined(NIHILUS_ARCH_ARM64)
+#elif NIHILUS_ARCH_ARM64
 	__asm__ __volatile__("yield" ::: "memory");
 #else
 	__asm__ __volatile__("" ::: "memory");

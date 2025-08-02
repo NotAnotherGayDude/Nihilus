@@ -34,27 +34,27 @@ namespace nihilus {
 		NIHILUS_INLINE model_base(model_config config_new) : config{ config_new } {
 		}
 		model_config config{};
-		virtual bool process_input(const std::string& params) = 0;
+		virtual bool process_input(const std::string_view params) = 0;
 		virtual ~model_base();
 	};
 
 	model_base::~model_base() {};
 
 	template<model_config config_new> struct model
-		: public thread_pool<config_new, model<config_new>>,
+		: public thread_pool<config_new>,
 		  public model_base,
-		  public tokenizer<config_new, model<config_new>, model_traits<config_new.arch, config_new.model_size, config_new.model_generation>::arch, config_new.tokenizer_type> {
-		using thread_pool_type = thread_pool<config_new, model<config_new>>;
+		  public tokenizer<config_new, model_traits<config_new.arch, config_new.model_size, config_new.model_generation>::arch, config_new.tokenizer_type> {
+		using thread_pool_type = thread_pool<config_new>;
 		using core_bases_type  = get_core_bases_t<config_new>;
 		using op_type_type	   = typename model_traits_type<config_new>::op_type_type;
-		using tokenizer_type   = tokenizer<config_new, model, config_new.arch, config_new.tokenizer_type>;
+		using tokenizer_type   = tokenizer<config_new, config_new.arch, config_new.tokenizer_type>;
 
 		template<auto op_type> auto& get_core() {
 			return *static_cast<core_traits<config_new, op_type>*>(static_cast<get_core_bases_t<config_new>*>(this));
 		}
 
 		NIHILUS_INLINE model() noexcept = default;
-		NIHILUS_INLINE model(cli_params params) : thread_pool<config_new, model>{ static_cast<int64_t>(params.thread_count) }, model_base{ config_new } {
+		NIHILUS_INLINE model(cli_params params) : thread_pool<config_new>{ static_cast<int64_t>(params.thread_count) }, model_base{ config_new } {
 			exec_params.token_count = params.n_tokens;
 			init(params);
 		}
@@ -62,7 +62,7 @@ namespace nihilus {
 		model& operator=(const model&) = delete;
 		model(const model&)			   = delete;
 
-		NIHILUS_INLINE bool process_input(const std::string& input) override {
+		NIHILUS_INLINE bool process_input(const std::string_view input) override {
 			tokenizer_type::tokenize_init(get_core<op_type_type::inp_tokens>().data);
 			get_core<op_type_type::inp_pos>().data[1]	  = 1;
 			get_core<op_type_type::inp_out_ids>().data[0] = 1;
@@ -95,7 +95,7 @@ namespace nihilus {
 
 		NIHILUS_INLINE void execute_model(std::string_view input) {
 			generate_causal_mask();
-			static_cast<thread_pool<config_new, model>*>(this)->execute_tasks(2);
+			static_cast<thread_pool<config_new>*>(this)->template execute_tasks<processing_phase::prompt_eval_time>(2);
 
 			if constexpr (config_new.dev) {
 				++perf_base<config_new>::perf_stats.current_iteration;
@@ -122,7 +122,11 @@ namespace nihilus {
 				perf_base<config_new>::perf_stats.prompt_start = std::chrono::high_resolution_clock::now();
 			}
 
-			static_cast<thread_pool<config_new, model>*>(this)->execute_tasks(exec_params.sequence_length);
+			static_cast<thread_pool<config_new>*>(this)->template execute_tasks<processing_phase::prompt_eval_time>(exec_params.sequence_length);
+
+			if constexpr (config_new.dev) {
+				++perf_base<config_new>::perf_stats.current_iteration;
+			}
 
 			if constexpr (config_new.benchmark || config_new.dev) {
 				auto prompt_end = std::chrono::high_resolution_clock::now();
@@ -139,7 +143,7 @@ namespace nihilus {
 					perf_base<config_new>::perf_stats.token_start = std::chrono::high_resolution_clock::now();
 					++perf_base<config_new>::perf_stats.current_iteration;
 				}
-				static_cast<thread_pool<config_new, model>*>(this)->execute_tasks(1);
+				static_cast<thread_pool<config_new>*>(this)->template execute_tasks<processing_phase::eval_time>(1);
 
 				if constexpr (config_new.benchmark || config_new.dev) {
 					auto token_end	   = std::chrono::high_resolution_clock::now();
@@ -158,10 +162,6 @@ namespace nihilus {
 			if constexpr (config_new.benchmark || config_new.dev) {
 				perf_base<config_new>::perf_stats.total_eval_time_ns	 = perf_base<config_new>::perf_stats.total_eval_time_ns;
 				perf_base<config_new>::perf_stats.total_sampling_time_ns = perf_base<config_new>::perf_stats.total_sampling_time_ns;
-			}
-
-			if constexpr (config_new.dev) {
-				this->template impl<execution_checker>();
 			}
 
 			if constexpr (config_new.benchmark || config_new.dev) {

@@ -86,8 +86,26 @@ namespace nihilus {
 	static constexpr auto spinlock_time{ 172000 };
 #endif
 
+	template<size_t alignment, typename value_type> struct alignas(alignment) static_aligned_const {
+		alignas(alignment) value_type value{};
+
+		NIHILUS_INLINE constexpr static_aligned_const() noexcept : value{} {
+		}
+
+		NIHILUS_INLINE constexpr static_aligned_const(value_type new_value) noexcept : value{ new_value } {
+		}
+
+		NIHILUS_INLINE constexpr operator const value_type&() const {
+			return value;
+		}
+
+		NIHILUS_INLINE operator value_type&() {
+			return value;
+		}
+	};
+
 	struct alignas(64) atomic_flag_wrapper {
-		NIHILUS_ALIGN(64) static constexpr uint32_t spin_cycles { 500000000 };
+		static constexpr static_aligned_const<64, uint64_t> spin_cycles{ 500000 };
 		using value_type										= typename std::atomic_signed_lock_free::value_type;
 		NIHILUS_INLINE constexpr atomic_flag_wrapper() noexcept = default;
 		NIHILUS_INLINE constexpr atomic_flag_wrapper& operator=(const atomic_flag_wrapper&) noexcept {
@@ -139,7 +157,7 @@ namespace nihilus {
 
 		NIHILUS_INLINE void hybrid_wait(int64_t expected_value) {
 			for (uint32_t i = 0; i < spin_cycles; ++i) {
-				if (flag.load(std::memory_order_acquire) == expected_value || flag.load(std::memory_order_acquire) == 0) {
+				if (flag.load(std::memory_order_acquire) >= expected_value) {
 					return;
 				}
 				nihilus_pause();
@@ -168,14 +186,15 @@ namespace nihilus {
 			thread_count = thread_count_new;
 		}
 
-		NIHILUS_INLINE void reset() {
+		NIHILUS_INLINE void reset(int64_t global_input_count) {
 			in_process_workers.store(0);
-			completed_dependencies.store(0);
 			completed_workers.store(0);
+			completed_dependencies.store(global_input_count);
 		}
 
 	  protected:
-		constexpr ~linked_latch_base() {};
+		constexpr ~linked_latch_base() {
+		}
 	};
 
 	template<> struct linked_latch<false> : public linked_latch_base {
@@ -183,24 +202,26 @@ namespace nihilus {
 		NIHILUS_INLINE constexpr linked_latch() = default;
 
 		NIHILUS_INLINE bool is_ready(int64_t& thread_index) {
-			thread_index = in_process_workers.fetch_add(1);
-			if (completed_dependencies.load() == depended_count) {
-				return thread_index < thread_count;
-			} else {
-				return false;
+			if (completed_dependencies.load() < depended_count) {
+				completed_dependencies.hybrid_wait(depended_count);
 			}
+
+			thread_index = in_process_workers.fetch_add(1);
+			return thread_index < thread_count;
 		}
 
 		NIHILUS_INLINE void complete_work() {
-			if (completed_workers.fetch_add(1) == thread_count - 1) {
+			if (completed_workers.fetch_add(1) + 1 == thread_count) {
 				for (int64_t x = 0; x < dependent_count; ++x) {
-					dependents[x]->completed_dependencies.fetch_add(1);
+					if ((dependents[x]->completed_dependencies.fetch_add(1) + 1) == dependents[x]->depended_count) {
+						dependents[x]->completed_dependencies.notify_all();
+					}
 				}
-				reset();
 			}
 		}
 
-		NIHILUS_INLINE constexpr ~linked_latch() noexcept {};
+		NIHILUS_INLINE constexpr ~linked_latch() noexcept {
+		}
 	};
 
 	template<> struct linked_latch<true> : public linked_latch_base {
@@ -208,30 +229,29 @@ namespace nihilus {
 		NIHILUS_INLINE constexpr linked_latch() = default;
 
 		NIHILUS_INLINE int64_t is_ready(int64_t& thread_index) {
-			thread_index = in_process_workers.fetch_add(1);
-
-			if (completed_dependencies.fetch_add(1) < (depended_count - 1)) {
-				completed_dependencies.hybrid_wait(thread_count);
-			} else {
-				completed_dependencies.notify_all();
-				completed_dependencies.store(0);
+			if (completed_dependencies.load() < depended_count) {
+				completed_dependencies.hybrid_wait(depended_count);
 			}
+
+			thread_index = in_process_workers.fetch_add(1);
 			return thread_count;
 		}
 
 		NIHILUS_INLINE void complete_work() {
-			if (completed_workers.fetch_add(1) == thread_count - 1) {
+			if (completed_workers.fetch_add(1) + 1 == thread_count) {
 				for (int64_t x = 0; x < dependent_count; ++x) {
-					dependents[x]->completed_dependencies.fetch_add(1);
+					if ((dependents[x]->completed_dependencies.fetch_add(1) + 1) == dependents[x]->depended_count) {
+						dependents[x]->completed_dependencies.notify_all();
+					}
 				}
-				reset();
 				completed_workers.notify_all();
 			} else {
 				completed_workers.hybrid_wait(thread_count);
 			}
 		}
 
-		NIHILUS_INLINE constexpr ~linked_latch() noexcept {};
+		NIHILUS_INLINE constexpr ~linked_latch() noexcept {
+		}
 	};
 
 	template<typename value_type> using latch_type = std::remove_cvref_t<decltype(std::remove_cvref_t<value_type>::latch[0])>;
@@ -512,7 +532,7 @@ namespace nihilus {
 		add_rms_norm_mul,
 		get_rows,
 		rms_norm_mul,
-		rms_norm,
+		add_rms_norm,
 		mul,
 		mul_mat,
 		reshape,
@@ -551,8 +571,8 @@ namespace nihilus {
 			case enum_type::rms_norm_mul:
 				os << "rms_norm_mul";
 				return os;
-			case enum_type::rms_norm:
-				os << "rms_norm";
+			case enum_type::add_rms_norm:
+				os << "add_rms_norm";
 				return os;
 			case enum_type::mul:
 				os << "mul";
@@ -628,7 +648,6 @@ namespace nihilus {
 		kq_mask,
 		norm_attn_norm,
 		qcur_mul_mat,
-		qcur_reshaped,
 		qcur_rope,
 		kcur_mul_mat,
 		kcur_reshaped,
@@ -648,17 +667,16 @@ namespace nihilus {
 		kqv_merged,
 		kqv_merged_cont,
 		kqv_out,
-		ffn_inp,
+		l_out_prev,
 		ffn_inp_norm_out_ffn_norm,
 		ffn_gate,
 		ffn_silu,
 		ffn_up,
 		ffn_gate_par,
 		ffn_out,
-		l_out,
+		l_out_final_norm,
 		attn_residual,
 		prev_residual,
-		final_norm,
 		result_norm,
 		result_output,
 		count
@@ -712,8 +730,6 @@ namespace nihilus {
 				return os << "norm_attn_norm";
 			case enum_type::qcur_mul_mat:
 				return os << "qcur_mul_mat";
-			case enum_type::qcur_reshaped:
-				return os << "qcur_reshaped";
 			case enum_type::qcur_rope:
 				return os << "qcur_rope";
 			case enum_type::kcur_mul_mat:
@@ -752,8 +768,6 @@ namespace nihilus {
 				return os << "kqv_merged_cont";
 			case enum_type::kqv_out:
 				return os << "kqv_out";
-			case enum_type::ffn_inp:
-				return os << "ffn_inp";
 			case enum_type::ffn_inp_norm_out_ffn_norm:
 				return os << "ffn_inp_norm_out_ffn_norm";
 			case enum_type::ffn_gate:
@@ -766,10 +780,10 @@ namespace nihilus {
 				return os << "ffn_gate_par";
 			case enum_type::ffn_out:
 				return os << "ffn_out";
-			case enum_type::l_out:
-				return os << "l_out";
-			case enum_type::final_norm:
-				return os << "final_norm";
+			case enum_type::l_out_final_norm:
+				return os << "l_out_final_norm";
+			case enum_type::l_out_prev:
+				return os << "l_out_prev";
 			case enum_type::result_norm:
 				return os << "result_norm";
 			case enum_type::result_output:
@@ -807,8 +821,8 @@ namespace nihilus {
 				return kernel_types::none;
 			case enum_type::inp_embd:
 				return kernel_types::get_rows;
-			case enum_type::final_norm:
-				return kernel_types::rms_norm;
+			case enum_type::l_out_final_norm:
+				return kernel_types::add_rms_norm;
 			case enum_type::ffn_gate_par:
 			case enum_type::result_norm:
 				return kernel_types::mul;
@@ -823,7 +837,6 @@ namespace nihilus {
 			case enum_type::ffn_out:
 			case enum_type::result_output:
 				return kernel_types::mul_mat;
-			case enum_type::qcur_reshaped:
 			case enum_type::kcur_reshaped:
 				return kernel_types::reshape;
 			case enum_type::q:
@@ -848,9 +861,6 @@ namespace nihilus {
 				return kernel_types::softmax;
 			case enum_type::ffn_silu:
 				return kernel_types::silu;
-			case enum_type::ffn_inp:
-			case enum_type::l_out:
-				return kernel_types::add;
 			case enum_type::norm_attn_norm:
 				return kernel_types::rms_norm_mul;
 			case enum_type::ffn_inp_norm_out_ffn_norm:
@@ -1187,18 +1197,22 @@ namespace nihilus {
 		static constexpr model_config config{ config_new };
 	};
 
-	template<model_config config> class file_loader {
+	template<model_config config> class file_loader;
+
+	template<model_config config>
+		requires(config.exceptions)
+	class file_loader<config> {
 	  public:
 		explicit file_loader(const std::filesystem::path& filePath) {
 			if (!std::filesystem::exists(filePath)) {
 				static constexpr auto location = std::source_location::current();
-				//nihilus_exception<config, "file_loader - Path does not exist", location>::impl(filePath.string());
+				nihilus_exception<config, "file_loader - Path does not exist", location>::impl(filePath.string());
 			}
 
 			std::ifstream file(filePath, std::ios::binary | std::ios::ate);
 			if (!file) {
 				static constexpr auto location = std::source_location::current();
-				//nihilus_exception<config, "file_loader - Failed to open file", location>::impl();
+				nihilus_exception<config, "file_loader - Failed to open file", location>::impl();
 			}
 
 			const std::streamsize size = file.tellg();
@@ -1207,7 +1221,43 @@ namespace nihilus {
 				contents.resize(static_cast<uint64_t>(size));
 				if (!file.read(contents.data(), size)) {
 					static constexpr auto location = std::source_location::current();
-					//nihilus_exception<config, "file_loader - Failed to read file", location>::impl();
+					nihilus_exception<config, "file_loader - Failed to read file", location>::impl();
+				}
+			}
+		}
+
+		operator const std::string&() const noexcept {
+			return contents;
+		}
+
+		uint64_t size() const noexcept {
+			return contents.size();
+		}
+
+	  protected:
+		std::string contents;
+	};
+
+	template<model_config config>
+		requires(!config.exceptions)
+	class file_loader<config> {
+	  public:
+		explicit file_loader(const std::filesystem::path& filePath) {
+			if (!std::filesystem::exists(filePath)) {
+				log<log_levels::error>("file_loader - Path does not exist");
+			}
+
+			std::ifstream file(filePath, std::ios::binary | std::ios::ate);
+			if (!file) {
+				log<log_levels::error>("file_loader - Failed to open file");
+			}
+
+			const std::streamsize size = file.tellg();
+			file.seekg(0, std::ios::beg);
+			if (size != -1) {
+				contents.resize(static_cast<uint64_t>(size));
+				if (!file.read(contents.data(), size)) {
+					log<log_levels::error>("file_loader - Failed to read file");
 				}
 			}
 		}

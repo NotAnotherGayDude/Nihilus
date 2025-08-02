@@ -28,36 +28,12 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-	template<model_config config> struct memory_buffer : public allocator<uint8_t, cpu_alignment> {
+	template<model_config config> struct memory_buffer : public allocator<uint8_t, cpu_alignment_holder::cpu_alignment> {
 		using value_type   = uint8_t;
-		using alloc		   = allocator<value_type, cpu_alignment>;
+		using alloc		   = allocator<value_type, cpu_alignment_holder::cpu_alignment>;
 		using pointer	   = value_type*;
 		using uint64_types = uint64_t;
 		using size_type	   = uint64_t;
-
-		NIHILUS_INLINE constexpr void claim_space(size_type size_new) {
-			head += size_new;
-		}
-
-		NIHILUS_INLINE constexpr void free_space(size_type size_new) {
-			tail += size_new;
-		}
-
-		NIHILUS_INLINE constexpr size_type get_used_space() {
-			if (tail > head) {
-				return (tail - head + size_val) % size_val;
-			} else {
-				return (head - tail) % size_val;
-			}
-		}
-
-		NIHILUS_INLINE constexpr size_type get_current_head() {
-			return size_val > 0 ? head % size_val : 0;
-		}
-
-		NIHILUS_INLINE constexpr size_type total_size() {
-			return size_val;
-		}
 
 		NIHILUS_INLINE memory_buffer() noexcept = default;
 
@@ -79,6 +55,7 @@ namespace nihilus {
 		}
 
 		NIHILUS_INLINE void init(uint64_t size) noexcept {
+			std::cout << "SIZE: " << size << std::endl;
 			if (data_val) {
 				clear();
 			}
@@ -104,7 +81,7 @@ namespace nihilus {
 		}
 
 		NIHILUS_INLINE void* claim_memory(uint64_t offset_to_claim) noexcept {
-			uint64_t aligned_amount = round_up_to_multiple<cpu_alignment>(offset_to_claim);
+			uint64_t aligned_amount = round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(offset_to_claim);
 			if (aligned_amount > size_val) {
 				static constexpr auto location = std::source_location::current();
 				nihilus_exception<config, "memory_buffer - not enough memory allocated!", location>::impl();

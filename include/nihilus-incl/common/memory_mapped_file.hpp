@@ -192,7 +192,7 @@ namespace nihilus {
 				throw std::runtime_error("Failed to map view of file: " + format_win_error(GetLastError()));
 			}
 
-			if (reinterpret_cast<std::uintptr_t>(mapped_data_) % cpu_alignment != 0) {
+			if (reinterpret_cast<std::uintptr_t>(mapped_data_) % cpu_alignment_holder::cpu_alignment != 0) {
 				UnmapViewOfFile(mapped_data_);
 				CloseHandle(mapping_handle_);
 				CloseHandle(file_handle_);
@@ -253,7 +253,7 @@ namespace nihilus {
 			}
 	#endif
 
-			uint64_t aligned_size = ((file_size_ + cpu_alignment - 1) / cpu_alignment) * cpu_alignment;
+			uint64_t aligned_size = ((file_size_ + cpu_alignment_holder::cpu_alignment - 1) / cpu_alignment_holder::cpu_alignment) * cpu_alignment_holder::cpu_alignment;
 
 			mapped_data_ = mmap(nullptr, aligned_size, PROT_READ, flags, file_descriptor_, 0);
 
@@ -263,7 +263,7 @@ namespace nihilus {
 				throw std::runtime_error("Failed to memory map file: " + std::string(std::strerror(errno)));
 			}
 
-			if (reinterpret_cast<std::uintptr_t>(mapped_data_) % cpu_alignment != 0) {
+			if (reinterpret_cast<std::uintptr_t>(mapped_data_) % cpu_alignment_holder::cpu_alignment != 0) {
 				munmap(mapped_data_, aligned_size);
 				close(file_descriptor_);
 				throw std::runtime_error("Memory mapping failed to achieve required SIMD alignment");

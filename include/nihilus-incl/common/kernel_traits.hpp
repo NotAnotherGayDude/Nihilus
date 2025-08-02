@@ -128,6 +128,11 @@ namespace nihilus {
 		NONE_Type_must_be_valid_tensor_type,
 	};
 
+	enum class processing_phase {
+		prompt_eval_time,
+		eval_time,
+	};
+
 	template<model_config config_new, op_types op_type> struct core_traits;
 
 	template<size_t... indices> struct core_trait_dims;
@@ -246,7 +251,7 @@ namespace nihilus {
 
 	enum class get_new_dims_errors { unknown_kernel_type };
 
-	template<uint64_t, auto op_type, typename... operand_types> struct kernel_dispatcher_impl;
+	template<uint64_t, kernel_types kernel_type, processing_phase phase, typename... operand_types> struct kernel_dispatcher_impl;
 
 	template<kernel_types kernel_type, typename core_type, typename... operand_types> struct kernel_base;
 
@@ -261,7 +266,7 @@ namespace nihilus {
 		static constexpr auto dims01 = dim_traits01::get_array();
 
 		static constexpr auto get_new_dims_fn() {
-			if constexpr (kernel_type == kernel_types::rms_norm) {
+			if constexpr (kernel_type == kernel_types::add_rms_norm) {
 				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], (dimension_type::dimension, ...)>{};
 			} else if constexpr (kernel_type == kernel_types::silu) {
 				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], (dimension_type::dimension, ...)>{};
@@ -278,7 +283,7 @@ namespace nihilus {
 		static constexpr auto dims01 = dim_traits01::get_array();
 
 		static constexpr auto get_new_dims_fn() {
-			if constexpr (kernel_type == kernel_types::rms_norm) {
+			if constexpr (kernel_type == kernel_types::add_rms_norm) {
 				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3]>{};
 			} else if constexpr (kernel_type == kernel_types::silu) {
 				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3]>{};
@@ -416,8 +421,6 @@ namespace nihilus {
 		using output									 = output_type;
 		static constexpr auto dims01					 = core_type::get_array();
 		static constexpr auto dims02					 = core_type::input_01_type::get_array();
-		static constexpr auto strides01					 = core_type::strides;
-		static constexpr auto strides02					 = core_type::input_01_type::strides;
 		static constexpr uint64_t total_elements		 = dims01[0] * dims01[1] * dims01[2] * dims01[3];
 		static constexpr uint64_t input01_total_elements = dims02[0] * dims02[1] * dims02[2] * dims02[3];
 		static_assert(static_assert_printer<( std::is_same_v<output_type, typename core_type::output_type> ),
@@ -434,9 +437,6 @@ namespace nihilus {
 		static constexpr auto dims01					 = core_type::get_array();
 		static constexpr auto dims02					 = core_type::input_01_type::get_array();
 		static constexpr auto dims03					 = core_type::input_02_type::get_array();
-		static constexpr auto strides01					 = core_type::strides;
-		static constexpr auto strides02					 = core_type::input_01_type::strides;
-		static constexpr auto strides03					 = core_type::input_02_type::strides;
 		static constexpr uint64_t total_elements		 = dims01[0] * dims01[1] * dims01[2] * dims01[3];
 		static constexpr uint64_t input01_total_elements = dims02[0] * dims02[1] * dims02[2] * dims02[3];
 		static constexpr uint64_t input02_total_elements = dims03[0] * dims03[1] * dims03[2] * dims03[3];
@@ -458,10 +458,6 @@ namespace nihilus {
 		static constexpr auto dims02					 = core_type::input_01_type::get_array();
 		static constexpr auto dims03					 = core_type::input_02_type::get_array();
 		static constexpr auto dims04					 = core_type::input_03_type::get_array();
-		static constexpr auto strides01					 = core_type::strides;
-		static constexpr auto strides02					 = core_type::input_01_type::strides;
-		static constexpr auto strides03					 = core_type::input_02_type::strides;
-		static constexpr auto strides04					 = core_type::input_03_type::strides;
 		static constexpr uint64_t total_elements		 = dims01[0] * dims01[1] * dims01[2] * dims01[3];
 		static constexpr uint64_t input01_total_elements = dims02[0] * dims02[1] * dims02[2] * dims02[3];
 		static constexpr uint64_t input02_total_elements = dims03[0] * dims03[1] * dims03[2] * dims03[3];
@@ -483,10 +479,9 @@ namespace nihilus {
 
 	template<kernel_types kernel_type, typename... operand_types> struct kernel_traits_new;
 
-	template<double_input_types core_type> struct kernel_traits<kernel_types::mul, core_type, typename core_type::output_type,
-		typename core_type::input_01_type::output_type, typename core_type::input_02_type::output_type>
-		: public kernel_base<kernel_types::mul, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type,
-			  typename core_type::input_02_type::output_type> {
+	template<double_input_types core_type> struct kernel_traits<kernel_types::mul, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type,
+		typename core_type::input_02_type::output_type> : public kernel_base<kernel_types::mul, core_type, typename core_type::output_type,
+															  typename core_type::input_01_type::output_type, typename core_type::input_02_type::output_type> {
 		using base_type				 = kernel_base<kernel_types::mul, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type,
 						 typename core_type::input_02_type::output_type>;
 		using input01				 = typename base_type::input01;
@@ -514,10 +509,9 @@ namespace nihilus {
 			kernel_trait_static_assert_errors::MUL_Total_element_count_must_match_between_input_and_output, kernel_traits, output, input01, input02 > ::impl);
 	};
 
-	template<single_input_types core_type>
-	struct kernel_traits<kernel_types::rms_norm, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type>
-		: public kernel_base<kernel_types::rms_norm, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type> {
-		using base_type				 = kernel_base<kernel_types::rms_norm, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type>;
+	template<single_input_types core_type> struct kernel_traits<kernel_types::add_rms_norm, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type>
+		: public kernel_base<kernel_types::add_rms_norm, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type> {
+		using base_type				 = kernel_base<kernel_types::add_rms_norm, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type>;
 		using input01				 = typename base_type::input01;
 		using output				 = typename base_type::output;
 		static constexpr auto dims01 = base_type::dims01;
@@ -538,8 +532,7 @@ namespace nihilus {
 			kernel_trait_static_assert_errors::RMS_NORM_Total_element_count_must_match_between_input_and_output, kernel_traits, output, input01>::impl);
 	};
 
-	template<single_input_types core_type>
-	struct kernel_traits<kernel_types::silu, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type>
+	template<single_input_types core_type> struct kernel_traits<kernel_types::silu, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type>
 		: public kernel_base<kernel_types::silu, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type> {
 		using base_type				 = kernel_base<kernel_types::silu, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type>;
 		using input01				 = typename base_type::input01;
@@ -560,10 +553,9 @@ namespace nihilus {
 			kernel_trait_static_assert_errors::SILU_Output_type_must_be_valid_activation_type, kernel_traits, output, input01>::impl);
 	};
 
-	template<double_input_types core_type> struct kernel_traits<kernel_types::softmax, core_type, typename core_type::output_type,
-		typename core_type::input_01_type::output_type, typename core_type::input_02_type::output_type>
-		: public kernel_base<kernel_types::softmax, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type,
-			  typename core_type::input_02_type::output_type> {
+	template<double_input_types core_type> struct kernel_traits<kernel_types::softmax, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type,
+		typename core_type::input_02_type::output_type> : public kernel_base<kernel_types::softmax, core_type, typename core_type::output_type,
+															  typename core_type::input_01_type::output_type, typename core_type::input_02_type::output_type> {
 		using base_type				 = kernel_base<kernel_types::softmax, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type,
 						 typename core_type::input_02_type::output_type>;
 		using input01				 = typename base_type::input01;
@@ -584,8 +576,7 @@ namespace nihilus {
 			input01, input02>::impl);
 	};
 
-	template<single_input_types core_type>
-	struct kernel_traits<kernel_types::reshape, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type>
+	template<single_input_types core_type> struct kernel_traits<kernel_types::reshape, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type>
 		: public kernel_base<kernel_types::reshape, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type> {
 		using base_type = kernel_base<kernel_types::reshape, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type>;
 		using input01	= typename base_type::input01;
@@ -598,8 +589,7 @@ namespace nihilus {
 			kernel_trait_static_assert_errors::RESHAPE_Total_element_count_must_be_preserved, kernel_traits, output, input01>::impl);
 	};
 
-	template<single_input_types core_type>
-	struct kernel_traits<kernel_types::transpose, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type>
+	template<single_input_types core_type> struct kernel_traits<kernel_types::transpose, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type>
 		: public kernel_base<kernel_types::transpose, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type> {
 		using base_type = kernel_base<kernel_types::transpose, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type>;
 		using input01	= typename base_type::input01;
@@ -612,8 +602,7 @@ namespace nihilus {
 			kernel_trait_static_assert_errors::TRANSPOSE_Total_element_count_must_be_preserved, kernel_traits, output, input01>::impl);
 	};
 
-	template<single_input_types core_type>
-	struct kernel_traits<kernel_types::permute, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type>
+	template<single_input_types core_type> struct kernel_traits<kernel_types::permute, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type>
 		: public kernel_base<kernel_types::permute, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type> {
 		using base_type = kernel_base<kernel_types::permute, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type>;
 		using input01	= typename base_type::input01;
@@ -626,8 +615,7 @@ namespace nihilus {
 			kernel_trait_static_assert_errors::PERMUTE_Total_element_count_must_be_preserved, kernel_traits, output, input01>::impl);
 	};
 
-	template<single_input_types core_type>
-	struct kernel_traits<kernel_types::cont, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type>
+	template<single_input_types core_type> struct kernel_traits<kernel_types::cont, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type>
 		: public kernel_base<kernel_types::cont, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type> {
 		using base_type = kernel_base<kernel_types::cont, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type>;
 		using input01	= typename base_type::input01;
@@ -640,8 +628,7 @@ namespace nihilus {
 			kernel_trait_static_assert_errors::CONT_Total_element_count_must_match_between_input_and_output, kernel_traits, output, input01>::impl);
 	};
 
-	template<single_input_types core_type>
-	struct kernel_traits<kernel_types::view, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type>
+	template<single_input_types core_type> struct kernel_traits<kernel_types::view, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type>
 		: public kernel_base<kernel_types::view, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type> {
 		using base_type = kernel_base<kernel_types::view, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type>;
 		using input01	= typename base_type::input01;
@@ -654,10 +641,9 @@ namespace nihilus {
 			kernel_trait_static_assert_errors::VIEW_Output_cannot_have_more_elements_than_input, kernel_traits, output, input01>::impl);
 	};
 
-	template<double_input_types core_type> struct kernel_traits<kernel_types::mul_mat, core_type, typename core_type::output_type,
-		typename core_type::input_01_type::output_type, typename core_type::input_02_type::output_type>
-		: public kernel_base<kernel_types::mul_mat, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type,
-			  typename core_type::input_02_type::output_type> {
+	template<double_input_types core_type> struct kernel_traits<kernel_types::mul_mat, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type,
+		typename core_type::input_02_type::output_type> : public kernel_base<kernel_types::mul_mat, core_type, typename core_type::output_type,
+															  typename core_type::input_01_type::output_type, typename core_type::input_02_type::output_type> {
 		using base_type				 = kernel_base<kernel_types::mul_mat, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type,
 						 typename core_type::input_02_type::output_type>;
 		using input01				 = typename base_type::input01;
@@ -722,10 +708,9 @@ namespace nihilus {
 		static constexpr uint64_t sequence_length  = dims03[0];
 	};
 
-	template<double_input_types core_type> struct kernel_traits<kernel_types::get_rows, core_type, typename core_type::output_type,
-		typename core_type::input_01_type::output_type, typename core_type::input_02_type::output_type>
-		: public kernel_base<kernel_types::get_rows, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type,
-			  typename core_type::input_02_type::output_type> {
+	template<double_input_types core_type> struct kernel_traits<kernel_types::get_rows, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type,
+		typename core_type::input_02_type::output_type> : public kernel_base<kernel_types::get_rows, core_type, typename core_type::output_type,
+															  typename core_type::input_01_type::output_type, typename core_type::input_02_type::output_type> {
 		using base_type				 = kernel_base<kernel_types::get_rows, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type,
 						 typename core_type::input_02_type::output_type>;
 		using input01				 = typename base_type::input01;
@@ -759,8 +744,8 @@ namespace nihilus {
 		static constexpr uint64_t sequence_length  = dims03[0];
 	};
 
-	template<triple_input_types core_type> struct kernel_traits<kernel_types::rope, core_type, typename core_type::output_type,
-		typename core_type::input_01_type::output_type, typename core_type::input_02_type::output_type, typename core_type::input_03_type::output_type>
+	template<triple_input_types core_type> struct kernel_traits<kernel_types::rope, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type,
+		typename core_type::input_02_type::output_type, typename core_type::input_03_type::output_type>
 		: public kernel_base<kernel_types::rope, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type,
 			  typename core_type::input_02_type::output_type, typename core_type::input_03_type::output_type> {
 		using base_type				 = kernel_base<kernel_types::rope, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type,
@@ -800,10 +785,9 @@ namespace nihilus {
 	template<typename core_type01, typename core_type02> struct kernel_traits<kernel_types::add, core_type01, core_type02>
 		: public kernel_base<kernel_types::add, core_type01, core_type02> {};
 
-	template<double_input_types core_type> struct kernel_traits<kernel_types::add, core_type, typename core_type::output_type,
-		typename core_type::input_01_type::output_type, typename core_type::input_02_type::output_type>
-		: public kernel_base<kernel_types::add, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type,
-			  typename core_type::input_02_type::output_type> {
+	template<double_input_types core_type> struct kernel_traits<kernel_types::add, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type,
+		typename core_type::input_02_type::output_type> : public kernel_base<kernel_types::add, core_type, typename core_type::output_type,
+															  typename core_type::input_01_type::output_type, typename core_type::input_02_type::output_type> {
 		using base_type				 = kernel_base<kernel_types::add, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type,
 						 typename core_type::input_02_type::output_type>;
 		using input01				 = typename base_type::input01;
@@ -839,10 +823,9 @@ namespace nihilus {
 		}
 	};
 
-	template<double_input_types core_type> struct kernel_traits<kernel_types::sub, core_type, typename core_type::output_type,
-		typename core_type::input_01_type::output_type, typename core_type::input_02_type::output_type>
-		: public kernel_base<kernel_types::sub, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type,
-			  typename core_type::input_02_type::output_type> {
+	template<double_input_types core_type> struct kernel_traits<kernel_types::sub, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type,
+		typename core_type::input_02_type::output_type> : public kernel_base<kernel_types::sub, core_type, typename core_type::output_type,
+															  typename core_type::input_01_type::output_type, typename core_type::input_02_type::output_type> {
 		using base_type				 = kernel_base<kernel_types::sub, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type,
 						 typename core_type::input_02_type::output_type>;
 		using input01				 = typename base_type::input01;
@@ -880,11 +863,11 @@ namespace nihilus {
 		typename core_type::input_01_type::output_type, typename core_type::input_02_type::output_type>
 		: public kernel_base<kernel_types::add_rms_norm_mul, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type,
 			  typename core_type::input_02_type::output_type> {
-		using base_type = kernel_base<kernel_types::add_rms_norm_mul, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type,
-			typename core_type::input_02_type::output_type>;
-		using input01	= typename base_type::input01;
-		using input02	= typename base_type::input02;
-		using output	= typename base_type::output;
+		using base_type				 = kernel_base<kernel_types::add_rms_norm_mul, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type,
+						 typename core_type::input_02_type::output_type>;
+		using input01				 = typename base_type::input01;
+		using input02				 = typename base_type::input02;
+		using output				 = typename base_type::output;
 		static constexpr auto dims01 = base_type::dims01;
 		static constexpr auto dims02 = base_type::dims02;
 		static constexpr auto dims03 = base_type::dims03;
@@ -916,7 +899,8 @@ namespace nihilus {
 	template<single_input_types core_type> struct kernel_traits<kernel_types::copy, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type,
 		typename core_type::input_02_type::output_type> : public kernel_base<kernel_types::copy, core_type, typename core_type::output_type,
 															  typename core_type::input_01_type::output_type, typename core_type::input_02_type::output_type> {
-		using base_type				 = kernel_base<kernel_types::copy, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type,typename core_type::input_02_type::output_type>;
+		using base_type				 = kernel_base<kernel_types::copy, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type,
+						 typename core_type::input_02_type::output_type>;
 		using input01				 = typename base_type::input01;
 		using output				 = typename base_type::output;
 		static constexpr auto dims01 = base_type::dims01;

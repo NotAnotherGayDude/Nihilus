@@ -20,6 +20,11 @@ RealTimeChris (Chris M.)
 #pragma once
 
 #include <cstdint>
-struct max_thread_count_holder {
-	static constexpr uint64_t max_thread_count{ 32 };
-};
+
+namespace nihilus {
+
+	struct max_thread_count_holder {
+		static constexpr uint64_t max_thread_count{ 32 };
+	};
+
+}

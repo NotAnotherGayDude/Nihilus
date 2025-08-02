@@ -44,13 +44,74 @@ namespace nihilus {
 		int32_t id{};
 	};
 
-	template<model_config config, typename derived_type, model_arches arch, tokenizer_types> struct tokenizer;
+	template<model_config config, model_arches arch, tokenizer_types> struct tokenizer;
 
 	struct nihilus_symbol {
 		const char* text{};
 		int32_t prev{};
 		int32_t next{};
 		uint64_t n{};
+	};
+
+	template<typename stored_type, typename comparator> struct priority_queue {
+		array<stored_type, 200> data{};
+		size_t currently_stored_size{};
+		comparator comp{};
+
+		NIHILUS_INLINE bool empty() const {
+			return currently_stored_size == 0;
+		}
+
+		NIHILUS_INLINE const stored_type& top() const {
+			return data[0];
+		}
+
+		template<typename stored_type_new> NIHILUS_INLINE void push(stored_type_new&& value) {
+			data[currently_stored_size] = std::forward<stored_type_new>(value);
+			bubble_up(currently_stored_size);
+			++currently_stored_size;
+		}
+
+		NIHILUS_INLINE void pop() {
+			if (currently_stored_size > 0) {
+				data[0] = data[currently_stored_size - 1];
+				--currently_stored_size;
+				if (currently_stored_size > 0) {
+					bubble_down(0);
+				}
+			}
+		}
+
+	  private:
+		NIHILUS_INLINE void bubble_up(size_t index) {
+			while (index > 0) {
+				size_t parent = (index - 1) / 2;
+				if (!comp(data[index], data[parent]))
+					break;
+				std::swap(data[index], data[parent]);
+				index = parent;
+			}
+		}
+
+		NIHILUS_INLINE void bubble_down(size_t index) {
+			while (true) {
+				size_t left	   = 2 * index + 1;
+				size_t right   = 2 * index + 2;
+				size_t largest = index;
+
+				if (left < currently_stored_size && comp(data[left], data[largest])) {
+					largest = left;
+				}
+				if (right < currently_stored_size && comp(data[right], data[largest])) {
+					largest = right;
+				}
+				if (largest == index)
+					break;
+
+				std::swap(data[index], data[largest]);
+				index = largest;
+			}
+		}
 	};
 
 	struct nihilus_bigram_bpe {
@@ -60,8 +121,7 @@ namespace nihilus {
 			}
 		};
 
-		using queue_storage = vector<nihilus_bigram_bpe>;
-		using queue			= std::priority_queue<nihilus_bigram_bpe, queue_storage, comparator>;
+		using queue			= priority_queue<nihilus_bigram_bpe, comparator>;
 
 		std::string text{};
 		uint64_t size{};
@@ -76,7 +136,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename derived_type, tokenizer_types tokenizer_type> struct tokenizer<config, derived_type, model_arches::llama, tokenizer_type>
+	template<model_config config, tokenizer_types tokenizer_type> struct tokenizer<config, model_arches::llama, tokenizer_type>
 		: public tokenizer_parameters<model_arches::llama>, public tokenizer_traits<config.arch, tokenizer_type, config.tokenizer_pre_type> {
 		using model_traits_type		= model_traits<config.arch, config.model_size, config.model_generation>;
 		using tokenizer_traits_type = tokenizer_traits<config.arch, config.tokenizer_type, config.tokenizer_pre_type>;
@@ -111,9 +171,9 @@ namespace nihilus {
 				output_tokens[i] = temp_tokens[i];
 			}
 
-#if defined(NIHILUS_DEV)
-			print_tokenization_debug(input_text, temp_tokens);
-#endif
+			if constexpr (config.dev) {
+				print_tokenization_debug(input_text, temp_tokens);
+			}
 
 			return temp_tokens.size();
 		}
@@ -138,9 +198,9 @@ namespace nihilus {
 				output_tokens[i] = temp_tokens[i];
 			}
 
-#if defined(NIHILUS_DEV)
-			print_tokenization_debug(input_text, temp_tokens);
-#endif
+			if constexpr (config.dev) {
+				print_tokenization_debug(input_text, temp_tokens);
+			}
 
 			return temp_tokens.size();
 		}
@@ -441,7 +501,7 @@ namespace nihilus {
 			return {};
 		}
 
-		NIHILUS_INLINE void tokenize_word(const std::string& word, vector<int32_t>& output) {
+		NIHILUS_INLINE void tokenize_word(const std::string_view word, vector<int32_t>& output) {
 			if (word.empty())
 				return;
 
@@ -460,7 +520,7 @@ namespace nihilus {
 			while (offset < word.size()) {
 				nihilus_symbol sym;
 				uint64_t char_len = detail::min(word.size() - offset, static_cast<uint64_t>(unicode_len_utf8(word[offset])));
-				sym.text		  = word.c_str() + offset;
+				sym.text		  = word.data() + offset;
 				sym.n			  = char_len;
 				offset += sym.n;
 				sym.prev = index - 1;

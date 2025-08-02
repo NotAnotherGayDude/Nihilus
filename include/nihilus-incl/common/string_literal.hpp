@@ -41,82 +41,82 @@ namespace nihilus {
 
 		inline static constexpr size_type length{ size_val > 0 ? size_val - 1 : 0 };
 
-		constexpr string_literal() noexcept = default;
+		NIHILUS_INLINE constexpr string_literal() noexcept = default;
 
-		constexpr string_literal(const char (&str)[size_val]) noexcept {
+		NIHILUS_INLINE constexpr string_literal(const char (&str)[size_val]) noexcept {
 			for (uint64_t x = 0; x < length; ++x) {
 				values[x] = str[x];
 			}
 			values[length] = '\0';
 		}
 
-		explicit constexpr string_literal(const char* str) noexcept {
+		NIHILUS_INLINE explicit constexpr string_literal(const char* str) noexcept {
 			for (uint64_t x = 0; x < length; ++x) {
 				values[x] = str[x];
 			}
 			values[length] = '\0';
 		}
 
-		constexpr const_pointer data() const noexcept {
+		NIHILUS_INLINE constexpr const_pointer data() const noexcept {
 			return values;
 		}
 
-		constexpr pointer data() noexcept {
+		NIHILUS_INLINE constexpr pointer data() noexcept {
 			return values;
 		}
 
-		template<size_type sizeNew> constexpr auto operator+=(const string_literal<sizeNew>& str) const noexcept {
+		template<size_type sizeNew> NIHILUS_INLINE constexpr auto operator+=(const string_literal<sizeNew>& str) const noexcept {
 			string_literal<sizeNew + size_val - 1> new_literal{};
 			std::copy(values, values + size(), new_literal.data());
 			std::copy(str.data(), str.data() + sizeNew, new_literal.data() + size());
 			return new_literal;
 		}
 
-		template<size_type sizeNew> constexpr auto operator+=(const value_type (&str)[sizeNew]) const noexcept {
+		template<size_type sizeNew> NIHILUS_INLINE constexpr auto operator+=(const value_type (&str)[sizeNew]) const noexcept {
 			string_literal<sizeNew + size_val - 1> new_literal{};
 			std::copy(values, values + size(), new_literal.data());
 			std::copy(str, str + sizeNew, new_literal.data() + size());
 			return new_literal;
 		}
 
-		template<size_type sizeNew> constexpr auto operator+(const string_literal<sizeNew>& str) const noexcept {
+		template<size_type sizeNew> NIHILUS_INLINE constexpr auto operator+(const string_literal<sizeNew>& str) const noexcept {
 			string_literal<sizeNew + size_val - 1> new_literal{};
 			std::copy(values, values + size(), new_literal.data());
 			std::copy(str.data(), str.data() + sizeNew, new_literal.data() + size());
 			return new_literal;
 		}
 
-		template<size_type sizeNew> constexpr auto operator+(const value_type (&str)[sizeNew]) const noexcept {
+		template<size_type sizeNew> NIHILUS_INLINE constexpr auto operator+(const value_type (&str)[sizeNew]) const noexcept {
 			string_literal<sizeNew + size_val - 1> new_literal{};
 			std::copy(values, values + size(), new_literal.data());
 			std::copy(str, str + sizeNew, new_literal.data() + size());
 			return new_literal;
 		}
 
-		template<size_type sizeNew> constexpr friend auto operator+(const value_type (&lhs)[sizeNew], const string_literal<size_val>& str) noexcept {
+		template<size_type sizeNew> NIHILUS_INLINE constexpr friend auto operator+(const value_type (&lhs)[sizeNew], const string_literal<size_val>& str) noexcept {
 			string_literal<sizeNew> sl_new{};
 			std::copy_n(lhs, sizeNew, sl_new.data());
 			return sl_new + str;
 		}
 
-		constexpr reference operator[](size_type index) noexcept {
+		NIHILUS_INLINE constexpr reference operator[](size_type index) noexcept {
 			return values[index];
 		}
 
-		constexpr const_reference operator[](size_type index) const noexcept {
+		NIHILUS_INLINE constexpr const_reference operator[](size_type index) const noexcept {
 			return values[index];
 		}
 
-		inline static constexpr size_type size() noexcept {
+		NIHILUS_INLINE static constexpr size_type size() noexcept {
 			return length;
 		}
 
-		template<typename string_types> constexpr operator string_types() const noexcept {
-			NIHILUS_ALIGN(cpu_alignment) string_types return_values{ values, length };
+		template<typename string_types> NIHILUS_INLINE constexpr operator string_types() const noexcept {
+			NIHILUS_ALIGN(cpu_alignment_holder::cpu_alignment) string_types return_values{ values, length };
 			return return_values;
 		}
 
-		NIHILUS_ALIGN(cpu_alignment) value_type values[size_val] {};
+		NIHILUS_ALIGN(cpu_alignment_holder::cpu_alignment) value_type values[size_val] {};
 	};
 
 	template<uint64_t size> string_literal(char (&)[size]) -> string_literal<size>;

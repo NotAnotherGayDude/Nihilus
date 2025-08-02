@@ -47,16 +47,7 @@ namespace nihilus {
 #endif
 	}
 
-	template<model_config config> struct debug_base {};
-
-	template<model_config config>
-		requires(config.dev)
-	struct debug_base<config> {
-		inline static array<op_latch, op_types::count> start_latch{};
-		inline static array<op_latch, op_types::count> end_latch{};
-	};
-
-	template<model_config config_new> struct core_bases_traits_type;
+	template<model_config config> struct core_bases_traits_type;
 
 	template<model_config config, typename base_type> NIHILUS_INLINE static constexpr uint64_t get_dims(uint64_t, uint64_t sequence_length) {
 		return sequence_length;
@@ -70,23 +61,20 @@ namespace nihilus {
 	}
 
 	template<kernel_types kernel_type, int64_t ops_per_depth> NIHILUS_INLINE constexpr int64_t get_thread_count(uint64_t base_count) {
-		if constexpr (kernel_type == kernel_types::sub || kernel_type == kernel_types::reshape || kernel_type == kernel_types::permute || kernel_type == kernel_types::transpose ||
-			kernel_type == kernel_types::view || kernel_type == kernel_types::cont || kernel_type == kernel_types::copy || kernel_type == kernel_types::none) {
+		if constexpr (kernel_type == kernel_types::get_rows || kernel_type == kernel_types::sub || kernel_type == kernel_types::reshape || kernel_type == kernel_types::permute ||
+			kernel_type == kernel_types::transpose || kernel_type == kernel_types::view || kernel_type == kernel_types::cont || kernel_type == kernel_types::copy ||
+			kernel_type == kernel_types::none) {
 			return 1;
 		} else if constexpr (kernel_type == kernel_types::add || kernel_type == kernel_types::mul || kernel_type == kernel_types::mul_mat ||
-			kernel_type == kernel_types::rms_norm || kernel_type == kernel_types::rms_norm_mul || kernel_type == kernel_types::add_rms_norm_mul ||
-			kernel_type == kernel_types::rope || kernel_type == kernel_types::silu) {
-			return static_cast<int64_t>(base_count);
-		} else if constexpr (kernel_type == kernel_types::get_rows) {
-			return 1;
-		} else if constexpr (kernel_type == kernel_types::softmax) {
+			kernel_type == kernel_types::add_rms_norm || kernel_type == kernel_types::rms_norm_mul || kernel_type == kernel_types::add_rms_norm_mul ||
+			kernel_type == kernel_types::rope || kernel_type == kernel_types::silu || kernel_type == kernel_types::softmax) {
 			return static_cast<int64_t>(base_count);
 		} else {
 			return static_cast<int64_t>(base_count);
 		}
 	}
 
-	template<model_config config, typename model_type> struct thread_pool;
+	template<model_config config> struct thread_pool;
 
 	template<model_config config, typename base_type_new> struct execution_planner {
 		NIHILUS_INLINE execution_planner() noexcept									   = default;
@@ -103,13 +91,13 @@ namespace nihilus {
 				parse_core.latch[x].init(get_thread_count<base_type::kernel_type, core_bases_traits_type<config>::ops_per_depth[base_type::depth]>(thread_count));
 			}
 			if constexpr (single_input_types<base_type>) {
-				using input_01_type=typename base_type::input_01_type;
+				using input_01_type = typename base_type::input_01_type;
 				if constexpr (active_op_types<input_01_type>) {
 					for (uint64_t x = 0; x < base_type::model_traits_type::block_count; ++x) {
 						++parse_core.latch[x].depended_count;
-						static_cast<input_01_type*>(static_cast<thread_pool<config, model<config>>*>(&parse_core))
+						static_cast<input_01_type*>(static_cast<thread_pool<config>*>(&parse_core))
 							->latch[x]
-							.dependents[static_cast<input_01_type*>(static_cast<thread_pool<config, model<config>>*>(&parse_core))->latch[x].dependent_count++] =
+							.dependents[static_cast<input_01_type*>(static_cast<thread_pool<config>*>(&parse_core))->latch[x].dependent_count++] =
 							&parse_core.latch[x];
 					}
 				}
@@ -118,9 +106,9 @@ namespace nihilus {
 				if constexpr (active_op_types<input_01_type>) {
 					for (uint64_t x = 0; x < base_type::model_traits_type::block_count; ++x) {
 						++parse_core.latch[x].depended_count;
-						static_cast<input_01_type*>(static_cast<thread_pool<config, model<config>>*>(&parse_core))
+						static_cast<input_01_type*>(static_cast<thread_pool<config>*>(&parse_core))
 							->latch[x]
-							.dependents[static_cast<input_01_type*>(static_cast<thread_pool<config, model<config>>*>(&parse_core))->latch[x].dependent_count++] =
+							.dependents[static_cast<input_01_type*>(static_cast<thread_pool<config>*>(&parse_core))->latch[x].dependent_count++] =
 							&parse_core.latch[x];
 					}
 				}
@@ -128,9 +116,9 @@ namespace nihilus {
 				if constexpr (active_op_types<input_02_type>) {
 					for (uint64_t x = 0; x < base_type::model_traits_type::block_count; ++x) {
 						++parse_core.latch[x].depended_count;
-						static_cast<input_02_type*>(static_cast<thread_pool<config, model<config>>*>(&parse_core))
+						static_cast<input_02_type*>(static_cast<thread_pool<config>*>(&parse_core))
 							->latch[x]
-							.dependents[static_cast<input_02_type*>(static_cast<thread_pool<config, model<config>>*>(&parse_core))->latch[x].dependent_count++] =
+							.dependents[static_cast<input_02_type*>(static_cast<thread_pool<config>*>(&parse_core))->latch[x].dependent_count++] =
 							&parse_core.latch[x];
 					}
 				}
@@ -139,9 +127,9 @@ namespace nihilus {
 				if constexpr (active_op_types<input_01_type>) {
 					for (uint64_t x = 0; x < base_type::model_traits_type::block_count; ++x) {
 						++parse_core.latch[x].depended_count;
-						static_cast<input_01_type*>(static_cast<thread_pool<config, model<config>>*>(&parse_core))
+						static_cast<input_01_type*>(static_cast<thread_pool<config>*>(&parse_core))
 							->latch[x]
-							.dependents[static_cast<input_01_type*>(static_cast<thread_pool<config, model<config>>*>(&parse_core))->latch[x].dependent_count++] =
+							.dependents[static_cast<input_01_type*>(static_cast<thread_pool<config>*>(&parse_core))->latch[x].dependent_count++] =
 							&parse_core.latch[x];
 					}
 				}
@@ -149,9 +137,9 @@ namespace nihilus {
 				if constexpr (active_op_types<input_02_type>) {
 					for (uint64_t x = 0; x < base_type::model_traits_type::block_count; ++x) {
 						++parse_core.latch[x].depended_count;
-						static_cast<input_02_type*>(static_cast<thread_pool<config, model<config>>*>(&parse_core))
+						static_cast<input_02_type*>(static_cast<thread_pool<config>*>(&parse_core))
 							->latch[x]
-							.dependents[static_cast<input_02_type*>(static_cast<thread_pool<config, model<config>>*>(&parse_core))->latch[x].dependent_count++] =
+							.dependents[static_cast<input_02_type*>(static_cast<thread_pool<config>*>(&parse_core))->latch[x].dependent_count++] =
 							&parse_core.latch[x];
 					}
 				}
@@ -159,13 +147,13 @@ namespace nihilus {
 				if constexpr (active_op_types<input_03_type>) {
 					for (uint64_t x = 0; x < base_type::model_traits_type::block_count; ++x) {
 						++parse_core.latch[x].depended_count;
-						static_cast<input_03_type*>(static_cast<thread_pool<config, model<config>>*>(&parse_core))
+						static_cast<input_03_type*>(static_cast<thread_pool<config>*>(&parse_core))
 							->latch[x]
-							.dependents[static_cast<input_03_type*>(static_cast<thread_pool<config, model<config>>*>(&parse_core))->latch[x].dependent_count++] =
+							.dependents[static_cast<input_03_type*>(static_cast<thread_pool<config>*>(&parse_core))->latch[x].dependent_count++] =
 							&parse_core.latch[x];
 					}
 				}
-			}
+			} 
 		}
 	};
 
@@ -204,7 +192,15 @@ namespace nihilus {
 		}
 		NIHILUS_INLINE static void impl(base_type& parse_core) {
 			for (uint64_t x = 0; x < model_traits_type<config>::block_count; ++x) {
-				parse_core.latch[x].reset();
+				if constexpr (base_type::global_input_count > 0) {
+					if (x == 0) {
+						parse_core.latch[x].reset(0);
+					} else {
+						parse_core.latch[x].reset(base_type::global_input_count);
+					}
+				} else {
+					parse_core.latch[x].reset(base_type::global_input_count);
+				}			
 			}
 		}
 	};
@@ -218,7 +214,7 @@ namespace nihilus {
 		NIHILUS_INLINE constexpr bool operator<(const depth_and_bytes& other) const {
 			return first_used_depth < other.first_used_depth;
 		}
-	};
+	};	
 
 	template<model_config config, typename base_type_new> struct memory_planner_depths {
 		NIHILUS_INLINE memory_planner_depths() noexcept										   = default;
@@ -234,10 +230,10 @@ namespace nihilus {
 
 		NIHILUS_INLINE static constexpr void impl(const base_type&, array<depth_and_bytes, op_types::count>& depths_new) {
 			if (depths_new[base_type::op_type].first_used_depth == -1) {
-				depths_new[base_type::op_type].last_used_depth	 = base_type::depth;
-				depths_new[base_type::op_type].required_bytes	 = base_type::total_required_bytes;
+				depths_new[base_type::op_type].last_used_depth	= base_type::depth;
+				depths_new[base_type::op_type].required_bytes	= base_type::total_required_bytes;
 				depths_new[base_type::op_type].first_used_depth = base_type::depth;
-				depths_new[base_type::op_type].type			 = base_type::op_type;
+				depths_new[base_type::op_type].type				= base_type::op_type;
 			}
 			if constexpr (single_input_types<base_type>) {
 				depths_new[base_type::input_01_type::op_type].last_used_depth = base_type::depth;
@@ -278,36 +274,32 @@ namespace nihilus {
 		}
 		NIHILUS_INLINE static void impl(base_type& parse_core, const memory_plan& plan, memory_buffer<config>& memory_buffer) {
 			using output_type = typename base_type::output_type;
-			if constexpr (base_type::op_type == op_types::l_out) {
-				parse_core.data = static_cast<core_traits<config, op_types::inp_embd>*>(static_cast<thread_pool<config, model<config>>*>(&parse_core))->data;
+			if constexpr (base_type::allocation_strategy_type == allocation_strategy_types::remap) {
+				using input_01_type	  = typename base_type::input_01_type;
+				using other_data_type = decltype(input_01_type::data);
+				if constexpr (array_types<decltype(parse_core.data)> && array_types<other_data_type>) {
+					for (uint64_t x = 0; x < model_traits_type<config>::block_count; ++x) {
+						parse_core.data[x] = static_cast<input_01_type*>(static_cast<thread_pool<config>*>(&parse_core))->data[x];
+					}
+				} else if constexpr (array_types<decltype(parse_core.data)> && !array_types<other_data_type>) {
+					for (uint64_t x = 0; x < model_traits_type<config>::block_count; ++x) {
+						parse_core.data[x] = static_cast<input_01_type*>(static_cast<thread_pool<config>*>(&parse_core))->data;
+					}
+				} else if constexpr (!array_types<decltype(parse_core.data)> && array_types<other_data_type>) {
+					parse_core.data = static_cast<input_01_type*>(static_cast<thread_pool<config>*>(&parse_core))->data[0];
+				} else if constexpr (!array_types<decltype(parse_core.data)> && !array_types<other_data_type>) {
+					parse_core.data = static_cast<input_01_type*>(static_cast<thread_pool<config>*>(&parse_core))->data;
+				} else {
+					std::cout << "Sorry, but failed to map op of type: " << base_type::op_type << ", " << std::endl;
+				}
 			} else {
-				if constexpr (base_type::allocation_strategy_type == allocation_strategy_types::remap) {
-					using input_01_type	  = typename base_type::input_01_type;
-					using other_data_type = decltype(input_01_type::data);
-					if constexpr (array_types<decltype(parse_core.data)> && array_types<other_data_type>) {
-						for (uint64_t x = 0; x < model_traits_type<config>::block_count; ++x) {
-							parse_core.data[x] = static_cast<input_01_type*>(static_cast<thread_pool<config, model<config>>*>(&parse_core))->data[x];
-						}
-					} else if constexpr (array_types<decltype(parse_core.data)> && !array_types<other_data_type>) {
-						for (uint64_t x = 0; x < model_traits_type<config>::block_count; ++x) {
-							parse_core.data[x] = static_cast<input_01_type*>(static_cast<thread_pool<config, model<config>>*>(&parse_core))->data;
-						}
-					} else if constexpr (!array_types<decltype(parse_core.data)> && array_types<other_data_type>) {
-						parse_core.data = static_cast<input_01_type*>(static_cast<thread_pool<config, model<config>>*>(&parse_core))->data[0];
-					} else if constexpr (!array_types<decltype(parse_core.data)> && !array_types<other_data_type>) {
-						parse_core.data = static_cast<input_01_type*>(static_cast<thread_pool<config, model<config>>*>(&parse_core))->data;
-					} else {
-						std::cout << "Sorry, but failed to map op of type: " << base_type::op_type << ", " << std::endl;
+				auto* new_ptr = memory_buffer.claim_memory(static_cast<uint64_t>(plan.offsets[base_type::op_type].offset));
+				if constexpr (array_types<decltype(parse_core.data)>) {
+					for (uint64_t x = 0; x < model_traits_type<config>::block_count; ++x) {
+						parse_core.data[x] = static_cast<output_type*>(new_ptr);
 					}
 				} else {
-					auto* new_ptr = memory_buffer.claim_memory(static_cast<uint64_t>(plan.offsets[base_type::op_type].offset));
-					if constexpr (array_types<decltype(parse_core.data)>) {
-						for (uint64_t x = 0; x < model_traits_type<config>::block_count; ++x) {
-							parse_core.data[x] = static_cast<output_type*>(new_ptr);
-						}
-					} else {
-						parse_core.data = static_cast<output_type*>(new_ptr);
-					}
+					parse_core.data = static_cast<output_type*>(new_ptr);
 				}
 			}
 		}
@@ -360,7 +352,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename base_type_new> struct global_input_thread_function {
+	template<model_config config, typename base_type_new, processing_phase phase> struct global_input_thread_function {
 		NIHILUS_INLINE global_input_thread_function() noexcept												 = default;
 		NIHILUS_INLINE global_input_thread_function& operator=(const global_input_thread_function&) noexcept = delete;
 		NIHILUS_INLINE global_input_thread_function(const global_input_thread_function&) noexcept			 = delete;
@@ -378,17 +370,17 @@ namespace nihilus {
 					std::stringstream stream{};
 					stream << "[GLOBAL_INPUT] Thread: " << std::to_string(thread_index_new) << "/" << thread_count << " (ID: " << std::this_thread::get_id()
 						   << "), for Op: " << base_type::op_type << " STARTED" << std::endl;
-					log<log_levels::status>(stream.str());
+					//log<//log_levels::status>(stream.str());
 				}
 
 				if constexpr (config.dev) {
 					std::stringstream stream{};
 					stream << "[GLOBAL_INPUT] Thread: " << std::to_string(thread_index_new) << "/" << thread_count << " (ID: " << std::this_thread::get_id()
 						   << "), for Op: " << base_type::op_type << " EXECUTING Kernel" << std::endl;
-					log<log_levels::status>(stream.str());
+					//log<//log_levels::status>(stream.str());
 				}
 
-				kernel_dispatcher<config, device_types::cpu, base_type>::impl(parse_core, thread_index_new, thread_count);
+				kernel_dispatcher<config, phase, device_types::cpu, base_type>::impl(parse_core, thread_index_new, thread_count, 0);
 				parse_core.latch[0].complete_work();
 
 				if constexpr (config.dev) {
@@ -397,15 +389,13 @@ namespace nihilus {
 
 				if constexpr (config.dev) {
 					std::stringstream stream{};
-					debug_base<config>::start_latch[base_type::op_type].arrive_and_wait();
-					if (thread_index_new == 0) {
-						tensor_debugger<config>::compare_tensor_data(parse_core, 0, static_cast<thread_pool<config, model<config>>*>(&parse_core)->perf_stats.current_iteration,
-							parse_core.get_mutable_dim());
-					}
-					debug_base<config>::end_latch[base_type::op_type].arrive_and_wait();
+					//if (thread_index_new == 0) {
+					//tensor_debugger<config>::compare_tensor_data(parse_core, 0, static_cast<thread_pool<config>*>(&parse_core)->perf_stats.current_iteration,
+					//parse_core.get_mutable_dim());
+					//}
 					stream << "[GLOBAL_INPUT] Thread: " << std::to_string(thread_index_new) << "/" << thread_count << " (ID: " << std::this_thread::get_id()
 						   << "), for Op: " << base_type::op_type << " COMPLETED succesfully" << std::endl;
-					log<log_levels::status>(stream.str());
+					//log<//log_levels::status>(stream.str());
 				}
 
 				return true;
@@ -413,14 +403,14 @@ namespace nihilus {
 				if constexpr (config.dev) {
 					//std::stringstream stream{};
 					//stream << "[GLOBAL_INPUT] Thread assignment FAILED - no work available" << std::endl;
-					//log<log_levels::status>(stream.str());
+					////log<//log_levels::status>(stream.str());
 				}
 				return true;
 			}
 		}
 	};
 
-	template<model_config config, typename base_type_new> struct per_block_thread_function {
+	template<model_config config, typename base_type_new, processing_phase phase> struct per_block_thread_function {
 		NIHILUS_INLINE per_block_thread_function() noexcept											   = default;
 		NIHILUS_INLINE per_block_thread_function& operator=(const per_block_thread_function&) noexcept = delete;
 		NIHILUS_INLINE per_block_thread_function(const per_block_thread_function&) noexcept			   = delete;
@@ -429,42 +419,43 @@ namespace nihilus {
 		using base_type																				   = base_type_new;
 		using return_type																			   = bool;
 		NIHILUS_INLINE static constexpr bool filter() {
-			return base_type::thread_strategy_type == thread_strategy_types::per_block && base_type::kernel_type != kernel_types::transpose &&
-				base_type::kernel_type != kernel_types::view && base_type::kernel_type != kernel_types::permute && base_type::kernel_type != kernel_types::reshape &&
-				base_type::kernel_type != kernel_types::none;
+			return active_op_types<base_type> && base_type::thread_strategy_type == thread_strategy_types::per_block && base_type::kernel_type != kernel_types::none;
 		}
 		NIHILUS_INLINE static bool impl(base_type& parse_core, uint64_t current_block, int64_t thread_index_new) {
 			int64_t thread_count{ parse_core.latch[current_block].thread_count };
+			if constexpr (config.dev) {
+				std::stringstream stream{};
+				stream << "[PER_BLOCK] Block " << current_block << ", Thread: " << std::to_string(thread_index_new) << "/" << thread_count << " (ID: " << std::this_thread::get_id()
+					   << "), for Op: " << base_type::op_type << " STARTED" << std::endl;
+				//log<//log_levels::status>(stream.str());
+			}
 			if (parse_core.latch[current_block].is_ready(thread_index_new)) {
-				if constexpr (config.dev) {
-					std::stringstream stream{};
-					stream << "[PER_BLOCK] Block " << current_block << ", Thread: " << std::to_string(thread_index_new) << "/" << thread_count
-						   << " (ID: " << std::this_thread::get_id() << "), for Op: " << base_type::op_type << " STARTED" << std::endl;
-					log<log_levels::status>(stream.str());
-				}
 
 				if constexpr (config.dev) {
 					std::stringstream stream{};
 					stream << "[PER_BLOCK] Block " << current_block << ", Thread: " << std::to_string(thread_index_new) << "/" << thread_count
 						   << " (ID: " << std::this_thread::get_id() << "), for Op: " << base_type::op_type << " EXECUTING kernel" << std::endl;
-					log<log_levels::status>(stream.str());
+					//log<//log_levels::status>(stream.str());
 				}
 
-				kernel_dispatcher<config, device_types::cpu, base_type>::impl(parse_core, thread_index_new, thread_count);
+				kernel_dispatcher<config, phase, device_types::cpu, base_type>::impl(parse_core, thread_index_new, thread_count, current_block);
 
 				parse_core.latch[current_block].complete_work();
 
 				if constexpr (config.dev) {
 					std::stringstream stream{};
-					debug_base<config>::start_latch[base_type::op_type].arrive_and_wait();
 					if (thread_index_new == 0) {
-						tensor_debugger<config>::compare_tensor_data(parse_core, 0, static_cast<thread_pool<config, model<config>>*>(&parse_core)->perf_stats.current_iteration,
-							parse_core.get_mutable_dim());
+						//if constexpr (has_mutable_dims<base_type>) {
+						//tensor_debugger<config>::compare_tensor_data(parse_core, 0, static_cast<thread_pool<config>*>(&parse_core)->perf_stats.current_iteration,
+						//parse_core.get_mutable_dim());
+						//} else {
+						//							tensor_debugger<config>::compare_tensor_data(parse_core, 0, static_cast<thread_pool<config>*>(&parse_core)->perf_stats.current_iteration,
+						//0);
+						//}
 					}
-					debug_base<config>::end_latch[base_type::op_type].arrive_and_wait();
 					stream << "[PER_BLOCK] Block " << current_block << ", Thread: " << std::to_string(thread_index_new) << "/" << thread_count
 						   << " (ID: " << std::this_thread::get_id() << "), for Op: " << base_type::op_type << " COMPLETED succesfully" << std::endl;
-					log<log_levels::status>(stream.str());
+					//log<//log_levels::status>(stream.str());
 				}
 
 				return false;
@@ -472,14 +463,14 @@ namespace nihilus {
 				if constexpr (config.dev) {
 					//std::stringstream stream{};
 					//stream << "[PER_BLOCK] Block " << current_block << " - Thread assignment FAILED - no work available" << std::endl;
-					//log<log_levels::status>(stream.str());
+					////log<//log_levels::status>(stream.str());
 				}
 				return true;
 			}
 		}
 	};
 
-	template<model_config config, all_blocking base_type_new> struct per_block_thread_function<config, base_type_new> {
+	template<model_config config, all_blocking base_type_new, processing_phase phase> struct per_block_thread_function<config, base_type_new, phase> {
 		NIHILUS_INLINE per_block_thread_function() noexcept											   = default;
 		NIHILUS_INLINE per_block_thread_function& operator=(const per_block_thread_function&) noexcept = delete;
 		NIHILUS_INLINE per_block_thread_function(const per_block_thread_function&) noexcept			   = delete;
@@ -488,9 +479,7 @@ namespace nihilus {
 		using base_type																				   = base_type_new;
 		using return_type																			   = bool;
 		NIHILUS_INLINE static constexpr bool filter() {
-			return base_type::thread_strategy_type == thread_strategy_types::per_block && base_type::kernel_type != kernel_types::transpose &&
-				base_type::kernel_type != kernel_types::view && base_type::kernel_type != kernel_types::permute && base_type::kernel_type != kernel_types::reshape &&
-				base_type::kernel_type != kernel_types::none;
+			return base_type::thread_strategy_type == thread_strategy_types::per_block && base_type::kernel_type != kernel_types::none;
 		}
 
 		NIHILUS_INLINE static bool impl(base_type& parse_core, uint64_t current_block, int64_t thread_index_new) {
@@ -498,25 +487,29 @@ namespace nihilus {
 				std::stringstream stream{};
 				stream << "[PER_BLOCK_BLOCKING] Block " << current_block << ", Thread: " << std::to_string(thread_index_new) << " (ID: " << std::this_thread::get_id()
 					   << "), for Op: " << base_type::op_type << " ARRIVING at start barrier" << std::endl;
-				log<log_levels::status>(stream.str());
+				//log<//log_levels::status>(stream.str());
 			}
-
+			if constexpr (base_type::kernel_type == kernel_types::mul_mat) {
+				if (thread_index_new == 0) {
+					parse_core.current_chunk.store(0);
+				}
+			}
 			int64_t thread_count = parse_core.latch[current_block].is_ready(thread_index_new);
 
 			if constexpr (config.dev) {
 				std::stringstream stream{};
 				stream << "[PER_BLOCK_BLOCKING] Block " << current_block << ", Thread: " << std::to_string(thread_index_new) << "/" << thread_count
 					   << " (ID: " << std::this_thread::get_id() << "), for Op: " << base_type::op_type << " EXECUTING kernel" << std::endl;
-				log<log_levels::status>(stream.str());
+				//log<//log_levels::status>(stream.str());
 			}
 
-			kernel_dispatcher<config, device_types::cpu, base_type>::impl(parse_core, thread_index_new, thread_count);
+			kernel_dispatcher<config, phase, device_types::cpu, base_type>::impl(parse_core, thread_index_new, thread_count, current_block);
 
 			if constexpr (config.dev) {
 				std::stringstream stream{};
 				stream << "[PER_BLOCK_BLOCKING] Block " << current_block << ", Thread: " << std::to_string(thread_index_new) << "/" << thread_count
 					   << " (ID: " << std::this_thread::get_id() << "), for Op: " << base_type::op_type << " ARRIVING at end barrier" << std::endl;
-				log<log_levels::status>(stream.str());
+				//log<//log_levels::status>(stream.str());
 			}
 
 			parse_core.latch[current_block].complete_work();
@@ -524,22 +517,20 @@ namespace nihilus {
 			//parse_core.sync_flag_end.arrive_and_wait();
 			if constexpr (config.dev) {
 				std::stringstream stream{};
-				debug_base<config>::start_latch[base_type::op_type].arrive_and_wait();
-				if (thread_index_new == 0) {
-					tensor_debugger<config>::compare_tensor_data(parse_core, 0, static_cast<thread_pool<config, model<config>>*>(&parse_core)->perf_stats.current_iteration,
-						parse_core.get_mutable_dim());
-				}
-				debug_base<config>::end_latch[base_type::op_type].arrive_and_wait();
+				//if (thread_index_new == 0) {
+				//tensor_debugger<config>::compare_tensor_data(parse_core, 0, static_cast<thread_pool<config>*>(&parse_core)->perf_stats.current_iteration,
+				//parse_core.get_mutable_dim());
+				//}
 				stream << "[PER_BLOCK_BLOCKING] Block " << current_block << ", Thread: " << std::to_string(thread_index_new) << "/" << thread_count
 					   << " (ID: " << std::this_thread::get_id() << "), for Op: " << base_type::op_type << " COMPLETED succesfully" << std::endl;
-				log<log_levels::status>(stream.str());
+				//log<//log_levels::status>(stream.str());
 			}
 
 			return true;
 		}
 	};
 
-	template<model_config config, typename base_type_new> struct global_output_thread_function {
+	template<model_config config, typename base_type_new, processing_phase phase> struct global_output_thread_function {
 		NIHILUS_INLINE global_output_thread_function() noexcept												   = default;
 		NIHILUS_INLINE global_output_thread_function& operator=(const global_output_thread_function&) noexcept = delete;
 		NIHILUS_INLINE global_output_thread_function(const global_output_thread_function&) noexcept			   = delete;
@@ -548,9 +539,7 @@ namespace nihilus {
 		using base_type																						   = base_type_new;
 		using return_type																					   = bool;
 		NIHILUS_INLINE static constexpr bool filter() {
-			return base_type::thread_strategy_type == thread_strategy_types::global_output && base_type::kernel_type != kernel_types::transpose &&
-				base_type::kernel_type != kernel_types::view && base_type::kernel_type != kernel_types::permute && base_type::kernel_type != kernel_types::reshape &&
-				base_type::kernel_type != kernel_types::none;
+			return base_type::thread_strategy_type == thread_strategy_types::global_output && base_type::kernel_type != kernel_types::none;
 		}
 		NIHILUS_INLINE static bool impl(base_type& parse_core, int64_t thread_index_new) {
 			int64_t thread_count{ parse_core.latch[0].thread_count };
@@ -559,22 +548,24 @@ namespace nihilus {
 					std::stringstream stream{};
 					stream << "[GLOBAL_OUTPUT] Thread for op: " << base_type::op_type << ", " << std::to_string(thread_index_new) << "/" << thread_count
 						   << " (ID: " << std::this_thread::get_id() << ") STARTED" << std::endl;
-					log<log_levels::status>(stream.str());
+					//log<//log_levels::status>(stream.str());
 				}
 
 				if constexpr (config.dev) {
 					std::stringstream stream{};
 					stream << "[GLOBAL_OUTPUT] Thread for op: " << base_type::op_type << ", " << std::to_string(thread_index_new) << " EXECUTING kernel: " << base_type::op_type << ", "
 						   << std::endl;
-					log<log_levels::status>(stream.str());
+					//log<//log_levels::status>(stream.str());
 				}
 
-				kernel_dispatcher<config, device_types::cpu, base_type>::impl(parse_core, thread_index_new, thread_count);
+				kernel_dispatcher<config, phase, device_types::cpu, base_type>::impl(parse_core, thread_index_new, thread_count, 0);
+
+				parse_core.latch[0].complete_work();
 
 				if constexpr (config.dev) {
 					std::stringstream stream{};
 					stream << "[GLOBAL_OUTPUT] Thread for op: " << base_type::op_type << ", " << std::to_string(thread_index_new) << " FINISHED kernel execution" << std::endl;
-					log<log_levels::status>(stream.str());
+					//log<//log_levels::status>(stream.str());
 				}
 
 				if constexpr (config.dev) {
@@ -586,14 +577,14 @@ namespace nihilus {
 				if constexpr (config.dev) {
 					std::stringstream stream{};
 					stream << "[GLOBAL_OUTPUT] Thread assignment FAILED - no work available" << std::endl;
-					log<log_levels::status>(stream.str());
+					//log<//log_levels::status>(stream.str());
 				}
 				return true;
 			}
 		}
 	};
 
-	template<model_config config, all_blocking  base_type_new> struct global_output_thread_function<config, base_type_new> {
+	template<model_config config, all_blocking base_type_new, processing_phase phase> struct global_output_thread_function<config, base_type_new, phase> {
 		NIHILUS_INLINE global_output_thread_function() noexcept												   = default;
 		NIHILUS_INLINE global_output_thread_function& operator=(const global_output_thread_function&) noexcept = delete;
 		NIHILUS_INLINE global_output_thread_function(const global_output_thread_function&) noexcept			   = delete;
@@ -602,16 +593,19 @@ namespace nihilus {
 		using base_type																						   = base_type_new;
 		using return_type																					   = bool;
 		NIHILUS_INLINE static constexpr bool filter() {
-			return base_type::thread_strategy_type == thread_strategy_types::global_output && base_type::kernel_type != kernel_types::transpose &&
-				base_type::kernel_type != kernel_types::view && base_type::kernel_type != kernel_types::permute && base_type::kernel_type != kernel_types::reshape &&
-				base_type::kernel_type != kernel_types::none;
+			return base_type::thread_strategy_type == thread_strategy_types::global_output && base_type::kernel_type != kernel_types::none;
 		}
 
 		NIHILUS_INLINE static bool impl(base_type& parse_core, int64_t thread_index_new) {
 			if constexpr (config.dev) {
 				std::stringstream stream{};
 				stream << "[GLOBAL_OUTPUT_BLOCKING] Thread (ID: " << std::this_thread::get_id() << ") ARRIVING at start barrier..." << std::endl;
-				log<log_levels::status>(stream.str());
+				//log<//log_levels::status>(stream.str());
+			}
+			if constexpr (base_type::kernel_type == kernel_types::mul_mat) {
+				if (thread_index_new == 0) {
+					parse_core.current_chunk.store(0);
+				}
 			}
 			int64_t thread_count = parse_core.latch[0].is_ready(thread_index_new);
 
@@ -619,17 +613,17 @@ namespace nihilus {
 				std::stringstream stream{};
 				stream << "[GLOBAL_OUTPUT_BLOCKING] Thread for op: " << base_type::op_type << ", " << std::to_string(thread_index_new) << "/" << thread_count
 					   << " (ID: " << std::this_thread::get_id() << ") PASSED start barrier, beginning execution..." << std::endl;
-				log<log_levels::status>(stream.str());
+				//log<//log_levels::status>(stream.str());
 			}
 
 			if constexpr (config.dev) {
 				std::stringstream stream{};
 				stream << "[GLOBAL_OUTPUT_BLOCKING] Thread for op: " << base_type::op_type << ", " << std::to_string(thread_index_new) << " EXECUTING kernel: " << base_type::op_type
 					   << ", " << std::endl;
-				log<log_levels::status>(stream.str());
+				//log<//log_levels::status>(stream.str());
 			}
 
-			kernel_dispatcher<config, device_types::cpu, base_type>::impl(parse_core, thread_index_new, thread_count);
+			kernel_dispatcher<config, phase, device_types::cpu, base_type>::impl(parse_core, thread_index_new, thread_count, 0);
 
 			parse_core.latch[0].complete_work();
 
@@ -637,7 +631,7 @@ namespace nihilus {
 				std::stringstream stream{};
 				stream << "[GLOBAL_OUTPUT_BLOCKING] Thread for op: " << base_type::op_type << ", " << std::to_string(thread_index_new)
 					   << " FINISHED kernel, arriving at end barrier..." << std::endl;
-				log<log_levels::status>(stream.str());
+				//log<//log_levels::status>(stream.str());
 			}
 
 			if constexpr (config.dev) {
@@ -649,7 +643,7 @@ namespace nihilus {
 			if constexpr (config.dev) {
 				std::stringstream stream{};
 				stream << "[GLOBAL_OUTPUT_BLOCKING] Thread " << std::to_string(thread_index_new) << " PASSED end barrier, operation complete!" << std::endl;
-				log<log_levels::status>(stream.str());
+				//log<//log_levels::status>(stream.str());
 			}
 
 			return true;
@@ -668,73 +662,12 @@ namespace nihilus {
 			return (config.dev && static_cast<uint64_t>(base_type::op_type) > 12);
 		}
 
-		NIHILUS_INLINE static void impl(base_type& parse_core, uint64_t current_block, uint64_t current_iteration_new, uint64_t runtime_dim) {
-			if constexpr (base_type::runtime_dims != 5) {
-				parse_core.get_mutable_dim() = get_dims<config, base_type>(0, runtime_dim) * base_type::runtime_dim_multiplier;
-			}
-			runtime_dim = get_dims<config, base_type>(current_block, runtime_dim) * base_type::runtime_dim_multiplier;
-			tensor_debugger<config>::compare_tensor_data(parse_core, current_block, current_iteration_new, runtime_dim);
-		}
-	};
-
-	template<model_config config, typename base_type_new> struct execution_checker {
-		NIHILUS_INLINE execution_checker() noexcept									   = default;
-		NIHILUS_INLINE execution_checker& operator=(const execution_checker&) noexcept = delete;
-		NIHILUS_INLINE execution_checker(const execution_checker&) noexcept			   = delete;
-		NIHILUS_INLINE execution_checker& operator=(execution_checker&&) noexcept	   = delete;
-		NIHILUS_INLINE execution_checker(execution_checker&&) noexcept				   = delete;
-		using output_type															   = base_type_new::output_type;
-		using base_type																   = base_type_new;
-		NIHILUS_INLINE static constexpr bool filter() {
-			return active_op_types<base_type> && config.dev;
-		}
-		NIHILUS_INLINE static void impl(base_type& parse_core) {/*
-			if constexpr (array_types<decltype(parse_core.run_checkers)>) {
-				for (uint64_t x = 0; x < base_type::model_traits_type::block_count; ++x) {
-					if (parse_core.run_checkers[x].flag.load() < parse_core.run_checkers[x].thread_count) {
-						std::stringstream stream{};
-						stream << "Failed to finish op of type: " << base_type::op_type << ", " << ", FOR BLOCK: " << x << std::endl;
-						stream << "Actuated Count: " << parse_core.run_checkers[x].flag.load() << ", Expected Count: " << parse_core.run_checkers[x].thread_count << std::endl;
-						log<log_levels::status>(stream.str());
-					}
-				}
-			} else {
-				if (parse_core.run_checkers.flag.load() < parse_core.run_checkers.thread_count) {
-					std::stringstream stream{};
-					stream << "Failed to finish op of type: " << base_type::op_type << ", " << std::endl;
-					stream << "Actuated Count: " << parse_core.run_checkers.flag.load() << ", Expected Count: " << parse_core.run_checkers.thread_count << std::endl;
-					log<log_levels::status>(stream.str());
-				}
-			}*/
-		}
-	};
-
-	template<model_config config, blocking_types base_type_new> struct execution_checker<config, base_type_new> {
-		NIHILUS_INLINE execution_checker() noexcept									   = default;
-		NIHILUS_INLINE execution_checker& operator=(const execution_checker&) noexcept = delete;
-		NIHILUS_INLINE execution_checker(const execution_checker&) noexcept			   = delete;
-		NIHILUS_INLINE execution_checker& operator=(execution_checker&&) noexcept	   = delete;
-		NIHILUS_INLINE execution_checker(execution_checker&&) noexcept				   = delete;
-		using output_type															   = base_type_new::output_type;
-		using base_type																   = base_type_new;
-		NIHILUS_INLINE static constexpr bool filter() {
-			return active_op_types<base_type> && config.dev;
-		}
-		NIHILUS_INLINE static void impl(base_type& parse_core) {
-			/*
-			if constexpr (array_types<decltype(parse_core.run_checkers)>) {
-				for (uint64_t x = 0; x < base_type::model_traits_type::block_count; ++x) {
-					if (parse_core.run_checkers[x].flag.load() < parse_core.run_checkers[x].thread_count) {
-						std::cout << "Failed to finish op of type: " << base_type::op_type << ", " << ", FOR BLOCK: " << x << std::endl;
-						std::cout << "Actuated Count: " << parse_core.run_checkers[x].flag.load() << ", Expected Count: " << parse_core.run_checkers[x].thread_count << std::endl;
-					}
-				}
-			} else {
-				if (parse_core.run_checkers.flag.load() < parse_core.run_checkers.thread_count) {
-					std::cout << "Failed to finish op of type: " << base_type::op_type << ", " << std::endl;
-					std::cout << "Actuated Count: " << parse_core.run_checkers.flag.load() << ", Expected Count: " << parse_core.run_checkers.thread_count << std::endl;
-				}
-			}*/
+		NIHILUS_INLINE static void impl(base_type& parse_core, uint64_t current_block, uint64_t current_iteration_new) {
+			//if constexpr (base_type::runtime_dims != 5) {
+				//parse_core.get_mutable_dim() = get_dims<config, base_type>(0, runtime_dim) * base_type::runtime_dim_multiplier;
+			//}
+			//runtime_dim = get_dims<config, base_type>(current_block, runtime_dim) * base_type::runtime_dim_multiplier;
+			tensor_debugger<config>::compare_tensor_data(parse_core, current_block, current_iteration_new, 0);
 		}
 	};
 
