@@ -127,7 +127,7 @@ namespace nihilus {
 	concept integral_or_enum_types = std::integral<value_type> || std::is_enum_v<std::remove_cvref_t<value_type>>;
 
 	template<typename value_type>
-	concept active_op_types = requires() { std::remove_cvref_t<value_type>::run_checkers; };
+	concept active_op_types = requires() { std::remove_cvref_t<value_type>::latch; };
 
 	template<typename value_type>
 	concept active_input_types = requires() { std::remove_cvref_t<value_type>::runtime_dims; };

@@ -170,7 +170,7 @@ namespace nihilus {
 			core_base_type::template impl<execution_planner>(thread_count);
 		}
 
-		template<uint64_t current_index = 0> NIHILUS_INLINE void execute_blocks(uint64_t thread_index) {
+		template<uint64_t current_index = 0> inline void execute_blocks(uint64_t thread_index) {
 			if constexpr (current_index < model_traits_type<config>::block_count) {
 				core_base_type::template impl<per_block_thread_function>(current_index, thread_index);
 				execute_blocks<current_index + 1>(thread_index);
@@ -193,7 +193,7 @@ namespace nihilus {
 		}
 
 		NIHILUS_INLINE void execute_tasks(uint64_t runtime_dimensions_new) {
-			core_base_type::template impl<run_checker_resetter>(thread_count);
+			core_base_type::template impl<latch_resetter>();
 			core_base_type::template impl<dim_updater>(runtime_dimensions_new);
 			if constexpr (config.benchmark) {
 				for (uint64_t x = 0; x < threads.size(); ++x) {

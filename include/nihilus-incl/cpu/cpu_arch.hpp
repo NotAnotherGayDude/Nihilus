@@ -664,7 +664,7 @@ namespace nihilus {
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, core_type& output, const typename core_type::input_01_type& input01,
 			const typename core_type::input_02_type& input02) {
 			/*
-			std::cout << "MUL-MATTING TYPE: " << core_type::type << std::endl;
+			std::cout << "MUL-MATTING TYPE: " << core_type::op_type << std::endl;
 			static constexpr uint64_t ne00 = input_type01::get_array()[0];
 			static constexpr uint64_t ne01 = input_type01::get_array()[1];
 			static constexpr uint64_t ne02 = input_type01::get_array()[2];
@@ -678,7 +678,7 @@ namespace nihilus {
 				std::cout << input01.data[x] << ", ";
 			}
 			uint64_t element_count02 = count_elements(input02);
-			std::cout << "MUL-MATTING TYPE: " << core_type::type << std::endl;
+			std::cout << "MUL-MATTING TYPE: " << core_type::op_type << std::endl;
 			for (uint64_t x = 0; x < element_count02; ++x) {
 				std::cout << input02.data[x] << ", ";
 			}
@@ -865,7 +865,7 @@ namespace nihilus {
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, core_type& output, const typename core_type::input_01_type& input01,
 			const typename core_type::input_02_type& input02) {
 			/*
-			std::cout << "COPYING TYPE: " << core_type::type << std::endl;
+			std::cout << "COPYING TYPE: " << core_type::op_type << std::endl;
 			static constexpr uint64_t ne00 = input_type01::get_array()[0];
 			static constexpr uint64_t ne01 = input_type01::get_array()[1];
 			static constexpr uint64_t ne02 = input_type01::get_array()[2];
@@ -1010,7 +1010,7 @@ namespace nihilus {
 
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, core_type& output, const typename core_type::input_01_type& input01) {
 			/*
-			std::cout << "COPYING TYPE: " << core_type::type << std::endl;
+			std::cout << "COPYING TYPE: " << core_type::op_type << std::endl;
 			static constexpr uint64_t ne00 = input_type01::get_array()[0];
 			static constexpr uint64_t ne01 = input_type01::get_array()[1];
 			static constexpr uint64_t ne02 = input_type01::get_array()[2];
@@ -1034,7 +1034,7 @@ namespace nihilus {
 
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, core_type& output, const typename core_type::input_01_type& input01) {
 			/*
-			std::cout << "COPYING TYPE: " << core_type::type << std::endl;
+			std::cout << "COPYING TYPE: " << core_type::op_type << std::endl;
 			static constexpr uint64_t ne00 = input_type01::get_array()[0];
 			static constexpr uint64_t ne01 = input_type01::get_array()[1];
 			static constexpr uint64_t ne02 = input_type01::get_array()[2];

@@ -83,7 +83,7 @@ namespace nihilus {
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::none };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::mmap };
 		static constexpr kernel_types kernel_type{ kernel_types::none };
-		static constexpr op_types type{ op_types::token_embd_weight };
+		static constexpr op_types op_type{ op_types::token_embd_weight };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		output_type* data{};
 	};
@@ -107,7 +107,7 @@ namespace nihilus {
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::global_input };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::global };
 		static constexpr kernel_types kernel_type{ kernel_types::none };
-		static constexpr op_types type{ op_types::inp_tokens };
+		static constexpr op_types op_type{ op_types::inp_tokens };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		output_type* data{};
 	};
@@ -131,7 +131,7 @@ namespace nihilus {
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::global_input };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::global };
 		static constexpr kernel_types kernel_type{ kernel_types::none };
-		static constexpr op_types type{ op_types::inp_pos };
+		static constexpr op_types op_type{ op_types::inp_pos };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		output_type* data{};
 	};
@@ -154,7 +154,7 @@ namespace nihilus {
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::global_input };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::global };
 		static constexpr kernel_types kernel_type{ kernel_types::none };
-		static constexpr op_types type{ op_types::inp_out_ids };
+		static constexpr op_types op_type{ op_types::inp_out_ids };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		output_type* data{};
 	};
@@ -178,7 +178,7 @@ namespace nihilus {
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::none };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::mmap };
 		static constexpr kernel_types kernel_type{ kernel_types::none };
-		static constexpr op_types type{ op_types::rope_freqs_weight };
+		static constexpr op_types op_type{ op_types::rope_freqs_weight };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		output_type* data{};
 	};
@@ -202,7 +202,7 @@ namespace nihilus {
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::none };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::mmap };
 		static constexpr kernel_types kernel_type{ kernel_types::none };
-		static constexpr op_types type{ op_types::output_weight };
+		static constexpr op_types op_type{ op_types::output_weight };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		output_type* data{};
 	};
@@ -226,7 +226,7 @@ namespace nihilus {
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::none };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::mmap };
 		static constexpr kernel_types kernel_type{ kernel_types::none };
-		static constexpr op_types type{ op_types::output_norm_weight };
+		static constexpr op_types op_type{ op_types::output_norm_weight };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		output_type* data{};
 	};
@@ -250,7 +250,7 @@ namespace nihilus {
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::none };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::mmap };
 		static constexpr kernel_types kernel_type{ kernel_types::none };
-		static constexpr op_types type{ op_types::attn_q_weight };
+		static constexpr op_types op_type{ op_types::attn_q_weight };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		array<output_type*, model_traits_type::block_count> data{};
 	};
@@ -277,7 +277,7 @@ namespace nihilus {
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::none };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::mmap };
 		static constexpr kernel_types kernel_type{ kernel_types::none };
-		static constexpr op_types type{ op_types::attn_k_weight };
+		static constexpr op_types op_type{ op_types::attn_k_weight };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		array<output_type*, model_traits_type::block_count> data{};
 	};
@@ -304,7 +304,7 @@ namespace nihilus {
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::none };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::mmap };
 		static constexpr kernel_types kernel_type{ kernel_types::none };
-		static constexpr op_types type{ op_types::attn_v_weight };
+		static constexpr op_types op_type{ op_types::attn_v_weight };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		array<output_type*, model_traits_type::block_count> data{};
 	};
@@ -328,7 +328,7 @@ namespace nihilus {
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::none };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::mmap };
 		static constexpr kernel_types kernel_type{ kernel_types::none };
-		static constexpr op_types type{ op_types::attn_output_weight };
+		static constexpr op_types op_type{ op_types::attn_output_weight };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		array<output_type*, model_traits_type::block_count> data{};
 	};
@@ -352,7 +352,7 @@ namespace nihilus {
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::none };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::mmap };
 		static constexpr kernel_types kernel_type{ kernel_types::none };
-		static constexpr op_types type{ op_types::attn_norm_weight };
+		static constexpr op_types op_type{ op_types::attn_norm_weight };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		array<output_type*, model_traits_type::block_count> data{};
 	};
@@ -376,7 +376,7 @@ namespace nihilus {
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::none };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::mmap };
 		static constexpr kernel_types kernel_type{ kernel_types::none };
-		static constexpr op_types type{ op_types::ffn_gate_weight };
+		static constexpr op_types op_type{ op_types::ffn_gate_weight };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		array<output_type*, model_traits_type::block_count> data{};
 	};
@@ -400,7 +400,7 @@ namespace nihilus {
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::none };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::mmap };
 		static constexpr kernel_types kernel_type{ kernel_types::none };
-		static constexpr op_types type{ op_types::ffn_up_weight };
+		static constexpr op_types op_type{ op_types::ffn_up_weight };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		array<output_type*, model_traits_type::block_count> data{};
 	};
@@ -424,7 +424,7 @@ namespace nihilus {
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::mmap };
 		static constexpr kernel_types kernel_type{ kernel_types::none };
-		static constexpr op_types type{ op_types::ffn_down_weight };
+		static constexpr op_types op_type{ op_types::ffn_down_weight };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		array<output_type*, model_traits_type::block_count> data{};
 	};
@@ -448,7 +448,7 @@ namespace nihilus {
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::mmap };
 		static constexpr kernel_types kernel_type{ kernel_types::none };
-		static constexpr op_types type{ op_types::ffn_norm_weight };
+		static constexpr op_types op_type{ op_types::ffn_norm_weight };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		array<output_type*, model_traits_type::block_count> data{};
 	};
@@ -472,7 +472,7 @@ namespace nihilus {
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::global };
 		static constexpr kernel_types kernel_type{ kernel_types::none };
-		static constexpr op_types type{ op_types::cache_k };
+		static constexpr op_types op_type{ op_types::cache_k };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		array<output_type*, model_traits_type::block_count> data{};
 	};
@@ -496,7 +496,7 @@ namespace nihilus {
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::global };
 		static constexpr kernel_types kernel_type{ kernel_types::none };
-		static constexpr op_types type{ op_types::cache_v };
+		static constexpr op_types op_type{ op_types::cache_v };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		array<output_type*, model_traits_type::block_count> data{};
 	};
@@ -520,7 +520,7 @@ namespace nihilus {
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::global_input };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::global };
 		static constexpr kernel_types kernel_type{ kernel_types::none };
-		static constexpr op_types type{ op_types::kq_mask };
+		static constexpr op_types op_type{ op_types::kq_mask };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		output_type* data{};
 	};
@@ -548,9 +548,9 @@ namespace nihilus {
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::global_input };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::global };
 		static constexpr kernel_types kernel_type{ kernel_types::get_rows };
-		static constexpr op_types type{ op_types::inp_embd };
+		static constexpr op_types op_type{ op_types::inp_embd };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		core_latch run_checkers{};
+		array<linked_latch<false>, model_traits_type::block_count> latch{};
 		output_type* data{};
 	};
 
@@ -577,10 +577,9 @@ namespace nihilus {
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::global };
 		static constexpr kernel_types kernel_type{ kernel_types::rms_norm_mul };
-		static constexpr op_types type{ op_types::norm_attn_norm };
+		static constexpr op_types op_type{ op_types::norm_attn_norm };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		op_latch sync_flag_start{};
-		op_latch sync_flag_end{};
+		array<linked_latch<false>, model_traits_type::block_count> latch{};
 		output_type* data{};
 	};
 
@@ -607,10 +606,9 @@ namespace nihilus {
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::global };
 		static constexpr kernel_types kernel_type{ kernel_types::mul_mat };
-		static constexpr op_types type{ op_types::qcur_mul_mat };
+		static constexpr op_types op_type{ op_types::qcur_mul_mat };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		op_latch sync_flag_start{};
-		op_latch sync_flag_end{};
+		array<linked_latch<true>, model_traits_type::block_count> latch{};
 		output_type* data{};
 	};
 
@@ -635,7 +633,7 @@ namespace nihilus {
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::remap };
 		static constexpr kernel_types kernel_type{ kernel_types::reshape };
-		static constexpr op_types type{ op_types::qcur_reshaped };
+		static constexpr op_types op_type{ op_types::qcur_reshaped };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		output_type* data{};
 	};
@@ -665,10 +663,9 @@ namespace nihilus {
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::global };
 		static constexpr kernel_types kernel_type{ kernel_types::rope };
-		static constexpr op_types type{ op_types::qcur_rope };
+		static constexpr op_types op_type{ op_types::qcur_rope };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		op_latch sync_flag_start{};
-		op_latch sync_flag_end{};
+		array<linked_latch<true>, model_traits_type::block_count> latch{};
 		output_type* data{};
 	};
 
@@ -695,10 +692,9 @@ namespace nihilus {
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::global };
 		static constexpr kernel_types kernel_type{ kernel_types::mul_mat };
-		static constexpr op_types type{ op_types::kcur_mul_mat };
+		static constexpr op_types op_type{ op_types::kcur_mul_mat };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		op_latch sync_flag_start{};
-		op_latch sync_flag_end{};
+		array<linked_latch<true>, model_traits_type::block_count> latch{};
 		output_type* data{};
 	};
 
@@ -724,7 +720,7 @@ namespace nihilus {
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::remap };
 		static constexpr kernel_types kernel_type{ kernel_types::reshape };
-		static constexpr op_types type{ op_types::kcur_reshaped };
+		static constexpr op_types op_type{ op_types::kcur_reshaped };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		output_type* data{};
 	};
@@ -754,10 +750,9 @@ namespace nihilus {
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::global };
 		static constexpr kernel_types kernel_type{ kernel_types::rope };
-		static constexpr op_types type{ op_types::kcur_rope };
+		static constexpr op_types op_type{ op_types::kcur_rope };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		op_latch sync_flag_start{};
-		op_latch sync_flag_end{};
+		array<linked_latch<true>, model_traits_type::block_count> latch{};
 		output_type* data{};
 	};
 
@@ -784,10 +779,9 @@ namespace nihilus {
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::global };
 		static constexpr kernel_types kernel_type{ kernel_types::mul_mat };
-		static constexpr op_types type{ op_types::vcur_mul_mat };
+		static constexpr op_types op_type{ op_types::vcur_mul_mat };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		op_latch sync_flag_start{};
-		op_latch sync_flag_end{};
+		array<linked_latch<true>, model_traits_type::block_count> latch{};
 		output_type* data{};
 	};
 
@@ -811,7 +805,7 @@ namespace nihilus {
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::remap };
 		static constexpr kernel_types kernel_type{ kernel_types::view };
-		static constexpr op_types type{ op_types::k_cache_view };
+		static constexpr op_types op_type{ op_types::k_cache_view };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		output_type* data{};
 	};
@@ -837,10 +831,9 @@ namespace nihilus {
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::remap };
 		static constexpr kernel_types kernel_type{ kernel_types::copy };
-		static constexpr op_types type{ op_types::k_cache_view_copy };
+		static constexpr op_types op_type{ op_types::k_cache_view_copy };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		op_latch sync_flag_start{};
-		op_latch sync_flag_end{};
+		array<linked_latch<false>, model_traits_type::block_count> latch{};
 		output_type* data{};
 	};
 
@@ -865,7 +858,7 @@ namespace nihilus {
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::remap };
 		static constexpr kernel_types kernel_type{ kernel_types::transpose };
-		static constexpr op_types type{ op_types::vcur_transposed };
+		static constexpr op_types op_type{ op_types::vcur_transposed };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		output_type* data{};
 	};
@@ -890,12 +883,12 @@ namespace nihilus {
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::remap };
 		static constexpr kernel_types kernel_type{ kernel_types::view };
-		static constexpr op_types type{ op_types::v_cache_view };
+		static constexpr op_types op_type{ op_types::v_cache_view };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		output_type* data{};
 	};
 
-	template<model_config config_new> struct core_traits<config_new, op_types::v_cache_view_copy> : public config_holder<config_new>, public core_trait_dims<1, 1024, 1, 1, 0> {
+	template<model_config config_new> struct core_traits<config_new, op_types::v_cache_view_copy> : public config_holder<config_new>, public core_trait_dims<1, 1, 1, 1, 0> {
 		NIHILUS_INLINE constexpr core_traits() noexcept								 = default;
 		NIHILUS_INLINE constexpr core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_INLINE constexpr core_traits(const core_traits&) noexcept			 = delete;
@@ -906,20 +899,19 @@ namespace nihilus {
 		using input_01_type															 = core_traits<config_new, op_types::v_cache_view>;
 		using input_02_type															 = core_traits<config_new, op_types::vcur_transposed>;
 		using output_type															 = typename input_01_type::output_type;
-		using core_traits_dims_type													 = core_trait_dims<1, 1024, 1, 1, 0>;
+		using core_traits_dims_type													 = core_trait_dims<1, 1, 1, 1, 0>;
 		static constexpr input_types input_type{ input_types::two };
 		static constexpr uint64_t depth{ input_01_type::depth + 1 };
-		static constexpr uint64_t runtime_dim_multiplier{ 1 };
+		static constexpr uint64_t runtime_dim_multiplier{ 1024 };
 		static constexpr array<uint64_t, 4> strides{ type_traits<output_type>::impl(core_traits_dims_type::get_array()) };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment>(
 			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array(), strides)) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::remap };
 		static constexpr kernel_types kernel_type{ kernel_types::copy };
-		static constexpr op_types type{ op_types::v_cache_view_copy };
+		static constexpr op_types op_type{ op_types::v_cache_view_copy };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		op_latch sync_flag_start{};
-		op_latch sync_flag_end{};
+		array<linked_latch<false>, model_traits_type::block_count> latch{};
 		output_type* data{};
 	};
 
@@ -947,7 +939,7 @@ namespace nihilus {
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::remap };
 		static constexpr kernel_types kernel_type{ kernel_types::view };
-		static constexpr op_types type{ op_types::v };
+		static constexpr op_types op_type{ op_types::v };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		output_type* data{};
 	};
@@ -976,7 +968,7 @@ namespace nihilus {
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::remap };
 		static constexpr kernel_types kernel_type{ kernel_types::view };
-		static constexpr op_types type{ op_types::k };
+		static constexpr op_types op_type{ op_types::k };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		output_type* data{};
 	};
@@ -1003,7 +995,7 @@ namespace nihilus {
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::remap };
 		static constexpr kernel_types kernel_type{ kernel_types::permute };
-		static constexpr op_types type{ op_types::q };
+		static constexpr op_types op_type{ op_types::q };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		output_type* data{};
 	};
@@ -1031,10 +1023,9 @@ namespace nihilus {
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::global };
 		static constexpr kernel_types kernel_type{ kernel_types::mul_mat };
-		static constexpr op_types type{ op_types::kq };
+		static constexpr op_types op_type{ op_types::kq };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		op_latch sync_flag_start{};
-		op_latch sync_flag_end{};
+		array<linked_latch<true>, model_traits_type::block_count> latch{};
 		output_type* data{};
 	};
 
@@ -1062,10 +1053,9 @@ namespace nihilus {
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::global };
 		static constexpr kernel_types kernel_type{ kernel_types::softmax };
-		static constexpr op_types type{ op_types::kq_soft_max };
+		static constexpr op_types op_type{ op_types::kq_soft_max };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		op_latch sync_flag_start{};
-		op_latch sync_flag_end{};
+		array<linked_latch<false>, model_traits_type::block_count> latch{};
 		output_type* data{};
 	};
 
@@ -1092,10 +1082,9 @@ namespace nihilus {
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::global };
 		static constexpr kernel_types kernel_type{ kernel_types::mul_mat };
-		static constexpr op_types type{ op_types::kqv };
+		static constexpr op_types op_type{ op_types::kqv };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		op_latch sync_flag_start{};
-		op_latch sync_flag_end{};
+		array<linked_latch<true>, model_traits_type::block_count> latch{};
 		output_type* data{};
 	};
 
@@ -1120,7 +1109,7 @@ namespace nihilus {
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::remap };
 		static constexpr kernel_types kernel_type{ kernel_types::permute };
-		static constexpr op_types type{ op_types::kqv_merged };
+		static constexpr op_types op_type{ op_types::kqv_merged };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		output_type* data{};
 	};
@@ -1146,10 +1135,9 @@ namespace nihilus {
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::remap };
 		static constexpr kernel_types kernel_type{ kernel_types::cont };
-		static constexpr op_types type{ op_types::kqv_merged_cont };
+		static constexpr op_types op_type{ op_types::kqv_merged_cont };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		op_latch sync_flag_start{};
-		op_latch sync_flag_end{};
+		array<linked_latch<false>, model_traits_type::block_count> latch{};
 		output_type* data{};
 	};
 
@@ -1176,10 +1164,9 @@ namespace nihilus {
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::global };
 		static constexpr kernel_types kernel_type{ kernel_types::mul_mat };
-		static constexpr op_types type{ op_types::kqv_out };
+		static constexpr op_types op_type{ op_types::kqv_out };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		op_latch sync_flag_start{};
-		op_latch sync_flag_end{};
+		array<linked_latch<true>, model_traits_type::block_count> latch{};
 		output_type* data{};
 	};
 
@@ -1206,10 +1193,9 @@ namespace nihilus {
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::global };
 		static constexpr kernel_types kernel_type{ kernel_types::add };
-		static constexpr op_types type{ op_types::ffn_inp };
+		static constexpr op_types op_type{ op_types::ffn_inp };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		op_latch sync_flag_start{};
-		op_latch sync_flag_end{};
+		array<linked_latch<false>, model_traits_type::block_count> latch{};
 		output_type* data{};
 	};
 
@@ -1236,10 +1222,9 @@ namespace nihilus {
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::none };
 		static constexpr kernel_types kernel_type{ kernel_types::add };
-		static constexpr op_types type{ op_types::l_out };
+		static constexpr op_types op_type{ op_types::l_out };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		op_latch sync_flag_start{};
-		op_latch sync_flag_end{};
+		array<linked_latch<false>, model_traits_type::block_count> latch{};
 		output_type* data{};
 	};
 
@@ -1266,10 +1251,9 @@ namespace nihilus {
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::global };
 		static constexpr kernel_types kernel_type{ kernel_types::add_rms_norm_mul };
-		static constexpr op_types type{ op_types::ffn_inp_norm_out_ffn_norm };
+		static constexpr op_types op_type{ op_types::ffn_inp_norm_out_ffn_norm };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		op_latch sync_flag_start{};
-		op_latch sync_flag_end{};
+		array<linked_latch<false>, model_traits_type::block_count> latch{};
 		output_type* data{};
 	};
 
@@ -1296,9 +1280,9 @@ namespace nihilus {
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::global_output };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::global };
 		static constexpr kernel_types kernel_type{ kernel_types::get_rows };
-		static constexpr op_types type{ op_types::attn_residual };
+		static constexpr op_types op_type{ op_types::attn_residual };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		core_latch run_checkers{};
+		array<linked_latch<false>, model_traits_type::block_count> latch{};
 		output_type* data{};
 	};
 
@@ -1325,9 +1309,9 @@ namespace nihilus {
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::global_output };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::global };
 		static constexpr kernel_types kernel_type{ kernel_types::get_rows };
-		static constexpr op_types type{ op_types::prev_residual };
+		static constexpr op_types op_type{ op_types::prev_residual };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		core_latch run_checkers{};
+		array<linked_latch<false>, model_traits_type::block_count> latch{};
 		output_type* data{};
 	};
 
@@ -1355,10 +1339,9 @@ namespace nihilus {
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::global };
 		static constexpr kernel_types kernel_type{ kernel_types::mul_mat };
-		static constexpr op_types type{ op_types::ffn_gate };
+		static constexpr op_types op_type{ op_types::ffn_gate };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		op_latch sync_flag_start{};
-		op_latch sync_flag_end{};
+		array<linked_latch<true>, model_traits_type::block_count> latch{};
 		output_type* data{};
 	};
 
@@ -1384,10 +1367,9 @@ namespace nihilus {
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::global };
 		static constexpr kernel_types kernel_type{ kernel_types::silu };
-		static constexpr op_types type{ op_types::ffn_silu };
+		static constexpr op_types op_type{ op_types::ffn_silu };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		op_latch sync_flag_start{};
-		op_latch sync_flag_end{};
+		array<linked_latch<false>, model_traits_type::block_count> latch{};
 		output_type* data{};
 	};
 
@@ -1415,10 +1397,9 @@ namespace nihilus {
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::global };
 		static constexpr kernel_types kernel_type{ kernel_types::mul_mat };
-		static constexpr op_types type{ op_types::ffn_up };
+		static constexpr op_types op_type{ op_types::ffn_up };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		op_latch sync_flag_start{};
-		op_latch sync_flag_end{};
+		array<linked_latch<true>, model_traits_type::block_count> latch{};
 		output_type* data{};
 	};
 
@@ -1445,10 +1426,9 @@ namespace nihilus {
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::global };
 		static constexpr kernel_types kernel_type{ kernel_types::mul };
-		static constexpr op_types type{ op_types::ffn_gate_par };
+		static constexpr op_types op_type{ op_types::ffn_gate_par };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		op_latch sync_flag_start{};
-		op_latch sync_flag_end{};
+		array<linked_latch<false>, model_traits_type::block_count> latch{};
 		output_type* data{};
 	};
 
@@ -1475,10 +1455,9 @@ namespace nihilus {
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::global };
 		static constexpr kernel_types kernel_type{ kernel_types::mul_mat };
-		static constexpr op_types type{ op_types::ffn_out };
+		static constexpr op_types op_type{ op_types::ffn_out };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		op_latch sync_flag_start{};
-		op_latch sync_flag_end{};
+		array<linked_latch<true>, model_traits_type::block_count> latch{};
 		output_type* data{};
 	};
 
@@ -1504,9 +1483,9 @@ namespace nihilus {
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::global_output };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::global };
 		static constexpr kernel_types kernel_type{ kernel_types::rms_norm };
-		static constexpr op_types type{ op_types::final_norm };
+		static constexpr op_types op_type{ op_types::final_norm };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		core_latch run_checkers{};
+		array<linked_latch<false>, model_traits_type::block_count> latch{};
 		output_type* data{};
 	};
 
@@ -1533,9 +1512,9 @@ namespace nihilus {
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::global_output };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::global };
 		static constexpr kernel_types kernel_type{ kernel_types::mul };
-		static constexpr op_types type{ op_types::result_norm };
+		static constexpr op_types op_type{ op_types::result_norm };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		core_latch run_checkers{};
+		array<linked_latch<false>, model_traits_type::block_count> latch{};
 		output_type* data{};
 	};
 
@@ -1562,10 +1541,9 @@ namespace nihilus {
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::global_output };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::global };
 		static constexpr kernel_types kernel_type{ kernel_types::mul_mat };
-		static constexpr op_types type{ op_types::result_output };
+		static constexpr op_types op_type{ op_types::result_output };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		op_latch sync_flag_start{};
-		op_latch sync_flag_end{};
+		array<linked_latch<true>, model_traits_type::block_count> latch{};
 		output_type* data{};
 	};
 

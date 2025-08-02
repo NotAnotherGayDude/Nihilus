@@ -1314,28 +1314,28 @@ namespace nihilus {
 		inline static jsonifier::jsonifier_core parser{};
 
 		template<typename tensor_type> static bool compare_tensor_data(tensor_type& tensor, uint64_t current_block, uint64_t iteration, uint64_t runtime_dim) {
-			std::string file_name{ convert_op_to_string(tensor.type, current_block) + "-" + std::to_string(iteration) + ".json" };
+			std::string file_name{ convert_op_to_string(tensor.op_type, current_block) + "-" + std::to_string(iteration) + ".json" };
 			file_loader<config> file{ file_name };
 			std::string new_string = file.operator const std::string&();
-			tensor_wrapper tensor_newer{ tensor, convert_op_to_string(tensor.type, current_block), current_block };
+			tensor_wrapper tensor_newer{ tensor, convert_op_to_string(tensor.op_type, current_block), current_block };
 			intermediary_tensor tensor_new{};
 			parser.parseJson(tensor_new, new_string);
 			std::stringstream stream{};
 			if (!new_string.empty()) {
 				auto return_value{ tensor_newer == tensor_new };
 				if (!return_value) {
-					stream << "Not Equal: Tensor of name: " << convert_op_to_string(tensor.type, current_block) << ", OF TYPE: " << tensor.type << " (iteration " << iteration
+					stream << "Not Equal: Tensor of name: " << convert_op_to_string(tensor.op_type, current_block) << ", OF TYPE: " << tensor.op_type << " (iteration " << iteration
 						   << ")" << std::endl;
 					stream << return_value.result_output;
 					log<log_levels::status>(stream.str());
 				} else {
-					stream << "Found an equal op of name: " << convert_op_to_string(tensor.type, current_block) << ", OF TYPE: " << tensor.type << " (iteration " << iteration
+					stream << "Found an equal op of name: " << convert_op_to_string(tensor.op_type, current_block) << ", OF TYPE: " << tensor.op_type << " (iteration " << iteration
 						   << ")" << std::endl;
 					log<log_levels::status>(stream.str());
 				}
 				return return_value;
 			} else {
-				stream << "Not Found: Tensor of name: " << convert_op_to_string(tensor.type, current_block) << ", OF TYPE: " << tensor.type << " (iteration " << iteration << ")"
+				stream << "Not Found: Tensor of name: " << convert_op_to_string(tensor.op_type, current_block) << ", OF TYPE: " << tensor.op_type << " (iteration " << iteration << ")"
 					   << std::endl;
 			}
 			log<log_levels::status>(stream.str());

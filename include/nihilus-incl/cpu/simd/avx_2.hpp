@@ -59,7 +59,7 @@ namespace nihilus {
 		return fp16_to_fp32(d);
 	}
 
-	NIHILUS_INLINE static void quantize_row_q8_0(const float* __restrict x, block_q8_0<half>* __restrict vy, int64_t k) {
+	NIHILUS_INLINE void quantize_row_q8_0(const float* __restrict x, block_q8_0<half>* __restrict vy, int64_t k) {
 		const int64_t nb = k / Q_SIZE;
 
 		block_q8_0<half>* __restrict y = vy;
@@ -370,7 +370,6 @@ namespace nihilus {
 
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, core_type& output, const typename core_type::input_01_type& input01,
 			const typename core_type::input_02_type&) {
-			
 			static constexpr uint64_t ne00 = input_type01::get_array()[0];
 			const uint64_t ne01			   = input01[1];
 			static constexpr uint64_t ne02 = input_type01::get_array()[2];
@@ -428,7 +427,6 @@ namespace nihilus {
 
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, core_type& output, const typename core_type::input_01_type& input01,
 			const typename core_type::input_02_type& input02) {
-			
 			static constexpr uint64_t ne00 = input_type01::get_array()[0];
 			const uint64_t ne01			   = input01[1];
 			static constexpr uint64_t ne02 = input_type01::get_array()[2];
@@ -519,7 +517,6 @@ namespace nihilus {
 		using input_type01 = core_type::input_01_type;
 
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, core_type& output, const typename core_type::input_01_type& input01) {
-			
 			static constexpr uint64_t ne00 = input_type01::get_array()[0];
 			const uint64_t ne01			   = input01[1];
 			static constexpr uint64_t ne02 = input_type01::get_array()[2];
@@ -701,9 +698,8 @@ namespace nihilus {
 		using input_type01 = typename core_type::input_01_type;
 		using input_type02 = typename core_type::input_02_type;
 
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, core_type& output, const typename core_type::input_01_type& input01,
+		template<bool is_broadcasting> NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, core_type& output, const typename core_type::input_01_type& input01,
 			const typename core_type::input_02_type& input02) {
-			
 			static constexpr uint64_t ne00 = input_type01::get_array()[0];
 			const uint64_t ne01			   = input01[1];
 			static constexpr uint64_t ne02 = input_type01::get_array()[2];
@@ -745,7 +741,6 @@ namespace nihilus {
 			const uint64_t output_stride_dim2			  = output[1] * ne00;
 			const uint64_t output_stride_dim3			  = output[1] * output[2] * ne00;
 
-			const bool is_broadcasting			 = (ne11 == 1);
 			static constexpr uint64_t simd_width = 8;
 			const uint64_t ne00_simd			 = ne00 & ~(simd_width - 1);
 
@@ -761,7 +756,7 @@ namespace nihilus {
 				const uint64_t output_base	= i11 * output_stride_dim1 + i12 * output_stride_dim2 + i13 * output_stride_dim3;
 
 				uint64_t input02_base;
-				if (is_broadcasting) {
+				if constexpr (is_broadcasting) {
 					input02_base = 0 * input02_stride_dim1 + i12 * input02_stride_dim2 + i13 * input02_stride_dim3;
 				} else {
 					input02_base = i11 * input02_stride_dim1 + i12 * input02_stride_dim2 + i13 * input02_stride_dim3;
@@ -792,7 +787,7 @@ namespace nihilus {
 				const uint64_t output_base	= i11 * output_stride_dim1 + i12 * output_stride_dim2 + i13 * output_stride_dim3;
 
 				uint64_t input02_base;
-				if (is_broadcasting) {
+				if constexpr (is_broadcasting) {
 					input02_base = 0 * input02_stride_dim1 + i12 * input02_stride_dim2 + i13 * input02_stride_dim3;
 				} else {
 					input02_base = i11 * input02_stride_dim1 + i12 * input02_stride_dim2 + i13 * input02_stride_dim3;
@@ -814,6 +809,17 @@ namespace nihilus {
 				}
 			}
 		}
+
+		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, core_type& output, const typename core_type::input_01_type& input01,
+			const typename core_type::input_02_type& input02) {
+			const uint64_t ne11		   = input02[1];
+			const bool is_broadcasting	   = (ne11 == 1);
+			if (is_broadcasting) {
+				impl<true>(thread_index, thread_count, output, input01, input02);
+			} else {
+				impl<false>(thread_index, thread_count, output, input01, input02);
+			}
+		}
 	};
 
 	template<typename transform_type, typename core_type> struct kernel_dispatcher_impl<1, kernel_types::mul_mat, transform_type, core_type, float, block_q8_0<half>, float>
@@ -823,7 +829,7 @@ namespace nihilus {
 
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, core_type& output, const typename core_type::input_01_type& input01,
 			const typename core_type::input_02_type& input02) {
-			
+			/*
 			static constexpr uint64_t ne00 = input_type01::get_array()[0];
 			const uint64_t ne01			   = input01[1];
 			static constexpr uint64_t ne02 = input_type01::get_array()[2];
@@ -904,7 +910,7 @@ namespace nihilus {
 						dst_data + i12 * dst_plane_elements + i13 * dst_volume_elements,
 						static_cast<int64_t>(ne1));// FIXED: was dst_plane_elements
 				}
-			}
+			}*/
 		}
 	};
 
@@ -915,7 +921,7 @@ namespace nihilus {
 
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, core_type& output, const typename core_type::input_01_type& input01,
 			const typename core_type::input_02_type& input02) {
-			
+			/*
 			static constexpr uint64_t ne00 = input_type01::get_array()[0];
 			static constexpr uint64_t ne01 = input_type01::get_array()[1];
 			static constexpr uint64_t ne02 = input_type01::get_array()[2];
@@ -973,7 +979,7 @@ namespace nihilus {
 						}
 					}
 				}
-			}
+			}*/
 		}
 	};
 
@@ -983,7 +989,6 @@ namespace nihilus {
 		using input_type02 = typename core_type::input_02_type;
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, core_type& output, const typename core_type::input_01_type& input01,
 			const typename core_type::input_02_type& input02) {
-			
 			static constexpr uint64_t ne00 = input_type01::get_array()[0];
 			const uint64_t ne01			   = input01[1];
 			static constexpr uint64_t ne02 = input_type01::get_array()[2];
@@ -1064,7 +1069,6 @@ namespace nihilus {
 
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, core_type& output, const typename core_type::input_01_type& input01,
 			const typename core_type::input_02_type& input02) {
-			
 			static constexpr uint64_t ne00 = input_type01::get_array()[0];
 			const uint64_t ne01			   = input01[1];
 			static constexpr uint64_t ne02 = input_type01::get_array()[2];
@@ -1127,7 +1131,6 @@ namespace nihilus {
 
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, core_type& output, const typename core_type::input_01_type& input01,
 			const typename core_type::input_02_type& input02) {
-			
 			static constexpr uint64_t ne00 = input_type01::get_array()[0];
 			static constexpr uint64_t ne01 = input_type01::get_array()[1];
 			static constexpr uint64_t ne02 = input_type01::get_array()[2];
@@ -1205,7 +1208,7 @@ namespace nihilus {
 
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, core_type& output, const typename core_type::input_01_type& input01,
 			const typename core_type::input_02_type& input02, const typename core_type::input_03_type& input03) {
-			
+			/*
 			const float* __restrict src_data		   = input01.data;
 			const int32_t* pos_data		   = input02.data;
 			const float* __restrict freq_scaling_data = input03.data;
@@ -1257,7 +1260,7 @@ namespace nihilus {
 						}
 					}
 				}
-			}
+			}*/
 		}
 	};
 
@@ -1266,8 +1269,7 @@ namespace nihilus {
 		using input_type01 = typename core_type::input_01_type;
 
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, core_type& output, const typename core_type::input_01_type& input01) {
-			//std::cout << "COPYING TYPE: " << core_type::type << std::endl;
-			
+			//std::cout << "COPYING TYPE: " << core_type::op_type << std::endl;
 			static constexpr uint64_t ne00 = input_type01::get_array()[0];
 			static constexpr uint64_t ne01 = input_type01::get_array()[1];
 			static constexpr uint64_t ne02 = input_type01::get_array()[2];
@@ -1290,7 +1292,6 @@ namespace nihilus {
 		using input_type01 = typename core_type::input_01_type;
 
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, core_type& output, const typename core_type::input_01_type& input01) {
-			
 			static constexpr uint64_t ne00 = input_type01::get_array()[0];
 			static constexpr uint64_t ne01 = input_type01::get_array()[1];
 			static constexpr uint64_t ne02 = input_type01::get_array()[2];
@@ -1312,7 +1313,6 @@ namespace nihilus {
 		using input_type01 = typename core_type::input_01_type;
 
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, core_type& output, const typename core_type::input_01_type& input01) {
-			
 			static constexpr uint64_t ne00 = input_type01::get_array()[0];
 			static constexpr uint64_t ne01 = input_type01::get_array()[1];
 			static constexpr uint64_t ne03 = input_type01::get_array()[3];

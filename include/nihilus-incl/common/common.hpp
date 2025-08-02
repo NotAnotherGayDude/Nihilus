@@ -88,13 +88,13 @@ namespace nihilus {
 
 	struct alignas(64) atomic_flag_wrapper {
 		NIHILUS_ALIGN(64) static constexpr uint32_t spin_cycles { 500000000 };
-		using value_type							  = typename std::atomic_signed_lock_free::value_type;
-		NIHILUS_INLINE atomic_flag_wrapper() noexcept = default;
-		NIHILUS_INLINE atomic_flag_wrapper& operator=(const atomic_flag_wrapper&) noexcept {
+		using value_type										= typename std::atomic_signed_lock_free::value_type;
+		NIHILUS_INLINE constexpr atomic_flag_wrapper() noexcept = default;
+		NIHILUS_INLINE constexpr atomic_flag_wrapper& operator=(const atomic_flag_wrapper&) noexcept {
 			return *this;
 		}
 
-		NIHILUS_INLINE atomic_flag_wrapper(const atomic_flag_wrapper&) noexcept {
+		NIHILUS_INLINE constexpr atomic_flag_wrapper(const atomic_flag_wrapper&) noexcept {
 		}
 
 		NIHILUS_INLINE void store(int64_t value_new) {
@@ -139,7 +139,7 @@ namespace nihilus {
 
 		NIHILUS_INLINE void hybrid_wait(int64_t expected_value) {
 			for (uint32_t i = 0; i < spin_cycles; ++i) {
-				if (flag.load(std::memory_order_acquire) == 0) {
+				if (flag.load(std::memory_order_acquire) == expected_value || flag.load(std::memory_order_acquire) == 0) {
 					return;
 				}
 				nihilus_pause();
@@ -153,41 +153,96 @@ namespace nihilus {
 		alignas(64) std::atomic_signed_lock_free flag{};
 	};
 
-	template<bool all_blocking> struct linked_latch {
+	template<bool all_blocking> struct linked_latch;
+
+	struct linked_latch_base {
 		alignas(64) int64_t thread_count{};
 		atomic_flag_wrapper completed_dependencies{};
 		atomic_flag_wrapper completed_workers{};
 		atomic_flag_wrapper in_process_workers{};
 		alignas(64) int64_t dependent_count{};
-		alignas(64) aligned_vector<linked_latch*> dependents{};
+		alignas(64) int64_t depended_count{};
+		alignas(64) array<linked_latch_base*, 4> dependents{};
 
 		NIHILUS_INLINE void init(int64_t thread_count_new) {
 			thread_count = thread_count_new;
 		}
 
 		NIHILUS_INLINE void reset() {
-			completed_dependencies.store(0);
 			in_process_workers.store(0);
+			completed_dependencies.store(0);
 			completed_workers.store(0);
 		}
 
+	  protected:
+		constexpr ~linked_latch_base() {};
+	};
+
+	template<> struct linked_latch<false> : public linked_latch_base {
+		static constexpr bool blocking{ false };
+		NIHILUS_INLINE constexpr linked_latch() = default;
+
 		NIHILUS_INLINE bool is_ready(int64_t& thread_index) {
-			if (completed_dependencies.load() == dependent_count) {
-				thread_index = in_process_workers.fetch_add(1);
-				return thread_index <= thread_count;
+			thread_index = in_process_workers.fetch_add(1);
+			if (completed_dependencies.load() == depended_count) {
+				return thread_index < thread_count;
 			} else {
 				return false;
 			}
 		}
 
 		NIHILUS_INLINE void complete_work() {
-			if (completed_workers.fetch_add(1) == thread_count) {
-				for (auto& dependent: dependents) {
-					dependent->completed_dependencies.fetch_add(1);
+			if (completed_workers.fetch_add(1) == thread_count - 1) {
+				for (int64_t x = 0; x < dependent_count; ++x) {
+					dependents[x]->completed_dependencies.fetch_add(1);
 				}
+				reset();
 			}
 		}
+
+		NIHILUS_INLINE constexpr ~linked_latch() noexcept {};
 	};
+
+	template<> struct linked_latch<true> : public linked_latch_base {
+		static constexpr bool blocking{ true };
+		NIHILUS_INLINE constexpr linked_latch() = default;
+
+		NIHILUS_INLINE int64_t is_ready(int64_t& thread_index) {
+			thread_index = in_process_workers.fetch_add(1);
+
+			if (completed_dependencies.fetch_add(1) < (depended_count - 1)) {
+				completed_dependencies.hybrid_wait(thread_count);
+			} else {
+				completed_dependencies.notify_all();
+				completed_dependencies.store(0);
+			}
+			return thread_count;
+		}
+
+		NIHILUS_INLINE void complete_work() {
+			if (completed_workers.fetch_add(1) == thread_count - 1) {
+				for (int64_t x = 0; x < dependent_count; ++x) {
+					dependents[x]->completed_dependencies.fetch_add(1);
+				}
+				reset();
+				completed_workers.notify_all();
+			} else {
+				completed_workers.hybrid_wait(thread_count);
+			}
+		}
+
+		NIHILUS_INLINE constexpr ~linked_latch() noexcept {};
+	};
+
+	template<typename value_type> using latch_type = std::remove_cvref_t<decltype(std::remove_cvref_t<value_type>::latch[0])>;
+
+	template<typename value_type>
+	concept has_latch = requires(std::remove_cvref_t<value_type> value) { value.latch; };
+
+	template<typename value_type> static constexpr bool blocking = latch_type<value_type>::blocking;
+
+	template<typename value_type>
+	concept all_blocking = has_latch<value_type> && blocking<value_type>;
 
 	struct alignas(64) op_latch {
 		NIHILUS_INLINE op_latch() = default;
@@ -204,7 +259,6 @@ namespace nihilus {
 			bool wait{ (thread_index < thread_count - 1) };
 
 			if (wait) {
-
 				global_flag.hybrid_wait(thread_count);
 			} else {
 				global_flag.notify_all();
@@ -224,32 +278,6 @@ namespace nihilus {
 				global_flag.store(0);
 			}
 			return;
-		}
-	};
-
-	struct alignas(64) core_latch {
-		NIHILUS_INLINE core_latch()								= default;
-		NIHILUS_INLINE core_latch& operator=(const core_latch&) = delete;
-		NIHILUS_INLINE core_latch(const core_latch&)			= delete;
-		atomic_flag_wrapper dependency_counter{};
-		alignas(64) int64_t dependency_count{};
-		alignas(64) int64_t thread_count{};
-		atomic_flag_wrapper flag{};
-
-		NIHILUS_INLINE void init(int64_t thread_count_new, int64_t dependency_count_new) {
-			dependency_count = dependency_count_new;
-			thread_count = thread_count_new;
-			flag.store(0);
-		}
-
-		NIHILUS_INLINE void reset() {
-			dependency_counter.store(0);
-			flag.store(0);
-		}
-
-		NIHILUS_INLINE int64_t do_we_run() {
-
-			return flag.fetch_add(1);
 		}
 	};
 
