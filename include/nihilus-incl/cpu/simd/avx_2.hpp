@@ -2202,7 +2202,7 @@ namespace nihilus {
 				const block_q8_0<half>& weight_block = weight_row[block_idx];
 				const float weight_scale			 = fp16_to_fp32(weight_block.d);
 
-				const int64_t elements_in_block = std::min(Q_SIZE, vector_size - block_idx * Q_SIZE);
+				const int64_t elements_in_block = detail::min(Q_SIZE, vector_size - block_idx * Q_SIZE);
 
 				for (int64_t elem_idx = 0; elem_idx < elements_in_block; ++elem_idx) {
 					const int64_t global_idx = block_idx * Q_SIZE + elem_idx;
@@ -2228,8 +2228,10 @@ namespace nihilus {
 			const int64_t actual_nr1  = output_ne1 * ne2 * ne3;
 
 			const int64_t ir0_start = dr0 * chunk_id;
-			const int64_t ir0_end	= std::min(ir0_start + dr0, nr0);
-
+			const int64_t ir0_end			= detail::min(ir0_start + dr0, nr0);
+			const auto elenent_count01		= count_elements(input01);
+			const auto elenent_count02		= count_elements(input02);
+			const auto elenent_count_output = count_elements(output);
 			if (ir0_start >= ir0_end || ir0_start < 0 || ir0_end > nr0) {
 				return 0;
 			}
@@ -2245,7 +2247,7 @@ namespace nihilus {
 				const uint64_t dst_offset  = ir1 * nr0;
 
 				const int64_t max_input_elements = ne10;
-				if (src0_offset + max_input_elements > input02.data_size) {
+				if (src0_offset + max_input_elements > elenent_count02) {
 					continue;
 				}
 
@@ -2258,12 +2260,12 @@ namespace nihilus {
 						continue;
 					}
 
-					if (dst_offset + ir0 >= output.data_size) {
+					if (dst_offset + ir0 >= elenent_count_output) {
 						continue;
 					}
 
 					const int64_t weight_row_offset = ir0 * blocks_per_row;
-					if (weight_row_offset + blocks_per_row > input01.data_size) {
+					if (weight_row_offset + blocks_per_row > elenent_count01) {
 						dst_ptr[ir0] = 0.0f;
 						continue;
 					}
