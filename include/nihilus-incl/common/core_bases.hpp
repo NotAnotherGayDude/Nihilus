@@ -47,33 +47,21 @@ namespace nihilus {
 		template<template<model_config, typename> typename mixin_type, typename base_type, typename... arg_types>
 		NIHILUS_INLINE constexpr void impl_internal_filtered([[maybe_unused]] arg_types&&... args) const {
 			if constexpr (mixin_type<config, base_type>::filter()) {
-				if constexpr (has_return_type<mixin_type<config, base_type>>) {
-					mixin_type<config, base_type>::impl(*static_cast<const base_type*>(this), detail::forward<arg_types>(args)...);
-				} else {
-					mixin_type<config, base_type>::impl(*static_cast<const base_type*>(this), detail::forward<arg_types>(args)...);
-				}
+				mixin_type<config, base_type>::impl(*static_cast<const base_type*>(this), detail::forward<arg_types>(args)...);
 			}
 		}
 
 		template<template<model_config, typename> typename mixin_type, typename base_type, typename... arg_types>
 		NIHILUS_INLINE constexpr void impl_internal_filtered([[maybe_unused]] arg_types&&... args) {
 			if constexpr (mixin_type<config, base_type>::filter()) {
-				if constexpr (has_return_type<mixin_type<config, base_type>>) {
-					mixin_type<config, base_type>::impl(*static_cast<base_type*>(this), detail::forward<arg_types>(args)...);
-				} else {
-					mixin_type<config, base_type>::impl(*static_cast<base_type*>(this), detail::forward<arg_types>(args)...);
-				}
+				mixin_type<config, base_type>::impl(*static_cast<base_type*>(this), detail::forward<arg_types>(args)...);
 			}
 		}
 
 		template<template<model_config, typename, processing_phase> typename mixin_type, processing_phase phase, typename base_type, typename... arg_types>
 		NIHILUS_INLINE constexpr void impl_internal_filtered_thread([[maybe_unused]] arg_types&&... args) {
 			if constexpr (mixin_type<config, base_type, phase>::filter()) {
-				if constexpr (has_return_type<mixin_type<config, base_type, phase>>) {
-					mixin_type<config, base_type, phase>::impl(*static_cast<base_type*>(this), detail::forward<arg_types>(args)...);
-				} else {
-					mixin_type<config, base_type, phase>::impl(*static_cast<base_type*>(this), detail::forward<arg_types>(args)...);
-				}
+				mixin_type<config, base_type, phase>::impl(*static_cast<base_type*>(this), detail::forward<arg_types>(args)...);
 			}
 		}
 	};

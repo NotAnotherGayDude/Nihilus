@@ -153,137 +153,135 @@ namespace nihilus {
 		vector<std::pair<uint64_t, uint64_t>> mapped_fragments_{};
 #endif
 
+		NIHILUS_INLINE void force_page_in_all() {
+			if (!mapped_data_ || file_size_ == 0)
+				return;
+
+#if defined(NIHILUS_PLATFORM_WINDOWS)
+			volatile uint8_t* ptr	 = static_cast<volatile uint8_t*>(mapped_data_);
+			const uint64_t page_size = 4096;
+			volatile uint8_t dummy	 = 0;
+
+			for (uint64_t offset = 0; offset < file_size_; offset += page_size) {
+				dummy += ptr[offset];
+			}
+			if (file_size_ % page_size != 0) {
+				dummy += ptr[file_size_ - 1];
+			}
+
+			HMODULE kernel32 = GetModuleHandleW(L"kernel32.dll");
+			if (kernel32) {
+				using PrefetchVirtualMemoryFunc = BOOL(WINAPI*)(HANDLE, ULONG_PTR, PWIN32_MEMORY_RANGE_ENTRY, ULONG);
+				auto prefetch_func				= ( PrefetchVirtualMemoryFunc )(GetProcAddress(kernel32, "PrefetchVirtualMemory"));
+
+				if (prefetch_func) {
+					WIN32_MEMORY_RANGE_ENTRY range;
+					range.VirtualAddress = mapped_data_;
+					range.NumberOfBytes	 = file_size_;
+					prefetch_func(GetCurrentProcess(), 1, &range, 0);
+				}
+			}
+#else
+			volatile uint8_t* ptr = static_cast<volatile uint8_t*>(mapped_data_);
+			long page_size		  = sysconf(_SC_PAGESIZE);
+			if (page_size <= 0)
+				page_size = 4096;
+			volatile uint8_t dummy = 0;
+
+			for (uint64_t offset = 0; offset < file_size_; offset += page_size) {
+				dummy += ptr[offset];
+			}
+			if (file_size_ % page_size != 0) {
+				dummy += ptr[file_size_ - 1];
+			}
+
+			posix_madvise(mapped_data_, file_size_, POSIX_MADV_WILLNEED);
+			posix_madvise(mapped_data_, file_size_, POSIX_MADV_SEQUENTIAL);
+#endif
+		}
+
 		NIHILUS_INLINE void map_file(std::string_view file_path, uint64_t prefetch_bytes, bool numa_aware) {
 #if defined(NIHILUS_PLATFORM_WINDOWS)
 			( void )numa_aware;
+			( void )prefetch_bytes;
 			std::string_view file_path_str(file_path);
-
+			if (file_path_str.empty()) {
+				return;
+			}
 			file_handle_ = CreateFileA(file_path_str.data(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
-
 			if (file_handle_ == INVALID_HANDLE_VALUE) {
 				throw std::runtime_error(std::string{ "Failed to open file: " } + format_win_error(GetLastError()));
 			}
-
 			LARGE_INTEGER file_size;
 			if (!GetFileSizeEx(file_handle_, &file_size)) {
 				CloseHandle(file_handle_);
 				throw std::runtime_error(std::string{ "Failed to get file size: " } + format_win_error(GetLastError()));
 			}
-
 			file_size_ = static_cast<uint64_t>(file_size.QuadPart);
-
 			if (file_size_ == 0) {
 				CloseHandle(file_handle_);
 				throw std::runtime_error("Cannot map empty file");
 			}
-
 			mapping_handle_ = CreateFileMappingA(file_handle_, nullptr, PAGE_READONLY, 0, 0, nullptr);
-
 			if (mapping_handle_ == nullptr) {
 				CloseHandle(file_handle_);
 				throw std::runtime_error("Failed to create file mapping: " + format_win_error(GetLastError()));
 			}
-
 			mapped_data_ = MapViewOfFile(mapping_handle_, FILE_MAP_READ, 0, 0, 0);
-
 			if (mapped_data_ == nullptr) {
 				CloseHandle(mapping_handle_);
 				CloseHandle(file_handle_);
 				throw std::runtime_error("Failed to map view of file: " + format_win_error(GetLastError()));
 			}
-
 			if (reinterpret_cast<std::uintptr_t>(mapped_data_) % cpu_alignment_holder::cpu_alignment != 0) {
 				UnmapViewOfFile(mapped_data_);
 				CloseHandle(mapping_handle_);
 				CloseHandle(file_handle_);
 				throw std::runtime_error("Memory mapping failed to achieve required SIMD alignment");
 			}
-
-			if (prefetch_bytes > 0) {
-	#if _WIN32_WINNT >= 0x602
-				HMODULE kernel32 = GetModuleHandleW(L"kernel32.dll");
-				if (kernel32) {
-					using PrefetchVirtualMemoryFunc = BOOL(WINAPI*)(HANDLE, ULONG_PTR, PWIN32_MEMORY_RANGE_ENTRY, ULONG);
-					auto prefetch_func				= ( PrefetchVirtualMemoryFunc )(GetProcAddress(kernel32, "PrefetchVirtualMemory"));
-
-					if (prefetch_func) {
-						WIN32_MEMORY_RANGE_ENTRY range;
-						range.VirtualAddress = mapped_data_;
-						range.NumberOfBytes	 = std::min(file_size_, prefetch_bytes);
-
-						if (!prefetch_func(GetCurrentProcess(), 1, &range, 0)) {
-						}
-					}
-				}
-	#endif
-			}
-
 #else
+			( void )prefetch_bytes;
 			std::string_view file_path_str(file_path);
-
 			file_descriptor_ = open(file_path_str.data(), O_RDONLY);
 			if (file_descriptor_ == -1) {
 				throw std::runtime_error("Failed to open file: " + std::string(std::strerror(errno)));
 			}
-
 			struct stat file_stat;
 			if (fstat(file_descriptor_, &file_stat) == -1) {
 				close(file_descriptor_);
 				throw std::runtime_error("Failed to get file statistics: " + std::string(std::strerror(errno)));
 			}
-
 			file_size_ = static_cast<uint64_t>(file_stat.st_size);
-
 			if (file_size_ == 0) {
 				close(file_descriptor_);
 				throw std::runtime_error("Cannot map empty file");
 			}
-
 			int32_t flags = MAP_SHARED;
-			if (numa_aware) {
-				prefetch_bytes = 0;
-			}
 
-	#if defined(__linux__)
-			if (posix_fadvise(file_descriptor_, 0, 0, POSIX_FADV_SEQUENTIAL) != 0) {
-			}
-
-			if (prefetch_bytes > 0) {
-				flags |= MAP_POPULATE;
-			}
+	#ifdef __APPLE__
+			fcntl(file_descriptor_, F_RDAHEAD, 1);
+	#else
+			posix_fadvise(file_descriptor_, 0, 0, POSIX_FADV_SEQUENTIAL);
 	#endif
 
 			uint64_t aligned_size = ((file_size_ + cpu_alignment_holder::cpu_alignment - 1) / cpu_alignment_holder::cpu_alignment) * cpu_alignment_holder::cpu_alignment;
-
-			mapped_data_ = mmap(nullptr, aligned_size, PROT_READ, flags, file_descriptor_, 0);
-
+			mapped_data_		  = mmap(nullptr, aligned_size, PROT_READ, flags, file_descriptor_, 0);
 			if (mapped_data_ == MAP_FAILED) {
 				close(file_descriptor_);
 				mapped_data_ = nullptr;
 				throw std::runtime_error("Failed to memory map file: " + std::string(std::strerror(errno)));
 			}
-
 			if (reinterpret_cast<std::uintptr_t>(mapped_data_) % cpu_alignment_holder::cpu_alignment != 0) {
 				munmap(mapped_data_, aligned_size);
 				close(file_descriptor_);
 				throw std::runtime_error("Memory mapping failed to achieve required SIMD alignment");
 			}
 
+	#ifdef __APPLE__
+			madvise(mapped_data_, aligned_size, MADV_SEQUENTIAL);
+	#endif
+
 			mapped_fragments_.emplace_back(0, file_size_);
-
-			if (prefetch_bytes > 0) {
-				uint64_t prefetch_size = std::min(file_size_, prefetch_bytes);
-				if (posix_madvise(mapped_data_, prefetch_size, POSIX_MADV_WILLNEED) != 0) {
-				}
-			}
-
-			if (numa_aware) {
-				if (posix_madvise(mapped_data_, file_size_, POSIX_MADV_RANDOM) != 0) {
-				}
-			} else {
-				if (posix_madvise(mapped_data_, file_size_, POSIX_MADV_SEQUENTIAL) != 0) {
-				}
-			}
 #endif
 		}
 
@@ -318,66 +316,17 @@ namespace nihilus {
 			file_size_ = 0;
 		}
 
-		NIHILUS_INLINE void unmap_fragment(uint64_t first, uint64_t last) {
-#if defined(NIHILUS_PLATFORM_WINDOWS)
-			( void )first;
-			( void )last;
-#else
-			if (!mapped_data_)
-				return;
-
-			long page_size = sysconf(_SC_PAGESIZE);
-			if (page_size <= 0)
-				return;
-
-			uint64_t page_uint64_t = static_cast<uint64_t>(page_size);
-
-			uint64_t offset_in_page = first & (page_uint64_t - 1);
-			if (offset_in_page != 0) {
-				first += page_uint64_t - offset_in_page;
-			}
-
-			last = last & ~(page_uint64_t - 1);
-
-			if (last <= first)
-				return;
-
-			void* unmap_addr	= static_cast<uint8_t*>(mapped_data_) + first;
-			uint64_t unmap_size = last - first;
-
-			if (munmap(unmap_addr, unmap_size) != 0) {
-				return;
-			}
-
-			vector<std::pair<uint64_t, uint64_t>> new_fragments;
-			for (const auto& frag: mapped_fragments_) {
-				if (frag.first < first && frag.second > last) {
-					new_fragments.emplace_back(frag.first, first);
-					new_fragments.emplace_back(last, frag.second);
-				} else if (frag.first < first && frag.second > first) {
-					new_fragments.emplace_back(frag.first, first);
-				} else if (frag.first < last && frag.second > last) {
-					new_fragments.emplace_back(last, frag.second);
-				} else if (frag.first >= first && frag.second <= last) {
-				} else {
-					new_fragments.push_back(frag);
-				}
-			}
-			mapped_fragments_ = detail::move(new_fragments);
-#endif
-		}
-
 		NIHILUS_INLINE void lock_memory() {
 #if defined(NIHILUS_PLATFORM_WINDOWS)
 			if (mapped_data_ && file_size_ > 0) {
 				VirtualLock(mapped_data_, file_size_);
+				SetProcessWorkingSetSize(GetCurrentProcess(), file_size_ * 2, file_size_ * 3);
 			}
 #else
-	#if defined(_POSIX_MEMLOCK_RANGE)
 			if (mapped_data_ && file_size_ > 0) {
 				mlock(mapped_data_, file_size_);
+				posix_madvise(mapped_data_, file_size_, POSIX_MADV_WILLNEED);
 			}
-	#endif
 #endif
 		}
 	};

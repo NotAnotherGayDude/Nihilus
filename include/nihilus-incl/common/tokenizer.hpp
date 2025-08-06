@@ -208,7 +208,7 @@ namespace nihilus {
 		struct nihilus_rng {
 			uint64_t state{};
 
-			NIHILUS_INLINE nihilus_rng(uint64_t seed = 0) : state(seed == 0 ? static_cast<uint64_t>(std::chrono::high_resolution_clock::now().time_since_epoch().count()) : seed) {
+			NIHILUS_INLINE nihilus_rng(uint64_t seed = 0) : state(seed == 0 ? static_cast<uint64_t>(clock_type::now().time_since_epoch().count()) : seed) {
 			}
 
 			NIHILUS_INLINE uint64_t next() {

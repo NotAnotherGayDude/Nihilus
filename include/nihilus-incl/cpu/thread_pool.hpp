@@ -108,21 +108,22 @@ namespace nihilus {
 	}
 
 	struct benchmark_stats {
-		std::chrono::high_resolution_clock::time_point sampling_start = {};
-		std::chrono::high_resolution_clock::time_point prompt_start	  = {};
-		std::chrono::high_resolution_clock::time_point token_start	  = {};
-		std::chrono::high_resolution_clock::time_point eval_start	  = {};
-		std::chrono::high_resolution_clock::time_point load_start	  = {};
-		double total_prompt_eval_time_ns							  = {};
-		double total_sampling_time_ns								  = {};
-		double total_eval_time_ns									  = {};
-		double total_load_time_ns									  = {};
-		int32_t generated_token_count								  = {};
-		int32_t prompt_token_count									  = {};
-		int32_t total_sampling_runs									  = {};
-		uint64_t current_iteration									  = {};
-		vector<uint64_t> runtime_dimensions							  = {};
-		op_latch debug_counter										  = {};
+		array<array<benchmarking::internal::event_collector, op_types::count>, max_thread_count_holder::max_thread_count> collector{};
+		clock_type::time_point sampling_start = {};
+		clock_type::time_point prompt_start	  = {};
+		clock_type::time_point token_start	  = {};
+		clock_type::time_point eval_start	  = {};
+		clock_type::time_point load_start	  = {};
+		double total_prompt_eval_time_ns	  = {};
+		double total_sampling_time_ns		  = {};
+		double total_eval_time_ns			  = {};
+		double total_load_time_ns			  = {};
+		int32_t generated_token_count		  = {};
+		int32_t prompt_token_count			  = {};
+		int32_t total_sampling_runs			  = {};
+		uint64_t current_iteration			  = {};
+		vector<uint64_t> runtime_dimensions	  = {};
+		op_latch debug_counter				  = {};
 	};
 
 	template<model_config config> struct perf_base {};
@@ -170,10 +171,10 @@ namespace nihilus {
 			core_base_type::template impl<execution_planner>(thread_count);
 		}
 
-		template<processing_phase phase, uint64_t current_index = 0> NIHILUS_NON_MSVC_INLINE void execute_blocks(uint64_t thread_index) {
+		template<processing_phase phase, uint64_t current_index = 0> inline void execute_blocks(uint64_t thread_index) {
 			if constexpr (current_index < model_traits_type<config>::block_count) {
 				core_base_type::template impl_thread<per_block_thread_function, phase>(current_index, thread_index);
-				if constexpr (config.dev) {
+				if constexpr (config.dev && current_index == 0) {
 					if (thread_index == 0) {
 						core_base_type::template impl<tensor_debugger_impl>(current_index, perf_base<config>::perf_stats.current_iteration);
 					}
@@ -198,7 +199,7 @@ namespace nihilus {
 						execute_blocks<processing_phase::eval_time, 0>(thread_index);
 						core_base_type::template impl_thread<global_output_thread_function, processing_phase::eval_time>(thread_index);
 					}
-					
+
 					thread_latch.arrive_and_wait(thread_index);
 				}
 			}
@@ -215,6 +216,16 @@ namespace nihilus {
 			}
 			thread_latch.count_down();
 			thread_latch.main_wait();
+			if constexpr (config.benchmark || config.dev) {
+				for (uint64_t x = 0; x < thread_count; ++x) {
+					for (uint64_t y = 0; y < static_cast<uint64_t>(op_types::count); ++y) {
+						if (perf_base<config>::perf_stats.collector[x][y]) {
+							std::cout << benchmarking::internal::printResults(*perf_base<config>::perf_stats.collector[x][y], x, op_names[y]) << std::endl;
+							perf_base<config>::perf_stats.collector[x][y].reset();
+						}
+					}
+				}
+			}
 		}
 
 	  protected:

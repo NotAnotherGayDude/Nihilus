@@ -53,12 +53,37 @@ namespace nihilus {
 
 	template<model_config config_new, op_types op_type> struct core_traits;
 
-	template<typename dims_type, kernel_types kernel_type01, kernel_types kernel_type02> struct output_transform {};
+	template<typename dims_type, op_types op_type, kernel_types kernel_type01, kernel_types kernel_type02> struct output_transform {};
 
-	template<typename dims_new> struct output_transform<dims_new, kernel_types::mul_mat, kernel_types::reshape> {
+	template<typename dims_new> struct output_transform<dims_new, op_types::qcur_mul_mat, kernel_types::mul_mat, kernel_types::reshape> {
 		static constexpr core_trait_dims dims{ dims_new{} };
-		template<typename value_type> NIHILUS_INLINE static void impl(value_type*, uint64_t) {
+		NIHILUS_INLINE static uint64_t impl(uint64_t i1, uint64_t i0, uint64_t ne01, uint64_t ne11) {
+			static constexpr uint64_t head_dim	 = dims_new::get_array()[0];
+			static constexpr uint64_t head_count = dims_new::get_array()[1];
+			const uint64_t head_idx				 = i1 / head_dim;
+			const uint64_t dim_idx				 = i1 % head_dim;
+			return (head_idx * head_dim * ne11) + (dim_idx * ne11) + i0;
 		}
+	};
+
+	template<typename dims_new> struct output_transform<dims_new, op_types::kcur_mul_mat, kernel_types::mul_mat, kernel_types::reshape> {
+		static constexpr core_trait_dims dims{ dims_new{} };
+		NIHILUS_INLINE static uint64_t impl(uint64_t i1, uint64_t i0, uint64_t ne01, uint64_t ne11) {
+			static constexpr uint64_t head_dim	 = dims_new::get_array()[0];
+			static constexpr uint64_t head_count = dims_new::get_array()[1];
+			const uint64_t head_idx				 = i1 / head_dim;
+			const uint64_t dim_idx				 = i1 % head_dim;
+			return (head_idx * head_dim * ne11) + (dim_idx * ne11) + i0;
+		}
+	};
+
+	template<model_config config_new, op_types op_type> struct debug_base;
+
+	template<model_config config_new, op_types op_type>
+		requires(config_new.dev)
+	struct debug_base<config_new, op_type> {
+		array<atomic_flag_wrapper, max_thread_count_holder::max_thread_count> times{};
+		stop_watch<> timer{};
 	};
 
 	template<model_config config_new> using model_traits_type = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
@@ -78,7 +103,7 @@ namespace nihilus {
 		static constexpr input_types input_type{ input_types::none };
 		static constexpr uint64_t depth{ 0 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
-		static constexpr uint64_t global_input_count{ 0 };		
+		static constexpr uint64_t global_input_count{ 0 };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(
 			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array())) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::none };
@@ -102,7 +127,7 @@ namespace nihilus {
 		static constexpr input_types input_type{ input_types::none };
 		static constexpr uint64_t depth{ 0 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
-		static constexpr uint64_t global_input_count{ 0 };		
+		static constexpr uint64_t global_input_count{ 0 };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(
 			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array())) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::global_input };
@@ -126,7 +151,7 @@ namespace nihilus {
 		static constexpr input_types input_type{ input_types::none };
 		static constexpr uint64_t depth{ 0 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
-		static constexpr uint64_t global_input_count{ 0 };		
+		static constexpr uint64_t global_input_count{ 0 };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(
 			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array())) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::global_input };
@@ -149,7 +174,7 @@ namespace nihilus {
 		static constexpr input_types input_type{ input_types::none };
 		static constexpr uint64_t depth{ 0 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
-		static constexpr uint64_t global_input_count{ 0 };		
+		static constexpr uint64_t global_input_count{ 0 };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(
 			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array())) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::global_input };
@@ -173,7 +198,7 @@ namespace nihilus {
 		static constexpr input_types input_type{ input_types::none };
 		static constexpr uint64_t depth{ 0 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
-		static constexpr uint64_t global_input_count{ 0 };		
+		static constexpr uint64_t global_input_count{ 0 };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(
 			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array())) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::none };
@@ -197,7 +222,7 @@ namespace nihilus {
 		static constexpr input_types input_type{ input_types::none };
 		static constexpr uint64_t depth{ 0 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
-		static constexpr uint64_t global_input_count{ 0 };		
+		static constexpr uint64_t global_input_count{ 0 };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(
 			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array())) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::none };
@@ -221,7 +246,7 @@ namespace nihilus {
 		static constexpr input_types input_type{ input_types::none };
 		static constexpr uint64_t depth{ 0 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
-		static constexpr uint64_t global_input_count{ 0 };		
+		static constexpr uint64_t global_input_count{ 0 };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(
 			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array())) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::none };
@@ -245,7 +270,7 @@ namespace nihilus {
 		static constexpr input_types input_type{ input_types::none };
 		static constexpr uint64_t depth{ 0 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
-		static constexpr uint64_t global_input_count{ 0 };		
+		static constexpr uint64_t global_input_count{ 0 };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(
 			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array())) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::none };
@@ -272,7 +297,7 @@ namespace nihilus {
 		static constexpr input_types input_type{ input_types::none };
 		static constexpr uint64_t depth{ 0 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
-		static constexpr uint64_t global_input_count{ 0 };		
+		static constexpr uint64_t global_input_count{ 0 };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(
 			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array())) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::none };
@@ -299,7 +324,7 @@ namespace nihilus {
 		static constexpr input_types input_type{ input_types::none };
 		static constexpr uint64_t depth{ 0 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
-		static constexpr uint64_t global_input_count{ 0 };		
+		static constexpr uint64_t global_input_count{ 0 };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(
 			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array())) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::none };
@@ -323,7 +348,7 @@ namespace nihilus {
 		static constexpr input_types input_type{ input_types::none };
 		static constexpr uint64_t depth{ 0 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
-		static constexpr uint64_t global_input_count{ 0 };		
+		static constexpr uint64_t global_input_count{ 0 };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(
 			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array())) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::none };
@@ -347,7 +372,7 @@ namespace nihilus {
 		static constexpr input_types input_type{ input_types::none };
 		static constexpr uint64_t depth{ 0 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
-		static constexpr uint64_t global_input_count{ 0 };		
+		static constexpr uint64_t global_input_count{ 0 };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(
 			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array())) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::none };
@@ -371,7 +396,7 @@ namespace nihilus {
 		static constexpr input_types input_type{ input_types::none };
 		static constexpr uint64_t depth{ 0 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
-		static constexpr uint64_t global_input_count{ 0 };		
+		static constexpr uint64_t global_input_count{ 0 };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(
 			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array())) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::none };
@@ -395,7 +420,7 @@ namespace nihilus {
 		static constexpr input_types input_type{ input_types::none };
 		static constexpr uint64_t depth{ 0 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
-		static constexpr uint64_t global_input_count{ 0 };		
+		static constexpr uint64_t global_input_count{ 0 };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(
 			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array())) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::none };
@@ -419,7 +444,7 @@ namespace nihilus {
 		static constexpr input_types input_type{ input_types::none };
 		static constexpr uint64_t depth{ 0 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
-		static constexpr uint64_t global_input_count{ 0 };		
+		static constexpr uint64_t global_input_count{ 0 };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(
 			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array())) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
@@ -438,12 +463,12 @@ namespace nihilus {
 		NIHILUS_INLINE constexpr core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_INLINE constexpr core_traits(core_traits&&) noexcept				 = delete;
 		using model_traits_type														 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
-		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::weight_type;
+		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::compute_type;
 		using core_traits_dims_type													 = core_trait_dims<model_traits_type::embedding_length, 1, 1, 1>;
 		static constexpr input_types input_type{ input_types::none };
 		static constexpr uint64_t depth{ 0 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
-		static constexpr uint64_t global_input_count{ 0 };		
+		static constexpr uint64_t global_input_count{ 0 };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(
 			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array())) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
@@ -467,7 +492,7 @@ namespace nihilus {
 		static constexpr input_types input_type{ input_types::none };
 		static constexpr uint64_t depth{ 0 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
-		static constexpr uint64_t global_input_count{ 0 };		
+		static constexpr uint64_t global_input_count{ 0 };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(
 			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array())) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
@@ -491,7 +516,7 @@ namespace nihilus {
 		static constexpr input_types input_type{ input_types::none };
 		static constexpr uint64_t depth{ 0 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
-		static constexpr uint64_t global_input_count{ 0 };		
+		static constexpr uint64_t global_input_count{ 0 };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(
 			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array())) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
@@ -515,7 +540,7 @@ namespace nihilus {
 		static constexpr input_types input_type{ input_types::none };
 		static constexpr uint64_t depth{ 0 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
-		static constexpr uint64_t global_input_count{ 0 };		
+		static constexpr uint64_t global_input_count{ 0 };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(
 			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array())) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::global_input };
@@ -543,7 +568,7 @@ namespace nihilus {
 		static constexpr uint64_t depth{ detail::max(input_01_type::depth, input_02_type::depth) + 1 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
 		static constexpr uint64_t global_input_count{ 0 };
-		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_01_type::output_type, typename input_02_type::output_type>::required };		
+		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_01_type::output_type, typename input_02_type::output_type>::required };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(
 			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array())) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::global_input };
@@ -574,9 +599,9 @@ namespace nihilus {
 		static constexpr uint64_t depth{ detail::max(input_01_type::depth, input_02_type::depth) + 1 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
 		static constexpr uint64_t global_input_count{ 1 };
-		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_01_type::output_type, typename input_02_type::output_type>::required };		
-		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
-			(dequantization ? type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) : 0)) };
+		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_01_type::output_type, typename input_02_type::output_type>::required };
+		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(
+			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array())) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::global };
 		static constexpr kernel_types kernel_type{ kernel_types::rms_norm_mul };
@@ -593,26 +618,28 @@ namespace nihilus {
 		NIHILUS_INLINE constexpr core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_INLINE constexpr core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_INLINE constexpr core_traits(core_traits&&) noexcept				 = delete;
-		using transform_type														 = int32_t;
 		using model_traits_type														 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
-		using input_01_type															 = core_traits<config_new, op_types::attn_q_weight>;
-		using input_02_type															 = core_traits<config_new, op_types::norm_attn_norm>;
-		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::compute_type;
+		using transform_type		= output_transform<core_trait_dims<model_traits_type::head_dim, model_traits_type::attention_head_count, 1, 1, 2>, op_types::qcur_mul_mat,
+				   kernel_types::mul_mat, kernel_types::reshape>;
+		using input_01_type			= core_traits<config_new, op_types::attn_q_weight>;
+		using input_02_type			= core_traits<config_new, op_types::norm_attn_norm>;
+		using output_type			= typename kernel_type_profile_traits<config_new.kernel_profile>::compute_type;
 		using core_traits_dims_type = get_new_dims_2_t<config_new, kernel_types::mul_mat, op_types::attn_q_weight, op_types::norm_attn_norm, runtime_dims<1>>;
 		static constexpr input_types input_type{ input_types::two };
 		static constexpr uint64_t global_input_count{ 1 };
 		static constexpr uint64_t depth{ detail::max(input_01_type::depth, input_02_type::depth) + 1 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
 		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_01_type::output_type, typename input_02_type::output_type>::required };
-		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
+		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(
+			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
 			(dequantization ? type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) : 0)) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::global };
 		static constexpr kernel_types kernel_type{ kernel_types::mul_mat };
 		static constexpr op_types op_type{ op_types::qcur_mul_mat };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
+		array<atomic_flag_wrapper, model_traits_type::block_count> current_chunk{};
 		array<linked_latch<true>, model_traits_type::block_count> latch{};
-		atomic_flag_wrapper current_chunk{};
 		output_type* data{};
 	};
 
@@ -625,7 +652,7 @@ namespace nihilus {
 		NIHILUS_INLINE constexpr core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_INLINE constexpr core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type = output_transform<core_trait_dims<model_traits_type<config_new>::rope_dimension_count, 1, model_traits_type<config_new>::attention_head_count, 1, 1>,
-			kernel_types::rope, kernel_types::permute>;
+			op_types::qcur_rope, kernel_types::rope, kernel_types::permute>;
 		using model_traits_type		= model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
 		using input_01_type			= core_traits<config_new, op_types::qcur_mul_mat>;
 		using input_02_type			= core_traits<config_new, op_types::inp_pos>;
@@ -636,8 +663,9 @@ namespace nihilus {
 		static constexpr uint64_t depth{ detail::max(input_01_type::depth, input_02_type::depth) + 1 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
 		static constexpr uint64_t global_input_count{ 0 };
-		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_01_type::output_type, typename input_02_type::output_type>::required };		
-		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
+		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_01_type::output_type, typename input_02_type::output_type>::required };
+		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(
+			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
 			(dequantization ? type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) : 0)) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::global };
@@ -649,24 +677,27 @@ namespace nihilus {
 	};
 
 	template<model_config config_new> struct core_traits<config_new, op_types::kcur_mul_mat>
-		: public config_holder<config_new>, public get_new_dims_2_t<config_new, kernel_types::mul_mat, op_types::attn_k_weight, op_types::norm_attn_norm, runtime_dims<1>> {
+		: public config_holder<config_new>,
+		  public get_new_dims_2_t<config_new, kernel_types::mul_mat, op_types::attn_k_weight, op_types::norm_attn_norm, runtime_dims<1>> {
 		NIHILUS_INLINE constexpr core_traits() noexcept								 = default;
 		NIHILUS_INLINE constexpr core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_INLINE constexpr core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_INLINE constexpr core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_INLINE constexpr core_traits(core_traits&&) noexcept				 = delete;
-		using transform_type														 = void;
 		using model_traits_type														 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
-		using input_01_type															 = core_traits<config_new, op_types::attn_k_weight>;
-		using input_02_type															 = core_traits<config_new, op_types::norm_attn_norm>;
-		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::compute_type;
+		using transform_type		= output_transform<core_trait_dims<model_traits_type::rope_dimension_count, model_traits_type::attention_head_count_kv, 1, 1, 2>,
+				   op_types::kcur_mul_mat, kernel_types::mul_mat, kernel_types::reshape>;
+		using input_01_type			= core_traits<config_new, op_types::attn_k_weight>;
+		using input_02_type			= core_traits<config_new, op_types::norm_attn_norm>;
+		using output_type			= typename kernel_type_profile_traits<config_new.kernel_profile>::compute_type;
 		using core_traits_dims_type = get_new_dims_2_t<config_new, kernel_types::mul_mat, op_types::attn_k_weight, op_types::norm_attn_norm, runtime_dims<1>>;
 		static constexpr input_types input_type{ input_types::two };
 		static constexpr uint64_t depth{ detail::max(input_01_type::depth, input_02_type::depth) + 1 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
 		static constexpr uint64_t global_input_count{ 0 };
-		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_01_type::output_type, typename input_02_type::output_type>::required };		
-		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
+		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_01_type::output_type, typename input_02_type::output_type>::required };
+		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(
+			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
 			(dequantization ? type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) : 0)) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::global };
@@ -674,13 +705,13 @@ namespace nihilus {
 		static constexpr op_types op_type{ op_types::kcur_mul_mat };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		array<linked_latch<true>, model_traits_type::block_count> latch{};
-		atomic_flag_wrapper current_chunk{};
+		array<atomic_flag_wrapper, model_traits_type::block_count> current_chunk{};
 		output_type* data{};
 	};
 
-	template<model_config config_new> struct core_traits<config_new, op_types::kcur_reshaped>
+	template<model_config config_new> struct core_traits<config_new, op_types::kcur_rope>
 		: public config_holder<config_new>,
-		  public core_trait_dims<model_traits_type<config_new>::rope_dimension_count, model_traits_type<config_new>::attention_head_count_kv, 1, 1, 2> {
+		  public get_new_dims_3_t<config_new, kernel_types::rope, op_types::kcur_mul_mat, op_types::inp_pos, op_types::rope_freqs_weight, runtime_dims<2>> {
 		NIHILUS_INLINE constexpr core_traits() noexcept								 = default;
 		NIHILUS_INLINE constexpr core_traits& operator=(const core_traits&) noexcept = delete;
 		NIHILUS_INLINE constexpr core_traits(const core_traits&) noexcept			 = delete;
@@ -689,43 +720,17 @@ namespace nihilus {
 		using transform_type														 = void;
 		using model_traits_type														 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
 		using input_01_type															 = core_traits<config_new, op_types::kcur_mul_mat>;
-		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::compute_type;
-		using core_traits_dims_type = core_trait_dims<model_traits_type::rope_dimension_count, model_traits_type::attention_head_count_kv, 1, 1, 2>;
-		static constexpr input_types input_type{ input_types::one };
-		static constexpr uint64_t depth{ input_01_type::depth + 1 };
-		static constexpr uint64_t runtime_dim_multiplier{ 1 };
-		static constexpr uint64_t global_input_count{ 0 };		
-		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(
-			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array())) };
-		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
-		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::remap };
-		static constexpr kernel_types kernel_type{ kernel_types::reshape };
-		static constexpr op_types op_type{ op_types::kcur_reshaped };
-		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
-		output_type* data{};
-	};
-
-	template<model_config config_new> struct core_traits<config_new, op_types::kcur_rope>
-		: public config_holder<config_new>,
-		  public get_new_dims_3_t<config_new, kernel_types::rope, op_types::kcur_reshaped, op_types::inp_pos, op_types::rope_freqs_weight, runtime_dims<2>> {
-		NIHILUS_INLINE constexpr core_traits() noexcept								 = default;
-		NIHILUS_INLINE constexpr core_traits& operator=(const core_traits&) noexcept = delete;
-		NIHILUS_INLINE constexpr core_traits(const core_traits&) noexcept			 = delete;
-		NIHILUS_INLINE constexpr core_traits& operator=(core_traits&&) noexcept		 = delete;
-		NIHILUS_INLINE constexpr core_traits(core_traits&&) noexcept				 = delete;
-		using transform_type														 = void;
-		using model_traits_type														 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
-		using input_01_type															 = core_traits<config_new, op_types::kcur_reshaped>;
 		using input_02_type															 = core_traits<config_new, op_types::inp_pos>;
 		using input_03_type															 = core_traits<config_new, op_types::rope_freqs_weight>;
 		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::compute_type;
-		using core_traits_dims_type = get_new_dims_3_t<config_new, kernel_types::rope, op_types::kcur_reshaped, op_types::inp_pos, op_types::rope_freqs_weight, runtime_dims<2>>;
+		using core_traits_dims_type = get_new_dims_3_t<config_new, kernel_types::rope, op_types::kcur_mul_mat, op_types::inp_pos, op_types::rope_freqs_weight, runtime_dims<2>>;
 		static constexpr input_types input_type{ input_types::three };
 		static constexpr uint64_t depth{ detail::max(input_01_type::depth, input_02_type::depth) + 1 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
 		static constexpr uint64_t global_input_count{ 0 };
-		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_01_type::output_type, typename input_02_type::output_type>::required };		
-		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
+		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_01_type::output_type, typename input_02_type::output_type>::required };
+		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(
+			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
 			(dequantization ? type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) : 0)) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::global };
@@ -743,18 +748,20 @@ namespace nihilus {
 		NIHILUS_INLINE constexpr core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_INLINE constexpr core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_INLINE constexpr core_traits(core_traits&&) noexcept				 = delete;
-		using transform_type														 = void;
 		using model_traits_type														 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
-		using input_01_type															 = core_traits<config_new, op_types::attn_v_weight>;
-		using input_02_type															 = core_traits<config_new, op_types::norm_attn_norm>;
-		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::compute_type;
+		using transform_type		= output_transform<core_trait_dims<model_traits_type::head_dim, model_traits_type::attention_head_count, 1, 1, 1>, op_types::qcur_mul_mat,
+				   kernel_types::mul_mat, kernel_types::reshape>;
+		using input_01_type			= core_traits<config_new, op_types::attn_v_weight>;
+		using input_02_type			= core_traits<config_new, op_types::norm_attn_norm>;
+		using output_type			= typename kernel_type_profile_traits<config_new.kernel_profile>::compute_type;
 		using core_traits_dims_type = get_new_dims_2_t<config_new, kernel_types::mul_mat, op_types::attn_v_weight, op_types::norm_attn_norm, runtime_dims<1>>;
 		static constexpr input_types input_type{ input_types::two };
 		static constexpr uint64_t depth{ detail::max(input_01_type::depth, input_02_type::depth) + 1 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
 		static constexpr uint64_t global_input_count{ 0 };
-		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_01_type::output_type, typename input_02_type::output_type>::required };		
-		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
+		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_01_type::output_type, typename input_02_type::output_type>::required };
+		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(
+			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
 			(dequantization ? type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) : 0)) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::global };
@@ -762,7 +769,7 @@ namespace nihilus {
 		static constexpr op_types op_type{ op_types::vcur_mul_mat };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		array<linked_latch<true>, model_traits_type::block_count> latch{};
-		atomic_flag_wrapper current_chunk{};
+		array<atomic_flag_wrapper, model_traits_type::block_count> current_chunk{};
 		output_type* data{};
 	};
 
@@ -780,7 +787,7 @@ namespace nihilus {
 		static constexpr input_types input_type{ input_types::one };
 		static constexpr uint64_t depth{ input_01_type::depth + 1 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1024 };
-		static constexpr uint64_t global_input_count{ 0 };		
+		static constexpr uint64_t global_input_count{ 0 };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(
 			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array())) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
@@ -806,7 +813,7 @@ namespace nihilus {
 		static constexpr input_types input_type{ input_types::two };
 		static constexpr uint64_t depth{ input_01_type::depth + 1 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1024 };
-		static constexpr uint64_t global_input_count{ 0 };		
+		static constexpr uint64_t global_input_count{ 0 };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(
 			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array())) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
@@ -833,7 +840,7 @@ namespace nihilus {
 		static constexpr input_types input_type{ input_types::one };
 		static constexpr uint64_t depth{ input_01_type::depth + 1 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
-		static constexpr uint64_t global_input_count{ 0 };		
+		static constexpr uint64_t global_input_count{ 0 };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(
 			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array())) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
@@ -858,7 +865,7 @@ namespace nihilus {
 		static constexpr input_types input_type{ input_types::one };
 		static constexpr uint64_t depth{ input_01_type::depth + 1 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
-		static constexpr uint64_t global_input_count{ 0 };		
+		static constexpr uint64_t global_input_count{ 0 };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(
 			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array())) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
@@ -884,7 +891,7 @@ namespace nihilus {
 		static constexpr input_types input_type{ input_types::two };
 		static constexpr uint64_t depth{ input_01_type::depth + 1 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1024 };
-		static constexpr uint64_t global_input_count{ 0 };		
+		static constexpr uint64_t global_input_count{ 0 };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(
 			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array())) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
@@ -914,7 +921,7 @@ namespace nihilus {
 		static constexpr input_types input_type{ input_types::one };
 		static constexpr uint64_t depth{ input_01_type::depth + 1 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
-		static constexpr uint64_t global_input_count{ 0 };		
+		static constexpr uint64_t global_input_count{ 0 };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(
 			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array())) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
@@ -943,7 +950,7 @@ namespace nihilus {
 		static constexpr input_types input_type{ input_types::one };
 		static constexpr uint64_t depth{ input_01_type::depth + 1 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
-		static constexpr uint64_t global_input_count{ 0 };		
+		static constexpr uint64_t global_input_count{ 0 };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(
 			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array())) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
@@ -970,7 +977,7 @@ namespace nihilus {
 		static constexpr input_types input_type{ input_types::one };
 		static constexpr uint64_t depth{ input_01_type::depth + 1 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
-		static constexpr uint64_t global_input_count{ 0 };		
+		static constexpr uint64_t global_input_count{ 0 };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(
 			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array())) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
@@ -988,18 +995,20 @@ namespace nihilus {
 		NIHILUS_INLINE constexpr core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_INLINE constexpr core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_INLINE constexpr core_traits(core_traits&&) noexcept				 = delete;
-		using transform_type														 = void;
 		using model_traits_type														 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
-		using input_01_type															 = core_traits<config_new, op_types::k>;
-		using input_02_type															 = core_traits<config_new, op_types::q>;
-		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::compute_type;
+		using transform_type		= output_transform<core_trait_dims<model_traits_type::head_dim, model_traits_type::attention_head_count, 1, 1, 1>, op_types::qcur_mul_mat,
+				   kernel_types::mul_mat, kernel_types::reshape>;
+		using input_01_type			= core_traits<config_new, op_types::k>;
+		using input_02_type			= core_traits<config_new, op_types::q>;
+		using output_type			= typename kernel_type_profile_traits<config_new.kernel_profile>::compute_type;
 		using core_traits_dims_type = get_new_dims_2_t<config_new, kernel_types::mul_mat, op_types::k, op_types::q, runtime_dims<1>>;
 		static constexpr input_types input_type{ input_types::two };
 		static constexpr uint64_t depth{ detail::max(input_01_type::depth, input_02_type::depth) + 1 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
 		static constexpr uint64_t global_input_count{ 0 };
-		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_01_type::output_type, typename input_02_type::output_type>::required };		
-		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
+		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_01_type::output_type, typename input_02_type::output_type>::required };
+		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(
+			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
 			(dequantization ? type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) : 0)) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::global };
@@ -1007,7 +1016,7 @@ namespace nihilus {
 		static constexpr op_types op_type{ op_types::kq };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		array<linked_latch<true>, model_traits_type::block_count> latch{};
-		atomic_flag_wrapper current_chunk{};
+		array<atomic_flag_wrapper, model_traits_type::block_count> current_chunk{};
 		output_type* data{};
 	};
 
@@ -1029,8 +1038,9 @@ namespace nihilus {
 		static constexpr uint64_t depth{ detail::max(input_01_type::depth, input_02_type::depth) + 1 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
 		static constexpr uint64_t global_input_count{ 0 };
-		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_01_type::output_type, typename input_02_type::output_type>::required };		
-		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
+		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_01_type::output_type, typename input_02_type::output_type>::required };
+		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(
+			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
 			(dequantization ? type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) : 0)) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::global };
@@ -1048,18 +1058,20 @@ namespace nihilus {
 		NIHILUS_INLINE constexpr core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_INLINE constexpr core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_INLINE constexpr core_traits(core_traits&&) noexcept				 = delete;
-		using transform_type														 = void;
 		using model_traits_type														 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
-		using input_01_type															 = core_traits<config_new, op_types::v>;
-		using input_02_type															 = core_traits<config_new, op_types::kq_soft_max>;
-		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::compute_type;
+		using transform_type		= output_transform<core_trait_dims<model_traits_type::head_dim, model_traits_type::attention_head_count, 1, 1, 1>, op_types::qcur_mul_mat,
+				   kernel_types::mul_mat, kernel_types::reshape>;
+		using input_01_type			= core_traits<config_new, op_types::v>;
+		using input_02_type			= core_traits<config_new, op_types::kq_soft_max>;
+		using output_type			= typename kernel_type_profile_traits<config_new.kernel_profile>::compute_type;
 		using core_traits_dims_type = get_new_dims_2_t<config_new, kernel_types::mul_mat, op_types::v, op_types::kq_soft_max, runtime_dims<1>>;
 		static constexpr input_types input_type{ input_types::two };
 		static constexpr uint64_t depth{ detail::max(input_01_type::depth, input_02_type::depth) + 1 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
 		static constexpr uint64_t global_input_count{ 0 };
-		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_01_type::output_type, typename input_02_type::output_type>::required };		
-		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
+		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_01_type::output_type, typename input_02_type::output_type>::required };
+		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(
+			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
 			(dequantization ? type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) : 0)) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::global };
@@ -1067,7 +1079,7 @@ namespace nihilus {
 		static constexpr op_types op_type{ op_types::kqv };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		array<linked_latch<true>, model_traits_type::block_count> latch{};
-		atomic_flag_wrapper current_chunk{};
+		array<atomic_flag_wrapper, model_traits_type::block_count> current_chunk{};
 		output_type* data{};
 	};
 
@@ -1086,7 +1098,7 @@ namespace nihilus {
 		static constexpr input_types input_type{ input_types::one };
 		static constexpr uint64_t depth{ input_01_type::depth + 1 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
-		static constexpr uint64_t global_input_count{ 0 };		
+		static constexpr uint64_t global_input_count{ 0 };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(
 			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array())) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
@@ -1112,7 +1124,7 @@ namespace nihilus {
 		static constexpr input_types input_type{ input_types::one };
 		static constexpr uint64_t depth{ input_01_type::depth + 1 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
-		static constexpr uint64_t global_input_count{ 0 };		
+		static constexpr uint64_t global_input_count{ 0 };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(
 			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array())) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
@@ -1131,18 +1143,20 @@ namespace nihilus {
 		NIHILUS_INLINE constexpr core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_INLINE constexpr core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_INLINE constexpr core_traits(core_traits&&) noexcept				 = delete;
-		using transform_type														 = void;
 		using model_traits_type														 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
-		using input_01_type															 = core_traits<config_new, op_types::attn_output_weight>;
-		using input_02_type															 = core_traits<config_new, op_types::kqv_merged_cont>;
-		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::compute_type;
+		using transform_type		= output_transform<core_trait_dims<model_traits_type::head_dim, model_traits_type::attention_head_count, 1, 1, 1>, op_types::qcur_mul_mat,
+				   kernel_types::mul_mat, kernel_types::reshape>;
+		using input_01_type			= core_traits<config_new, op_types::attn_output_weight>;
+		using input_02_type			= core_traits<config_new, op_types::kqv_merged_cont>;
+		using output_type			= typename kernel_type_profile_traits<config_new.kernel_profile>::compute_type;
 		using core_traits_dims_type = get_new_dims_2_t<config_new, kernel_types::mul_mat, op_types::attn_output_weight, op_types::kqv_merged_cont, runtime_dims<1>>;
 		static constexpr input_types input_type{ input_types::two };
 		static constexpr uint64_t depth{ detail::max(input_01_type::depth, input_02_type::depth) + 1 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
 		static constexpr uint64_t global_input_count{ 1 };
-		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_01_type::output_type, typename input_02_type::output_type>::required };		
-		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
+		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_01_type::output_type, typename input_02_type::output_type>::required };
+		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(
+			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
 			(dequantization ? type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) : 0)) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::global };
@@ -1150,7 +1164,7 @@ namespace nihilus {
 		static constexpr op_types op_type{ op_types::kqv_out };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		array<linked_latch<true>, model_traits_type::block_count> latch{};
-		atomic_flag_wrapper current_chunk{};
+		array<atomic_flag_wrapper, model_traits_type::block_count> current_chunk{};
 		output_type* data{};
 	};
 
@@ -1165,19 +1179,21 @@ namespace nihilus {
 		NIHILUS_INLINE constexpr core_traits(core_traits&&) noexcept				 = delete;
 		using transform_type														 = void;
 		using model_traits_type														 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
-		using input_01_type															 = core_traits<config_new, op_types::inp_embd>;
+		using input_01_type															 = core_traits<config_new, op_types::ffn_out>;
+		using input_02_type															 = core_traits<config_new, op_types::ffn_inp_norm_out_ffn_norm>;
 		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::compute_type;
-		using core_traits_dims_type =
-			core_trait_dims<inp_embd_dimensions<config_new>[0], inp_embd_dimensions<config_new>[1], inp_embd_dimensions<config_new>[2], inp_embd_dimensions<config_new>[3], 1>;
-		static constexpr input_types input_type{ input_types::one };
-		static constexpr uint64_t depth{ input_01_type::depth + 1 };
+		using core_traits_dims_type													 = core_trait_dims<model_traits_type::embedding_length, 1, 1, 1>;
+		static constexpr input_types input_type{ input_types::none };
+		static constexpr uint64_t depth{ detail::max(input_01_type::depth, input_02_type::depth) + 1 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
-		static constexpr uint64_t global_input_count{ 0 };		
+		static constexpr uint64_t global_input_count{ 0 };
+		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_01_type::output_type, typename input_02_type::output_type>::required };
 		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(
-			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array())) };
-		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
-		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::remap };
-		static constexpr kernel_types kernel_type{ kernel_types::view };
+			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
+			(dequantization ? type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) : 0)) };
+		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::none };
+		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::none };
+		static constexpr kernel_types kernel_type{ kernel_types::none };
 		static constexpr op_types op_type{ op_types::l_out_prev };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		output_type* data{};
@@ -1200,8 +1216,9 @@ namespace nihilus {
 		static constexpr uint64_t depth{ detail::max(input_01_type::depth, input_02_type::depth) + 1 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
 		static constexpr uint64_t global_input_count{ 0 };
-		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_01_type::output_type, typename input_02_type::output_type>::required };		
-		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
+		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_01_type::output_type, typename input_02_type::output_type>::required };
+		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(
+			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
 			(dequantization ? type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) : 0)) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::global };
@@ -1230,8 +1247,9 @@ namespace nihilus {
 		static constexpr uint64_t depth{ input_01_type::depth + 1 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
 		static constexpr uint64_t global_input_count{ 0 };
-		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_01_type::output_type, typename input_02_type::output_type>::required };		
-		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
+		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_01_type::output_type, typename input_02_type::output_type>::required };
+		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(
+			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
 			(dequantization ? type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) : 0)) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::global };
@@ -1259,8 +1277,9 @@ namespace nihilus {
 		static constexpr uint64_t depth{ detail::max(input_01_type::depth, input_02_type::depth) + 1 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
 		static constexpr uint64_t global_input_count{ 0 };
-		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_01_type::output_type, typename input_02_type::output_type>::required };		
-		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
+		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_01_type::output_type, typename input_02_type::output_type>::required };
+		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(
+			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
 			(dequantization ? type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) : 0)) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::global_output };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::global };
@@ -1288,8 +1307,9 @@ namespace nihilus {
 		static constexpr uint64_t depth{ detail::max(input_01_type::depth, input_02_type::depth) + 1 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
 		static constexpr uint64_t global_input_count{ 0 };
-		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_01_type::output_type, typename input_02_type::output_type>::required };		
-		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
+		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_01_type::output_type, typename input_02_type::output_type>::required };
+		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(
+			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
 			(dequantization ? type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) : 0)) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::global_output };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::global };
@@ -1308,18 +1328,20 @@ namespace nihilus {
 		NIHILUS_INLINE constexpr core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_INLINE constexpr core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_INLINE constexpr core_traits(core_traits&&) noexcept				 = delete;
-		using transform_type														 = void;
 		using model_traits_type														 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
-		using input_01_type															 = core_traits<config_new, op_types::ffn_gate_weight>;
-		using input_02_type															 = core_traits<config_new, op_types::ffn_inp_norm_out_ffn_norm>;
-		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::compute_type;
+		using transform_type		= output_transform<core_trait_dims<model_traits_type::head_dim, model_traits_type::attention_head_count, 1, 1, 1>, op_types::qcur_mul_mat,
+				   kernel_types::mul_mat, kernel_types::reshape>;
+		using input_01_type			= core_traits<config_new, op_types::ffn_gate_weight>;
+		using input_02_type			= core_traits<config_new, op_types::ffn_inp_norm_out_ffn_norm>;
+		using output_type			= typename kernel_type_profile_traits<config_new.kernel_profile>::compute_type;
 		using core_traits_dims_type = get_new_dims_2_t<config_new, kernel_types::mul_mat, op_types::ffn_gate_weight, op_types::ffn_inp_norm_out_ffn_norm, runtime_dims<1>>;
 		static constexpr input_types input_type{ input_types::two };
 		static constexpr uint64_t depth{ detail::max(input_01_type::depth, input_02_type::depth) + 1 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
 		static constexpr uint64_t global_input_count{ 0 };
-		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_01_type::output_type, typename input_02_type::output_type>::required };		
-		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
+		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_01_type::output_type, typename input_02_type::output_type>::required };
+		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(
+			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
 			(dequantization ? type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) : 0)) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::global };
@@ -1327,7 +1349,7 @@ namespace nihilus {
 		static constexpr op_types op_type{ op_types::ffn_gate };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		array<linked_latch<true>, model_traits_type::block_count> latch{};
-		atomic_flag_wrapper current_chunk{};
+		array<atomic_flag_wrapper, model_traits_type::block_count> current_chunk{};
 		output_type* data{};
 	};
 
@@ -1347,8 +1369,9 @@ namespace nihilus {
 		static constexpr uint64_t depth{ input_01_type::depth + 1 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
 		static constexpr uint64_t global_input_count{ 0 };
-		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_01_type::output_type, output_type>::required };		
-		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
+		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_01_type::output_type, output_type>::required };
+		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(
+			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
 			(dequantization ? type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) : 0)) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::global };
@@ -1367,18 +1390,20 @@ namespace nihilus {
 		NIHILUS_INLINE constexpr core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_INLINE constexpr core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_INLINE constexpr core_traits(core_traits&&) noexcept				 = delete;
-		using transform_type														 = void;
 		using model_traits_type														 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
-		using input_01_type															 = core_traits<config_new, op_types::ffn_up_weight>;
-		using input_02_type															 = core_traits<config_new, op_types::ffn_inp_norm_out_ffn_norm>;
-		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::compute_type;
+		using transform_type		= output_transform<core_trait_dims<model_traits_type::head_dim, model_traits_type::attention_head_count, 1, 1, 1>, op_types::qcur_mul_mat,
+				   kernel_types::mul_mat, kernel_types::reshape>;
+		using input_01_type			= core_traits<config_new, op_types::ffn_up_weight>;
+		using input_02_type			= core_traits<config_new, op_types::ffn_inp_norm_out_ffn_norm>;
+		using output_type			= typename kernel_type_profile_traits<config_new.kernel_profile>::compute_type;
 		using core_traits_dims_type = get_new_dims_2_t<config_new, kernel_types::mul_mat, op_types::ffn_up_weight, op_types::ffn_inp_norm_out_ffn_norm, runtime_dims<1>>;
 		static constexpr input_types input_type{ input_types::two };
 		static constexpr uint64_t depth{ detail::max(input_01_type::depth, input_02_type::depth) + 1 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
 		static constexpr uint64_t global_input_count{ 0 };
-		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_01_type::output_type, typename input_02_type::output_type>::required };		
-		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
+		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_01_type::output_type, typename input_02_type::output_type>::required };
+		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(
+			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
 			(dequantization ? type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) : 0)) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::global };
@@ -1386,7 +1411,7 @@ namespace nihilus {
 		static constexpr op_types op_type{ op_types::ffn_up };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		array<linked_latch<true>, model_traits_type::block_count> latch{};
-		atomic_flag_wrapper current_chunk{};
+		array<atomic_flag_wrapper, model_traits_type::block_count> current_chunk{};
 		output_type* data{};
 	};
 
@@ -1407,8 +1432,9 @@ namespace nihilus {
 		static constexpr uint64_t depth{ detail::max(input_01_type::depth, input_02_type::depth) + 1 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
 		static constexpr uint64_t global_input_count{ 0 };
-		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_01_type::output_type, typename input_02_type::output_type>::required };		
-		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
+		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_01_type::output_type, typename input_02_type::output_type>::required };
+		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(
+			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
 			(dequantization ? type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) : 0)) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::global };
@@ -1426,18 +1452,20 @@ namespace nihilus {
 		NIHILUS_INLINE constexpr core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_INLINE constexpr core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_INLINE constexpr core_traits(core_traits&&) noexcept				 = delete;
-		using transform_type														 = void;
 		using model_traits_type														 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
-		using input_01_type															 = core_traits<config_new, op_types::ffn_down_weight>;
-		using input_02_type															 = core_traits<config_new, op_types::ffn_gate_par>;
-		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::compute_type;
+		using transform_type		= output_transform<core_trait_dims<model_traits_type::head_dim, model_traits_type::attention_head_count, 1, 1, 1>, op_types::qcur_mul_mat,
+				   kernel_types::mul_mat, kernel_types::reshape>;
+		using input_01_type			= core_traits<config_new, op_types::ffn_down_weight>;
+		using input_02_type			= core_traits<config_new, op_types::ffn_gate_par>;
+		using output_type			= typename kernel_type_profile_traits<config_new.kernel_profile>::compute_type;
 		using core_traits_dims_type = core_trait_dims<model_traits_type::embedding_length, config_new.default_max_context_length, 1, 1, 1>;
 		static constexpr input_types input_type{ input_types::two };
 		static constexpr uint64_t depth{ detail::max(input_01_type::depth, input_02_type::depth) + 1 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
 		static constexpr uint64_t global_input_count{ 0 };
-		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_01_type::output_type, typename input_02_type::output_type>::required };		
-		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
+		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_01_type::output_type, typename input_02_type::output_type>::required };
+		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(
+			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
 			(dequantization ? type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) : 0)) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::per_block };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::global };
@@ -1445,7 +1473,7 @@ namespace nihilus {
 		static constexpr op_types op_type{ op_types::ffn_out };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		array<linked_latch<true>, model_traits_type::block_count> latch{};
-		atomic_flag_wrapper current_chunk{};
+		array<atomic_flag_wrapper, model_traits_type::block_count> current_chunk{};
 		output_type* data{};
 	};
 
@@ -1466,8 +1494,9 @@ namespace nihilus {
 		static constexpr uint64_t depth{ detail::max(input_01_type::depth, input_02_type::depth) + 1 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
 		static constexpr uint64_t global_input_count{ 0 };
-		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_01_type::output_type, typename input_02_type::output_type>::required };		
-		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
+		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_01_type::output_type, typename input_02_type::output_type>::required };
+		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(
+			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
 			(dequantization ? type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) : 0)) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::global_output };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::global };
@@ -1485,18 +1514,20 @@ namespace nihilus {
 		NIHILUS_INLINE constexpr core_traits(const core_traits&) noexcept			 = delete;
 		NIHILUS_INLINE constexpr core_traits& operator=(core_traits&&) noexcept		 = delete;
 		NIHILUS_INLINE constexpr core_traits(core_traits&&) noexcept				 = delete;
-		using transform_type														 = void;
 		using model_traits_type														 = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
-		using input_01_type															 = core_traits<config_new, op_types::output_weight>;
-		using input_02_type															 = core_traits<config_new, op_types::result_norm>;
-		using output_type															 = typename kernel_type_profile_traits<config_new.kernel_profile>::logit_type;
-		using core_traits_dims_type													 = core_trait_dims<model_traits_type::vocab_size, 1, 1, 1>;
+		using transform_type		= output_transform<core_trait_dims<model_traits_type::head_dim, model_traits_type::attention_head_count, 1, 1, 1>, op_types::qcur_mul_mat,
+				   kernel_types::mul_mat, kernel_types::reshape>;
+		using input_01_type			= core_traits<config_new, op_types::output_weight>;
+		using input_02_type			= core_traits<config_new, op_types::result_norm>;
+		using output_type			= typename kernel_type_profile_traits<config_new.kernel_profile>::logit_type;
+		using core_traits_dims_type = core_trait_dims<model_traits_type::vocab_size, 1, 1, 1>;
 		static constexpr input_types input_type{ input_types::two };
 		static constexpr uint64_t depth{ detail::max(input_01_type::depth, input_02_type::depth) + 1 };
 		static constexpr uint64_t runtime_dim_multiplier{ 1 };
 		static constexpr uint64_t global_input_count{ 0 };
-		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_01_type::output_type, typename input_02_type::output_type>::required };		
-		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
+		static constexpr bool dequantization{ requires_dequant_or_quant<typename input_01_type::output_type, typename input_02_type::output_type>::required };
+		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(
+			type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) +
 			(dequantization ? type_traits<output_type>::total_byte_size(core_traits_dims_type::get_array()) : 0)) };
 		static constexpr thread_strategy_types thread_strategy_type{ thread_strategy_types::global_output };
 		static constexpr allocation_strategy_types allocation_strategy_type{ allocation_strategy_types::global };
@@ -1504,7 +1535,7 @@ namespace nihilus {
 		static constexpr op_types op_type{ op_types::result_output };
 		static constexpr uint64_t count{ total_required_bytes / sizeof(output_type) };
 		array<linked_latch<true>, model_traits_type::block_count> latch{};
-		atomic_flag_wrapper current_chunk{};
+		array<atomic_flag_wrapper, model_traits_type::block_count> current_chunk{};
 		output_type* data{};
 	};
 

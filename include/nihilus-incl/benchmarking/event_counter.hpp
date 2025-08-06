@@ -1,3 +1,4 @@
+// BnchSwt/EventCounter.hpp
 /*
 Copyright (c) 2025 RealTimeChris (Chris M.)
 
@@ -17,7 +18,18 @@ Signed,
 RealTimeChris (Chris M.)
 2025
 */
-/// index.hpp
+/// Dec 6, 2024
 #pragma once
 
-#include <nihilus-incl/common/harbinger.hpp>
+#include <nihilus-incl/common/config.hpp>
+#include <nihilus-incl/benchmarking/apple_arm_pref_events.hpp>
+#include <nihilus-incl/benchmarking/windows_pref_events.hpp>
+#include <nihilus-incl/benchmarking/linux_pref_events.hpp>
+#include <optional>
+#include <chrono>
+
+namespace nihilus::benchmarking::internal {	
+
+	using event_collector = event_collector_type<event_count>;
+
+}

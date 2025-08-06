@@ -160,7 +160,7 @@ namespace nihilus {
 				const float* values = reinterpret_cast<const float*>(data);
 				size_t count		= detail::min(size / sizeof(float), 8);
 				for (size_t i = offending_index; i < offending_index + count; ++i) {
-					if (i > 0)
+					if (i > offending_index)
 						stream << ", ";
 					stream << std::fixed << std::setprecision(6) << values[i];
 				}
@@ -171,9 +171,9 @@ namespace nihilus {
 				const uint16_t* values = reinterpret_cast<const uint16_t*>(data);
 				size_t count		   = detail::min(size / sizeof(uint16_t), 8);
 				for (size_t i = offending_index; i < offending_index + count; ++i) {
-					if (i > 0)
+					if (i > offending_index)
 						stream << ", ";
-					stream << std::fixed << std::setprecision(6) << f16_to_f32(values[i]);
+					stream << std::fixed << std::setprecision(6) << values[i];
 				}
 				break;
 			}
@@ -182,9 +182,9 @@ namespace nihilus {
 				const uint8_t* values = reinterpret_cast<const uint8_t*>(data);
 				size_t count		  = detail::min(size, 8);
 				for (size_t i = offending_index; i < offending_index + count; ++i) {
-					if (i > 0)
+					if (i > offending_index)
 						stream << ", ";
-					stream << static_cast<int>(values[i]);
+					stream << std::fixed << std::setprecision(6) << values[i];
 				}
 				break;
 			}
@@ -193,9 +193,9 @@ namespace nihilus {
 				const int8_t* values = reinterpret_cast<const int8_t*>(data);
 				size_t count		 = detail::min(size, 8);
 				for (size_t i = offending_index; i < offending_index + count; ++i) {
-					if (i > 0)
+					if (i > offending_index)
 						stream << ", ";
-					stream << static_cast<int>(values[i]);
+					stream << std::fixed << std::setprecision(6) << values[i];
 				}
 				break;
 			}
@@ -204,9 +204,9 @@ namespace nihilus {
 				const int16_t* values = reinterpret_cast<const int16_t*>(data);
 				size_t count		  = detail::min(size / 2, 8);
 				for (size_t i = offending_index; i < offending_index + count; ++i) {
-					if (i > 0)
+					if (i > offending_index)
 						stream << ", ";
-					stream << values[i];
+					stream << std::fixed << std::setprecision(6) << values[i];
 				}
 				break;
 			}
@@ -215,9 +215,9 @@ namespace nihilus {
 				const int32_t* values = reinterpret_cast<const int32_t*>(data);
 				size_t count		  = detail::min(size / 4, 8);
 				for (size_t i = offending_index; i < offending_index + count; ++i) {
-					if (i > 0)
+					if (i > offending_index)
 						stream << ", ";
-					stream << values[i];
+					stream << std::fixed << std::setprecision(6) << values[i];
 				}
 				break;
 			}
@@ -226,9 +226,9 @@ namespace nihilus {
 				const int64_t* values = reinterpret_cast<const int64_t*>(data);
 				size_t count		  = detail::min(size / 8, 8);
 				for (size_t i = offending_index; i < offending_index + count; ++i) {
-					if (i > 0)
+					if (i > offending_index)
 						stream << ", ";
-					stream << values[i];
+					stream << std::fixed << std::setprecision(6) << values[i];
 				}
 				break;
 			}
@@ -236,10 +236,10 @@ namespace nihilus {
 			case data_types::f64: {
 				const double* values = reinterpret_cast<const double*>(data);
 				size_t count		 = detail::min(size / 8, 8);
-				for (size_t i = offending_index; i < count; ++i) {
-					if (i > 0)
+				for (size_t i = offending_index; i < offending_index + count; ++i) {
+					if (i > offending_index)
 						stream << ", ";
-					stream << std::fixed << std::setprecision(10) << values[i];
+					stream << std::fixed << std::setprecision(6) << values[i];
 				}
 				break;
 			}
@@ -263,11 +263,12 @@ namespace nihilus {
 		switch (type) {
 			case data_types::f32: {
 				const float* values = reinterpret_cast<const float*>(data.data());
-				size_t count		= detail::min(data.size() / sizeof(float), 8);
+				size_t count		= detail::min(data.size() / sizeof(uint16_t), 8);
 				for (size_t i = offending_index; i < offending_index + count; ++i) {
-					if (i > 0)
+					if (i > offending_index)// Only print comma after the first element of this range
 						stream << ", ";
-					stream << std::fixed << std::setprecision(6) << values[i];
+					float new_value{ values[i] };
+					stream << new_value;
 				}
 				break;
 			}
@@ -276,7 +277,7 @@ namespace nihilus {
 				const uint16_t* values = reinterpret_cast<const uint16_t*>(data.data());
 				size_t count		   = detail::min(data.size() / sizeof(uint16_t), 8);
 				for (size_t i = offending_index; i < offending_index + count; ++i) {
-					if (i > 0)
+					if (i > offending_index)// Only print comma after the first element of this range
 						stream << ", ";
 					stream << std::fixed << std::setprecision(6) << f16_to_f32(values[i]);
 				}
@@ -287,7 +288,7 @@ namespace nihilus {
 				const uint8_t* values = reinterpret_cast<const uint8_t*>(data.data());
 				size_t count		  = detail::min(data.size(), 8);
 				for (size_t i = offending_index; i < offending_index + count; ++i) {
-					if (i > 0)
+					if (i > offending_index)// Only print comma after the first element of this range
 						stream << ", ";
 					stream << static_cast<int>(values[i]);
 				}
@@ -298,7 +299,7 @@ namespace nihilus {
 				const int8_t* values = reinterpret_cast<const int8_t*>(data.data());
 				size_t count		 = detail::min(data.size(), 8);
 				for (size_t i = offending_index; i < offending_index + count; ++i) {
-					if (i > 0)
+					if (i > offending_index)// Only print comma after the first element of this range
 						stream << ", ";
 					stream << static_cast<int>(values[i]);
 				}
@@ -309,7 +310,7 @@ namespace nihilus {
 				const int16_t* values = reinterpret_cast<const int16_t*>(data.data());
 				size_t count		  = detail::min(data.size() / 2, 8);
 				for (size_t i = offending_index; i < offending_index + count; ++i) {
-					if (i > 0)
+					if (i > offending_index)// Only print comma after the first element of this range
 						stream << ", ";
 					stream << values[i];
 				}
@@ -320,7 +321,7 @@ namespace nihilus {
 				const int32_t* values = reinterpret_cast<const int32_t*>(data.data());
 				size_t count		  = detail::min(data.size() / 4, 8);
 				for (size_t i = offending_index; i < offending_index + count; ++i) {
-					if (i > 0)
+					if (i > offending_index)// Only print comma after the first element of this range
 						stream << ", ";
 					stream << values[i];
 				}
@@ -331,7 +332,7 @@ namespace nihilus {
 				const int64_t* values = reinterpret_cast<const int64_t*>(data.data());
 				size_t count		  = detail::min(data.size() / 8, 8);
 				for (size_t i = offending_index; i < offending_index + count; ++i) {
-					if (i > 0)
+					if (i > offending_index)// Only print comma after the first element of this range
 						stream << ", ";
 					stream << values[i];
 				}
@@ -342,7 +343,7 @@ namespace nihilus {
 				const double* values = reinterpret_cast<const double*>(data.data());
 				size_t count		 = detail::min(data.size() / 8, 8);
 				for (size_t i = offending_index; i < count; ++i) {
-					if (i > 0)
+					if (i > offending_index)// Only print comma after the first element of this range
 						stream << ", ";
 					stream << std::fixed << std::setprecision(10) << values[i];
 				}
@@ -612,6 +613,7 @@ namespace nihilus {
 					std::cout << "Sorry, but no data for op: " << op << std::endl;
 				}
 			}
+			
 		}
 		array<uint64_t, 4> dims{};
 		std::string name{};
@@ -641,8 +643,7 @@ namespace nihilus {
 				case data_types::f32: {
 					const float* vals1 = reinterpret_cast<const float*>(data1.data);
 					const float* vals2 = reinterpret_cast<const float*>(data2.data.data());
-					size_t count	   = data1.byte_size / sizeof(float);
-					std::cout << "ELEMENT COUNT: " << count << std::endl;
+					size_t count	   = data2.data.size() / sizeof(float);
 					for (size_t i = 0; i < count; ++i) {
 						double diff = fabs(static_cast<double>(vals1[i]) - static_cast<double>(vals2[i]));
 
@@ -768,7 +769,7 @@ namespace nihilus {
 				stream << "LHS Dims: " << dims << std::endl;
 				stream << "RHS Dims: " << other.dims << std::endl;
 				return_value.result_output = stream.str();
-				std::memcpy(data, other.data.data(), byte_size);
+				//std::memcpy(data, other.data.data(), byte_size);
 				return return_value;
 			}
 
@@ -798,7 +799,6 @@ namespace nihilus {
 				stream << "RHS Byte-Size: " << other.data.size() << std::endl;
 				return_value.result_output = stream.str();
 				std::memcpy(data, other.data.data(), byte_size);
-				return return_value;
 			}
 
 			bool data_equal = compare_tensor_data_smart(*this, other, type, stream);
@@ -820,7 +820,7 @@ namespace nihilus {
 namespace jsonifier {
 	template<> struct core<nihilus::intermediary_tensor> {
 		using value_type				 = nihilus::intermediary_tensor;
-		static constexpr auto parseValue = jsonifier::createValue<&value_type::dims, &value_type::name, &value_type::op, &value_type::type, &value_type::data>();
+		static constexpr auto parseValue = jsonifier::createValue<&value_type::dims, &value_type::op, &value_type::type, &value_type::name, &value_type::data>();
 	};
 }
 
@@ -843,9 +843,6 @@ namespace nihilus {
 			}
 			case op_types::kcur_rope: {
 				return "Kcur-" + block + "-02";
-			}
-			case op_types::kcur_reshaped: {
-				return "Kcur-" + block + " (reshaped)-02";
 			}
 			case op_types::k_cache_view: {
 				return "k_cache_view-" + block;
@@ -908,10 +905,10 @@ namespace nihilus {
 				return "cache_v_l" + block;
 			}
 			case op_types::qcur_mul_mat: {
-				return "Qcur-" + block;
+				return "Qcur-" + block + " (reshaped)-02";
 			}
 			case op_types::kcur_mul_mat: {
-				return "Kcur-" + block;
+				return "Kcur-" + block + " (reshaped)-02";
 			}
 			case op_types::vcur_mul_mat: {
 				return "Vcur-" + block;

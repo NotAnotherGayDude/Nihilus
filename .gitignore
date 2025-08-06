@@ -37,3 +37,5 @@ build-arm64-*
 build-x64-*
 Tensor-Data.txt
 cmake/Build-Arch/
+cmake/BuildFeatureTesterArch.bat
+cmake/BuildFeatureTester.bat

@@ -66,6 +66,7 @@ namespace nihilus {
 			tokenizer_type::tokenize_init(get_core<op_type_type::inp_tokens>().data);
 			get_core<op_type_type::inp_pos>().data[1]	  = 1;
 			get_core<op_type_type::inp_out_ids>().data[0] = 1;
+			generate_causal_mask();
 			execute_model(input);
 			return false;
 		}
@@ -78,13 +79,13 @@ namespace nihilus {
 			this->template impl<memory_mapper>(core_bases_traits_type<config_new>::memory_plan_val, memory);
 
 			if constexpr (config_new.benchmark || config_new.dev) {
-				perf_base<config_new>::perf_stats.load_start = std::chrono::high_resolution_clock::now();
+				perf_base<config_new>::perf_stats.load_start = clock_type::now();
 			}
 			weight_memory									  = memory_mapped_file{ params.model_file };
 			gguf_metadata<config_new> model_construction_data = model_parser<config_new>::parse_model(data, &weight_memory, *static_cast<tokenizer_type*>(this));
 
 			if constexpr (config_new.benchmark || config_new.dev) {
-				auto load_end										 = std::chrono::high_resolution_clock::now();
+				auto load_end										 = clock_type::now();
 				perf_base<config_new>::perf_stats.total_load_time_ns = std::chrono::duration<double, std::nano>(load_end - perf_base<config_new>::perf_stats.load_start).count();
 			}
 		}
@@ -94,7 +95,6 @@ namespace nihilus {
 		}
 
 		NIHILUS_INLINE void execute_model(std::string_view input) {
-			generate_causal_mask();
 			static_cast<thread_pool<config_new>*>(this)->template execute_tasks<processing_phase::prompt_eval_time>(2);
 
 			if constexpr (config_new.dev) {
@@ -102,7 +102,6 @@ namespace nihilus {
 			}
 
 			exec_params.sequence_length = tokenizer_type::tokenize(input, get_core<op_type_type::inp_tokens>().data);
-			generate_causal_mask();
 
 			for (uint64_t x = 0; x < exec_params.sequence_length; ++x) {
 				using core_type							  = std::remove_cvref_t<decltype(get_core<op_type_type::inp_pos>())>;
@@ -119,7 +118,7 @@ namespace nihilus {
 			}
 
 			if constexpr (config_new.benchmark || config_new.dev) {
-				perf_base<config_new>::perf_stats.prompt_start = std::chrono::high_resolution_clock::now();
+				perf_base<config_new>::perf_stats.prompt_start = clock_type::now();
 			}
 
 			static_cast<thread_pool<config_new>*>(this)->template execute_tasks<processing_phase::prompt_eval_time>(exec_params.sequence_length);
@@ -129,31 +128,31 @@ namespace nihilus {
 			}
 
 			if constexpr (config_new.benchmark || config_new.dev) {
-				auto prompt_end = std::chrono::high_resolution_clock::now();
+				auto prompt_end = clock_type::now();
 				perf_base<config_new>::perf_stats.total_prompt_eval_time_ns =
 					std::chrono::duration<double, std::nano>(prompt_end - perf_base<config_new>::perf_stats.prompt_start).count();
 			}
 
 			if constexpr (config_new.benchmark || config_new.dev) {
-				perf_base<config_new>::perf_stats.eval_start = std::chrono::high_resolution_clock::now();
+				perf_base<config_new>::perf_stats.eval_start = clock_type::now();
 			}
 
 			for (uint64_t x = 0; x < exec_params.token_count - 1; ++x) {
 				if constexpr (config_new.benchmark || config_new.dev) {
-					perf_base<config_new>::perf_stats.token_start = std::chrono::high_resolution_clock::now();
+					perf_base<config_new>::perf_stats.token_start = clock_type::now();
 					++perf_base<config_new>::perf_stats.current_iteration;
 				}
 				static_cast<thread_pool<config_new>*>(this)->template execute_tasks<processing_phase::eval_time>(1);
 
 				if constexpr (config_new.benchmark || config_new.dev) {
-					auto token_end	   = std::chrono::high_resolution_clock::now();
+					auto token_end	   = clock_type::now();
 					auto token_time_ns = std::chrono::duration<double, std::nano>(token_end - perf_base<config_new>::perf_stats.token_start).count();
 					perf_base<config_new>::perf_stats.total_eval_time_ns += token_time_ns;
 				}
 				auto new_token = sample_next_token();
 				( void )(new_token);
 				if constexpr (config_new.benchmark || config_new.dev) {
-					auto sampling_end	  = std::chrono::high_resolution_clock::now();
+					auto sampling_end	  = clock_type::now();
 					auto sampling_time_ns = std::chrono::duration<double, std::nano>(sampling_end - perf_base<config_new>::perf_stats.sampling_start).count();
 					perf_base<config_new>::perf_stats.total_sampling_time_ns += sampling_time_ns;
 				}
@@ -182,14 +181,12 @@ namespace nihilus {
 			auto& kq_mask			   = get_core<op_type_type::kq_mask>();
 			float* mask_data		   = static_cast<float*>(kq_mask.data);
 
-			for (uint64_t i = 0; i < dims[0]; ++i) {
-				for (uint64_t j = 0; j < dims[0]; ++j) {
-					const uint64_t mask_idx = i * dims[0] + j;
-					if (j > i) {
-						mask_data[mask_idx] = -std::numeric_limits<float>::infinity();
-					} else {
-						mask_data[mask_idx] = 0.0f;
-					}
+			const uint64_t total_dims = dims[0] * dims[1] * dims[2] * dims[3];
+			for (uint64_t x = 0; x < total_dims; ++x) {
+				if (x == 0 || x == 32 || x == 33) {
+					mask_data[x] = 0.0f;
+				} else {
+					mask_data[x] = -std::numeric_limits<float>::infinity();
 				}
 			}
 		}

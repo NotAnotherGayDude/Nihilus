@@ -37,7 +37,7 @@ RealTimeChris (Chris M.)
 #include <latch>
 #include <cmath>
 
-namespace nihilus {
+namespace nihilus {	
 
 	template<typename value_type> struct vector : public std::vector<value_type> {};
 
@@ -105,7 +105,7 @@ namespace nihilus {
 	};
 
 	struct alignas(64) atomic_flag_wrapper {
-		static constexpr static_aligned_const<64, uint64_t> spin_cycles{ 500000 };
+		static constexpr static_aligned_const<64, uint64_t> spin_cycles{ 5000 };
 		using value_type										= typename std::atomic_signed_lock_free::value_type;
 		NIHILUS_INLINE constexpr atomic_flag_wrapper() noexcept = default;
 		NIHILUS_INLINE constexpr atomic_flag_wrapper& operator=(const atomic_flag_wrapper&) noexcept {
@@ -359,15 +359,18 @@ namespace nihilus {
 
 	template<time_t value_type = std::chrono::nanoseconds> class stop_watch {
 	  public:
-		using hr_clock = std::conditional_t<std::chrono::high_resolution_clock::is_steady, std::chrono::high_resolution_clock, std::chrono::steady_clock>;
+		using hr_clock = std::conditional_t<clock_type::is_steady, clock_type, std::chrono::steady_clock>;
 		static constexpr bool lock_free{ std::atomic<value_type>::is_always_lock_free };
 		using time_type = std::conditional_t<lock_free, value_type, uint64_t>;
 
-		NIHILUS_INLINE stop_watch(uint64_t newTime) noexcept {
-			total_time_units.store(time_type{ newTime }, std::memory_order_release);
+		NIHILUS_INLINE constexpr stop_watch() noexcept {
 		}
 
-		NIHILUS_INLINE stop_watch& operator=(stop_watch&& other) noexcept {
+		NIHILUS_INLINE stop_watch(uint64_t newTime) noexcept {
+			total_time_units.store(newTime);
+		}
+
+		NIHILUS_INLINE constexpr stop_watch& operator=(stop_watch&& other) noexcept {
 			if NIHILUS_LIKELY (this != &other) {
 				total_time_units.store(other.total_time_units.load(std::memory_order_acquire), std::memory_order_release);
 				start_time_units.store(other.start_time_units.load(std::memory_order_acquire), std::memory_order_release);
@@ -375,11 +378,11 @@ namespace nihilus {
 			return *this;
 		}
 
-		NIHILUS_INLINE stop_watch(stop_watch&& other) noexcept {
+		NIHILUS_INLINE constexpr stop_watch(stop_watch&& other) noexcept {
 			*this = detail::move(other);
 		}
 
-		NIHILUS_INLINE stop_watch& operator=(const stop_watch& other) noexcept {
+		NIHILUS_INLINE constexpr stop_watch& operator=(const stop_watch& other) noexcept {
 			if NIHILUS_LIKELY (this != &other) {
 				total_time_units.store(other.total_time_units.load(std::memory_order_acquire), std::memory_order_release);
 				start_time_units.store(other.start_time_units.load(std::memory_order_acquire), std::memory_order_release);
@@ -387,31 +390,12 @@ namespace nihilus {
 			return *this;
 		}
 
-		NIHILUS_INLINE stop_watch(const stop_watch& other) noexcept {
+		NIHILUS_INLINE constexpr stop_watch(const stop_watch& other) noexcept {
 			*this = other;
 		}
 
 		NIHILUS_INLINE bool has_time_elapsed() noexcept {
 			return ((get_current_time() - start_time_units.load(std::memory_order_acquire)) >= total_time_units.load(std::memory_order_acquire));
-		}
-
-		NIHILUS_INLINE void add_time() noexcept {
-			std::unique_lock<std::mutex> lock{ mutex };
-			values.emplace_back(total_time_elapsed());
-			reset();
-		}
-
-		NIHILUS_INLINE uint64_t get_average() noexcept {
-			std::unique_lock<std::mutex> lock{ mutex };
-			uint64_t total_time{};
-			for (auto& value: values) {
-				total_time += get_value_as_uint(value);
-			}
-			return total_time / ((values.size() > 0) ? values.size() : 1);
-		}
-
-		NIHILUS_INLINE uint64_t get_count() noexcept {
-			return values.size();
 		}
 
 		NIHILUS_INLINE void reset(time_type newTimeValue = time_type{}) noexcept {
@@ -433,14 +417,12 @@ namespace nihilus {
 			return get_value_as_uint(get_current_time()) - get_value_as_uint(start_time_units.load(std::memory_order_acquire));
 		}
 
-		NIHILUS_INLINE ~stop_watch() {
+		NIHILUS_INLINE constexpr ~stop_watch() {
 		}
 
 	  protected:
 		std::atomic<time_type> total_time_units{};
 		std::atomic<time_type> start_time_units{};
-		vector<time_type> values{};
-		std::mutex mutex{};
 
 		NIHILUS_INLINE time_type get_current_time() {
 			if constexpr (lock_free) {
@@ -622,8 +604,8 @@ namespace nihilus {
 		}
 	}
 
-	static constexpr array<const char*, kernel_types::count> kernel_names{ { "none", "get_rows", "rms_norm", "mul", "mul_mat", "reshape", "permute", "transpose", "view", "cont",
-		"copy", "rope", "softmax", "silu", "add", "sub" } };
+	static constexpr array<const char*, kernel_types::count> kernel_names{ { "none", "add_rms_norm_mul", "get_rows", "rms_norm_mul", "add_rms_norm", "mul", "mul_mat", "reshape",
+		"permute", "transpose", "view", "cont", "copy", "rope", "softmax", "silu", "add", "sub" } };
 
 	enum class op_types : uint16_t {
 		token_embd_weight,
@@ -650,7 +632,6 @@ namespace nihilus {
 		qcur_mul_mat,
 		qcur_rope,
 		kcur_mul_mat,
-		kcur_reshaped,
 		kcur_rope,
 		vcur_mul_mat,
 		k_cache_view,
@@ -681,6 +662,13 @@ namespace nihilus {
 		result_output,
 		count
 	};
+
+	static constexpr array<const char*, op_types::count> op_names{ { "token_embd_weight", "rope_freqs_weight", "output_weight", "output_norm_weight", "attn_q_weight",
+		"attn_k_weight", "attn_v_weight", "attn_output_weight", "attn_norm_weight", "ffn_gate_weight", "ffn_up_weight", "ffn_down_weight", "ffn_norm_weight", "inp_tokens",
+		"inp_pos", "inp_out_ids", "inp_embd", "cache_k", "cache_v", "kq_mask", "norm_attn_norm", "qcur_mul_mat", "qcur_rope", "kcur_mul_mat", "kcur_rope", "vcur_mul_mat",
+		"k_cache_view", "k_cache_view_copy", "vcur_transposed", "v_cache_view", "v_cache_view_copy", "v", "k", "q", "kq", "kq_soft_max", "kqv", "kqv_merged", "kqv_merged_cont",
+		"kqv_out", "l_out_prev", "ffn_inp_norm_out_ffn_norm", "ffn_gate", "ffn_silu", "ffn_up", "ffn_gate_par", "ffn_out", "l_out_final_norm", "attn_residual", "prev_residual",
+		"result_norm", "result_output" } };
 
 	template<typename enum_type>
 		requires(std::is_same_v<op_types, enum_type>)
@@ -734,8 +722,6 @@ namespace nihilus {
 				return os << "qcur_rope";
 			case enum_type::kcur_mul_mat:
 				return os << "kcur_mul_mat";
-			case enum_type::kcur_reshaped:
-				return os << "kcur_reshaped";
 			case enum_type::kcur_rope:
 				return os << "kcur_rope";
 			case enum_type::vcur_mul_mat:
@@ -837,8 +823,6 @@ namespace nihilus {
 			case enum_type::ffn_out:
 			case enum_type::result_output:
 				return kernel_types::mul_mat;
-			case enum_type::kcur_reshaped:
-				return kernel_types::reshape;
 			case enum_type::q:
 			case enum_type::kqv_merged:
 				return kernel_types::permute;

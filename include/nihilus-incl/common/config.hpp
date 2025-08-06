@@ -26,6 +26,7 @@ RealTimeChris (Chris M.)
 #include <cstring>
 #include <cstdint>
 #include <utility>
+#include <chrono>
 #include <atomic>
 
 #if defined(WIN32) || defined(_WIN32) || defined(_WIN64)
@@ -146,3 +147,7 @@ template<bool value, auto enum_error, auto... values> struct static_assert_print
 
 
 inline std::atomic_uint64_t current_count{};
+
+using clock_type = std::conditional_t<std::chrono::high_resolution_clock::is_steady, std::chrono::high_resolution_clock, std::chrono::steady_clock>;
+
+#include "../benchmarking/event_counter.hpp"

@@ -25,11 +25,1400 @@ RealTimeChris (Chris M.)
 
 #if NIHILUS_AVX2
 
-namespace nihilus {
+namespace nihilus {	
 
+	NIHILUS_INLINE static half fp32_to_fp16_f16c(float f) {
+		__m128 single_vec = _mm_set_ss(f);
+		__m128i f16_vec	  = _mm_cvtps_ph(single_vec, _MM_FROUND_TO_NEAREST_INT);
+		return static_cast<half>(_mm_extract_epi16(f16_vec, 0));
+	}
+	
 	NIHILUS_INLINE float sqrtf_fast(float x) {
 		return _mm_cvtss_f32(_mm_sqrt_ss(_mm_set_ss(x)));
 	}
+
+	template<typename transform_type, typename core_type>
+	struct kernel_dispatcher_impl<1, kernel_types::add_rms_norm, processing_phase::prompt_eval_time, transform_type, core_type, float, float, float>
+		: public kernel_base<kernel_types::add_rms_norm, core_type, float, float, float> {
+		using input_type01 = typename core_type::input_01_type;
+		using input_type02 = typename core_type::input_02_type;
+
+		template<bool is_power_of_2able> NIHILUS_INLINE static void process_tensor_elements(uint64_t ith, uint64_t nth, uint64_t ne01, uint64_t ne11,
+			const float* __restrict src0_data, const float* __restrict src1_data, float* __restrict dst_data) {
+		}
+
+		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
+			const typename core_type::input_02_type& input02) {
+		}
+	};	
+
+	template<typename transform_type, typename core_type>
+	struct kernel_dispatcher_impl<1, kernel_types::add_rms_norm, processing_phase::eval_time, transform_type, core_type, float, float, float>
+		: public kernel_base<kernel_types::add_rms_norm, core_type, float, float, float> {
+		using input_type01 = typename core_type::input_01_type;
+		using input_type02 = typename core_type::input_02_type;
+
+		template<bool is_power_of_2able> NIHILUS_INLINE static void process_tensor_elements(uint64_t ith, uint64_t nth, uint64_t ne01, uint64_t ne11,
+			const float* __restrict src0_data, const float* __restrict src1_data, float* __restrict dst_data) {
+		}
+
+		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
+			const typename core_type::input_02_type& input02) {
+		}
+	};
+
+	template<typename transform_type, typename core_type>
+	struct kernel_dispatcher_impl<1, kernel_types::add_rms_norm_mul, processing_phase::prompt_eval_time, transform_type, core_type, float, float, float, float>
+		: public kernel_base<kernel_types::add_rms_norm_mul, core_type, float, float, float, float> {
+		using input_type01 = typename core_type::input_01_type;
+		using input_type02 = typename core_type::input_02_type;
+		using input_type03 = typename core_type::input_03_type;
+
+		template<bool is_power_of_2able> NIHILUS_INLINE static void process_tensor_elements(uint64_t ith, uint64_t nth, uint64_t ne01, uint64_t ne11, uint64_t ne21,
+			const float* __restrict src0_data, const float* __restrict src1_data, const block_q8_0<half>* __restrict src2_data, float* __restrict dst_data) {
+		}
+
+		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
+			const typename core_type::input_02_type& input02, const typename core_type::input_03_type& input03) {
+		}
+	};	
+
+	template<typename transform_type, typename core_type>
+	struct kernel_dispatcher_impl<1, kernel_types::add_rms_norm_mul, processing_phase::eval_time, transform_type, core_type, float, float, float, float>
+		: public kernel_base<kernel_types::add_rms_norm_mul, core_type, float, float, float, float> {
+		using input_type01 = typename core_type::input_01_type;
+		using input_type02 = typename core_type::input_02_type;
+		using input_type03 = typename core_type::input_03_type;
+
+		template<bool is_power_of_2able> NIHILUS_INLINE static void process_tensor_elements(uint64_t ith, uint64_t nth, uint64_t ne01, uint64_t ne11, uint64_t ne21,
+			const float* __restrict src0_data, const float* __restrict src1_data, const block_q8_0<half>* __restrict src2_data, float* __restrict dst_data) {
+		}
+
+		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
+			const typename core_type::input_02_type& input02, const typename core_type::input_03_type& input03) {
+		}
+	};
+
+	NIHILUS_INLINE float simd_sum_squares(const float* __restrict data, uint64_t size) {
+		__m256 sum_vec			= _mm256_setzero_ps();
+		const uint64_t simd_end = size & ~7ULL;
+
+		for (uint64_t i = 0; i < simd_end; i += 8) {
+			__m256 x_vec = _mm256_load_ps(&data[i]);
+			sum_vec		 = _mm256_fmadd_ps(x_vec, x_vec, sum_vec);
+		}
+
+		__m128 sum_high	  = _mm256_extractf128_ps(sum_vec, 1);
+		__m128 sum_low	  = _mm256_castps256_ps128(sum_vec);
+		__m128 sum_quad	  = _mm_add_ps(sum_low, sum_high);
+		__m128 sum_dual	  = _mm_add_ps(sum_quad, _mm_movehl_ps(sum_quad, sum_quad));
+		__m128 sum_single = _mm_add_ss(sum_dual, _mm_shuffle_ps(sum_dual, sum_dual, 1));
+		float sum		  = _mm_cvtss_f32(sum_single);
+
+		for (uint64_t i = simd_end; i < size; ++i) {
+			sum += data[i] * data[i];
+		}
+
+		return sum;
+	}
+
+	template<uint64_t size_new> struct vec_scale_mul_f32_columnar {};
+
+	template<uint64_t size_new>
+		requires(size_new > 0 && size_new < 4)
+	struct vec_scale_mul_f32_columnar<size_new> {
+		NIHILUS_INLINE static void impl(float* __restrict y, const float* __restrict x, const float scale, const float* __restrict z, uint64_t col_stride) {
+			for (uint64_t i = 0; i < size_new; ++i) {
+				y[i * col_stride] = x[i] * scale * z[i];
+			}
+		}
+	};
+
+	template<uint64_t size_new>
+		requires(size_new == 4)
+	struct vec_scale_mul_f32_columnar<size_new> {
+		NIHILUS_INLINE static void impl(float* __restrict y, const float* __restrict x, const float scale, const float* __restrict z, uint64_t col_stride) {
+			const __m128 scale_vec = _mm_set1_ps(scale);
+			__m128 ax0			   = _mm_load_ps(x);
+			__m128 az0			   = _mm_load_ps(z);
+			__m128 temp			   = _mm_mul_ps(ax0, az0);
+			__m128 result		   = _mm_mul_ps(temp, scale_vec);
+
+			for (uint64_t i = 0; i < 4; ++i) {
+				y[i * col_stride] = (( float* )&result)[i];
+			}
+		}
+	};
+
+	template<uint64_t size_new>
+		requires(size_new > 4 && size_new < 8)
+	struct vec_scale_mul_f32_columnar<size_new> {
+		NIHILUS_INLINE static void impl(float* __restrict y, const float* __restrict x, const float scale, const float* __restrict z, uint64_t col_stride) {
+			vec_scale_mul_f32_columnar<4>::impl(y, x, scale, z, col_stride);
+
+			constexpr uint64_t remainder = size_new - 4ULL;
+			if constexpr (remainder > 0) {
+				vec_scale_mul_f32_columnar<remainder>::impl(y + 4 * col_stride, x + 4, scale, z + 4, col_stride);
+			}
+		}
+	};
+
+	template<uint64_t size_new>
+		requires(size_new == 8)
+	struct vec_scale_mul_f32_columnar<size_new> {
+		NIHILUS_INLINE static void impl(float* __restrict y, const float* __restrict x, const float scale, const float* __restrict z, uint64_t col_stride) {
+			const __m256 scale_vec = _mm256_set1_ps(scale);
+			__m256 ax0			   = _mm256_load_ps(x);
+			__m256 az0			   = _mm256_load_ps(z);
+			__m256 temp			   = _mm256_mul_ps(ax0, az0);
+			__m256 result		   = _mm256_mul_ps(temp, scale_vec);
+
+			alignas(32) float temp_result[8];
+			_mm256_store_ps(temp_result, result);
+			for (uint64_t i = 0; i < 8; ++i) {
+				y[i * col_stride] = temp_result[i];
+			}
+		}
+	};
+
+	template<uint64_t size_new>
+		requires(size_new > 8 && size_new < 16)
+	struct vec_scale_mul_f32_columnar<size_new> {
+		NIHILUS_INLINE static void impl(float* __restrict y, const float* __restrict x, const float scale, const float* __restrict z, uint64_t col_stride) {
+			vec_scale_mul_f32_columnar<8>::impl(y, x, scale, z, col_stride);
+
+			constexpr uint64_t remainder = size_new - 8ULL;
+			if constexpr (remainder > 0) {
+				vec_scale_mul_f32_columnar<remainder>::impl(y + 8 * col_stride, x + 8, scale, z + 8, col_stride);
+			}
+		}
+	};
+
+	template<uint64_t size_new>
+		requires(size_new == 16)
+	struct vec_scale_mul_f32_columnar<size_new> {
+		NIHILUS_INLINE static void impl(float* __restrict y, const float* __restrict x, const float scale, const float* __restrict z, uint64_t col_stride) {
+			const __m256 scale_vec = _mm256_set1_ps(scale);
+
+			__m256 ax0 = _mm256_load_ps(x);
+			__m256 ax1 = _mm256_load_ps(x + 8);
+			__m256 az0 = _mm256_load_ps(z);
+			__m256 az1 = _mm256_load_ps(z + 8);
+
+			__m256 temp0   = _mm256_mul_ps(ax0, az0);
+			__m256 temp1   = _mm256_mul_ps(ax1, az1);
+			__m256 result0 = _mm256_mul_ps(temp0, scale_vec);
+			__m256 result1 = _mm256_mul_ps(temp1, scale_vec);
+
+			alignas(32) float temp_result0[8], temp_result1[8];
+			_mm256_store_ps(temp_result0, result0);
+			_mm256_store_ps(temp_result1, result1);
+
+			for (uint64_t i = 0; i < 8; ++i) {
+				y[i * col_stride]		= temp_result0[i];
+				y[(i + 8) * col_stride] = temp_result1[i];
+			}
+		}
+	};
+
+	template<uint64_t size_new>
+		requires(size_new > 16 && size_new < Q_SIZE)
+	struct vec_scale_mul_f32_columnar<size_new> {
+		NIHILUS_INLINE static void impl(float* __restrict y, const float* __restrict x, const float scale, const float* __restrict z, uint64_t col_stride) {
+			vec_scale_mul_f32_columnar<16>::impl(y, x, scale, z, col_stride);
+
+			constexpr uint64_t remainder = size_new - 16ULL;
+			if constexpr (remainder > 0) {
+				vec_scale_mul_f32_columnar<remainder>::impl(y + 16 * col_stride, x + 16, scale, z + 16, col_stride);
+			}
+		}
+	};
+
+	template<uint64_t size_new>
+		requires(size_new == Q_SIZE)
+	struct vec_scale_mul_f32_columnar<size_new> {
+		NIHILUS_INLINE static void impl(float* __restrict y, const float* __restrict x, const float scale, const float* __restrict z, uint64_t col_stride) {
+			const __m256 scale_vec = _mm256_set1_ps(scale);
+
+			__m256 ax0 = _mm256_load_ps(x);
+			__m256 ax1 = _mm256_load_ps(x + 8);
+			__m256 ax2 = _mm256_load_ps(x + 16);
+			__m256 ax3 = _mm256_load_ps(x + 24);
+
+			__m256 az0 = _mm256_load_ps(z);
+			__m256 az1 = _mm256_load_ps(z + 8);
+			__m256 az2 = _mm256_load_ps(z + 16);
+			__m256 az3 = _mm256_load_ps(z + 24);
+
+			__m256 temp0 = _mm256_mul_ps(ax0, az0);
+			__m256 temp1 = _mm256_mul_ps(ax1, az1);
+			__m256 temp2 = _mm256_mul_ps(ax2, az2);
+			__m256 temp3 = _mm256_mul_ps(ax3, az3);
+
+			__m256 result0 = _mm256_mul_ps(temp0, scale_vec);
+			__m256 result1 = _mm256_mul_ps(temp1, scale_vec);
+			__m256 result2 = _mm256_mul_ps(temp2, scale_vec);
+			__m256 result3 = _mm256_mul_ps(temp3, scale_vec);
+
+			alignas(32) float temp_result0[8], temp_result1[8], temp_result2[8], temp_result3[8];
+			_mm256_store_ps(temp_result0, result0);
+			_mm256_store_ps(temp_result1, result1);
+			_mm256_store_ps(temp_result2, result2);
+			_mm256_store_ps(temp_result3, result3);
+
+			for (uint64_t i = 0; i < 8; ++i) {
+				y[i * col_stride]		 = temp_result0[i];
+				y[(i + 8) * col_stride]	 = temp_result1[i];
+				y[(i + 16) * col_stride] = temp_result2[i];
+				y[(i + 24) * col_stride] = temp_result3[i];
+			}
+		}
+	};
+
+	template<uint64_t size_new>
+		requires(size_new > Q_SIZE && size_new < 64)
+	struct vec_scale_mul_f32_columnar<size_new> {
+		NIHILUS_INLINE static void impl(float* __restrict y, const float* __restrict x, const float scale, const float* __restrict z, uint64_t col_stride) {
+			vec_scale_mul_f32_columnar<32>::impl(y, x, scale, z, col_stride);
+
+			constexpr uint64_t remainder = size_new - 32ULL;
+			if constexpr (remainder > 0) {
+				vec_scale_mul_f32_columnar<remainder>::impl(y + Q_SIZE * col_stride, x + Q_SIZE, scale, z + Q_SIZE, col_stride);
+			}
+		}
+	};
+
+	template<uint64_t size_new>
+		requires(size_new >= 64)
+	struct vec_scale_mul_f32_columnar<size_new> {
+		NIHILUS_INLINE static void impl(float* __restrict y, const float* __restrict x, const float scale, const float* __restrict z, uint64_t col_stride) {
+			const __m256 scale_vec = _mm256_set1_ps(scale);
+
+			for (uint64_t i = 0; i < size_new; i += 32) {
+				_mm_prefetch(reinterpret_cast<const char*>(x + i + 64), _MM_HINT_T0);
+				_mm_prefetch(reinterpret_cast<const char*>(z + i + 64), _MM_HINT_T0);
+
+				__m256 ax0 = _mm256_load_ps(x + i);
+				__m256 ax1 = _mm256_load_ps(x + i + 8);
+				__m256 ax2 = _mm256_load_ps(x + i + 16);
+				__m256 ax3 = _mm256_load_ps(x + i + 24);
+
+				__m256 az0 = _mm256_load_ps(z + i);
+				__m256 az1 = _mm256_load_ps(z + i + 8);
+				__m256 az2 = _mm256_load_ps(z + i + 16);
+				__m256 az3 = _mm256_load_ps(z + i + 24);
+
+				__m256 temp0 = _mm256_mul_ps(ax0, az0);
+				__m256 temp1 = _mm256_mul_ps(ax1, az1);
+				__m256 temp2 = _mm256_mul_ps(ax2, az2);
+				__m256 temp3 = _mm256_mul_ps(ax3, az3);
+
+				__m256 result0 = _mm256_mul_ps(temp0, scale_vec);
+				__m256 result1 = _mm256_mul_ps(temp1, scale_vec);
+				__m256 result2 = _mm256_mul_ps(temp2, scale_vec);
+				__m256 result3 = _mm256_mul_ps(temp3, scale_vec);
+
+				alignas(32) float temp_result0[8], temp_result1[8], temp_result2[8], temp_result3[8];
+				_mm256_store_ps(temp_result0, result0);
+				_mm256_store_ps(temp_result1, result1);
+				_mm256_store_ps(temp_result2, result2);
+				_mm256_store_ps(temp_result3, result3);
+
+				for (uint64_t j = 0; j < 8; ++j) {
+					y[(i + j) * col_stride]		 = temp_result0[j];
+					y[(i + j + 8) * col_stride]	 = temp_result1[j];
+					y[(i + j + 16) * col_stride] = temp_result2[j];
+					y[(i + j + 24) * col_stride] = temp_result3[j];
+				}
+			}
+		}
+	};
+
+	template<typename transform_type, typename core_type>
+	struct kernel_dispatcher_impl<1, kernel_types::rms_norm_mul, processing_phase::prompt_eval_time, transform_type, core_type, float, float, float>
+		: public kernel_base<kernel_types::rms_norm_mul, core_type, float, float, float> {
+		using input_type01 = typename core_type::input_01_type;
+		using input_type02 = typename core_type::input_02_type;
+
+		template<bool is_power_of_2able> NIHILUS_INLINE static void process_tensor_elements(uint64_t ith, uint64_t nth, uint64_t ne01, uint64_t ne11,
+			const float* __restrict src0_data, const float* __restrict src1_data, float* __restrict dst_data) {
+			static constexpr uint64_t ne00 = input_type01::get_array()[0];
+			static constexpr uint64_t ne02 = input_type01::get_array()[2];
+			static constexpr uint64_t ne03 = input_type01::get_array()[3];
+			static constexpr uint64_t ne10 = input_type02::get_array()[0];
+			static constexpr uint64_t ne12 = input_type02::get_array()[2];
+			static constexpr uint64_t ne13 = input_type02::get_array()[3];
+			const uint64_t src0_stride_03			 = ne02 * ne01 * ne00;
+			const uint64_t src0_stride_02			 = ne01 * ne00;
+			static constexpr uint64_t src0_stride_01 = ne00;
+
+			const uint64_t src1_stride_13			 = ne12 * ne11 * ne10;
+			const uint64_t src1_stride_12			 = ne11 * ne10;
+			static constexpr uint64_t src1_stride_11 = ne10;
+
+			const uint64_t dst_stride_col = ne01;
+
+			static constexpr float eps = core_type::model_traits_type::layer_norm_rms_epsilon;
+			const uint64_t total_rows  = ne01 * ne02 * ne03;
+
+			if constexpr (is_power_of_2able) {
+				const uint64_t log2_ne01			= tzcnt(ne01);
+				static constexpr uint64_t log2_ne02 = tzcnt_constexpr(ne02);
+				const uint64_t log2_ne11			= tzcnt(ne11);
+				static constexpr uint64_t log2_ne12 = tzcnt_constexpr(ne12);
+				static constexpr uint64_t log2_ne13 = tzcnt_constexpr(ne13);
+				static constexpr uint64_t log2_ne10 = tzcnt_constexpr(ne10);
+				const uint64_t log2_ne02_ne01		= log2_ne02 + log2_ne01;
+
+				for (uint64_t row_idx = ith; row_idx < total_rows; row_idx += nth) {
+					const uint64_t i03 = row_idx >> log2_ne02_ne01;
+					const uint64_t i02 = (row_idx - (i03 << log2_ne02_ne01)) >> log2_ne01;
+					const uint64_t i01 = row_idx - (i03 << log2_ne02_ne01) - (i02 << log2_ne01);
+					const uint64_t i13 = i03 & ((1ULL << log2_ne13) - 1ULL);
+					const uint64_t i12 = i02 & ((1ULL << log2_ne12) - 1ULL);
+					const uint64_t i11 = i01 & ((1ULL << log2_ne11) - 1ULL);
+
+					const uint64_t src0_offset = i03 * src0_stride_03 + i02 * src0_stride_02 + i01 * src0_stride_01;
+					const uint64_t src1_offset = i13 * src1_stride_13 + i12 * src1_stride_12 + i11 * src1_stride_11;
+
+					const uint64_t dst_col_start = i01;
+
+					const float* __restrict src0_ptr = &src0_data[src0_offset];
+					const float* __restrict src1_ptr = &src1_data[src1_offset];
+					float* __restrict dst_ptr		 = &dst_data[dst_col_start];
+
+					const float sum	  = simd_sum_squares(src0_ptr, ne00);
+					const float mean  = sum / static_cast<float>(ne00);
+					const float scale = 1.0f / sqrtf_fast(mean + eps);
+
+					if constexpr (ne10 == ne00) {
+						const uint64_t nr0 = ne00 >> log2_ne10;
+						for (uint64_t r = 0; r < nr0; ++r) {
+							vec_scale_mul_f32_columnar<ne10>::impl(dst_ptr + (r << log2_ne10) * dst_stride_col, src0_ptr + (r << log2_ne10), scale, src1_ptr, dst_stride_col);
+						}
+					} else {
+						for (uint64_t i0 = 0; i0 < ne00; ++i0) {
+							const uint64_t i10			 = i0 & ((1ULL << log2_ne10) - 1ULL);
+							dst_ptr[i0 * dst_stride_col] = src0_ptr[i0] * scale * src1_ptr[i10];
+						}
+					}
+				}
+			} else {
+				for (uint64_t row_idx = ith; row_idx < total_rows; row_idx += nth) {
+					const uint64_t i03 = row_idx / (ne02 * ne01);
+					const uint64_t i02 = (row_idx - i03 * ne02 * ne01) / ne01;
+					const uint64_t i01 = row_idx - i03 * ne02 * ne01 - i02 * ne01;
+					const uint64_t i13 = i03 % ne13;
+					const uint64_t i12 = i02 % ne12;
+					const uint64_t i11 = i01 % ne11;
+
+					const uint64_t src0_offset = i03 * src0_stride_03 + i02 * src0_stride_02 + i01 * src0_stride_01;
+					const uint64_t src1_offset = i13 * src1_stride_13 + i12 * src1_stride_12 + i11 * src1_stride_11;
+
+					const uint64_t dst_col_start = i01;
+
+					const float* __restrict src0_ptr = &src0_data[src0_offset];
+					const float* __restrict src1_ptr = &src1_data[src1_offset];
+					float* __restrict dst_ptr		 = &dst_data[dst_col_start];
+
+					const float sum	  = simd_sum_squares(src0_ptr, ne00);
+					const float mean  = sum / static_cast<float>(ne00);
+					const float scale = 1.0f / sqrtf_fast(mean + eps);
+
+					if constexpr (ne10 == ne00) {
+						const uint64_t nr0 = ne00 / ne10;
+						for (uint64_t r = 0; r < nr0; ++r) {
+							vec_scale_mul_f32_columnar<ne10>::impl(dst_ptr + r * ne10 * dst_stride_col, src0_ptr + r * ne10, scale, src1_ptr, dst_stride_col);
+						}
+					} else {
+						for (uint64_t i0 = 0; i0 < ne00; ++i0) {
+							const uint64_t i10			 = i0 % ne10;
+							dst_ptr[i0 * dst_stride_col] = src0_ptr[i0] * scale * src1_ptr[i10];
+						}
+					}
+				}
+			}
+		}
+
+		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
+			const typename core_type::input_02_type& input02) {
+			const uint64_t ne01			   = input01[1];
+			static constexpr uint64_t ne02 = input_type01::get_array()[2];
+			static constexpr uint64_t ne03 = input_type01::get_array()[3];
+			static constexpr uint64_t ne10 = input_type02::get_array()[0];
+			const uint64_t ne11			   = input02[1];
+			static constexpr uint64_t ne12 = input_type02::get_array()[2];
+			static constexpr uint64_t ne13 = input_type02::get_array()[3];
+
+			const uint64_t ith			  = static_cast<uint64_t>(thread_index);
+			const uint64_t nth			  = static_cast<uint64_t>(thread_count);
+			const float* __restrict src01 = input02.data[current_block];
+
+			const bool is_power_of_2 = ((ne01 & (ne01 - 1ULL)) == 0) && ((ne02 & (ne02 - 1ULL)) == 0) && ((ne10 & (ne10 - 1ULL)) == 0) && ((ne11 & (ne11 - 1ULL)) == 0) &&
+				((ne12 & (ne12 - 1ULL)) == 0) && ((ne13 & (ne13 - 1ULL)) == 0);
+
+			if (is_power_of_2) {
+				process_tensor_elements<true>(ith, nth, ne01, ne11, input01.data, src01, output.data);
+			} else {
+				process_tensor_elements<false>(ith, nth, ne01, ne11, input01.data, src01, output.data);
+			}
+		}
+	};
+
+	template<typename transform_type, typename core_type>
+	struct kernel_dispatcher_impl<1, kernel_types::rms_norm_mul, processing_phase::eval_time, transform_type, core_type, float, float, float>
+		: public kernel_base<kernel_types::rms_norm_mul, core_type, float, float, float> {
+		using input_type01 = typename core_type::input_01_type;
+		using input_type02 = typename core_type::input_02_type;
+
+		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
+			const typename core_type::input_02_type& input02) {
+			static constexpr float eps	   = core_type::model_traits_type::layer_norm_rms_epsilon;
+			static constexpr uint64_t ne00 = input_type01::get_array()[0];
+
+			const uint64_t ith = static_cast<uint64_t>(thread_index);
+
+			const float* __restrict input01_data = input01.data;
+			const float* __restrict input02_data = input02.data[current_block];
+			float* __restrict output_data		 = output.data;
+
+			if (ith == 0) {
+				float sum_squares = 0.0f;
+				for (uint64_t j = 0; j < ne00; ++j) {
+					const float val = input01_data[j];
+					sum_squares += val * val;
+				}
+
+				const float mean_square = sum_squares / static_cast<float>(ne00);
+				const float rms_norm	= 1.0f / sqrtf_fast(mean_square + eps);
+
+				for (uint64_t j = 0; j < ne00; ++j) {
+					output_data[j] = input01_data[j] * rms_norm * input02_data[j];
+				}
+			}
+		}
+	};
+
+	template<typename transform_type, typename core_type>
+	struct kernel_dispatcher_impl<1, kernel_types::mul, processing_phase::prompt_eval_time, transform_type, core_type, float, float, float>
+		: public kernel_base<kernel_types::mul, core_type, float, float, float> {
+		using input_type01 = typename core_type::input_01_type;
+		using input_type02 = typename core_type::input_02_type;
+
+		template<bool is_power_of_2able> NIHILUS_INLINE static void process_tensor_elements(uint64_t ith, uint64_t nth, uint64_t nr, uint64_t ne01, uint64_t ne11,
+			const float* __restrict src0_data, const float* __restrict src1_data, float* __restrict dst_data) {
+		}
+
+		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t, core_type& output, const typename core_type::input_01_type& input01,
+			const typename core_type::input_02_type& input02) {
+		}
+	};
+		
+	template<typename transform_type, typename core_type>
+	struct kernel_dispatcher_impl<1, kernel_types::mul, processing_phase::eval_time, transform_type, core_type, float, float, float>
+		: public kernel_base<kernel_types::mul, core_type, float, float, float> {
+		using input_type01 = typename core_type::input_01_type;
+		using input_type02 = typename core_type::input_02_type;
+
+		template<bool is_power_of_2able> NIHILUS_INLINE static void process_tensor_elements(uint64_t ith, uint64_t nth, uint64_t nr, uint64_t ne01, uint64_t ne11,
+			const float* __restrict src0_data, const float* __restrict src1_data, float* __restrict dst_data) {
+		}
+
+		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t, core_type& output, const typename core_type::input_01_type& input01,
+			const typename core_type::input_02_type& input02) {
+		}
+	};
+
+	template<typename transform_type, typename core_type>
+	struct kernel_dispatcher_impl<1, kernel_types::get_rows, processing_phase::prompt_eval_time, transform_type, core_type, float, block_q8_0<half>, int32_t>
+		: public kernel_base<kernel_types::get_rows, core_type, float, block_q8_0<half>, int32_t> {
+		using input_type01 = core_type::input_01_type;
+		using input_type02 = core_type::input_02_type;
+		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
+			const typename core_type::input_02_type& input02) {
+			static constexpr uint64_t ne00					= input_type01::get_array()[0];
+			const uint64_t ne01								= input01[1];
+			static constexpr uint64_t ne02					= input_type01::get_array()[2];
+			static constexpr uint64_t ne10					= input_type02::get_array()[0];
+			const uint64_t ne11								= input02[1];
+			const uint64_t nr								= count_elements(input02);
+			const uint64_t ith								= static_cast<uint64_t>(thread_index);
+			const uint64_t nth								= static_cast<uint64_t>(thread_count);
+			const uint64_t dr								= (nr + nth - 1ull) / nth;
+			const uint64_t ir0								= dr * ith;
+			const uint64_t ir1								= detail::min(ir0 + dr, nr);
+			const block_q8_0<half>* __restrict input01_data = input01.data;
+			const int32_t* __restrict input02_data			= input02.data;
+			float* __restrict output_data					= output.data;
+			static constexpr uint64_t blocks_per_row		= ne00 / Q_SIZE;
+			static constexpr uint64_t input01_stride_dim1	= blocks_per_row;
+			const uint64_t input01_stride_dim2				= ne01 * blocks_per_row;
+			const uint64_t input01_stride_dim3				= ne01 * ne02 * blocks_per_row;
+			static constexpr uint64_t input02_stride_dim1	= 1;
+			static constexpr uint64_t input02_stride_dim2	= ne10;
+			const uint64_t input02_stride_dim3				= ne10 * ne11;
+			static constexpr uint64_t output_stride_dim1	= ne00;
+			const uint64_t output_stride_dim2				= output[1] * ne00;
+			const uint64_t output_stride_dim3				= output[1] * output[2] * ne00;
+			for (uint64_t i = ir0; i < ir1; ++i) {
+				const uint64_t i12				 = i / (ne11 * ne10);
+				const uint64_t i11				 = (i - i12 * ne11 * ne10) / ne10;
+				const uint64_t i10				 = i - i12 * ne11 * ne10 - i11 * ne10;
+				const uint64_t input02_idx		 = i10 * input02_stride_dim1 + i11 * input02_stride_dim2 + i12 * input02_stride_dim3;
+				const uint64_t token_id			 = static_cast<uint64_t>(input02_data[input02_idx]);
+				const uint64_t input01_block_idx = token_id * input01_stride_dim1 + i11 * input01_stride_dim2 + i12 * input01_stride_dim3;
+				const uint64_t output_idx		 = i10 * output_stride_dim1 + i11 * output_stride_dim2 + i12 * output_stride_dim3;
+
+				for (uint64_t j = 0; j < blocks_per_row; ++j) {
+					const uint64_t final_block_idx = input01_block_idx + j;
+
+					const block_q8_0<half>& block = input01_data[final_block_idx];
+					const float scale			  = fp16_to_fp32(block.d);
+
+					for (uint64_t k = 0; k < Q_SIZE; ++k) {
+						int8_t quant_val						 = static_cast<int8_t>(block.qs[k]);
+						float result							 = scale * static_cast<float>(quant_val);
+						output_data[output_idx + j * Q_SIZE + k] = result;
+					}
+				}
+			}
+		}
+	};
+
+	template<typename transform_type, typename core_type>
+	struct kernel_dispatcher_impl<1, kernel_types::get_rows, processing_phase::eval_time, transform_type, core_type, float, block_q8_0<half>, int32_t>
+		: public kernel_base<kernel_types::get_rows, core_type, float, block_q8_0<half>, int32_t> {
+		using input_type01 = core_type::input_01_type;
+		using input_type02 = core_type::input_02_type;
+		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
+			const typename core_type::input_02_type& input02) {
+			static constexpr uint64_t ne00					= input_type01::get_array()[0];
+			const uint64_t nr								= count_elements(input02);
+			const uint64_t ith								= static_cast<uint64_t>(thread_index);
+			const uint64_t nth								= static_cast<uint64_t>(thread_count);
+			const uint64_t dr								= (nr + nth - 1ull) / nth;
+			const uint64_t ir0								= dr * ith;
+			const uint64_t ir1								= detail::min(ir0 + dr, nr);
+			const block_q8_0<half>* __restrict input01_data = input01.data;
+			const int32_t* __restrict input02_data			= input02.data;
+			float* __restrict output_data					= output.data;
+			static constexpr uint64_t blocks_per_row		= ne00 / Q_SIZE;
+			for (uint64_t i = ir0; i < ir1; ++i) {
+				const uint64_t token_id			 = static_cast<uint64_t>(input02_data[i]);
+				const uint64_t input01_block_idx = token_id * blocks_per_row;
+				const uint64_t output_idx		 = i * ne00;
+				for (uint64_t j = 0; j < blocks_per_row; ++j) {
+					const block_q8_0<half>& block = input01_data[input01_block_idx + j];
+					const float scale			  = fp16_to_fp32(block.d);
+					for (uint64_t k = 0; k < Q_SIZE; ++k) {
+						output_data[output_idx + j * Q_SIZE + k] = scale * static_cast<float>(static_cast<int8_t>(block.qs[k]));
+					}
+				}
+			}
+		}
+	};
+
+	NIHILUS_INLINE static half fp32_to_fp16(float f) {
+		static constexpr float scale_to_inf	 = fp32_from_bits(0x77800000);
+		static constexpr float scale_to_zero = fp32_from_bits(0x08800000);
+		float base							 = (fabsf(f) * scale_to_inf) * scale_to_zero;
+
+		const uint32_t w	  = fp32_to_bits(f);
+		const uint32_t shl1_w = w + w;
+		const uint32_t sign	  = w & UINT32_C(0x80000000);
+		uint32_t bias		  = shl1_w & UINT32_C(0xFF000000);
+		if (bias < UINT32_C(0x71000000)) {
+			bias = UINT32_C(0x71000000);
+		}
+
+		base						 = fp32_from_bits((bias >> 1) + UINT32_C(0x07800000)) + base;
+		const uint32_t bits			 = fp32_to_bits(base);
+		const uint32_t exp_bits		 = (bits >> 13) & UINT32_C(0x00007C00);
+		const uint32_t mantissa_bits = bits & UINT32_C(0x00000FFF);
+		const uint32_t nonsign		 = exp_bits + mantissa_bits;
+		return (sign >> 16) | (shl1_w > UINT32_C(0xFF000000) ? UINT16_C(0x7E00) : nonsign);
+	}
+
+	NIHILUS_INLINE void quantize_row_q8_0_scalar(const float* __restrict x, block_q8_0<half>* __restrict vy, int64_t k) {
+		const int64_t nb			   = k / Q_SIZE;
+		block_q8_0<half>* __restrict y = vy;
+
+		for (int64_t i = 0; i < nb; i++) {
+			float maxAbs = 0.0f;
+			for (int64_t j = 0; j < 32; j++) {
+				float absVal = fabsf(x[j]);
+				if (absVal > maxAbs) {
+					maxAbs = absVal;
+				}
+			}
+
+			const float d = maxAbs / 127.0f;
+			y[i].d		  = fp32_to_fp16_f16c(d);
+
+			const float id = (maxAbs != 0.0f) ? 127.0f / maxAbs : 0.0f;
+
+			for (int64_t j = 0; j < 32; j++) {
+				float scaled	  = x[j] * id;
+				float rounded	  = roundf(scaled);
+				int32_t quantized = ( int32_t )rounded;
+				if (quantized > 127)
+					quantized = 127;
+				if (quantized < -128)
+					quantized = -128;
+
+				y[i].qs[j] = ( int8_t )quantized;
+			}
+
+			x += 32;
+		}
+	}
+
+	template<typename transform_type, typename core_type>
+	struct kernel_dispatcher_impl<1, kernel_types::mul_mat, processing_phase::prompt_eval_time, transform_type, core_type, float, block_q8_0<half>, float>
+		: public kernel_base<kernel_types::mul_mat, core_type, float, block_q8_0<half>, float> {
+		using input_type01			   = typename core_type::input_01_type;
+		using input_type02			   = typename core_type::input_02_type;
+		static constexpr uint64_t ne00 = input_type01::get_array()[0];
+		static constexpr uint64_t ne02 = input_type01::get_array()[2];
+		static constexpr uint64_t ne03 = input_type01::get_array()[3];
+		static constexpr uint64_t ne10 = input_type02::get_array()[0];
+		static constexpr uint64_t ne12 = input_type02::get_array()[2];
+		static constexpr uint64_t ne13 = input_type02::get_array()[3];
+		static constexpr uint64_t ne0  = core_type::get_array()[0];
+		static constexpr uint64_t ne2  = core_type::get_array()[2];
+		static constexpr uint64_t ne3  = core_type::get_array()[3];
+
+		NIHILUS_INLINE static void quantize_row_q8_0_avx2(const float* __restrict src, block_q8_0<half>* __restrict dst, uint64_t n) {
+			static constexpr uint64_t QK = Q_SIZE;
+			const uint64_t nb			 = n / QK;
+			const __m256 signBit		 = _mm256_set1_ps(-0.0f);
+
+			for (uint64_t i = 0; i < nb; i++) {
+				__m256 v0 = _mm256_loadu_ps(src + i * QK + 0);
+				__m256 v1 = _mm256_loadu_ps(src + i * QK + 8);
+				__m256 v2 = _mm256_loadu_ps(src + i * QK + 16);
+				__m256 v3 = _mm256_loadu_ps(src + i * QK + 24);
+
+				__m256 maxAbs = _mm256_andnot_ps(signBit, v0);
+				maxAbs		  = _mm256_max_ps(maxAbs, _mm256_andnot_ps(signBit, v1));
+				maxAbs		  = _mm256_max_ps(maxAbs, _mm256_andnot_ps(signBit, v2));
+				maxAbs		  = _mm256_max_ps(maxAbs, _mm256_andnot_ps(signBit, v3));
+
+				__m128 max4			  = _mm_max_ps(_mm256_extractf128_ps(maxAbs, 1), _mm256_castps256_ps128(maxAbs));
+				max4				  = _mm_max_ps(max4, _mm_movehl_ps(max4, max4));
+				max4				  = _mm_max_ss(max4, _mm_movehdup_ps(max4));
+				const float maxScalar = _mm_cvtss_f32(max4);
+
+				const float d	 = maxScalar / 127.f;
+				dst[i].d		 = fp32_to_fp16(d);
+				const float id	 = (maxScalar != 0.0f) ? 127.f / maxScalar : 0.0f;
+				const __m256 mul = _mm256_set1_ps(id);
+
+				v0 = _mm256_mul_ps(v0, mul);
+				v1 = _mm256_mul_ps(v1, mul);
+				v2 = _mm256_mul_ps(v2, mul);
+				v3 = _mm256_mul_ps(v3, mul);
+
+				v0 = _mm256_round_ps(v0, _MM_ROUND_NEAREST);
+				v1 = _mm256_round_ps(v1, _MM_ROUND_NEAREST);
+				v2 = _mm256_round_ps(v2, _MM_ROUND_NEAREST);
+				v3 = _mm256_round_ps(v3, _MM_ROUND_NEAREST);
+
+				__m256i i0 = _mm256_cvtps_epi32(v0);
+				__m256i i1 = _mm256_cvtps_epi32(v1);
+				__m256i i2 = _mm256_cvtps_epi32(v2);
+				__m256i i3 = _mm256_cvtps_epi32(v3);
+
+				i0 = _mm256_packs_epi32(i0, i1);
+				i2 = _mm256_packs_epi32(i2, i3);
+				i0 = _mm256_packs_epi16(i0, i2);
+
+				const __m256i perm = _mm256_setr_epi32(0, 4, 1, 5, 2, 6, 3, 7);
+				i0				   = _mm256_permutevar8x32_epi32(i0, perm);
+
+				_mm256_storeu_si256(( __m256i* )dst[i].qs, i0);
+			}
+		}
+
+		NIHILUS_INLINE static __m256 sum_i16_pairs_float(const __m256i x) {
+			const __m256i ones		   = _mm256_set1_epi16(1);
+			const __m256i summed_pairs = _mm256_madd_epi16(x, ones);
+			return _mm256_cvtepi32_ps(summed_pairs);
+		}
+
+		NIHILUS_INLINE static __m256 mul_sum_us8_pairs_float(const __m256i ax, const __m256i sy) {
+			const __m256i dot = _mm256_maddubs_epi16(ax, sy);
+			return sum_i16_pairs_float(dot);
+		}
+
+		NIHILUS_INLINE static __m256 mul_sum_i8_pairs_float(const __m256i x, const __m256i y) {
+			const __m256i ax = _mm256_sign_epi8(x, x);
+			const __m256i sy = _mm256_sign_epi8(y, x);
+			return mul_sum_us8_pairs_float(ax, sy);
+		}
+
+		NIHILUS_INLINE static float hsum_float_8(const __m256 x) {
+			__m256 sum128 = _mm256_add_ps(x, _mm256_permute2f128_ps(x, x, 1));
+			__m256 sum64  = _mm256_add_ps(sum128, _mm256_shuffle_ps(sum128, sum128, 0x4E));
+			__m256 sum32  = _mm256_add_ps(sum64, _mm256_shuffle_ps(sum64, sum64, 0xB1));
+			return _mm256_cvtss_f32(sum32);
+		}
+
+		NIHILUS_INLINE static void batched_vec_dot_q8_0(uint64_t n, float* __restrict results, uint64_t num_vectors, const block_q8_0<half>* __restrict weight_row,
+			const block_q8_0<half>* __restrict quantized_vectors, uint64_t vector_stride) {
+			const uint64_t nb = n / Q_SIZE;
+
+			__m256 accumulators[8];
+			const uint64_t max_batch = detail::min(num_vectors, 8ULL);
+
+			for (uint64_t vec = 0; vec < max_batch; ++vec) {
+				accumulators[vec] = _mm256_setzero_ps();
+			}
+
+			for (uint64_t ib = 0; ib < nb; ++ib) {
+				const __m256 weight_scale = _mm256_set1_ps(fp16_to_fp32(weight_row[ib].d));
+				__m256i weight_q		  = _mm256_loadu_si256(( const __m256i* )weight_row[ib].qs);
+
+				for (uint64_t vec = 0; vec < max_batch; ++vec) {
+					const block_q8_0<half>* input_block = &quantized_vectors[vec * vector_stride + ib];
+					const __m256 combined_scale			= _mm256_mul_ps(weight_scale, _mm256_set1_ps(fp16_to_fp32(input_block->d)));
+
+					__m256i input_q = _mm256_loadu_si256(( const __m256i* )input_block->qs);
+					const __m256 q	= mul_sum_i8_pairs_float(weight_q, input_q);
+
+					accumulators[vec] = _mm256_fmadd_ps(combined_scale, q, accumulators[vec]);
+				}
+			}
+
+			for (uint64_t vec = 0; vec < max_batch; ++vec) {
+				results[vec] = hsum_float_8(accumulators[vec]);
+			}
+
+			for (uint64_t vec = max_batch; vec < num_vectors; ++vec) {
+				vec_dot_q8_0_q8_0(n, &results[vec], weight_row, &quantized_vectors[vec * vector_stride]);
+			}
+		}
+
+		NIHILUS_INLINE static void vec_dot_q8_0_q8_0(uint64_t n, float* __restrict s, const block_q8_0<half>* __restrict x, const block_q8_0<half>* __restrict y) {
+			const uint64_t nb = n / Q_SIZE;
+			uint64_t ib		  = 0;
+			float sumf		  = 0;
+
+			__m256 acc = _mm256_setzero_ps();
+			for (; ib < nb; ++ib) {
+				const __m256 d = _mm256_set1_ps(fp16_to_fp32(x[ib].d) * fp16_to_fp32(y[ib].d));
+				__m256i qx	   = _mm256_loadu_si256(( const __m256i* )x[ib].qs);
+				__m256i qy	   = _mm256_loadu_si256(( const __m256i* )y[ib].qs);
+				const __m256 q = mul_sum_i8_pairs_float(qx, qy);
+				acc			   = _mm256_fmadd_ps(d, q, acc);
+			}
+			sumf = hsum_float_8(acc);
+			for (; ib < nb; ++ib) {
+				int64_t sumi = 0;
+				for (int64_t j = 0; j < Q_SIZE; j++) {
+					sumi += x[ib].qs[j] * y[ib].qs[j];
+				}
+				sumf += sumi * (fp16_to_fp32(x[ib].d) * fp16_to_fp32(y[ib].d));
+			}
+			*s = sumf;
+		}
+
+		NIHILUS_INLINE static void compute_chunk(int64_t ir0_start, int64_t ir0_end, int64_t ir1_start, int64_t ir1_end, const block_q8_0<half>* __restrict src01,
+			const block_q8_0<half>* __restrict quantized_input, float* __restrict dst, uint64_t ne01, uint64_t ne11) {
+			using output_transform							   = typename core_type::transform_type;
+			static constexpr uint64_t blocks_per_row		   = ne00 / Q_SIZE;
+			static constexpr uint64_t quantized_blocks_per_col = ne10 / Q_SIZE;
+
+			const int64_t blck_0 = 32;
+			const int64_t blck_1 = 32;
+
+			alignas(64) float tmp[32 * 8];
+
+			for (int64_t iir1 = ir1_start; iir1 < ir1_end; iir1 += blck_1) {
+				for (int64_t iir0 = ir0_start; iir0 < ir0_end; iir0 += blck_0) {
+					for (int64_t ir0 = iir0; ir0 < iir0 + blck_0 && ir0 < ir0_end; ++ir0) {
+						const uint64_t num_vectors = detail::min(static_cast<uint64_t>(ir1_end - iir1), static_cast<uint64_t>(blck_1));
+
+						batched_vec_dot_q8_0(ne00, &tmp[(ir0 - iir0) * 8], num_vectors, &src01[ir0 * blocks_per_row], &quantized_input[iir1 * quantized_blocks_per_col],
+							quantized_blocks_per_col);
+					}
+
+					for (int64_t ir1 = iir1; ir1 < iir1 + blck_1 && ir1 < ir1_end; ++ir1) {
+						for (int64_t ir0 = iir0; ir0 < iir0 + blck_0 && ir0 < ir0_end; ++ir0) {
+							const uint64_t vec_idx							  = ir1 - iir1;
+							dst[output_transform::impl(ir0, ir1, ne01, ne11)] = tmp[(ir0 - iir0) * 8 + vec_idx];
+						}
+					}
+				}
+			}
+		}
+
+		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
+			const typename core_type::input_02_type& input02) {
+			const uint64_t ne01 = input01[1];
+			const uint64_t ne11 = input02[1];
+
+			const block_q8_0<half>* src01;
+			if constexpr (array_types<decltype(input01.data)>) {
+				src01 = input01.data[current_block];
+			} else {
+				src01 = input01.data;
+			}
+			const float* src02 = input02.data;
+			float* dst		   = output.data;
+			static constexpr uint64_t block_size{ 16 * 32 };
+			const uint64_t total_byte_size{ type_traits<int32_t>::total_byte_size(input01) };
+			const uint64_t output_size		  = ne01 * ne11;
+			block_q8_0<half>* quantized_input = reinterpret_cast<block_q8_0<half>*>(dst + output_size);
+		}
+	};
+
+	template<typename transform_type, typename core_type>
+	struct kernel_dispatcher_impl<1, kernel_types::mul_mat, processing_phase::eval_time, transform_type, core_type, float, block_q8_0<half>, float>
+		: public kernel_base<kernel_types::mul_mat, core_type, float, block_q8_0<half>, float> {
+		using input_type01			   = typename core_type::input_01_type;
+		using input_type02			   = typename core_type::input_02_type;
+		static constexpr uint64_t ne00 = input_type01::get_array()[0];
+		static constexpr uint64_t ne02 = input_type01::get_array()[2];
+		static constexpr uint64_t ne03 = input_type01::get_array()[3];
+		static constexpr uint64_t ne10 = input_type02::get_array()[0];
+		static constexpr uint64_t ne12 = input_type02::get_array()[2];
+		static constexpr uint64_t ne13 = input_type02::get_array()[3];
+		static constexpr uint64_t ne0  = core_type::get_array()[0];
+		static constexpr uint64_t ne2  = core_type::get_array()[2];
+		static constexpr uint64_t ne3  = core_type::get_array()[3];
+
+		NIHILUS_INLINE static __m256 sum_i16_pairs_float(const __m256i x) {
+			const __m256i ones		   = _mm256_set1_epi16(1);
+			const __m256i summed_pairs = _mm256_madd_epi16(x, ones);
+			return _mm256_cvtepi32_ps(summed_pairs);
+		}
+
+		NIHILUS_INLINE static __m256 mul_sum_us8_pairs_float(const __m256i ax, const __m256i sy) {
+			const __m256i dot = _mm256_maddubs_epi16(ax, sy);
+			return sum_i16_pairs_float(dot);
+		}
+
+		NIHILUS_INLINE static __m256 mul_sum_i8_pairs_float(const __m256i x, const __m256i y) {
+			const __m256i ax = _mm256_sign_epi8(x, x);
+			const __m256i sy = _mm256_sign_epi8(y, x);
+			return mul_sum_us8_pairs_float(ax, sy);
+		}
+
+		NIHILUS_INLINE static float hsum_float_8(const __m256 x) {
+			__m256 sum128 = _mm256_add_ps(x, _mm256_permute2f128_ps(x, x, 1));
+			__m256 sum64  = _mm256_add_ps(sum128, _mm256_shuffle_ps(sum128, sum128, 0x4E));
+			__m256 sum32  = _mm256_add_ps(sum64, _mm256_shuffle_ps(sum64, sum64, 0xB1));
+			return _mm256_cvtss_f32(sum32);
+		}
+
+		NIHILUS_INLINE static void quantize_row_q8_0_avx2(const float* __restrict src, block_q8_0<half>* __restrict dst, uint64_t n) {
+			static constexpr uint64_t QK = Q_SIZE;
+			const uint64_t nb			 = n / QK;
+			const __m256 signBit		 = _mm256_set1_ps(-0.0f);
+
+			for (uint64_t i = 0; i < nb; i++) {
+				__m256 v0 = _mm256_loadu_ps(src + i * QK + 0);
+				__m256 v1 = _mm256_loadu_ps(src + i * QK + 8);
+				__m256 v2 = _mm256_loadu_ps(src + i * QK + 16);
+				__m256 v3 = _mm256_loadu_ps(src + i * QK + 24);
+
+				__m256 maxAbs = _mm256_andnot_ps(signBit, v0);
+				maxAbs		  = _mm256_max_ps(maxAbs, _mm256_andnot_ps(signBit, v1));
+				maxAbs		  = _mm256_max_ps(maxAbs, _mm256_andnot_ps(signBit, v2));
+				maxAbs		  = _mm256_max_ps(maxAbs, _mm256_andnot_ps(signBit, v3));
+
+				__m128 max4			  = _mm_max_ps(_mm256_extractf128_ps(maxAbs, 1), _mm256_castps256_ps128(maxAbs));
+				max4				  = _mm_max_ps(max4, _mm_movehl_ps(max4, max4));
+				max4				  = _mm_max_ss(max4, _mm_movehdup_ps(max4));
+				const float maxScalar = _mm_cvtss_f32(max4);
+
+				const float d	 = maxScalar / 127.f;
+				dst[i].d		 = fp32_to_fp16(d);
+				const float id	 = (maxScalar != 0.0f) ? 127.f / maxScalar : 0.0f;
+				const __m256 mul = _mm256_set1_ps(id);
+
+				v0 = _mm256_mul_ps(v0, mul);
+				v1 = _mm256_mul_ps(v1, mul);
+				v2 = _mm256_mul_ps(v2, mul);
+				v3 = _mm256_mul_ps(v3, mul);
+
+				v0 = _mm256_round_ps(v0, _MM_ROUND_NEAREST);
+				v1 = _mm256_round_ps(v1, _MM_ROUND_NEAREST);
+				v2 = _mm256_round_ps(v2, _MM_ROUND_NEAREST);
+				v3 = _mm256_round_ps(v3, _MM_ROUND_NEAREST);
+
+				__m256i i0 = _mm256_cvtps_epi32(v0);
+				__m256i i1 = _mm256_cvtps_epi32(v1);
+				__m256i i2 = _mm256_cvtps_epi32(v2);
+				__m256i i3 = _mm256_cvtps_epi32(v3);
+
+				i0 = _mm256_packs_epi32(i0, i1);
+				i2 = _mm256_packs_epi32(i2, i3);
+				i0 = _mm256_packs_epi16(i0, i2);
+
+				const __m256i perm = _mm256_setr_epi32(0, 4, 1, 5, 2, 6, 3, 7);
+				i0				   = _mm256_permutevar8x32_epi32(i0, perm);
+
+				_mm256_storeu_si256(( __m256i* )dst[i].qs, i0);
+			}
+		}
+
+		NIHILUS_INLINE static void vec_dot_q8_0_q8_0_optimized(uint64_t n, float* __restrict s, const block_q8_0<half>* __restrict x, const block_q8_0<half>* __restrict y) {
+			const uint64_t nb = n / Q_SIZE;
+			float sumf		  = 0.0f;
+
+			__m256 acc1				  = _mm256_setzero_ps();
+			__m256 acc2				  = _mm256_setzero_ps();
+			const uint64_t unroll_end = (nb / 2) * 2;
+
+			for (uint64_t ib = 0; ib < unroll_end; ib += 2) {
+				const __m256 d1 = _mm256_set1_ps(fp16_to_fp32(x[ib].d) * fp16_to_fp32(y[ib].d));
+				const __m256 d2 = _mm256_set1_ps(fp16_to_fp32(x[ib + 1].d) * fp16_to_fp32(y[ib + 1].d));
+
+				__m256i qx1 = _mm256_loadu_si256(( const __m256i* )x[ib].qs);
+				__m256i qy1 = _mm256_loadu_si256(( const __m256i* )y[ib].qs);
+				__m256i qx2 = _mm256_loadu_si256(( const __m256i* )x[ib + 1].qs);
+				__m256i qy2 = _mm256_loadu_si256(( const __m256i* )y[ib + 1].qs);
+
+				const __m256 q1 = mul_sum_i8_pairs_float(qx1, qy1);
+				const __m256 q2 = mul_sum_i8_pairs_float(qx2, qy2);
+
+				acc1 = _mm256_fmadd_ps(d1, q1, acc1);
+				acc2 = _mm256_fmadd_ps(d2, q2, acc2);
+			}
+
+			acc1 = _mm256_add_ps(acc1, acc2);
+			sumf = hsum_float_8(acc1);
+
+			for (uint64_t ib = unroll_end; ib < nb; ++ib) {
+				const __m256 d = _mm256_set1_ps(fp16_to_fp32(x[ib].d) * fp16_to_fp32(y[ib].d));
+				__m256i qx	   = _mm256_loadu_si256(( const __m256i* )x[ib].qs);
+				__m256i qy	   = _mm256_loadu_si256(( const __m256i* )y[ib].qs);
+				const __m256 q = mul_sum_i8_pairs_float(qx, qy);
+				acc1		   = _mm256_fmadd_ps(d, q, acc1);
+			}
+
+			if (unroll_end < nb) {
+				sumf += hsum_float_8(acc1);
+			}
+			*s = sumf;
+		}
+
+		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
+			const typename core_type::input_02_type& input02) {
+			const uint64_t ne01 = input01[1];
+
+			const block_q8_0<half>* src01;
+			if constexpr (array_types<decltype(input01.data)>) {
+				src01 = input01.data[current_block];
+			} else {
+				src01 = input01.data;
+			}
+			const float* src02 = input02.data;
+			float* dst		   = output.data;
+
+			const uint64_t output_size		  = ne01;
+			block_q8_0<half>* quantized_input = reinterpret_cast<block_q8_0<half>*>(dst + output_size);
+
+			static constexpr uint64_t blocks_per_row		   = ne00 / Q_SIZE;
+			static constexpr uint64_t quantized_blocks_per_col = ne10 / Q_SIZE;
+
+			const uint64_t ith = static_cast<uint64_t>(thread_index);
+			const uint64_t nth = static_cast<uint64_t>(thread_count);
+
+			if (ith == 0) {
+				quantize_row_q8_0_avx2(src02, quantized_input, ne10);
+			}
+
+			const uint64_t sync_ith = output.current_chunk[current_block].fetch_add(1);
+			if (sync_ith < nth - 1) {
+				output.current_chunk[current_block].hybrid_wait(nth);
+			} else {
+				output.current_chunk[current_block].store(nth);
+				output.current_chunk[current_block].notify_all();
+			}
+
+			const uint64_t rows_per_thread = (ne01 + nth - 1) / nth;
+			const uint64_t row_start	   = ith * rows_per_thread;
+			const uint64_t row_end		   = detail::min(row_start + rows_per_thread, ne01);
+
+			for (uint64_t ir0 = row_start; ir0 < row_end; ++ir0) {
+				vec_dot_q8_0_q8_0_optimized(ne00, &dst[ir0], &src01[ir0 * blocks_per_row], quantized_input);
+			}
+		}
+	};
+
+	template<typename transform_type, typename core_type>
+	struct kernel_dispatcher_impl<1, kernel_types::mul_mat, processing_phase::prompt_eval_time, transform_type, core_type, float, half, float>
+		: public kernel_base<kernel_types::mul_mat, core_type, float, half, float> {
+		using input_type01			   = typename core_type::input_01_type;
+		using input_type02			   = typename core_type::input_02_type;
+		static constexpr uint64_t ne00 = input_type01::get_array()[0];
+		static constexpr uint64_t ne02 = input_type01::get_array()[2];
+		static constexpr uint64_t ne03 = input_type01::get_array()[3];
+		static constexpr uint64_t ne10 = input_type02::get_array()[0];
+		static constexpr uint64_t ne12 = input_type02::get_array()[2];
+		static constexpr uint64_t ne13 = input_type02::get_array()[3];
+		static constexpr uint64_t ne0  = core_type::get_array()[0];
+		static constexpr uint64_t ne2  = core_type::get_array()[2];
+		static constexpr uint64_t ne3  = core_type::get_array()[3];
+
+		NIHILUS_INLINE static float hsum_float_8(const __m256 x) {
+			__m256 sum128 = _mm256_add_ps(x, _mm256_permute2f128_ps(x, x, 1));
+			__m256 sum64  = _mm256_add_ps(sum128, _mm256_shuffle_ps(sum128, sum128, 0x4E));
+			__m256 sum32  = _mm256_add_ps(sum64, _mm256_shuffle_ps(sum64, sum64, 0xB1));
+			return _mm256_cvtss_f32(sum32);
+		}
+
+		NIHILUS_INLINE static void batched_vec_dot_f16(uint64_t n, float* __restrict results, uint64_t num_vectors, const half* __restrict weight_row,
+			const float* __restrict input_vectors, uint64_t vector_stride) {
+			__m256 accumulators[8];
+			const uint64_t max_batch = detail::min(num_vectors, 8ULL);
+			const uint64_t simd_end	 = (n / 8) * 8;
+
+			for (uint64_t vec = 0; vec < max_batch; ++vec) {
+				accumulators[vec] = _mm256_setzero_ps();
+			}
+
+			for (uint64_t i = 0; i < simd_end; i += 8) {
+				__m128i weight_half = _mm_loadu_si128(( const __m128i* )(weight_row + i));
+				__m256 weights		= _mm256_cvtph_ps(weight_half);
+
+				for (uint64_t vec = 0; vec < max_batch; ++vec) {
+					__m256 inputs	  = _mm256_loadu_ps(input_vectors + vec * vector_stride + i);
+					accumulators[vec] = _mm256_fmadd_ps(weights, inputs, accumulators[vec]);
+				}
+			}
+
+			for (uint64_t vec = 0; vec < max_batch; ++vec) {
+				float sum = hsum_float_8(accumulators[vec]);
+
+				for (uint64_t i = simd_end; i < n; ++i) {
+					sum += fp16_to_fp32(weight_row[i]) * input_vectors[vec * vector_stride + i];
+				}
+				results[vec] = sum;
+			}
+
+			for (uint64_t vec = max_batch; vec < num_vectors; ++vec) {
+				vec_dot_f16_f32(n, &results[vec], weight_row, &input_vectors[vec * vector_stride]);
+			}
+		}
+
+		NIHILUS_INLINE static void vec_dot_f16_f32(uint64_t n, float* __restrict s, const half* __restrict x, const float* __restrict y) {
+			float sumf = 0.0f;
+			__m256 acc				= _mm256_setzero_ps();
+			const uint64_t simd_end = (n / 8) * 8;
+
+			for (uint64_t i = 0; i < simd_end; i += 8) {
+				__m128i x_half = _mm_loadu_si128(( const __m128i* )(x + i));
+				__m256 x_float = _mm256_cvtph_ps(x_half);
+				__m256 y_vec   = _mm256_loadu_ps(y + i);
+				acc			   = _mm256_fmadd_ps(x_float, y_vec, acc);
+			}
+
+			sumf = hsum_float_8(acc);
+
+			for (uint64_t i = simd_end; i < n; ++i) {
+				sumf += fp16_to_fp32(x[i]) * y[i];
+			}
+			*s = sumf;
+		}
+
+		NIHILUS_INLINE static void compute_chunk(int64_t ir0_start, int64_t ir0_end, int64_t ir1_start, int64_t ir1_end, const half* __restrict src01, const float* __restrict src02,
+			float* __restrict dst, uint64_t ne01, uint64_t ne11) {
+			using output_transform = typename core_type::transform_type;
+
+			const int64_t blck_0 = 32;
+			const int64_t blck_1 = 32;
+
+			alignas(64) float tmp[32 * 8];
+
+			for (int64_t iir1 = ir1_start; iir1 < ir1_end; iir1 += blck_1) {
+				for (int64_t iir0 = ir0_start; iir0 < ir0_end; iir0 += blck_0) {
+					for (int64_t ir0 = iir0; ir0 < iir0 + blck_0 && ir0 < ir0_end; ++ir0) {
+						const uint64_t num_vectors = detail::min(static_cast<uint64_t>(ir1_end - iir1), static_cast<uint64_t>(blck_1));
+
+						batched_vec_dot_f16(ne00, &tmp[(ir0 - iir0) * 8], num_vectors, &src01[ir0 * ne00], &src02[iir1 * ne10], ne10);
+					}
+
+					for (int64_t ir1 = iir1; ir1 < iir1 + blck_1 && ir1 < ir1_end; ++ir1) {
+						for (int64_t ir0 = iir0; ir0 < iir0 + blck_0 && ir0 < ir0_end; ++ir0) {
+							const uint64_t vec_idx							  = ir1 - iir1;
+							dst[output_transform::impl(ir0, ir1, ne01, ne11)] = tmp[(ir0 - iir0) * 8 + vec_idx];
+						}
+					}
+				}
+			}
+		}
+
+		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
+			const typename core_type::input_02_type& input02) {
+			const uint64_t ne01 = input01[1];
+			const uint64_t ne11 = input02[1];
+
+			const half* src01;
+			if constexpr (array_types<decltype(input01.data)>) {
+				src01 = input01.data[current_block];
+			} else {
+				src01 = input01.data;
+			}
+			const float* src02 = input02.data;
+			float* dst		   = output.data;
+
+			const uint64_t ith = static_cast<uint64_t>(thread_index);
+			const uint64_t nth = static_cast<uint64_t>(thread_count);
+
+			const int64_t nr0 = ne01;
+			const int64_t nr1 = ne11;
+
+			const int64_t chunk_size = (nr0 == 1 || nr1 == 1) ? 64 : 16;
+
+			int64_t nchunk0 = (nr0 + chunk_size - 1) / chunk_size;
+			int64_t nchunk1 = (nr1 + chunk_size - 1) / chunk_size;
+
+			if (nchunk0 * nchunk1 < nth * 4) {
+				nchunk0 = nr0 > nr1 ? nth : 1;
+				nchunk1 = nr0 > nr1 ? 1 : nth;
+			}
+
+			const int64_t dr0 = (nr0 + nchunk0 - 1) / nchunk0;
+			const int64_t dr1 = (nr1 + nchunk1 - 1) / nchunk1;
+
+			int64_t current_chunk_local = ith;
+
+			while (current_chunk_local < nchunk0 * nchunk1) {
+				const int64_t ith0 = current_chunk_local % nchunk0;
+				const int64_t ith1 = current_chunk_local / nchunk0;
+
+				const int64_t ir0_start = dr0 * ith0;
+				const int64_t ir0_end	= detail::min(ir0_start + dr0, nr0);
+
+				const int64_t ir1_start = dr1 * ith1;
+				const int64_t ir1_end	= detail::min(ir1_start + dr1, nr1);
+
+				compute_chunk(ir0_start, ir0_end, ir1_start, ir1_end, src01, src02, dst, ne01, ne11);
+
+				if (nth >= nchunk0 * nchunk1) {
+					break;
+				}
+
+				current_chunk_local = output.current_chunk[current_block].fetch_add(1);
+			}
+		}
+	};
+
+	template<typename transform_type, typename core_type>
+	struct kernel_dispatcher_impl<1, kernel_types::mul_mat, processing_phase::eval_time, transform_type, core_type, float, half, float>
+		: public kernel_base<kernel_types::mul_mat, core_type, float, half, float> {
+		using input_type01			   = typename core_type::input_01_type;
+		using input_type02			   = typename core_type::input_02_type;
+		static constexpr uint64_t ne00 = input_type01::get_array()[0];
+		static constexpr uint64_t ne02 = input_type01::get_array()[2];
+		static constexpr uint64_t ne03 = input_type01::get_array()[3];
+		static constexpr uint64_t ne10 = input_type02::get_array()[0];
+		static constexpr uint64_t ne12 = input_type02::get_array()[2];
+		static constexpr uint64_t ne13 = input_type02::get_array()[3];
+		static constexpr uint64_t ne0  = core_type::get_array()[0];
+		static constexpr uint64_t ne2  = core_type::get_array()[2];
+		static constexpr uint64_t ne3  = core_type::get_array()[3];
+
+		NIHILUS_INLINE static float hsum_float_8(const __m256 x) {
+			__m256 sum128 = _mm256_add_ps(x, _mm256_permute2f128_ps(x, x, 1));
+			__m256 sum64  = _mm256_add_ps(sum128, _mm256_shuffle_ps(sum128, sum128, 0x4E));
+			__m256 sum32  = _mm256_add_ps(sum64, _mm256_shuffle_ps(sum64, sum64, 0xB1));
+			return _mm256_cvtss_f32(sum32);
+		}
+
+		NIHILUS_INLINE static void vec_dot_f16_f32_optimized(uint64_t n, float* __restrict s, const half* __restrict x, const float* __restrict y) {
+			float sumf = 0.0f;
+
+			__m256 acc1				= _mm256_setzero_ps();
+			__m256 acc2				= _mm256_setzero_ps();
+			const uint64_t simd_end = (n / 16) * 16;
+
+			for (uint64_t i = 0; i < simd_end; i += 16) {
+				__m128i x_half1 = _mm_loadu_si128(( const __m128i* )(x + i));
+				__m128i x_half2 = _mm_loadu_si128(( const __m128i* )(x + i + 8));
+				__m256 x_float1 = _mm256_cvtph_ps(x_half1);
+				__m256 x_float2 = _mm256_cvtph_ps(x_half2);
+				__m256 y_vec1	= _mm256_loadu_ps(y + i);
+				__m256 y_vec2	= _mm256_loadu_ps(y + i + 8);
+				acc1			= _mm256_fmadd_ps(x_float1, y_vec1, acc1);
+				acc2			= _mm256_fmadd_ps(x_float2, y_vec2, acc2);
+			}
+
+			acc1 = _mm256_add_ps(acc1, acc2);
+			sumf = hsum_float_8(acc1);
+
+			for (uint64_t i = simd_end; i < n; ++i) {
+				sumf += fp16_to_fp32(x[i]) * y[i];
+			}
+			*s = sumf;
+		}
+
+		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
+			const typename core_type::input_02_type& input02) {
+			const uint64_t ne01 = input01[1];
+
+			const half* src01;
+			if constexpr (array_types<decltype(input01.data)>) {
+				src01 = input01.data[current_block];
+			} else {
+				src01 = input01.data;
+			}
+			const float* src02 = input02.data;
+			float* dst		   = output.data;
+
+			const uint64_t ith = static_cast<uint64_t>(thread_index);
+			const uint64_t nth = static_cast<uint64_t>(thread_count);
+
+			const uint64_t rows_per_thread = (ne01 + nth - 1) / nth;
+			const uint64_t row_start	   = ith * rows_per_thread;
+			const uint64_t row_end		   = detail::min(row_start + rows_per_thread, ne01);
+
+			for (uint64_t ir0 = row_start; ir0 < row_end; ++ir0) {
+				vec_dot_f16_f32_optimized(ne00, &dst[ir0], &src01[ir0 * ne00], src02);
+			}
+		}
+	};
+
+	template<typename transform_type, typename core_type>
+	struct kernel_dispatcher_impl<1, kernel_types::softmax, processing_phase::prompt_eval_time, transform_type, core_type, float, float, float>
+		: public kernel_base<kernel_types::softmax, core_type, float, float, float> {
+		using input_type01 = typename core_type::input_01_type;
+		using input_type02 = typename core_type::input_02_type;
+
+		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
+			const typename core_type::input_02_type& input02) {
+		}
+	};
+
+	template<typename transform_type, typename core_type>
+	struct kernel_dispatcher_impl<1, kernel_types::softmax, processing_phase::eval_time, transform_type, core_type, float, float, float>
+		: public kernel_base<kernel_types::softmax, core_type, float, float, float> {
+		using input_type01 = typename core_type::input_01_type;
+		using input_type02 = typename core_type::input_02_type;
+
+		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
+			const typename core_type::input_02_type& input02) {
+		}
+	};
+
+	template<typename transform_type, typename core_type>
+	struct kernel_dispatcher_impl<1, kernel_types::rope, processing_phase::prompt_eval_time, transform_type, core_type, float, float, int32_t, float>
+		: public kernel_base<kernel_types::rope, core_type, float, float, int32_t, float> {
+		using input_type01 = typename core_type::input_01_type;
+		using input_type02 = typename core_type::input_02_type;
+		using input_type03 = typename core_type::input_03_type;
+
+		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
+			const typename core_type::input_02_type& input02, const typename core_type::input_03_type& input03) {
+			const float* __restrict src_data		  = input01.data;
+			const int32_t* pos_data					  = input02.data;
+			const float* __restrict freq_scaling_data = input03.data;
+			float* __restrict dst_data				  = output.data;
+		}
+	};
+
+	template<typename transform_type, typename core_type>
+	struct kernel_dispatcher_impl<1, kernel_types::rope, processing_phase::eval_time, transform_type, core_type, float, float, int32_t, float>
+		: public kernel_base<kernel_types::rope, core_type, float, float, int32_t, float> {
+		using input_type01 = typename core_type::input_01_type;
+		using input_type02 = typename core_type::input_02_type;
+		using input_type03 = typename core_type::input_03_type;
+
+		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
+			const typename core_type::input_02_type& input02, const typename core_type::input_03_type& input03) {
+		}
+	};
+
+	template<typename transform_type, typename core_type>
+	struct kernel_dispatcher_impl<1, kernel_types::get_rows, processing_phase::prompt_eval_time, transform_type, core_type, float, float, int32_t>
+		: public kernel_base<kernel_types::get_rows, core_type, float, float, int32_t> {
+		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
+			const typename core_type::input_02_type& input02) {
+		}
+	};
+
+	template<typename transform_type, typename core_type>
+	struct kernel_dispatcher_impl<1, kernel_types::get_rows, processing_phase::eval_time, transform_type, core_type, float, float, int32_t>
+		: public kernel_base<kernel_types::get_rows, core_type, float, float, int32_t> {
+		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
+			const typename core_type::input_02_type& input02) {
+		}
+	};
+
+	template<typename transform_type, typename core_type>
+	struct kernel_dispatcher_impl<1, kernel_types::silu, processing_phase::prompt_eval_time, transform_type, core_type, float, float>
+		: public kernel_base<kernel_types::silu, core_type, float, float> {
+		NIHILUS_INLINE static void impl(int64_t, int64_t, int64_t, core_type&, const typename core_type::input_01_type&) {
+		}
+	};
+
+	template<typename transform_type, typename core_type> struct kernel_dispatcher_impl<1, kernel_types::silu, processing_phase::eval_time, transform_type, core_type, float, float>
+		: public kernel_base<kernel_types::silu, core_type, float, float> {
+		NIHILUS_INLINE static void impl(int64_t, int64_t, int64_t, core_type&, const typename core_type::input_01_type&) {
+		}
+	};
+
+	template<typename transform_type, typename core_type>
+	struct kernel_dispatcher_impl<1, kernel_types::copy, processing_phase::prompt_eval_time, transform_type, core_type, half, half, float>
+		: public kernel_base<kernel_types::copy, core_type, half, half, float> {
+		using input_type01 = typename core_type::input_01_type;
+		using input_type02 = typename core_type::input_02_type;
+
+		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
+			const typename core_type::input_02_type& input02) {
+		}
+	};
+
+	template<typename transform_type, typename core_type>
+	struct kernel_dispatcher_impl<1, kernel_types::copy, processing_phase::eval_time, transform_type, core_type, half, half, float>
+		: public kernel_base<kernel_types::copy, core_type, half, half, float> {
+		using input_type01 = typename core_type::input_01_type;
+		using input_type02 = typename core_type::input_02_type;
+
+		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
+			const typename core_type::input_02_type& input02) {
+		}
+	};
+
+	template<typename transform_type, typename core_type>
+	struct kernel_dispatcher_impl<1, kernel_types::copy, processing_phase::prompt_eval_time, transform_type, core_type, float, float>
+		: public kernel_base<kernel_types::copy, core_type, float, float> {
+		using input_type01 = typename core_type::input_01_type;
+
+		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01) {
+		}
+	};
+
+	template<typename transform_type, typename core_type> struct kernel_dispatcher_impl<1, kernel_types::copy, processing_phase::eval_time, transform_type, core_type, float, float>
+		: public kernel_base<kernel_types::copy, core_type, float, float> {
+		using input_type01 = typename core_type::input_01_type;
+
+		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01) {
+		}
+	};
+
+	template<typename transform_type, typename core_type>
+	struct kernel_dispatcher_impl<1, kernel_types::cont, processing_phase::prompt_eval_time, transform_type, core_type, float, float>
+		: public kernel_base<kernel_types::cont, core_type, float, float> {
+		using input_type01 = typename core_type::input_01_type;
+
+		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01) {
+		}
+	};
+
+	template<typename transform_type, typename core_type> struct kernel_dispatcher_impl<1, kernel_types::cont, processing_phase::eval_time, transform_type, core_type, float, float>
+		: public kernel_base<kernel_types::cont, core_type, float, float> {
+		using input_type01 = typename core_type::input_01_type;
+
+		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01) {
+		}
+	};
+
+	/*
 
 	template<uint64_t size_new> struct vec_add_rms_norm_f32 {};
 
@@ -1728,7 +3117,7 @@ namespace nihilus {
 		}
 	};
 
-	NIHILUS_INLINE static half fp32_to_fp16(float f) {
+	NIHILUS_INLINE static half fp32_to_fp16_f16c(float f) {
 		static constexpr float scale_to_inf	 = fp32_from_bits(0x77800000);
 		static constexpr float scale_to_zero = fp32_from_bits(0x08800000);
 		float base							 = (fabsf(f) * scale_to_inf) * scale_to_zero;
@@ -1771,7 +3160,7 @@ namespace nihilus {
 			const float maxScalar = _mm_cvtss_f32(max4);
 
 			const float d	 = maxScalar / 127.f;
-			y[i].d			 = fp32_to_fp16(d);
+			y[i].d			 = fp32_to_fp16_f16c(d);
 			const float id	 = (maxScalar != 0.0f) ? 127.f / maxScalar : 0.0f;
 			const __m256 mul = _mm256_set1_ps(id);
 
@@ -2059,14 +3448,14 @@ namespace nihilus {
 		}
 	};
 
-	NIHILUS_INLINE void vec_dot_q8_0_q8_0_impl(int n, float* __restrict s, const block_q8_0<half>* __restrict vx, const block_q8_0<half>* __restrict vy) {
-		static constexpr int qk = Q_SIZE;
-		const int nb			= n / qk;
+	NIHILUS_INLINE void vec_dot_q8_0_q8_0_impl(int64_t n, float* __restrict s, const block_q8_0<half>* __restrict vx, const block_q8_0<half>* __restrict vy) {
+		static constexpr int64_t qk = Q_SIZE;
+		const int64_t nb			= n / qk;
 
 		const block_q8_0<half>* __restrict x = vx;
 		const block_q8_0<half>* __restrict y = vy;
 
-		int ib	   = 0;
+		int64_t ib	   = 0;
 		float sumf = 0;
 		__m256 acc = _mm256_setzero_ps();
 		for (; ib < nb; ++ib) {
@@ -2080,9 +3469,9 @@ namespace nihilus {
 
 		sumf = hsum_float_8(acc);
 		for (; ib < nb; ++ib) {
-			int sumi = 0;
+			int64_t sumi = 0;
 
-			for (int j = 0; j < qk; j++) {
+			for (int64_t j = 0; j < qk; j++) {
 				sumi += x[ib].qs[j] * y[ib].qs[j];
 			}
 
@@ -2377,7 +3766,7 @@ namespace nihilus {
 						}
 					}
 				}
-			}*/
+			}
 		}
 	};
 
@@ -2389,7 +3778,6 @@ namespace nihilus {
 
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
 			const typename core_type::input_02_type& input02) {
-			/*
 			static constexpr uint64_t ne00 = input_type01::get_array()[0];
 			const uint64_t ne01			   = input01[1];
 			static constexpr uint64_t ne02 = input_type01::get_array()[2];
@@ -2441,7 +3829,7 @@ namespace nihilus {
 						}
 					}
 				}
-			}*/
+			}
 		}
 	};
 
@@ -2453,7 +3841,6 @@ namespace nihilus {
 
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
 			const typename core_type::input_02_type& input02) {
-			/*
 			static constexpr uint64_t ne00 = input_type01::get_array()[0];
 			static constexpr uint64_t ne01 = input_type01::get_array()[1];
 			static constexpr uint64_t ne02 = input_type01::get_array()[2];
@@ -2467,7 +3854,7 @@ namespace nihilus {
 
 			for (uint64_t i = 0; i < total_elements; ++i) {
 				dst_data[i] = src_data[i];
-			}*/
+			}
 		}
 	};
 
@@ -2532,7 +3919,6 @@ namespace nihilus {
 
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
 			const typename core_type::input_02_type& input02, const typename core_type::input_03_type& input03) {
-			/*
 			const float* __restrict src_data		  = input01.data;
 			const int32_t* pos_data					  = input02.data;
 			const float* __restrict freq_scaling_data = input03.data;
@@ -2588,7 +3974,7 @@ namespace nihilus {
 						}
 					}
 				}
-			}*/
+			}
 		}
 	};
 
@@ -2598,7 +3984,6 @@ namespace nihilus {
 		using input_type01 = typename core_type::input_01_type;
 
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01) {
-			/*
 			static constexpr uint64_t ne00 = input_type01::get_array()[0];
 			static constexpr uint64_t ne01 = input_type01::get_array()[1];
 			static constexpr uint64_t ne02 = input_type01::get_array()[2];
@@ -2612,7 +3997,7 @@ namespace nihilus {
 
 			for (uint64_t i = 0; i < total_elements; ++i) {
 				dst_data[i] = src_data[i];
-			}*/
+			}
 		}
 	};
 
@@ -2622,7 +4007,6 @@ namespace nihilus {
 		using input_type01 = typename core_type::input_01_type;
 
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01) {
-			/*
 			static constexpr uint64_t ne00 = input_type01::get_array()[0];
 			static constexpr uint64_t ne01 = input_type01::get_array()[1];
 			static constexpr uint64_t ne03 = input_type01::get_array()[3];
@@ -2652,7 +4036,7 @@ namespace nihilus {
 
 				const uint64_t src_idx = i3 * src_stride3 + i2 * src_stride2 + i1 * src_stride1 + i0 * src_stride0;
 				dst_data[linear_idx]   = src_data[src_idx];
-			}*/
+			}
 		}
 	};
 
@@ -2941,7 +4325,6 @@ namespace nihilus {
 
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
 			const typename core_type::input_02_type& input02, const typename core_type::input_03_type& input03) {
-			/*
 			const float* __restrict src_data		  = input01.data;
 			const int32_t* pos_data					  = input02.data;
 			const float* __restrict freq_scaling_data = input03.data;
@@ -2997,7 +4380,7 @@ namespace nihilus {
 						}
 					}
 				}
-			}*/
+			}
 		}
 	};
 
@@ -3021,7 +4404,7 @@ namespace nihilus {
 		: public kernel_base<kernel_types::silu, core_type, float, float> {
 		NIHILUS_INLINE static void impl(int64_t, int64_t, int64_t, core_type&, const typename core_type::input_01_type&) {
 		}
-	};
+	};*/
 
 };
 
