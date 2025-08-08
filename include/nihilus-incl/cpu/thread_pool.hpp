@@ -217,11 +217,11 @@ namespace nihilus {
 			thread_latch.count_down();
 			thread_latch.main_wait();
 			if constexpr (config.benchmark || config.dev) {
-				for (uint64_t x = 0; x < thread_count; ++x) {
-					for (uint64_t y = 0; y < static_cast<uint64_t>(op_types::count); ++y) {
+				for (uint64_t y = 0; y < static_cast<uint64_t>(op_types::count); ++y) {
+					for (uint64_t x = 0; x < thread_count; ++x) {
 						if (perf_base<config>::perf_stats.collector[x][y]) {
-							std::cout << benchmarking::internal::printResults(*perf_base<config>::perf_stats.collector[x][y], x, op_names[y]) << std::endl;
-							perf_base<config>::perf_stats.collector[x][y].reset();
+							//std::cout << benchmarking::internal::printResults(*perf_base<config>::perf_stats.collector[x][y], x, op_names[y]) << std::endl;
+							//perf_base<config>::perf_stats.collector[x][y].reset();
 						}
 					}
 				}

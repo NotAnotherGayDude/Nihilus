@@ -140,11 +140,11 @@ namespace nihilus {
 			for (uint64_t x = 0; x < exec_params.token_count - 1; ++x) {
 				if constexpr (config_new.benchmark || config_new.dev) {
 					perf_base<config_new>::perf_stats.token_start = clock_type::now();
-					++perf_base<config_new>::perf_stats.current_iteration;
 				}
 				static_cast<thread_pool<config_new>*>(this)->template execute_tasks<processing_phase::eval_time>(1);
 
 				if constexpr (config_new.benchmark || config_new.dev) {
+					++perf_base<config_new>::perf_stats.current_iteration;
 					auto token_end	   = clock_type::now();
 					auto token_time_ns = std::chrono::duration<double, std::nano>(token_end - perf_base<config_new>::perf_stats.token_start).count();
 					perf_base<config_new>::perf_stats.total_eval_time_ns += token_time_ns;
