@@ -366,7 +366,7 @@ namespace nihilus {
 		return fp32_from_bits(result);
 	}
 
-	alignas(64) static static_aligned_const<64, float>* fp16_to_fp32_array{ []() {
+	alignas(64) static static_aligned_const<64, float>* __restrict fp16_to_fp32_array{ []() {
 		alignas(64) static array<static_aligned_const<64, float>, (1 << 16)> return_values_new{};
 		for (uint64_t i = 0; i < (1 << 16); ++i) {
 			(return_values_new)[i] = compute_fp16_to_fp32(static_cast<half>(i));

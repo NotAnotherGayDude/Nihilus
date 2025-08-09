@@ -21,7 +21,6 @@ RealTimeChris (Chris M.)
 
 #include <nihilus-incl/common/kernel_traits.hpp>
 #include <nihilus-incl/cpu/simd/common.hpp>
-#include <algorithm>
 #include <assert.h>
 
 #if NIHILUS_AVX2
@@ -704,10 +703,10 @@ namespace nihilus {
 			const __m256 signBit		 = _mm256_set1_ps(-0.0f);
 
 			for (uint64_t i = 0; i < nb; i++) {
-				__m256 v0 = _mm256_loadu_ps(src + i * QK + 0);
-				__m256 v1 = _mm256_loadu_ps(src + i * QK + 8);
-				__m256 v2 = _mm256_loadu_ps(src + i * QK + 16);
-				__m256 v3 = _mm256_loadu_ps(src + i * QK + 24);
+				__m256 v0 = _mm256_load_ps(src + i * QK + 0);
+				__m256 v1 = _mm256_load_ps(src + i * QK + 8);
+				__m256 v2 = _mm256_load_ps(src + i * QK + 16);
+				__m256 v3 = _mm256_load_ps(src + i * QK + 24);
 
 				__m256 maxAbs = _mm256_andnot_ps(signBit, v0);
 				maxAbs		  = _mm256_max_ps(maxAbs, _mm256_andnot_ps(signBit, v1));
@@ -746,22 +745,72 @@ namespace nihilus {
 				const __m256i perm = _mm256_setr_epi32(0, 4, 1, 5, 2, 6, 3, 7);
 				i0				   = _mm256_permutevar8x32_epi32(i0, perm);
 
-				_mm256_storeu_si256(( __m256i* )dst[i].qs, i0);
+				_mm256_store_si256(( __m256i* )dst[i].qs, i0);
 			}
 		}
 
-		static void ggml_compute_forward_mul_mat_one_chunk(const uint64_t thread_index, uint64_t thread_count, int64_t current_block, core_type& output,
+		NIHILUS_INLINE static __m256 sum_i16_pairs_float(const __m256i x) {
+			const __m256i summed_pairs = _mm256_hadd_epi16(x, x);
+			return _mm256_cvtepi32_ps(summed_pairs);
+		}
+
+		NIHILUS_INLINE static __m256 mul_sum_us8_pairs_float(const __m256i ax, const __m256i sy) {
+			const __m256i dot = _mm256_maddubs_epi16(ax, sy);
+			return sum_i16_pairs_float(dot);
+		}
+
+		NIHILUS_INLINE static __m256 mul_sum_i8_pairs_float(const __m256i x, const __m256i y) {
+			const __m256i ax = _mm256_abs_epi8(x);
+			const __m256i sy = _mm256_sign_epi8(y, x);
+			return mul_sum_us8_pairs_float(ax, sy);
+		}
+
+		NIHILUS_INLINE static float hsum_float_8(const __m256 x) {
+			__m128 lo  = _mm256_extractf128_ps(x, 0);
+			__m128 hi  = _mm256_extractf128_ps(x, 1);
+			__m128 sum = _mm_add_ps(lo, hi);
+			sum = _mm_hadd_ps(sum, sum);
+			sum = _mm_hadd_ps(sum, sum);
+			return _mm_cvtss_f32(sum);
+		}
+
+		template<uint64_t size> static float vec_dot_q8_0_q8_0_optimized(const block_q8_0<half>* __restrict x, const block_q8_0<half>* __restrict y) {
+			static constexpr uint64_t nb = size / Q_SIZE;
+			static constexpr uint64_t qk = Q_SIZE;
+			int64_t ib					 = 0;
+			float sumf					 = 0;
+			__m256 acc					 = _mm256_setzero_ps();
+
+			for (; ib < nb; ++ib) {
+				const __m256 d = _mm256_set1_ps(fp16_to_fp32(x[ib].d) * fp16_to_fp32(y[ib].d));
+				__m256i qx	   = _mm256_load_si256(( const __m256i* )x[ib].qs);
+				__m256i qy	   = _mm256_load_si256(( const __m256i* )y[ib].qs);
+
+				const __m256 q = mul_sum_i8_pairs_float(qx, qy);
+
+				acc = _mm256_fmadd_ps(d, q, acc);
+			}
+
+			sumf = hsum_float_8(acc);
+
+			if constexpr (size % Q_SIZE != 0) {
+				static constexpr uint64_t remaining = size % Q_SIZE;
+				int32_t sumi						= 0;
+				for (uint64_t j = 0; j < remaining; ++j) {
+					sumi += x[nb].qs[j] * y[nb].qs[j];
+				}
+				sumf += sumi * (fp16_to_fp32(x[nb].d) * fp16_to_fp32(y[nb].d));
+			}
+
+			return sumf;
+		}
+
+		NIHILUS_INLINE static void compute_forward_mul_mat_one_chunk(const uint64_t thread_index, uint64_t thread_count, int64_t current_block, core_type& output,
 			const typename core_type::input_01_type& input01, const typename core_type::input_02_type& input02, const int64_t num_rows_per_vec_dot, const int64_t ir0_start,
 			const int64_t ir0_end, const int64_t ir1_start, const int64_t ir1_end) {
 			const uint64_t ne01 = input01[1];
 			const uint64_t ne11 = input02[1];
 			const uint64_t ne1	= output[1];
-			const int64_t r2	= ne12 / ne02;
-			const int64_t r3	= ne13 / ne03;
-
-			if (ir0_start >= ir0_end || ir1_start >= ir1_end) {
-				return;
-			}
 
 			const block_q8_0<half>* src01;
 			if constexpr (array_types<decltype(input01.data)>) {
@@ -779,74 +828,32 @@ namespace nihilus {
 
 			const size_t src1_col_stride = row_size;
 
-			float tmp[32];
+			float tmp[8]{};
 
-			for (int64_t iir1 = ir1_start; iir1 < ir1_end; iir1 += blck_1) {
-				for (int64_t iir0 = ir0_start; iir0 < ir0_end; iir0 += blck_0) {
-					for (int64_t ir1 = iir1; ir1 < iir1 + blck_1 && ir1 < ir1_end; ir1 += num_rows_per_vec_dot) {
-						const int64_t i13 = (ir1 / (ne12 * ne1));
-						const int64_t i12 = (ir1 - i13 * ne12 * ne1) / ne1;
-						const int64_t i11 = (ir1 - i13 * ne12 * ne1 - i12 * ne1);
+			const int64_t total_iterations	= (ir1_end - ir1_start) * (ir0_end - ir0_start);
+			constexpr int64_t UNROLL_FACTOR = 8;
 
-						const int64_t i03 = i13 / r3;
-						const int64_t i02 = i12 / r2;
+			for (int64_t flat_idx = 0; flat_idx < total_iterations; flat_idx += UNROLL_FACTOR) {
+				const int64_t ir1_idx = flat_idx / (ir0_end - ir0_start) + ir1_start;
+				const int64_t ir0_idx = flat_idx % (ir0_end - ir0_start) + ir0_start;
 
-						const int64_t i1 = i11;
-						const int64_t i2 = i12;
-						const int64_t i3 = i13;
+				const int64_t i13 = (ir1_idx / (ne12 * ne1));
+				const int64_t i12 = (ir1_idx - i13 * ne12 * ne1) / ne1;
+				const int64_t i11 = (ir1_idx - i13 * ne12 * ne1 - i12 * ne1);
+				const int64_t i03 = i13 / r3;
+				const int64_t i02 = i12 / r2;
 
-						const auto* src0_row = src01 + (i02 + i03);
+				const auto* src0_row = src01 + (i02 + i03);
+				const auto* src1_col = quantized_input + (i11 + i12 * ne11 + i13 * ne12 * ne11);
+				float* dst_col		 = dst + (i11 + i12 + i13);
 
-						const auto* src1_col = quantized_input + (i11 + i12 * ne11 + i13 * ne12 * ne11);
-						float* dst_col		 = dst + (i1 + i2 + i3);
-
-						for (int64_t ir0 = iir0; ir0 < iir0 + blck_0 && ir0 < ir0_end; ir0 += num_rows_per_vec_dot) {
-							vec_dot_q8_0_q8_0_optimized(ne00, &tmp[ir0 - iir0], src0_row + ir0, src1_col);
-						}
-
-						for (int64_t cn = 0; cn < num_rows_per_vec_dot; ++cn) {
-							memcpy(&dst_col[iir0 + cn], tmp + (cn * 16), (detail::min(iir0 + blck_0, ir0_end) - iir0) * sizeof(float));
-						}
-					}
+				const int64_t remaining = detail::min(UNROLL_FACTOR, total_iterations - flat_idx);
+				for (int64_t i = 0; i < remaining; ++i) {
+					tmp[i] = kernel_dispatcher_impl::template vec_dot_q8_0_q8_0_optimized<ne00>(src0_row + i, src1_col);
 				}
+
+				std::memcpy(&dst_col[ir0_idx], tmp, remaining * sizeof(float));
 			}
-		}
-
-		NIHILUS_INLINE static uint64_t get_l1_cache_size() {
-			static uint64_t cached_size = 0;
-			if (cached_size != 0)
-				return cached_size;
-
-	#ifdef _MSC_VER
-			int cpuinfo[4];
-			__cpuid(cpuinfo, 0x80000005);
-			cached_size = ((cpuinfo[2] >> 24) & 0xFF) * 1024;
-	#else
-			unsigned int eax, ebx, ecx, edx;
-			__asm__ volatile("cpuid" : "=a"(eax), "=b"(ebx), "=c"(ecx), "=d"(edx) : "a"(0x80000005));
-			cached_size = ((ecx >> 24) & 0xFF) * 1024;
-	#endif
-
-			if (cached_size == 0 || cached_size > 256 * 1024) {
-				cached_size = 32 * 1024;// Conservative 32KB default
-			}
-
-			return cached_size;
-		}
-
-		alignas(64) inline static const uint64_t l1_cache_size{ get_l1_cache_size() };
-
-		NIHILUS_INLINE inline static uint64_t calculate_runtime_block_size(uint64_t ne00, uint64_t ne11) {
-			const uint64_t l1_size		 = l1_cache_size;
-			const uint64_t usable_l1	 = (l1_size * 3) / 4;
-			const uint64_t block_q8_size = sizeof(block_q8_0<half>);
-			const uint64_t blocks_per_row	  = ne00 / 32;
-			const uint64_t matrix_b_size	  = ne11 * blocks_per_row * block_q8_size;
-			const uint64_t bytes_per_row	  = blocks_per_row * block_q8_size + ne11 * sizeof(float);
-			const uint64_t available_for_rows = usable_l1 - matrix_b_size;
-
-			uint64_t optimal_block = available_for_rows / bytes_per_row;
-			return std::clamp(optimal_block, static_cast<uint64_t>(4), static_cast<uint64_t>(128));
 		}
 
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
@@ -909,47 +916,36 @@ namespace nihilus {
 				output.current_chunk[current_block].notify_all();
 			}
 
-			const uint64_t blocks_per_row  = ne00 / 32;
-			const uint64_t rows_per_thread = (ne01 + nth - 1) / nth;
-			const uint64_t row_start	   = ith * rows_per_thread;
-			const uint64_t row_end		   = (row_start + rows_per_thread < ne01) ? row_start + rows_per_thread : ne01;
+			if (nchunk0 * nchunk1 < nth * 4) {
+				nchunk0 = nr0 > nr1 ? nth : 1;
+				nchunk1 = nr0 > nr1 ? 1 : nth;
+			}
 
-			for (uint64_t ir = row_start; ir < row_end; ++ir) {
-				for (uint64_t ic = 0; ic < ne11; ++ic) {
-					__m256 acc_vec = _mm256_setzero_ps();
+			const int64_t dr0 = (nr0 + nchunk0 - 1) / nchunk0;
+			const int64_t dr1 = (nr1 + nchunk1 - 1) / nchunk1;
 
-					for (uint64_t k = 0; k < blocks_per_row; ++k) {
-						const block_q8_0<half>* block_a = &src01[ir * blocks_per_row + k];
-						const block_q8_0<half>* block_b = &quantized_input[ic * quantized_blocks_per_col + k];
+			int64_t current_chunk = ith;
 
-						const float scale = fp16_to_fp32(block_a->d) * fp16_to_fp32(block_b->d);
+			if (nth >= nchunk0 * nchunk1) {
+				return;
+			}
 
-						const __m256i va = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(block_a->qs));
-						const __m256i vb = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(block_b->qs));
+			while (current_chunk < nchunk0 * nchunk1) {
+				const int64_t ith0 = current_chunk % nchunk0;
+				const int64_t ith1 = current_chunk / nchunk0;
 
-						const __m256i va_lo = _mm256_unpacklo_epi8(va, _mm256_setzero_si256());
-						const __m256i vb_lo = _mm256_unpacklo_epi8(vb, _mm256_setzero_si256());
-						const __m256i va_hi = _mm256_unpackhi_epi8(va, _mm256_setzero_si256());
-						const __m256i vb_hi = _mm256_unpackhi_epi8(vb, _mm256_setzero_si256());
+				const int64_t ir0_start = dr0 * ith0;
+				const int64_t ir0_end	= detail::min(ir0_start + dr0, nr0);
 
-						const __m256i prod_lo = _mm256_madd_epi16(va_lo, vb_lo);
-						const __m256i prod_hi = _mm256_madd_epi16(va_hi, vb_hi);
-						const __m256i sum_int = _mm256_add_epi32(prod_lo, prod_hi);
+				const int64_t ir1_start = dr1 * ith1;
+				const int64_t ir1_end	= detail::min(ir1_start + dr1, nr1);
 
-						const __m256 sum_float = _mm256_cvtepi32_ps(sum_int);
-						const __m256 scaled	   = _mm256_mul_ps(sum_float, _mm256_set1_ps(scale));
-						acc_vec				   = _mm256_add_ps(acc_vec, scaled);
-					}
+				int64_t num_rows_per_vec_dot = 1;
 
-					const __m128 acc_hi = _mm256_extractf128_ps(acc_vec, 1);
-					const __m128 acc_lo = _mm256_castps256_ps128(acc_vec);
-					__m128 result		= _mm_add_ps(acc_hi, acc_lo);
-					result				= _mm_hadd_ps(result, result);
-					result				= _mm_hadd_ps(result, result);
+				compute_forward_mul_mat_one_chunk(thread_index, thread_count, current_block, output, input01, input02, num_rows_per_vec_dot, ir0_start, ir0_end, ir1_start,
+					ir1_end);
 
-					const uint64_t output_idx = ir * ne1 + ic;
-					_mm_store_ss(&dst[output_idx], result);
-				}
+				current_chunk = output.current_chunk[current_block].fetch_add(1);
 			}
 		}
 	};
@@ -999,10 +995,10 @@ namespace nihilus {
 			const __m256 signBit		 = _mm256_set1_ps(-0.0f);
 
 			for (uint64_t i = 0; i < nb; i++) {
-				__m256 v0 = _mm256_loadu_ps(src + i * QK + 0);
-				__m256 v1 = _mm256_loadu_ps(src + i * QK + 8);
-				__m256 v2 = _mm256_loadu_ps(src + i * QK + 16);
-				__m256 v3 = _mm256_loadu_ps(src + i * QK + 24);
+				__m256 v0 = _mm256_load_ps(src + i * QK + 0);
+				__m256 v1 = _mm256_load_ps(src + i * QK + 8);
+				__m256 v2 = _mm256_load_ps(src + i * QK + 16);
+				__m256 v3 = _mm256_load_ps(src + i * QK + 24);
 
 				__m256 maxAbs = _mm256_andnot_ps(signBit, v0);
 				maxAbs		  = _mm256_max_ps(maxAbs, _mm256_andnot_ps(signBit, v1));
@@ -1041,7 +1037,7 @@ namespace nihilus {
 				const __m256i perm = _mm256_setr_epi32(0, 4, 1, 5, 2, 6, 3, 7);
 				i0				   = _mm256_permutevar8x32_epi32(i0, perm);
 
-				_mm256_storeu_si256(( __m256i* )dst[i].qs, i0);
+				_mm256_store_si256(( __m256i* )dst[i].qs, i0);
 			}
 		}
 
@@ -1057,10 +1053,10 @@ namespace nihilus {
 				const __m256 d1 = _mm256_set1_ps(fp16_to_fp32(x[ib].d) * fp16_to_fp32(y[ib].d));
 				const __m256 d2 = _mm256_set1_ps(fp16_to_fp32(x[ib + 1].d) * fp16_to_fp32(y[ib + 1].d));
 
-				__m256i qx1 = _mm256_loadu_si256(( const __m256i* )x[ib].qs);
-				__m256i qy1 = _mm256_loadu_si256(( const __m256i* )y[ib].qs);
-				__m256i qx2 = _mm256_loadu_si256(( const __m256i* )x[ib + 1].qs);
-				__m256i qy2 = _mm256_loadu_si256(( const __m256i* )y[ib + 1].qs);
+				__m256i qx1 = _mm256_load_si256(( const __m256i* )x[ib].qs);
+				__m256i qy1 = _mm256_load_si256(( const __m256i* )y[ib].qs);
+				__m256i qx2 = _mm256_load_si256(( const __m256i* )x[ib + 1].qs);
+				__m256i qy2 = _mm256_load_si256(( const __m256i* )y[ib + 1].qs);
 
 				const __m256 q1 = mul_sum_i8_pairs_float(qx1, qy1);
 				const __m256 q2 = mul_sum_i8_pairs_float(qx2, qy2);
@@ -1074,8 +1070,8 @@ namespace nihilus {
 
 			for (uint64_t ib = unroll_end; ib < nb; ++ib) {
 				const __m256 d = _mm256_set1_ps(fp16_to_fp32(x[ib].d) * fp16_to_fp32(y[ib].d));
-				__m256i qx	   = _mm256_loadu_si256(( const __m256i* )x[ib].qs);
-				__m256i qy	   = _mm256_loadu_si256(( const __m256i* )y[ib].qs);
+				__m256i qx	   = _mm256_load_si256(( const __m256i* )x[ib].qs);
+				__m256i qy	   = _mm256_load_si256(( const __m256i* )y[ib].qs);
 				const __m256 q = mul_sum_i8_pairs_float(qx, qy);
 				acc1		   = _mm256_fmadd_ps(d, q, acc1);
 			}
@@ -1125,7 +1121,7 @@ namespace nihilus {
 			const uint64_t row_end		   = detail::min(row_start + rows_per_thread, ne01);
 
 			for (uint64_t ir0 = row_start; ir0 < row_end; ++ir0) {
-				vec_dot_q8_0_q8_0_optimized(ne00, &dst[ir0], &src01[ir0 * blocks_per_row], quantized_input);
+				//vec_dot_q8_0_q8_0_optimized<ne00>(&dst[ir0], &src01[ir0 * blocks_per_row], quantized_input);
 			}
 		}
 	};
@@ -1161,12 +1157,12 @@ namespace nihilus {
 			const uint64_t simd_end = (n / 16) * 16;
 
 			for (uint64_t i = 0; i < simd_end; i += 16) {
-				__m128i x_half1 = _mm_loadu_si128(( const __m128i* )(x + i));
-				__m128i x_half2 = _mm_loadu_si128(( const __m128i* )(x + i + 8));
+				__m128i x_half1 = _mm_load_si128(( const __m128i* )(x + i));
+				__m128i x_half2 = _mm_load_si128(( const __m128i* )(x + i + 8));
 				__m256 x_float1 = _mm256_cvtph_ps(x_half1);
 				__m256 x_float2 = _mm256_cvtph_ps(x_half2);
-				__m256 y_vec1	= _mm256_loadu_ps(y + i);
-				__m256 y_vec2	= _mm256_loadu_ps(y + i + 8);
+				__m256 y_vec1	= _mm256_load_ps(y + i);
+				__m256 y_vec2	= _mm256_load_ps(y + i + 8);
 				acc1			= _mm256_fmadd_ps(x_float1, y_vec1, acc1);
 				acc2			= _mm256_fmadd_ps(x_float2, y_vec2, acc2);
 			}
@@ -1258,12 +1254,12 @@ namespace nihilus {
 			const uint64_t simd_end = (n / 16) * 16;
 
 			for (uint64_t i = 0; i < simd_end; i += 16) {
-				__m128i x_half1 = _mm_loadu_si128(( const __m128i* )(x + i));
-				__m128i x_half2 = _mm_loadu_si128(( const __m128i* )(x + i + 8));
+				__m128i x_half1 = _mm_load_si128(( const __m128i* )(x + i));
+				__m128i x_half2 = _mm_load_si128(( const __m128i* )(x + i + 8));
 				__m256 x_float1 = _mm256_cvtph_ps(x_half1);
 				__m256 x_float2 = _mm256_cvtph_ps(x_half2);
-				__m256 y_vec1	= _mm256_loadu_ps(y + i);
-				__m256 y_vec2	= _mm256_loadu_ps(y + i + 8);
+				__m256 y_vec1	= _mm256_load_ps(y + i);
+				__m256 y_vec2	= _mm256_load_ps(y + i + 8);
 				acc1			= _mm256_fmadd_ps(x_float1, y_vec1, acc1);
 				acc2			= _mm256_fmadd_ps(x_float2, y_vec2, acc2);
 			}
@@ -3284,8 +3280,8 @@ namespace nihilus {
 
 			for (uint64_t ib = 0; ib < 4; ++ib) {
 				const __m256 d = _mm256_set1_ps(fp16_to_fp32(x[ib].d) * fp16_to_fp32(y[ib].d));
-				__m256i qx	   = _mm256_loadu_si256(( const __m256i* )x[ib].qs);
-				__m256i qy	   = _mm256_loadu_si256(( const __m256i* )y[ib].qs);
+				__m256i qx	   = _mm256_load_si256(( const __m256i* )x[ib].qs);
+				__m256i qy	   = _mm256_load_si256(( const __m256i* )y[ib].qs);
 				const __m256 q = mul_sum_i8_pairs_float(qx, qy);
 				acc			   = _mm256_fmadd_ps(d, q, acc);
 			}
@@ -3321,10 +3317,10 @@ namespace nihilus {
 				const __m256 d0 = _mm256_set1_ps(fp16_to_fp32(x[ib].d) * fp16_to_fp32(y[ib].d));
 				const __m256 d1 = _mm256_set1_ps(fp16_to_fp32(x[ib + 1].d) * fp16_to_fp32(y[ib + 1].d));
 
-				__m256i qx0 = _mm256_loadu_si256(( const __m256i* )x[ib].qs);
-				__m256i qy0 = _mm256_loadu_si256(( const __m256i* )y[ib].qs);
-				__m256i qx1 = _mm256_loadu_si256(( const __m256i* )x[ib + 1].qs);
-				__m256i qy1 = _mm256_loadu_si256(( const __m256i* )y[ib + 1].qs);
+				__m256i qx0 = _mm256_load_si256(( const __m256i* )x[ib].qs);
+				__m256i qy0 = _mm256_load_si256(( const __m256i* )y[ib].qs);
+				__m256i qx1 = _mm256_load_si256(( const __m256i* )x[ib + 1].qs);
+				__m256i qy1 = _mm256_load_si256(( const __m256i* )y[ib + 1].qs);
 
 				const __m256 q0 = mul_sum_i8_pairs_float(qx0, qy0);
 				const __m256 q1 = mul_sum_i8_pairs_float(qx1, qy1);
@@ -3373,14 +3369,14 @@ namespace nihilus {
 				const __m256 d2 = _mm256_set1_ps(fp16_to_fp32(x[ib + 2].d) * fp16_to_fp32(y[ib + 2].d));
 				const __m256 d3 = _mm256_set1_ps(fp16_to_fp32(x[ib + 3].d) * fp16_to_fp32(y[ib + 3].d));
 
-				__m256i qx0 = _mm256_loadu_si256(( const __m256i* )x[ib].qs);
-				__m256i qy0 = _mm256_loadu_si256(( const __m256i* )y[ib].qs);
-				__m256i qx1 = _mm256_loadu_si256(( const __m256i* )x[ib + 1].qs);
-				__m256i qy1 = _mm256_loadu_si256(( const __m256i* )y[ib + 1].qs);
-				__m256i qx2 = _mm256_loadu_si256(( const __m256i* )x[ib + 2].qs);
-				__m256i qy2 = _mm256_loadu_si256(( const __m256i* )y[ib + 2].qs);
-				__m256i qx3 = _mm256_loadu_si256(( const __m256i* )x[ib + 3].qs);
-				__m256i qy3 = _mm256_loadu_si256(( const __m256i* )y[ib + 3].qs);
+				__m256i qx0 = _mm256_load_si256(( const __m256i* )x[ib].qs);
+				__m256i qy0 = _mm256_load_si256(( const __m256i* )y[ib].qs);
+				__m256i qx1 = _mm256_load_si256(( const __m256i* )x[ib + 1].qs);
+				__m256i qy1 = _mm256_load_si256(( const __m256i* )y[ib + 1].qs);
+				__m256i qx2 = _mm256_load_si256(( const __m256i* )x[ib + 2].qs);
+				__m256i qy2 = _mm256_load_si256(( const __m256i* )y[ib + 2].qs);
+				__m256i qx3 = _mm256_load_si256(( const __m256i* )x[ib + 3].qs);
+				__m256i qy3 = _mm256_load_si256(( const __m256i* )y[ib + 3].qs);
 
 				const __m256 q0 = mul_sum_i8_pairs_float(qx0, qy0);
 				const __m256 q1 = mul_sum_i8_pairs_float(qx1, qy1);
@@ -3480,8 +3476,8 @@ namespace nihilus {
 		__m256 acc = _mm256_setzero_ps();
 		for (; ib < nb; ++ib) {
 			const __m256 d = _mm256_set1_ps(fp16_to_fp32(x[ib].d) * fp16_to_fp32(y[ib].d));
-			__m256i qx	   = _mm256_loadu_si256(( const __m256i* )x[ib].qs);
-			__m256i qy	   = _mm256_loadu_si256(( const __m256i* )y[ib].qs);
+			__m256i qx	   = _mm256_load_si256(( const __m256i* )x[ib].qs);
+			__m256i qy	   = _mm256_load_si256(( const __m256i* )y[ib].qs);
 
 			const __m256 q = mul_sum_i8_pairs_float(qx, qy);
 			acc = _mm256_fmadd_ps(d, q, acc);
