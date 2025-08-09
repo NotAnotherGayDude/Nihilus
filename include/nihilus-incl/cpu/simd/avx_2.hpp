@@ -694,7 +694,7 @@ namespace nihilus {
 
 		NIHILUS_INLINE static __m256 sum_i16_pairs_float(const __m256i x) {
 			const __m256i ones		   = _mm256_set1_epi16(1);
-			const __m256i summed_pairs = _mm256_madd_epi16(ones, x);
+			const __m256i summed_pairs = _mm256_madd_epi16(x, ones);
 			return _mm256_cvtepi32_ps(summed_pairs);
 		}
 
@@ -769,45 +769,55 @@ namespace nihilus {
 		}
 
 		NIHILUS_INLINE static void vec_dot_q8_0_q8_0_optimized(uint64_t n, float* __restrict s, const block_q8_0<half>* __restrict x, const block_q8_0<half>* __restrict y) {
-			const uint64_t nb			 = n / Q_SIZE;
-			static constexpr uint64_t qk = Q_SIZE;
-			int ib	   = 0;
-			float sumf = 0;
-			__m256 acc = _mm256_setzero_ps();
+			const uint64_t nb = n / Q_SIZE;
+			float sumf		  = 0.0f;
 
-			for (; ib < nb; ++ib) {
+			__m256 acc1				  = _mm256_setzero_ps();
+			__m256 acc2				  = _mm256_setzero_ps();
+			const uint64_t unroll_end = (nb / 2) * 2;
+
+			for (uint64_t ib = 0; ib < unroll_end; ib += 2) {
+				const __m256 d1 = _mm256_set1_ps(fp16_to_fp32(x[ib].d) * fp16_to_fp32(y[ib].d));
+				const __m256 d2 = _mm256_set1_ps(fp16_to_fp32(x[ib + 1].d) * fp16_to_fp32(y[ib + 1].d));
+
+				__m256i qx1 = _mm256_loadu_si256(( const __m256i* )x[ib].qs);
+				__m256i qy1 = _mm256_loadu_si256(( const __m256i* )y[ib].qs);
+				__m256i qx2 = _mm256_loadu_si256(( const __m256i* )x[ib + 1].qs);
+				__m256i qy2 = _mm256_loadu_si256(( const __m256i* )y[ib + 1].qs);
+
+				const __m256 q1 = mul_sum_i8_pairs_float(qx1, qy1);
+				const __m256 q2 = mul_sum_i8_pairs_float(qx2, qy2);
+
+				acc1 = _mm256_fmadd_ps(d1, q1, acc1);
+				acc2 = _mm256_fmadd_ps(d2, q2, acc2);
+			}
+
+			acc1 = _mm256_add_ps(acc1, acc2);
+			sumf = hsum_float_8(acc1);
+
+			for (uint64_t ib = unroll_end; ib < nb; ++ib) {
 				const __m256 d = _mm256_set1_ps(fp16_to_fp32(x[ib].d) * fp16_to_fp32(y[ib].d));
 				__m256i qx	   = _mm256_loadu_si256(( const __m256i* )x[ib].qs);
 				__m256i qy	   = _mm256_loadu_si256(( const __m256i* )y[ib].qs);
-
 				const __m256 q = mul_sum_i8_pairs_float(qx, qy);
-
-				acc = _mm256_fmadd_ps(d, q, acc);
+				acc1		   = _mm256_fmadd_ps(d, q, acc1);
 			}
 
-			sumf = hsum_float_8(acc);
-			for (; ib < nb; ++ib) {
-				int sumi = 0;
-
-				for (int j = 0; j < qk; j++) {
-					sumi += x[ib].qs[j] * y[ib].qs[j];
-				}
-
-				sumf += sumi * (fp16_to_fp32(x[ib].d) * fp16_to_fp32(y[ib].d));
+			if (unroll_end < nb) {
+				sumf += hsum_float_8(acc1);
 			}
-
 			*s = sumf;
 		}
 
 		static void process_tile(const block_q8_0<half>* src01_base, const block_q8_0<half>* quantized_input, float* dst_base, int64_t ir0_start, int64_t ir0_end,
 			int64_t ir1_start, int64_t ir1_end, uint64_t output_ne1, uint64_t ne01) {
-			constexpr int64_t TILE_ROWS = 16;
-			constexpr int64_t TILE_COLS = 16;
+			constexpr int64_t TILE_ROWS			   = 16;
+			constexpr int64_t TILE_COLS			   = 16;
 			constexpr int64_t MAX_SRC01_BLOCKS	   = 512;
 			constexpr int64_t MAX_QUANTIZED_BLOCKS = 512;
 
 			alignas(64) block_q8_0<half> src01_cache[TILE_ROWS * MAX_SRC01_BLOCKS];
-			alignas(64) block_q8_0<half> quantized_cache[TILE_COLS * MAX_QUANTIZED_BLOCKS];
+			alignas(64) block_q8_0<half> quantized_cache[TILE_ROWS * MAX_QUANTIZED_BLOCKS];
 			alignas(64) float dst_cache[TILE_ROWS * TILE_COLS];
 
 			for (int64_t tile_ir1 = ir1_start; tile_ir1 < ir1_end; tile_ir1 += TILE_COLS) {
@@ -959,6 +969,7 @@ namespace nihilus {
 					const int64_t actual_tile_rows	   = (ir0_end - ir0_start + 15) / 16;
 					const int64_t actual_tile_cols	   = (ir1_end - ir1_start + 15) / 16;
 					const int64_t work_units_processed = actual_tile_rows * actual_tile_cols;
+
 					current_chunk = output.current_chunk[current_block].fetch_add(detail::max(work_units_processed, 1LL));
 				}
 			}
