@@ -21,6 +21,7 @@ RealTimeChris (Chris M.)
 
 #include <nihilus-incl/common/kernel_traits.hpp>
 #include <nihilus-incl/cpu/simd/common.hpp>
+#include <algorithm>
 #include <assert.h>
 
 #if NIHILUS_AVX2
@@ -676,45 +677,26 @@ namespace nihilus {
 	template<typename transform_type, typename core_type>
 	struct kernel_dispatcher_impl<1, kernel_types::mul_mat, processing_phase::prompt_eval_time, transform_type, core_type, float, block_q8_0<half>, float>
 		: public kernel_base<kernel_types::mul_mat, core_type, float, block_q8_0<half>, float> {
-		using input_type01								   = typename core_type::input_01_type;
-		using input_type02								   = typename core_type::input_02_type;
-		static constexpr uint64_t ne00					   = input_type01::get_array()[0];
-		static constexpr uint64_t ne02					   = input_type01::get_array()[2];
-		static constexpr uint64_t ne03					   = input_type01::get_array()[3];
-		static constexpr uint64_t ne10					   = input_type02::get_array()[0];
-		static constexpr uint64_t ne12					   = input_type02::get_array()[2];
-		static constexpr uint64_t ne13					   = input_type02::get_array()[3];
-		static constexpr uint64_t ne0					   = core_type::get_array()[0];
-		static constexpr uint64_t ne2					   = core_type::get_array()[2];
-		static constexpr uint64_t ne3					   = core_type::get_array()[3];
-		static constexpr int64_t r2						   = ne12 / ne02;
-		static constexpr int64_t r3						   = ne13 / ne03;
-		static constexpr uint64_t blocks_per_row		   = ne00 / Q_SIZE;
-		static constexpr uint64_t quantized_blocks_per_col = ne10 / Q_SIZE; 
-
-		NIHILUS_INLINE static __m256 sum_i16_pairs_float(const __m256i x) {
-			const __m256i ones		   = _mm256_set1_epi16(1);
-			const __m256i summed_pairs = _mm256_madd_epi16(ones, x);
-			return _mm256_cvtepi32_ps(summed_pairs);
-		}
-
-		NIHILUS_INLINE static __m256 mul_sum_us8_pairs_float(const __m256i ax, const __m256i sy) {
-			const __m256i dot = _mm256_maddubs_epi16(ax, sy);
-			return sum_i16_pairs_float(dot);
-		}
-
-		NIHILUS_INLINE static __m256 mul_sum_i8_pairs_float(const __m256i x, const __m256i y) {
-			const __m256i ax = _mm256_sign_epi8(x, x);
-			const __m256i sy = _mm256_sign_epi8(y, x);
-			return mul_sum_us8_pairs_float(ax, sy);
-		}
-
-		NIHILUS_INLINE static float hsum_float_8(const __m256 x) {
-			__m256 sum128 = _mm256_add_ps(x, _mm256_permute2f128_ps(x, x, 1));
-			__m256 sum64  = _mm256_add_ps(sum128, _mm256_shuffle_ps(sum128, sum128, 0x4E));
-			__m256 sum32  = _mm256_add_ps(sum64, _mm256_shuffle_ps(sum64, sum64, 0xB1));
-			return _mm256_cvtss_f32(sum32);
-		}
+		using input_type01									= typename core_type::input_01_type;
+		using input_type02									= typename core_type::input_02_type;
+		static constexpr uint64_t ne00						= input_type01::get_array()[0];
+		static constexpr uint64_t ne02						= input_type01::get_array()[2];
+		static constexpr uint64_t ne03						= input_type01::get_array()[3];
+		static constexpr uint64_t ne10						= input_type02::get_array()[0];
+		static constexpr uint64_t ne12						= input_type02::get_array()[2];
+		static constexpr uint64_t ne13						= input_type02::get_array()[3];
+		static constexpr uint64_t ne0						= core_type::get_array()[0];
+		static constexpr uint64_t ne2						= core_type::get_array()[2];
+		static constexpr uint64_t ne3						= core_type::get_array()[3];
+		static constexpr int64_t r2							= ne12 / ne02;
+		static constexpr int64_t r3							= ne13 / ne03;
+		static constexpr uint64_t blocks_per_row			= ne00 / Q_SIZE;
+		static constexpr uint64_t quantized_blocks_per_col	= ne10 / Q_SIZE;
+		static constexpr uint64_t L1_CACHE_SIZE				= 24576;
+		static constexpr uint64_t BLOCK_Q8_0_SIZE			= sizeof(block_q8_0<half>);
+		static constexpr uint64_t DATA_PER_COMPUTATION		= BLOCK_Q8_0_SIZE * 2;
+		static constexpr uint64_t L1_OPTIMAL_CHUNK_ELEMENTS = L1_CACHE_SIZE / DATA_PER_COMPUTATION;
+		static constexpr uint64_t L1_CHUNK_SIZE				= (L1_OPTIMAL_CHUNK_ELEMENTS < 1) ? 1 : (L1_OPTIMAL_CHUNK_ELEMENTS > 512) ? 512 : L1_OPTIMAL_CHUNK_ELEMENTS;
 
 		NIHILUS_INLINE static void quantize_row_q8_0_avx2(const float* __restrict src, block_q8_0<half>* __restrict dst, uint64_t n) {
 			static constexpr uint64_t QK = Q_SIZE;
@@ -768,111 +750,18 @@ namespace nihilus {
 			}
 		}
 
-		NIHILUS_INLINE static void vec_dot_q8_0_q8_0_optimized(uint64_t n, float* __restrict s, const block_q8_0<half>* __restrict x, const block_q8_0<half>* __restrict y) {
-			const uint64_t nb			 = n / Q_SIZE;
-			static constexpr uint64_t qk = Q_SIZE;
-			int ib	   = 0;
-			float sumf = 0;
-			__m256 acc = _mm256_setzero_ps();
+		static void ggml_compute_forward_mul_mat_one_chunk(const uint64_t thread_index, uint64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01, const typename core_type::input_02_type& input02, const int64_t num_rows_per_vec_dot, const int64_t ir0_start,
+			const int64_t ir0_end, const int64_t ir1_start, const int64_t ir1_end) {
+			const uint64_t ne01 = input01[1];
+			const uint64_t ne11 = input02[1];
+			const uint64_t ne1	= output[1];
+			const int64_t r2	= ne12 / ne02;
+			const int64_t r3	= ne13 / ne03;
 
-			for (; ib < nb; ++ib) {
-				const __m256 d = _mm256_set1_ps(fp16_to_fp32(x[ib].d) * fp16_to_fp32(y[ib].d));
-				__m256i qx	   = _mm256_loadu_si256(( const __m256i* )x[ib].qs);
-				__m256i qy	   = _mm256_loadu_si256(( const __m256i* )y[ib].qs);
-
-				const __m256 q = mul_sum_i8_pairs_float(qx, qy);
-
-				acc = _mm256_fmadd_ps(d, q, acc);
+			if (ir0_start >= ir0_end || ir1_start >= ir1_end) {
+				return;
 			}
-
-			sumf = hsum_float_8(acc);
-			for (; ib < nb; ++ib) {
-				int sumi = 0;
-
-				for (int j = 0; j < qk; j++) {
-					sumi += x[ib].qs[j] * y[ib].qs[j];
-				}
-
-				sumf += sumi * (fp16_to_fp32(x[ib].d) * fp16_to_fp32(y[ib].d));
-			}
-
-			*s = sumf;
-		}
-
-		static void process_tile(const block_q8_0<half>* src01_base, const block_q8_0<half>* quantized_input, float* dst_base, int64_t ir0_start, int64_t ir0_end,
-			int64_t ir1_start, int64_t ir1_end, uint64_t output_ne1, uint64_t ne01) {
-			constexpr int64_t TILE_ROWS			   = 16;
-			constexpr int64_t TILE_COLS			   = 16;
-			constexpr int64_t MAX_SRC01_BLOCKS	   = 512;
-			constexpr int64_t MAX_QUANTIZED_BLOCKS = 512;
-
-			alignas(64) block_q8_0<half> src01_cache[TILE_ROWS * MAX_SRC01_BLOCKS];
-			alignas(64) block_q8_0<half> quantized_cache[TILE_COLS * MAX_QUANTIZED_BLOCKS];
-			alignas(64) float dst_cache[TILE_ROWS * TILE_COLS];
-
-			for (int64_t tile_ir1 = ir1_start; tile_ir1 < ir1_end; tile_ir1 += TILE_COLS) {
-				const int64_t actual_tile_cols = detail::min(TILE_COLS, ir1_end - tile_ir1);
-
-				for (int64_t col_idx = 0; col_idx < actual_tile_cols; ++col_idx) {
-					const int64_t ir1					  = tile_ir1 + col_idx;
-					const block_q8_0<half>* src_quantized = quantized_input + ir1 * quantized_blocks_per_col;
-
-					const int64_t copy_blocks		= detail::min(quantized_blocks_per_col, MAX_QUANTIZED_BLOCKS);
-					block_q8_0<half>* dst_quantized = quantized_cache + col_idx * copy_blocks;
-
-					std::memcpy(dst_quantized, src_quantized, copy_blocks * sizeof(block_q8_0<half>));
-				}
-
-				for (int64_t tile_ir0 = ir0_start; tile_ir0 < ir0_end; tile_ir0 += TILE_ROWS) {
-					const int64_t actual_tile_rows = detail::min(TILE_ROWS, ir0_end - tile_ir0);
-
-					for (int64_t row_idx = 0; row_idx < actual_tile_rows; ++row_idx) {
-						const int64_t ir0		   = tile_ir0 + row_idx;
-						const int64_t ir1_for_calc = tile_ir1;
-						const int64_t i13		   = ir1_for_calc / (ne12 * output_ne1);
-						const int64_t i12		   = (ir1_for_calc - i13 * ne12 * output_ne1) / output_ne1;
-						const int64_t i03		   = i13 / r3;
-						const int64_t i02		   = i12 / r2;
-
-						const uint64_t src01_offset		= ir0 * blocks_per_row + i02 * blocks_per_row * ne01 + i03 * blocks_per_row * ne01 * ne02;
-						const block_q8_0<half>* src_row = src01_base + src01_offset;
-
-						const int64_t copy_blocks = detail::min(blocks_per_row, MAX_SRC01_BLOCKS);
-						block_q8_0<half>* dst_row = src01_cache + row_idx * copy_blocks;
-
-						std::memcpy(dst_row, src_row, copy_blocks * sizeof(block_q8_0<half>));
-					}
-
-					for (int64_t col_idx = 0; col_idx < actual_tile_cols; ++col_idx) {
-						const int64_t copy_quant_blocks		  = detail::min(quantized_blocks_per_col, MAX_QUANTIZED_BLOCKS);
-						const block_q8_0<half>* quantized_col = quantized_cache + col_idx * copy_quant_blocks;
-
-						for (int64_t row_idx = 0; row_idx < actual_tile_rows; ++row_idx) {
-							const int64_t copy_src_blocks	  = detail::min(blocks_per_row, MAX_SRC01_BLOCKS);
-							const block_q8_0<half>* src01_row = src01_cache + row_idx * copy_src_blocks;
-							vec_dot_q8_0_q8_0_optimized(ne00, &dst_cache[row_idx * actual_tile_cols + col_idx], src01_row, quantized_col);
-						}
-					}
-
-					for (int64_t col_idx = 0; col_idx < actual_tile_cols; ++col_idx) {
-						const int64_t ir1			   = tile_ir1 + col_idx;
-						const uint64_t dst_base_offset = ir1 * ne0;
-						float* dst_col				   = dst_base + dst_base_offset;
-
-						for (int64_t row_idx = 0; row_idx < actual_tile_rows; ++row_idx) {
-							const int64_t ir0 = tile_ir0 + row_idx;
-							dst_col[ir0]	  = dst_cache[row_idx * actual_tile_cols + col_idx];
-						}
-					}
-				}
-			}
-		}
-
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
-			const typename core_type::input_02_type& input02) {
-			const uint64_t ne01		  = input01[1];
-			const uint64_t ne11		  = input02[1];
-			const uint64_t output_ne1 = output[1];
 
 			const block_q8_0<half>* src01;
 			if constexpr (array_types<decltype(input01.data)>) {
@@ -880,8 +769,100 @@ namespace nihilus {
 			} else {
 				src01 = input01.data;
 			}
-			const float* src02 = input02.data;
-			float* dst		   = output.data;
+
+			float* dst						  = output.data;
+			const uint64_t output_size		  = count_elements(output);
+			block_q8_0<half>* quantized_input = reinterpret_cast<block_q8_0<half>*>(dst + output_size);
+			const size_t row_size			  = get_type_traits(data_types::q8_0).row_size(ne00 * ne01 * ne02 * ne03);
+			const int64_t blck_0			  = 16;
+			const int64_t blck_1			  = 16;
+
+			const size_t src1_col_stride = row_size;
+
+			float tmp[32];
+
+			for (int64_t iir1 = ir1_start; iir1 < ir1_end; iir1 += blck_1) {
+				for (int64_t iir0 = ir0_start; iir0 < ir0_end; iir0 += blck_0) {
+					for (int64_t ir1 = iir1; ir1 < iir1 + blck_1 && ir1 < ir1_end; ir1 += num_rows_per_vec_dot) {
+						const int64_t i13 = (ir1 / (ne12 * ne1));
+						const int64_t i12 = (ir1 - i13 * ne12 * ne1) / ne1;
+						const int64_t i11 = (ir1 - i13 * ne12 * ne1 - i12 * ne1);
+
+						const int64_t i03 = i13 / r3;
+						const int64_t i02 = i12 / r2;
+
+						const int64_t i1 = i11;
+						const int64_t i2 = i12;
+						const int64_t i3 = i13;
+
+						const auto* src0_row = src01 + (i02 + i03);
+
+						const auto* src1_col = quantized_input + (i11 + i12 * ne11 + i13 * ne12 * ne11);
+						float* dst_col		 = dst + (i1 + i2 + i3);
+
+						for (int64_t ir0 = iir0; ir0 < iir0 + blck_0 && ir0 < ir0_end; ir0 += num_rows_per_vec_dot) {
+							vec_dot_q8_0_q8_0_optimized(ne00, &tmp[ir0 - iir0], src0_row + ir0, src1_col);
+						}
+
+						for (int64_t cn = 0; cn < num_rows_per_vec_dot; ++cn) {
+							memcpy(&dst_col[iir0 + cn], tmp + (cn * 16), (detail::min(iir0 + blck_0, ir0_end) - iir0) * sizeof(float));
+						}
+					}
+				}
+			}
+		}
+
+		NIHILUS_INLINE static uint64_t get_l1_cache_size() {
+			static uint64_t cached_size = 0;
+			if (cached_size != 0)
+				return cached_size;
+
+	#ifdef _MSC_VER
+			int cpuinfo[4];
+			__cpuid(cpuinfo, 0x80000005);
+			cached_size = ((cpuinfo[2] >> 24) & 0xFF) * 1024;
+	#else
+			unsigned int eax, ebx, ecx, edx;
+			__asm__ volatile("cpuid" : "=a"(eax), "=b"(ebx), "=c"(ecx), "=d"(edx) : "a"(0x80000005));
+			cached_size = ((ecx >> 24) & 0xFF) * 1024;
+	#endif
+
+			if (cached_size == 0 || cached_size > 256 * 1024) {
+				cached_size = 32 * 1024;// Conservative 32KB default
+			}
+
+			return cached_size;
+		}
+
+		alignas(64) inline static const uint64_t l1_cache_size{ get_l1_cache_size() };
+
+		NIHILUS_INLINE inline static uint64_t calculate_runtime_block_size(uint64_t ne00, uint64_t ne11) {
+			const uint64_t l1_size		 = l1_cache_size;
+			const uint64_t usable_l1	 = (l1_size * 3) / 4;
+			const uint64_t block_q8_size = sizeof(block_q8_0<half>);
+			const uint64_t blocks_per_row	  = ne00 / 32;
+			const uint64_t matrix_b_size	  = ne11 * blocks_per_row * block_q8_size;
+			const uint64_t bytes_per_row	  = blocks_per_row * block_q8_size + ne11 * sizeof(float);
+			const uint64_t available_for_rows = usable_l1 - matrix_b_size;
+
+			uint64_t optimal_block = available_for_rows / bytes_per_row;
+			return std::clamp(optimal_block, static_cast<uint64_t>(4), static_cast<uint64_t>(128));
+		}
+
+		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
+			const typename core_type::input_02_type& input02) {
+			const uint64_t ne01 = input01[1];
+			const uint64_t ne11 = input02[1];
+			const uint64_t ne1	= output[1];
+
+			const block_q8_0<half>* __restrict src01;
+			if constexpr (array_types<decltype(input01.data)>) {
+				src01 = input01.data[current_block];
+			} else {
+				src01 = input01.data;
+			}
+			const float* __restrict src02 = input02.data;
+			float* __restrict dst		  = output.data;
 
 			const uint64_t output_size		  = count_elements(output);
 			block_q8_0<half>* quantized_input = reinterpret_cast<block_q8_0<half>*>(dst + output_size);
@@ -889,24 +870,13 @@ namespace nihilus {
 			const uint64_t ith = static_cast<uint64_t>(thread_index);
 			const uint64_t nth = static_cast<uint64_t>(thread_count);
 
-			const int64_t nr0 = ne01;
-			const int64_t nr1 = output_ne1 * ne2 * ne3;
+			static constexpr int64_t nr0 = ne0;
+			const int64_t nr1			 = ne1 * ne2 * ne3;
 
-			int64_t chunk_size = 16;
-			if (nr0 == 1 || nr1 == 1) {
-				chunk_size = 64;
-			}
+			const int64_t chunk_size = (nr0 == 1 || nr1 == 1) ? 64 : 16;
 
 			int64_t nchunk0 = (nr0 + chunk_size - 1) / chunk_size;
 			int64_t nchunk1 = (nr1 + chunk_size - 1) / chunk_size;
-
-			if (nchunk0 * nchunk1 < nth * 4) {
-				nchunk0 = nr0 > nr1 ? nth : 1;
-				nchunk1 = nr0 > nr1 ? 1 : nth;
-			}
-
-			const int64_t dr0 = (nr0 + nchunk0 - 1) / nchunk0;
-			const int64_t dr1 = (nr1 + nchunk1 - 1) / nchunk1;
 
 			const uint64_t stride0 = quantized_blocks_per_col;
 			const uint64_t stride1 = stride0 * ne11;
@@ -939,31 +909,46 @@ namespace nihilus {
 				output.current_chunk[current_block].notify_all();
 			}
 
-			if (nth >= nchunk0 * nchunk1) {
-				const int64_t ir0_start = dr0 * ith;
-				const int64_t ir0_end	= detail::min(ir0_start + dr0, nr0);
-				const int64_t ir1_start = 0;
-				const int64_t ir1_end	= nr1;
+			const uint64_t blocks_per_row  = ne00 / 32;
+			const uint64_t rows_per_thread = (ne01 + nth - 1) / nth;
+			const uint64_t row_start	   = ith * rows_per_thread;
+			const uint64_t row_end		   = (row_start + rows_per_thread < ne01) ? row_start + rows_per_thread : ne01;
 
-				process_tile(src01, quantized_input, dst, ir0_start, ir0_end, ir1_start, ir1_end, output_ne1, ne01);
-			} else {
-				int64_t current_chunk = ith;
-				while (current_chunk < nchunk0 * nchunk1) {
-					const int64_t ith0		= current_chunk % nchunk0;
-					const int64_t ith1		= current_chunk / nchunk0;
-					const int64_t ir0_start = dr0 * ith0;
-					const int64_t ir0_end	= detail::min(ir0_start + dr0, nr0);
-					const int64_t ir1_start = dr1 * ith1;
-					const int64_t ir1_end	= detail::min(ir1_start + dr1, nr1);
+			for (uint64_t ir = row_start; ir < row_end; ++ir) {
+				for (uint64_t ic = 0; ic < ne11; ++ic) {
+					__m256 acc_vec = _mm256_setzero_ps();
 
-					if (ir0_start >= ir0_end || ir1_start >= ir1_end) {
-						current_chunk = output.current_chunk[current_block].fetch_add(1);
-						continue;
+					for (uint64_t k = 0; k < blocks_per_row; ++k) {
+						const block_q8_0<half>* block_a = &src01[ir * blocks_per_row + k];
+						const block_q8_0<half>* block_b = &quantized_input[ic * quantized_blocks_per_col + k];
+
+						const float scale = fp16_to_fp32(block_a->d) * fp16_to_fp32(block_b->d);
+
+						const __m256i va = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(block_a->qs));
+						const __m256i vb = _mm256_loadu_si256(reinterpret_cast<const __m256i*>(block_b->qs));
+
+						const __m256i va_lo = _mm256_unpacklo_epi8(va, _mm256_setzero_si256());
+						const __m256i vb_lo = _mm256_unpacklo_epi8(vb, _mm256_setzero_si256());
+						const __m256i va_hi = _mm256_unpackhi_epi8(va, _mm256_setzero_si256());
+						const __m256i vb_hi = _mm256_unpackhi_epi8(vb, _mm256_setzero_si256());
+
+						const __m256i prod_lo = _mm256_madd_epi16(va_lo, vb_lo);
+						const __m256i prod_hi = _mm256_madd_epi16(va_hi, vb_hi);
+						const __m256i sum_int = _mm256_add_epi32(prod_lo, prod_hi);
+
+						const __m256 sum_float = _mm256_cvtepi32_ps(sum_int);
+						const __m256 scaled	   = _mm256_mul_ps(sum_float, _mm256_set1_ps(scale));
+						acc_vec				   = _mm256_add_ps(acc_vec, scaled);
 					}
 
-					process_tile(src01, quantized_input, dst, ir0_start, ir0_end, ir1_start, ir1_end, output_ne1, ne01);
+					const __m128 acc_hi = _mm256_extractf128_ps(acc_vec, 1);
+					const __m128 acc_lo = _mm256_castps256_ps128(acc_vec);
+					__m128 result		= _mm_add_ps(acc_hi, acc_lo);
+					result				= _mm_hadd_ps(result, result);
+					result				= _mm_hadd_ps(result, result);
 
-					current_chunk = output.current_chunk[current_block].fetch_add(1);
+					const uint64_t output_idx = ir * ne1 + ic;
+					_mm_store_ss(&dst[output_idx], result);
 				}
 			}
 		}
