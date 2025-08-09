@@ -367,13 +367,11 @@ namespace nihilus {
 	}
 
 	alignas(64) static static_aligned_const<64, float>* fp16_to_fp32_array{ []() {
-		alignas(64) static std::unique_ptr<array<static_aligned_const<64, float>, (1 << 16)>> return_values_new{
-			std::make_unique<array<static_aligned_const<64, float>, (1 << 16)>>()
-		};
+		alignas(64) static array<static_aligned_const<64, float>, (1 << 16)> return_values_new{};
 		for (uint64_t i = 0; i < (1 << 16); ++i) {
-			(*return_values_new)[i] = compute_fp16_to_fp32(static_cast<half>(i));
+			(return_values_new)[i] = compute_fp16_to_fp32(static_cast<half>(i));
 		}
-		return return_values_new->data();
+		return return_values_new.data();
 	}() };
 
 	NIHILUS_INLINE static float fp16_to_fp32(uint16_t f) {

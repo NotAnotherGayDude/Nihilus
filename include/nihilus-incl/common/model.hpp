@@ -53,7 +53,9 @@ namespace nihilus {
 			return *static_cast<core_traits<config_new, op_type>*>(static_cast<get_core_bases_t<config_new>*>(this));
 		}
 
-		NIHILUS_INLINE model() noexcept = default;
+		NIHILUS_INLINE model() noexcept {
+		}
+
 		NIHILUS_INLINE model(cli_params params) : thread_pool<config_new>{ static_cast<int64_t>(params.thread_count) }, model_base{ config_new } {
 			exec_params.token_count = params.n_tokens;
 			init(params);
