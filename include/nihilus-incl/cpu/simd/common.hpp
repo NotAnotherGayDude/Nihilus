@@ -366,22 +366,18 @@ namespace nihilus {
 		return fp32_from_bits(result);
 	}
 
-	NIHILUS_INLINE const auto& get_fp16_to_fp32_array() noexcept {
-		alignas(64) static auto fp16_to_fp32_array = []() {
-			alignas(64) static std::unique_ptr<array<static_aligned_const<64, float>, (1 << 16)>> return_values_new{
-				std::make_unique<array<static_aligned_const<64, float>, (1 << 16)>>()
-			};
-			for (uint64_t i = 0; i < (1 << 16); ++i) {
-				(*return_values_new)[i] = compute_fp16_to_fp32(static_cast<half>(i));
-			}
-			alignas(64) static array<static_aligned_const<64, float>, (1 << 16)>& fp16_to_fp32_array_ref{ *return_values_new };
-			return fp16_to_fp32_array_ref;
-		}();
-		return fp16_to_fp32_array;
-	}
+	alignas(64) static static_aligned_const<64, float>* fp16_to_fp32_array{ []() {
+		alignas(64) static std::unique_ptr<array<static_aligned_const<64, float>, (1 << 16)>> return_values_new{
+			std::make_unique<array<static_aligned_const<64, float>, (1 << 16)>>()
+		};
+		for (uint64_t i = 0; i < (1 << 16); ++i) {
+			(*return_values_new)[i] = compute_fp16_to_fp32(static_cast<half>(i));
+		}
+		return return_values_new->data();
+	}() };
 
-	NIHILUS_INLINE static float fp16_to_fp32(uint16_t h) noexcept {
-		return *(get_fp16_to_fp32_array().data() + static_cast<uint64_t>(h));
+	NIHILUS_INLINE static float fp16_to_fp32(uint16_t f) {
+		return fp16_to_fp32_array[f];
 	}
 
 }
