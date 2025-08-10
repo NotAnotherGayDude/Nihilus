@@ -105,7 +105,7 @@ namespace nihilus {
 	};
 
 	struct alignas(64) atomic_flag_wrapper {
-		static constexpr static_aligned_const<64, uint64_t> spin_cycles{ 5000 };
+		static constexpr static_aligned_const<64, uint64_t> spin_cycles{ 50000 };
 		using value_type										= typename std::atomic_signed_lock_free::value_type;
 		NIHILUS_INLINE constexpr atomic_flag_wrapper() noexcept = default;
 		NIHILUS_INLINE constexpr atomic_flag_wrapper& operator=(const atomic_flag_wrapper&) noexcept {
