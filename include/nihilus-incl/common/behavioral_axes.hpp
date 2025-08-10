@@ -61,9 +61,7 @@ namespace nihilus {
 	}
 
 	template<kernel_types kernel_type, int64_t ops_per_depth> NIHILUS_INLINE constexpr int64_t get_thread_count(uint64_t base_count) {
-		if constexpr (kernel_type == kernel_types::get_rows || kernel_type == kernel_types::sub || kernel_type == kernel_types::reshape || kernel_type == kernel_types::permute ||
-			kernel_type == kernel_types::transpose || kernel_type == kernel_types::view || kernel_type == kernel_types::cont || kernel_type == kernel_types::copy ||
-			kernel_type == kernel_types::none) {
+		if constexpr (kernel_type == kernel_types::get_rows || kernel_type == kernel_types::sub || kernel_type == kernel_types::view || kernel_type == kernel_types::none) {
 			return 1;
 		} else if constexpr (kernel_type == kernel_types::add || kernel_type == kernel_types::mul || kernel_type == kernel_types::mul_mat ||
 			kernel_type == kernel_types::add_rms_norm || kernel_type == kernel_types::rms_norm_mul || kernel_type == kernel_types::add_rms_norm_mul ||

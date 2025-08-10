@@ -1,5 +1,7 @@
 #include <nihilus>
 
+using namespace nihilus;
+
 int32_t main(int32_t argc, char** argv) {
 	static constexpr auto model_config =
 		nihilus::generate_model_config(nihilus::model_generations::v3, nihilus::model_sizes::llm_8B, nihilus::kernel_type_profiles::q8_gqa, nihilus::model_arches::llama);

@@ -37,7 +37,13 @@ RealTimeChris (Chris M.)
 #include <latch>
 #include <cmath>
 
-namespace nihilus {	
+namespace nihilus {
+
+	struct
+		jiff_the_jiping_jippalon_the_grand_jiper_of_the_jappaloneans_the_grand_chopper_of_jammals_onions_the_grand_jammer_of_jammals_vaccuum_the_grand_erector_of_jammals_pillar {};
+
+	static constexpr jiff_the_jiping_jippalon_the_grand_jiper_of_the_jappaloneans_the_grand_chopper_of_jammals_onions_the_grand_jammer_of_jammals_vaccuum_the_grand_erector_of_jammals_pillar
+		jiff{};
 
 	template<typename value_type> struct vector : public std::vector<value_type> {};
 
@@ -475,37 +481,53 @@ namespace nihilus {
 		count,
 	};
 
+	static constexpr array<const char*, data_types::count> type_names{ { "f32", "f16", "q8_0", "i8", "i16", "i32", "i64", "f64" } };
+
 	template<typename enum_type>
 		requires(std::is_same_v<data_types, enum_type>)
-	NIHILUS_INLINE constexpr const char* get_type_name(enum_type type) {
-		switch (type) {
-			case enum_type::f64: {
-				return "double";
+	NIHILUS_INLINE std::ostream& operator<<(std::ostream& os, enum_type type) {
+		if (static_cast<uint64_t>(type) < type_names.size()) {
+			switch (static_cast<uint64_t>(type)) {
+				case static_cast<uint64_t>(data_types::f16): {
+					os << "float_16";
+					return os;
+				}
+				case static_cast<uint64_t>(data_types::f32): {
+					os << "float_32";
+					return os;
+				}
+				case static_cast<uint64_t>(data_types::f64): {
+					os << "float_64";
+					return os;
+				}
+				case static_cast<uint64_t>(data_types::i8): {
+					os << "int_8";
+					return os;
+				}
+				case static_cast<uint64_t>(data_types::i16): {
+					os << "int_16";
+					return os;
+				}
+				case static_cast<uint64_t>(data_types::i32): {
+					os << "int_32";
+					return os;
+				}
+				case static_cast<uint64_t>(data_types::i64): {
+					os << "int_64";
+					return os;
+				}
+				case static_cast<uint64_t>(data_types::q8_0): {
+					os << "q8_0";
+					return os;
+				}
+				default: {
+					os << "Unknown Data Type.";
+					return os;
+				}
 			}
-			case enum_type::f32: {
-				return "float_32";
-			}
-			case enum_type::f16: {
-				return "float_16";
-			}
-			case enum_type::q8_0: {
-				return "q8_0";
-			}
-			case enum_type::i64: {
-				return "int64_t";
-			}
-			case enum_type::i32: {
-				return "int32_t";
-			}
-			case enum_type::i16: {
-				return "int16_t";
-			}
-			case enum_type::i8: {
-				return "int8_t";
-			}
-			default: {
-				return "count";
-			}
+		} else {
+			os << "Unknown Data Type.";
+			return os;
 		}
 	}
 
@@ -517,13 +539,12 @@ namespace nihilus {
 		add_rms_norm,
 		mul,
 		mul_mat,
-		reshape,
-		permute,
-		transpose,
+		mul_mat_reshape,
+		mul_mat_transpose_copy,
 		view,
-		cont,
-		copy,
 		rope,
+		rope_permute,
+		rope_copy,
 		softmax,
 		silu,
 		add,
@@ -532,80 +553,21 @@ namespace nihilus {
 	};
 
 	template<typename value_type>
-	concept remapped_op_types = requires(std::remove_cvref_t<value_type> value) {
-		requires value.kernel_type == kernel_types::view || value.kernel_type == kernel_types::reshape || value.kernel_type == kernel_types::permute ||
-				 value.kernel_type == kernel_types::transpose || value.kernel_type == kernel_types::copy || value.kernel_type == kernel_types::cont;
-	};
+	concept remapped_op_types = requires(std::remove_cvref_t<value_type> value) { requires value.kernel_type == kernel_types::view; };
+
+	static constexpr array<const char*, kernel_types::count> kernel_names{ { "none", "add_rms_norm_mul", "get_rows", "rms_norm_mul", "add_rms_norm", "mul", "mul_mat",
+		"mul_mat_reshape", "mul_mat_transpose_copy", "view", "rope", "rope_permute", "rope_copy", "softmax", "silu", "add", "sub" } };
 
 	template<typename enum_type>
 		requires(std::is_same_v<kernel_types, enum_type>)
 	NIHILUS_INLINE std::ostream& operator<<(std::ostream& os, enum_type type) {
-		switch (type) {
-			case enum_type::none:
-				os << "none";
-				return os;
-			case enum_type::add_rms_norm_mul:
-				os << "add_rms_norm_mul";
-				return os;
-			case enum_type::get_rows:
-				os << "get_rows";
-				return os;
-			case enum_type::rms_norm_mul:
-				os << "rms_norm_mul";
-				return os;
-			case enum_type::add_rms_norm:
-				os << "add_rms_norm";
-				return os;
-			case enum_type::mul:
-				os << "mul";
-				return os;
-			case enum_type::mul_mat:
-				os << "mul_mat";
-				return os;
-			case enum_type::reshape:
-				os << "reshape";
-				return os;
-			case enum_type::permute:
-				os << "permute";
-				return os;
-			case enum_type::transpose:
-				os << "transpose";
-				return os;
-			case enum_type::view:
-				os << "view";
-				return os;
-			case enum_type::cont:
-				os << "cont";
-				return os;
-			case enum_type::copy:
-				os << "copy";
-				return os;
-			case enum_type::rope:
-				os << "rope";
-				return os;
-			case enum_type::softmax:
-				os << "softmax";
-				return os;
-			case enum_type::silu:
-				os << "silu";
-				return os;
-			case enum_type::add:
-				os << "add";
-				return os;
-			case enum_type::sub:
-				os << "sub";
-				return os;
-			case enum_type::count:
-				[[fallthrough]];
-			default: {
-				os << "count";
-				return os;
-			}
+		if (static_cast<uint64_t>(type) < kernel_names.size()) {
+			os << kernel_names[type];
+		} else {
+			os << "Unknown Kernel Type.";
 		}
+		return os;
 	}
-
-	static constexpr array<const char*, kernel_types::count> kernel_names{ { "none", "add_rms_norm_mul", "get_rows", "rms_norm_mul", "add_rms_norm", "mul", "mul_mat", "reshape",
-		"permute", "transpose", "view", "cont", "copy", "rope", "softmax", "silu", "add", "sub" } };
 
 	enum class op_types : uint16_t {
 		token_embd_weight,
@@ -629,24 +591,18 @@ namespace nihilus {
 		cache_v,
 		kq_mask,
 		norm_attn_norm,
-		qcur_mul_mat,
-		qcur_rope,
-		kcur_mul_mat,
-		kcur_rope,
-		vcur_mul_mat,
+		qcur_mul_mat_reshape,
+		qcur_rope_permute,
+		kcur_mul_mat_reshape,
+		kcur_rope_copy,
+		vcur_mul_mat_transposed_copy,
 		k_cache_view,
-		k_cache_view_copy,
-		vcur_transposed,
 		v_cache_view,
-		v_cache_view_copy,
 		v,
 		k,
-		q,
 		kq,
 		kq_soft_max,
-		kqv,
-		kqv_merged,
-		kqv_merged_cont,
+		kqv_permute_cont,
 		kqv_out,
 		l_out_prev,
 		ffn_inp_norm_out_ffn_norm,
@@ -665,122 +621,20 @@ namespace nihilus {
 
 	static constexpr array<const char*, op_types::count> op_names{ { "token_embd_weight", "rope_freqs_weight", "output_weight", "output_norm_weight", "attn_q_weight",
 		"attn_k_weight", "attn_v_weight", "attn_output_weight", "attn_norm_weight", "ffn_gate_weight", "ffn_up_weight", "ffn_down_weight", "ffn_norm_weight", "inp_tokens",
-		"inp_pos", "inp_out_ids", "inp_embd", "cache_k", "cache_v", "kq_mask", "norm_attn_norm", "qcur_mul_mat", "qcur_rope", "kcur_mul_mat", "kcur_rope", "vcur_mul_mat",
-		"k_cache_view", "k_cache_view_copy", "vcur_transposed", "v_cache_view", "v_cache_view_copy", "v", "k", "q", "kq", "kq_soft_max", "kqv", "kqv_merged", "kqv_merged_cont",
-		"kqv_out", "l_out_prev", "ffn_inp_norm_out_ffn_norm", "ffn_gate", "ffn_silu", "ffn_up", "ffn_gate_par", "ffn_out", "l_out_final_norm", "attn_residual", "prev_residual",
-		"result_norm", "result_output" } };
+		"inp_pos", "inp_out_ids", "inp_embd", "cache_k", "cache_v", "kq_mask", "norm_attn_norm", "qcur_mul_mat_reshape", "qcur_rope_permute", "kcur_mul_mat_reshape",
+		"kcur_rope_copy", "vcur_mul_mat_transposed_copy", "k_cache_view", "v_cache_view", "v", "k", "kq", "kq_soft_max", "kqv_permute_cont", "kqv_out", "l_out_prev",
+		"ffn_inp_norm_out_ffn_norm", "ffn_gate", "ffn_silu", "ffn_up", "ffn_gate_par", "ffn_out", "l_out_final_norm", "attn_residual", "prev_residual", "result_norm",
+		"result_output" } };
 
 	template<typename enum_type>
 		requires(std::is_same_v<op_types, enum_type>)
 	NIHILUS_INLINE std::ostream& operator<<(std::ostream& os, enum_type type) {
-		switch (type) {
-			case enum_type::token_embd_weight:
-				return os << "token_embd_weight";
-			case enum_type::rope_freqs_weight:
-				return os << "rope_freqs_weight";
-			case enum_type::output_weight:
-				return os << "output_weight";
-			case enum_type::output_norm_weight:
-				return os << "output_norm_weight";
-			case enum_type::attn_q_weight:
-				return os << "attn_q_weight";
-			case enum_type::attn_k_weight:
-				return os << "attn_k_weight";
-			case enum_type::attn_v_weight:
-				return os << "attn_v_weight";
-			case enum_type::attn_output_weight:
-				return os << "attn_output_weight";
-			case enum_type::attn_norm_weight:
-				return os << "attn_norm_weight";
-			case enum_type::ffn_gate_weight:
-				return os << "ffn_gate_weight";
-			case enum_type::ffn_up_weight:
-				return os << "ffn_up_weight";
-			case enum_type::ffn_down_weight:
-				return os << "ffn_down_weight";
-			case enum_type::ffn_norm_weight:
-				return os << "ffn_norm_weight";
-			case enum_type::inp_embd:
-				return os << "inp_embd";
-			case enum_type::inp_tokens:
-				return os << "inp_tokens";
-			case enum_type::inp_pos:
-				return os << "inp_pos";
-			case enum_type::inp_out_ids:
-				return os << "inp_out_ids";
-			case enum_type::cache_k:
-				return os << "cache_k";
-			case enum_type::cache_v:
-				return os << "cache_v";
-			case enum_type::kq_mask:
-				return os << "kq_mask";
-			case enum_type::norm_attn_norm:
-				return os << "norm_attn_norm";
-			case enum_type::qcur_mul_mat:
-				return os << "qcur_mul_mat";
-			case enum_type::qcur_rope:
-				return os << "qcur_rope";
-			case enum_type::kcur_mul_mat:
-				return os << "kcur_mul_mat";
-			case enum_type::kcur_rope:
-				return os << "kcur_rope";
-			case enum_type::vcur_mul_mat:
-				return os << "vcur_mul_mat";
-			case enum_type::k_cache_view:
-				return os << "k_cache_view";
-			case enum_type::k_cache_view_copy:
-				return os << "k_cache_view_copy";
-			case enum_type::vcur_transposed:
-				return os << "vcur_transposed";
-			case enum_type::v_cache_view:
-				return os << "v_cache_view";
-			case enum_type::v_cache_view_copy:
-				return os << "v_cache_view_copy";
-			case enum_type::v:
-				return os << "v";
-			case enum_type::k:
-				return os << "k";
-			case enum_type::q:
-				return os << "q";
-			case enum_type::kq:
-				return os << "kq";
-			case enum_type::kq_soft_max:
-				return os << "kq_soft_max";
-			case enum_type::kqv:
-				return os << "kqv";
-			case enum_type::kqv_merged:
-				return os << "kqv_merged";
-			case enum_type::kqv_merged_cont:
-				return os << "kqv_merged_cont";
-			case enum_type::kqv_out:
-				return os << "kqv_out";
-			case enum_type::ffn_inp_norm_out_ffn_norm:
-				return os << "ffn_inp_norm_out_ffn_norm";
-			case enum_type::ffn_gate:
-				return os << "ffn_gate";
-			case enum_type::ffn_silu:
-				return os << "ffn_silu";
-			case enum_type::ffn_up:
-				return os << "ffn_up";
-			case enum_type::ffn_gate_par:
-				return os << "ffn_gate_par";
-			case enum_type::ffn_out:
-				return os << "ffn_out";
-			case enum_type::l_out_final_norm:
-				return os << "l_out_final_norm";
-			case enum_type::l_out_prev:
-				return os << "l_out_prev";
-			case enum_type::result_norm:
-				return os << "result_norm";
-			case enum_type::result_output:
-				return os << "result_output";
-			case enum_type::attn_residual:
-				return os << "attn_residual";
-			case enum_type::prev_residual:
-				return os << "prev_residual";
-			default:
-				return os << "count";
+		if (static_cast<uint64_t>(type) < op_names.size()) {
+			os << op_names[type];
+		} else {
+			os << "Unknown Op Type.";
 		}
+		return os;
 	}
 
 	template<enum_types enum_type> constexpr kernel_types get_kernel_type_from_llm_op(enum_type op) {
@@ -812,11 +666,11 @@ namespace nihilus {
 			case enum_type::ffn_gate_par:
 			case enum_type::result_norm:
 				return kernel_types::mul;
-			case enum_type::qcur_mul_mat:
-			case enum_type::kcur_mul_mat:
-			case enum_type::vcur_mul_mat:
+			case enum_type::qcur_mul_mat_reshape:
+			case enum_type::kcur_mul_mat_reshape:
+			case enum_type::vcur_mul_mat_transposed_copy:
 			case enum_type::kq:
-			case enum_type::kqv:
+			case enum_type::kqv_permute_cont:
 			case enum_type::kqv_out:
 			case enum_type::ffn_gate:
 			case enum_type::ffn_up:
@@ -824,22 +678,15 @@ namespace nihilus {
 			case enum_type::result_output:
 				return kernel_types::mul_mat;
 			case enum_type::q:
-			case enum_type::kqv_merged:
-				return kernel_types::permute;
-			case enum_type::vcur_transposed:
-				return kernel_types::transpose;
 			case enum_type::k_cache_view:
 			case enum_type::v_cache_view:
 			case enum_type::v:
 			case enum_type::k:
 				return kernel_types::view;
-			case enum_type::kqv_merged_cont:
-				return kernel_types::cont;
 			case enum_type::k_cache_view_copy:
 			case enum_type::v_cache_view_copy:
-				return kernel_types::copy;
-			case enum_type::qcur_rope:
-			case enum_type::kcur_rope:
+			case enum_type::qcur_rope_permute:
+			case enum_type::kcur_rope_copy:
 				return kernel_types::rope;
 			case enum_type::kq_soft_max:
 				return kernel_types::softmax;

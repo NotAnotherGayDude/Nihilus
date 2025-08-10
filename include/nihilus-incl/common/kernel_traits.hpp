@@ -261,6 +261,9 @@ namespace nihilus {
 
 	template<kernel_types kernel_type, typename core_traits01, typename core_traits02, typename core_traits03, typename... operand_types> struct get_new_dims_3;
 
+	template<kernel_types kernel_type, typename core_traits01, typename core_traits02, typename core_traits03, typename core_traits04, typename... operand_types>
+	struct get_new_dims_4;
+
 	template<kernel_types kernel_type, core_traits_types core_traits01, runtime_dims_t... dimension_type> struct get_new_dims_1<kernel_type, core_traits01, dimension_type...> {
 		using dim_traits01			 = typename core_traits01::core_traits_dims_type;
 		static constexpr auto dims01 = dim_traits01::get_array();
@@ -295,26 +298,6 @@ namespace nihilus {
 		using type = decltype(get_new_dims_fn());
 	};
 
-	template<kernel_types kernel_type, core_traits_types core_traits01, core_traits_types core_traits02, core_traits_types core_traits03, runtime_dims_t... dimension_type>
-	struct get_new_dims_3<kernel_type, core_traits01, core_traits02, core_traits03, dimension_type...> {
-		using dim_traits01			 = typename core_traits01::core_traits_dims_type;
-		using dim_traits02			 = typename core_traits02::core_traits_dims_type;
-		using dim_traits03			 = typename core_traits03::core_traits_dims_type;
-		static constexpr auto dims01 = dim_traits01::get_array();
-		static constexpr auto dims02 = dim_traits02::get_array();
-		static constexpr auto dims03 = dim_traits03::get_array();
-
-		static constexpr auto get_new_dims_fn() {
-			if constexpr (kernel_type == kernel_types::rope) {
-				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], (dimension_type::dimension, ...)>{};
-			} else {
-				static_assert(static_assert_printer<false, get_new_dims_errors::unknown_kernel_type, core_traits01, core_traits02, core_traits03, dimension_type...>::impl);
-			}
-		}
-
-		using type = decltype(get_new_dims_fn());
-	};
-
 	template<kernel_types kernel_type, core_traits_types core_traits01, core_traits_types core_traits02> struct get_new_dims_2<kernel_type, core_traits01, core_traits02> {
 		using dim_traits01			 = typename core_traits01::core_traits_dims_type;
 		using dim_traits02			 = typename core_traits02::core_traits_dims_type;
@@ -338,15 +321,9 @@ namespace nihilus {
 				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3]>{};
 			} else if constexpr (kernel_type == kernel_types::softmax) {
 				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3]>{};
-			} else if constexpr (kernel_type == kernel_types::reshape) {
-				return core_trait_dims<dims02[0], dims02[1], dims02[2], dims02[3]>{};
-			} else if constexpr (kernel_type == kernel_types::permute) {
-				return core_trait_dims<dims01[0], dims01[2], dims01[1], dims01[3]>{};
-			} else if constexpr (kernel_type == kernel_types::transpose) {
-				return core_trait_dims<dims01[1], dims01[0], dims01[2], dims01[3]>{};
 			} else if constexpr (kernel_type == kernel_types::view) {
 				return core_trait_dims<dims02[0], dims02[1], dims02[2], dims02[3]>{};
-			} else if constexpr (kernel_type == kernel_types::copy) {
+			}else if constexpr (kernel_type == kernel_types::mul_mat_reshape) {
 				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3]>{};
 			} else {
 				static_assert(static_assert_printer<false, get_new_dims_errors::unknown_kernel_type, core_traits01, core_traits02>::impl);
@@ -380,18 +357,57 @@ namespace nihilus {
 				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], (dimension_type::dimension, ...)>{};
 			} else if constexpr (kernel_type == kernel_types::softmax) {
 				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], (dimension_type::dimension, ...)>{};
-			} else if constexpr (kernel_type == kernel_types::reshape) {
-				return core_trait_dims<dims02[0], dims02[1], dims02[2], dims02[3], (dimension_type::dimension, ...)>{};
-			} else if constexpr (kernel_type == kernel_types::permute) {
-				return core_trait_dims<dims01[0], dims01[2], dims01[1], dims01[3], (dimension_type::dimension, ...)>{};
-			} else if constexpr (kernel_type == kernel_types::transpose) {
-				return core_trait_dims<dims01[1], dims01[0], dims01[2], dims01[3], (dimension_type::dimension, ...)>{};
 			} else if constexpr (kernel_type == kernel_types::view) {
 				return core_trait_dims<dims02[0], dims02[1], dims02[2], dims02[3], (dimension_type::dimension, ...)>{};
-			} else if constexpr (kernel_type == kernel_types::copy) {
+			} else if constexpr (kernel_type == kernel_types::mul_mat_reshape) {
 				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], (dimension_type::dimension, ...)>{};
 			} else {
 				static_assert(static_assert_printer<false, get_new_dims_errors::unknown_kernel_type, core_traits01, core_traits02, dimension_type...>::impl);
+			}
+		}
+
+		using type = decltype(get_new_dims_fn());
+	};
+
+	template<kernel_types kernel_type, core_traits_types core_traits01, core_traits_types core_traits02, core_traits_types core_traits03, runtime_dims_t... dimension_type>
+	struct get_new_dims_3<kernel_type, core_traits01, core_traits02, core_traits03, dimension_type...> {
+		using dim_traits01			 = typename core_traits01::core_traits_dims_type;
+		using dim_traits02			 = typename core_traits02::core_traits_dims_type;
+		using dim_traits03			 = typename core_traits03::core_traits_dims_type;
+		static constexpr auto dims01 = dim_traits01::get_array();
+		static constexpr auto dims02 = dim_traits02::get_array();
+		static constexpr auto dims03 = dim_traits03::get_array();
+
+		static constexpr auto get_new_dims_fn() {
+			if constexpr (kernel_type == kernel_types::rope) {
+				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], (dimension_type::dimension, ...)>{};
+			} else if constexpr (kernel_type == kernel_types::rope_permute) {
+				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], (dimension_type::dimension, ...)>{};
+			} else {
+				static_assert(static_assert_printer<false, get_new_dims_errors::unknown_kernel_type, core_traits01, core_traits02, core_traits03, dimension_type...>::impl);
+			}
+		}
+
+		using type = decltype(get_new_dims_fn());
+	};
+
+	template<kernel_types kernel_type, core_traits_types core_traits01, core_traits_types core_traits02, core_traits_types core_traits03, core_traits_types core_traits04,
+		runtime_dims_t... dimension_type>
+	struct get_new_dims_4<kernel_type, core_traits01, core_traits02, core_traits03, core_traits04, dimension_type...> {
+		using dim_traits01			 = typename core_traits01::core_traits_dims_type;
+		using dim_traits02			 = typename core_traits02::core_traits_dims_type;
+		using dim_traits03			 = typename core_traits03::core_traits_dims_type;
+		using dim_traits04			 = typename core_traits04::core_traits_dims_type;
+		static constexpr auto dims01 = dim_traits01::get_array();
+		static constexpr auto dims02 = dim_traits02::get_array();
+		static constexpr auto dims03 = dim_traits03::get_array();
+		static constexpr auto dims04 = dim_traits04::get_array();
+
+		static constexpr auto get_new_dims_fn() {
+			if constexpr (kernel_type == kernel_types::rope_copy) {
+				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], (dimension_type::dimension, ...)>{};
+			} else {
+				static_assert(static_assert_printer<false, get_new_dims_errors::unknown_kernel_type, core_traits01, core_traits02, core_traits03, dimension_type...>::impl);
 			}
 		}
 
@@ -462,6 +478,37 @@ namespace nihilus {
 		static constexpr uint64_t input01_total_elements = dims02[0] * dims02[1] * dims02[2] * dims02[3];
 		static constexpr uint64_t input02_total_elements = dims03[0] * dims03[1] * dims03[2] * dims03[3];
 		static constexpr uint64_t input03_total_elements = dims04[0] * dims04[1] * dims04[2] * dims04[3];
+		static_assert(static_assert_printer<( std::is_same_v<output_type, typename core_type::output_type> ),
+			kernel_trait_static_assert_errors::Sorry_but_these_output_types_are_not_the_same, kernel_base, core_type, output_type, input_01_type, input_02_type>::impl);
+		static_assert(static_assert_printer<( std::is_same_v<input_01_type, typename core_type::input_01_type::output_type> ),
+			kernel_trait_static_assert_errors::Sorry_but_these_input_types01_types_are_not_the_same, kernel_base, core_type, output_type, input_01_type, input_02_type,
+			input_03_type>::impl);
+		static_assert(static_assert_printer<( std::is_same_v<input_02_type, typename core_type::input_02_type::output_type> ),
+			kernel_trait_static_assert_errors::Sorry_but_these_input_types02_types_are_not_the_same, kernel_base, core_type, output_type, input_01_type, input_02_type,
+			input_03_type>::impl);
+		static_assert(static_assert_printer<( std::is_same_v<input_03_type, typename core_type::input_03_type::output_type> ),
+			kernel_trait_static_assert_errors::Sorry_but_these_input_types03_types_are_not_the_same, kernel_base, core_type, output_type, input_01_type, input_02_type,
+			input_03_type>::impl);
+	};
+
+	template<kernel_types kernel_type, quadruple_input_types core_type, typename output_type, typename input_01_type, typename input_02_type, typename input_03_type,
+		typename input_04_type>
+	struct kernel_base<kernel_type, core_type, output_type, input_01_type, input_02_type, input_03_type, input_04_type> {
+		using input01									 = typename core_type::input_01_type;
+		using input02									 = typename core_type::input_02_type;
+		using input03									 = typename core_type::input_03_type;
+		using input04									 = typename core_type::input_04_type;
+		using output									 = core_type;
+		static constexpr auto dims01					 = core_type::get_array();
+		static constexpr auto dims02					 = core_type::input_01_type::get_array();
+		static constexpr auto dims03					 = core_type::input_02_type::get_array();
+		static constexpr auto dims04					 = core_type::input_03_type::get_array();
+		static constexpr auto dims05					 = core_type::input_04_type::get_array();
+		static constexpr uint64_t total_elements		 = dims01[0] * dims01[1] * dims01[2] * dims01[3];
+		static constexpr uint64_t input01_total_elements = dims02[0] * dims02[1] * dims02[2] * dims02[3];
+		static constexpr uint64_t input02_total_elements = dims03[0] * dims03[1] * dims03[2] * dims03[3];
+		static constexpr uint64_t input03_total_elements = dims04[0] * dims04[1] * dims04[2] * dims04[3];
+		static constexpr uint64_t input04_total_elements = dims05[0] * dims05[1] * dims05[2] * dims05[3];
 		static_assert(static_assert_printer<( std::is_same_v<output_type, typename core_type::output_type> ),
 			kernel_trait_static_assert_errors::Sorry_but_these_output_types_are_not_the_same, kernel_base, core_type, output_type, input_01_type, input_02_type>::impl);
 		static_assert(static_assert_printer<( std::is_same_v<input_01_type, typename core_type::input_01_type::output_type> ),
@@ -576,56 +623,32 @@ namespace nihilus {
 			input01, input02>::impl);
 	};
 
-	template<single_input_types core_type> struct kernel_traits<kernel_types::reshape, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type>
-		: public kernel_base<kernel_types::reshape, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type> {
-		using base_type = kernel_base<kernel_types::reshape, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type>;
+	template<single_input_types core_type> struct kernel_traits<kernel_types::rope_copy, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type,
+		typename core_type::input_02_type::output_type, typename core_type::input_03_type::output_type, typename core_type::input_04_type::output_type>
+		: public kernel_base<kernel_types::rope_copy, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type,
+			  typename core_type::input_02_type::output_type, typename core_type::input_03_type::output_type, typename core_type::input_04_type::output_type> {
+		using base_type = kernel_base<kernel_types::rope_copy, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type>;
 		using input01	= typename base_type::input01;
 		using output	= typename base_type::output;
 		static_assert(static_assert_printer<valid_tensor_types<typename core_type::input_01_type::output_type>,
-			kernel_trait_static_assert_errors::RESHAPE_Input_type_must_be_valid_tensor_type, kernel_traits, output, input01>::impl);
-		static_assert(static_assert_printer<valid_tensor_types<typename core_type::output_type>, kernel_trait_static_assert_errors::RESHAPE_Output_type_must_be_valid_tensor_type,
+			kernel_trait_static_assert_errors::VIEW_Input_type_must_be_valid_tensor_type, kernel_traits, output, input01>::impl);
+		static_assert(static_assert_printer<valid_tensor_types<typename core_type::output_type>, kernel_trait_static_assert_errors::VIEW_Output_type_must_be_valid_tensor_type,
 			kernel_traits, output, input01>::impl);
-		static_assert(static_assert_printer<(base_type::input01_total_elements == base_type::total_elements),
-			kernel_trait_static_assert_errors::RESHAPE_Total_element_count_must_be_preserved, kernel_traits, output, input01>::impl);
+		static_assert(static_assert_printer<(base_type::input01_total_elements >= base_type::total_elements),
+			kernel_trait_static_assert_errors::VIEW_Output_cannot_have_more_elements_than_input, kernel_traits, output, input01>::impl);
 	};
 
-	template<single_input_types core_type> struct kernel_traits<kernel_types::transpose, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type>
-		: public kernel_base<kernel_types::transpose, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type> {
-		using base_type = kernel_base<kernel_types::transpose, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type>;
+	template<single_input_types core_type> struct kernel_traits<kernel_types::rope_permute, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type>
+		: public kernel_base<kernel_types::rope_permute, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type> {
+		using base_type = kernel_base<kernel_types::rope_permute, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type>;
 		using input01	= typename base_type::input01;
 		using output	= typename base_type::output;
 		static_assert(static_assert_printer<valid_tensor_types<typename core_type::input_01_type::output_type>,
-			kernel_trait_static_assert_errors::TRANSPOSE_Input_type_must_be_valid_tensor_type, kernel_traits, output, input01>::impl);
-		static_assert(static_assert_printer<valid_tensor_types<typename core_type::output_type>, kernel_trait_static_assert_errors::TRANSPOSE_Output_type_must_be_valid_tensor_type,
+			kernel_trait_static_assert_errors::VIEW_Input_type_must_be_valid_tensor_type, kernel_traits, output, input01>::impl);
+		static_assert(static_assert_printer<valid_tensor_types<typename core_type::output_type>, kernel_trait_static_assert_errors::VIEW_Output_type_must_be_valid_tensor_type,
 			kernel_traits, output, input01>::impl);
-		static_assert(static_assert_printer<(base_type::input01_total_elements == base_type::total_elements),
-			kernel_trait_static_assert_errors::TRANSPOSE_Total_element_count_must_be_preserved, kernel_traits, output, input01>::impl);
-	};
-
-	template<single_input_types core_type> struct kernel_traits<kernel_types::permute, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type>
-		: public kernel_base<kernel_types::permute, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type> {
-		using base_type = kernel_base<kernel_types::permute, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type>;
-		using input01	= typename base_type::input01;
-		using output	= typename base_type::output;
-		static_assert(static_assert_printer<valid_tensor_types<typename core_type::input_01_type::output_type>,
-			kernel_trait_static_assert_errors::PERMUTE_Input_type_must_be_valid_tensor_type, kernel_traits, output, input01>::impl);
-		static_assert(static_assert_printer<valid_tensor_types<typename core_type::output_type>, kernel_trait_static_assert_errors::PERMUTE_Output_type_must_be_valid_tensor_type,
-			kernel_traits, output, input01>::impl);
-		static_assert(static_assert_printer<(base_type::input01_total_elements == base_type::total_elements),
-			kernel_trait_static_assert_errors::PERMUTE_Total_element_count_must_be_preserved, kernel_traits, output, input01>::impl);
-	};
-
-	template<single_input_types core_type> struct kernel_traits<kernel_types::cont, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type>
-		: public kernel_base<kernel_types::cont, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type> {
-		using base_type = kernel_base<kernel_types::cont, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type>;
-		using input01	= typename base_type::input01;
-		using output	= typename base_type::output;
-		static_assert(static_assert_printer<valid_tensor_types<typename core_type::input_01_type::output_type>,
-			kernel_trait_static_assert_errors::CONT_Input_type_must_be_valid_tensor_type, kernel_traits, output, input01>::impl);
-		static_assert(static_assert_printer<valid_tensor_types<typename core_type::output_type>, kernel_trait_static_assert_errors::CONT_Output_type_must_be_valid_tensor_type,
-			kernel_traits, output, input01>::impl);
-		static_assert(static_assert_printer<(base_type::input01_total_elements == base_type::total_elements),
-			kernel_trait_static_assert_errors::CONT_Total_element_count_must_match_between_input_and_output, kernel_traits, output, input01>::impl);
+		static_assert(static_assert_printer<(base_type::input01_total_elements >= base_type::total_elements),
+			kernel_trait_static_assert_errors::VIEW_Output_cannot_have_more_elements_than_input, kernel_traits, output, input01>::impl);
 	};
 
 	template<single_input_types core_type> struct kernel_traits<kernel_types::view, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type>
@@ -894,25 +917,6 @@ namespace nihilus {
 			kernel_trait_static_assert_errors::SUB_Input2_type_must_be_valid_tensor_type, kernel_traits, output, input01, input02>::impl);
 		static_assert(static_assert_printer<valid_tensor_types<typename core_type::output_type>, kernel_trait_static_assert_errors::SUB_Output_type_must_be_valid_tensor_type,
 			kernel_traits, output, input01, input02>::impl);
-	};
-
-	template<single_input_types core_type> struct kernel_traits<kernel_types::copy, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type,
-		typename core_type::input_02_type::output_type> : public kernel_base<kernel_types::copy, core_type, typename core_type::output_type,
-															  typename core_type::input_01_type::output_type, typename core_type::input_02_type::output_type> {
-		using base_type				 = kernel_base<kernel_types::copy, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type,
-						 typename core_type::input_02_type::output_type>;
-		using input01				 = typename base_type::input01;
-		using output				 = typename base_type::output;
-		static constexpr auto dims01 = base_type::dims01;
-		static constexpr auto dims02 = base_type::dims02;
-		static_assert(static_assert_printer<valid_tensor_types<typename core_type::input_01_type::output_type>,
-			kernel_trait_static_assert_errors::COPY_Source_type_must_be_valid_tensor_type, kernel_traits, input01>::impl);
-		static_assert(static_assert_printer<valid_tensor_types<typename core_type::output_type>, kernel_trait_static_assert_errors::COPY_Destination_type_must_be_valid_tensor_type,
-			kernel_traits, input01>::impl);
-		static constexpr uint64_t source_elements = dims01[0] * dims01[1] * dims01[2] * dims01[3];
-		static constexpr uint64_t dest_elements	  = dims02[0] * dims02[1] * dims02[2] * dims02[3];
-		static_assert(static_assert_printer<(source_elements == dest_elements), kernel_trait_static_assert_errors::COPY_Source_and_destination_must_have_same_total_element_count,
-			kernel_traits, input01>::impl);
 	};
 
 	template<single_input_types core_type> struct kernel_traits<kernel_types::none, core_type, typename core_type::input_01_type::output_type>

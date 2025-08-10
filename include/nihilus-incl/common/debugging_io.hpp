@@ -424,19 +424,8 @@ namespace nihilus {
 			case GGML_OP_MUL_MAT:
 			case GGML_OP_MUL_MAT_ID:
 				return kernel_types::mul_mat;
-			case GGML_OP_RESHAPE:
-				return kernel_types::reshape;
-			case GGML_OP_PERMUTE:
-				return kernel_types::permute;
-			case GGML_OP_TRANSPOSE:
-				return kernel_types::transpose;
 			case GGML_OP_VIEW:
-				return kernel_types::view;
-			case GGML_OP_CONT:
-				return kernel_types::cont;
-			case GGML_OP_CPY:
-			case GGML_OP_DUP:
-				return kernel_types::copy;
+				return kernel_types::view;			
 			case GGML_OP_ROPE:
 				return kernel_types::rope;
 			case GGML_OP_SOFT_MAX:
@@ -453,6 +442,20 @@ namespace nihilus {
 		}
 	}
 
+	template<typename value_type>
+		requires(std::is_same_v<std::string, std::remove_cvref_t<value_type>>)
+	std::ostream& operator<<(std::ostream& os, const vector<value_type>& tensor) {
+		os << "[";
+		for (uint64_t x = 0; x < tensor.size(); ++x) {
+			os << tensor[x];
+			if (x < tensor.size() - 1) {
+				os << ",";
+			}
+		}
+		os << "]";
+		return os;
+	}
+
 	template<typename value_type> std::ostream& operator<<(std::ostream& os, const vector<value_type>& tensor) {
 		os << "[";
 		for (uint64_t x = 0; x < tensor.size(); ++x) {
@@ -461,7 +464,7 @@ namespace nihilus {
 				os << ",";
 			}
 		}
-		os << "]" << std::endl;
+		os << "]";
 		return os;
 	}
 
@@ -473,7 +476,7 @@ namespace nihilus {
 				os << ",";
 			}
 		}
-		os << "]" << std::endl;
+		os << "]";
 		return os;
 	}
 
@@ -491,39 +494,33 @@ namespace nihilus {
 		NIHILUS_INLINE intermediary_tensor() noexcept = default;
 
 		NIHILUS_INLINE intermediary_tensor(const intermediary_tensor& other) {
-			dims = other.dims;
-			data = other.data;
-			name = other.name;
-			type = other.type;
-			op	 = other.op;
+			*this = other;
 		}
 
 		NIHILUS_INLINE intermediary_tensor(intermediary_tensor&& other) noexcept {
-			dims = detail::move(other.dims);
-			data = detail::move(other.data);
-			name = detail::move(other.name);
-			type = other.type;
-			op	 = other.op;
+			*this = std::move(other);
 		}
 
 		NIHILUS_INLINE intermediary_tensor& operator=(const intermediary_tensor& other) {
 			if (this != &other) {
-				dims = other.dims;
-				data = other.data;
-				name = other.name;
-				type = other.type;
-				op	 = other.op;
+				inputs = other.inputs;
+				dims   = other.dims;
+				data   = other.data;
+				name   = other.name;
+				type   = other.type;
+				op	   = other.op;
 			}
 			return *this;
 		}
 
 		NIHILUS_INLINE intermediary_tensor& operator=(intermediary_tensor&& other) noexcept {
 			if (this != &other) {
-				dims = detail::move(other.dims);
-				data = detail::move(other.data);
-				name = detail::move(other.name);
-				type = other.type;
-				op	 = other.op;
+				inputs = detail::move(other.inputs);
+				dims   = detail::move(other.dims);
+				data   = detail::move(other.data);
+				name   = detail::move(other.name);
+				type   = other.type;
+				op	   = other.op;
 			}
 			return *this;
 		}
@@ -536,8 +533,9 @@ namespace nihilus {
 			op	 = convert_ggml_op_to_nihilus_kernel(other.op);
 		}
 		std::string name{};
-		vector<uint8_t> data{};
+		std::vector<uint8_t> data{};
 		source_types source_type{ source_types::ggml };
+		std::vector<std::string> inputs{};
 		data_types type{};
 		kernel_types op{};
 	};
@@ -820,7 +818,7 @@ namespace nihilus {
 namespace jsonifier {
 	template<> struct core<nihilus::intermediary_tensor> {
 		using value_type				 = nihilus::intermediary_tensor;
-		static constexpr auto parseValue = jsonifier::createValue<&value_type::dims, &value_type::op, &value_type::type, &value_type::name, &value_type::data>();
+		static constexpr auto parseValue = jsonifier::createValue<&value_type::inputs, &value_type::dims, &value_type::op, &value_type::type, &value_type::name, &value_type::data>();
 	};
 }
 
@@ -838,10 +836,10 @@ namespace nihilus {
 			case op_types::inp_embd: {
 				return "inp_embd";
 			}
-			case op_types::qcur_rope: {
-				return "Qcur-" + block + "-02";
+			case op_types::qcur_rope_permute: {
+				return "q-" + block;
 			}
-			case op_types::kcur_rope: {
+			case op_types::kcur_rope_copy: {
 				return "Kcur-" + block + "-02";
 			}
 			case op_types::k_cache_view: {
@@ -904,26 +902,17 @@ namespace nihilus {
 			case op_types::cache_v: {
 				return "cache_v_l" + block;
 			}
-			case op_types::qcur_mul_mat: {
+			case op_types::qcur_mul_mat_reshape: {
 				return "Qcur-" + block + " (reshaped)-02";
 			}
-			case op_types::kcur_mul_mat: {
+			case op_types::kcur_mul_mat_reshape: {
 				return "Kcur-" + block + " (reshaped)-02";
 			}
-			case op_types::vcur_mul_mat: {
+			case op_types::vcur_mul_mat_transposed_copy: {
 				return "Vcur-" + block;
-			}
-			case op_types::k_cache_view_copy: {
-				return "k_cache_view-" + block + " (copy of Kcur-" + block + ")";
-			}
-			case op_types::vcur_transposed: {
-				return "Vcur-" + block + " (transposed)-02";
 			}
 			case op_types::v_cache_view: {
 				return "v_cache_view-" + block;
-			}
-			case op_types::v_cache_view_copy: {
-				return "v_cache_view-" + block + " (copy of Vcur-" + block + " (transposed))";
 			}
 			case op_types::v: {
 				return "v-" + block;
@@ -931,23 +920,14 @@ namespace nihilus {
 			case op_types::k: {
 				return "k-" + block;
 			}
-			case op_types::q: {
-				return "q-" + block;
-			}
 			case op_types::kq: {
 				return "kq-" + block;
 			}
 			case op_types::kq_soft_max: {
 				return "kq_soft_max_ext-" + block;
 			}
-			case op_types::kqv: {
-				return "kqv-" + block;
-			}
-			case op_types::kqv_merged: {
-				return "kqv_merged-" + block;
-			}
-			case op_types::kqv_merged_cont: {
-				return "kqv_merged_cont-" + block;
+			case op_types::kqv_permute_cont: {
+				return "kqv_permute_cont-" + block;
 			}
 			case op_types::kqv_out: {
 				return "kqv_out-" + block;

@@ -110,8 +110,79 @@ static constexpr nihilus::model_sizes model_size{ nihilus::model_sizes::llm_8B }
 static constexpr nihilus::model_sizes model_size{ LLAMA_MODEL_SIZE };
 #endif
 
+#include <filesystem>
+
+std::vector<int> extract_numbers(const std::string& str) {
+	std::vector<int> numbers;
+
+	size_t i = 0;
+	while (i < str.length()) {
+		if (std::isdigit(str[i])) {
+			int num = 0;
+			while (i < str.length() && std::isdigit(str[i])) {
+				num = num * 10 + (str[i] - '0');
+				++i;
+			}
+			numbers.push_back(num);
+		} else {
+			++i;
+		}
+	}
+
+	return numbers;
+}
+
+bool is_first_block(const std::string& file_name) {
+	auto values = extract_numbers(file_name);
+	std::cout << "VALUES: " << values << ", FROM FILE NAME: " << file_name << std::endl;
+	if (values.size() != 0 && values[0] == 0 && values[values.size() - 1] == 0) {
+		return true;
+	} else {
+		return false;
+	}
+}
+
+std::vector<std::string> collect_json_files() {
+	std::vector<std::string> json_contents;
+
+	try {
+		for (const auto& entry: std::filesystem::directory_iterator(".")) {
+			if (entry.is_regular_file() && entry.path().extension() == ".json") {
+				std::string file_name{ entry.path().string() };
+				if (is_first_block(file_name)) {
+					std::ifstream file(entry.path());
+					if (file.is_open()) {
+						std::stringstream buffer;
+						buffer << file.rdbuf();
+						json_contents.push_back(buffer.str());
+						file.close();
+					}
+				}
+			}
+		}
+	} catch (const std::filesystem::filesystem_error& e) {
+		std::cerr << e.what() << std::endl;
+	}
+
+	return json_contents;
+}
+
+void print_tensors() {
+	auto json_files{ collect_json_files() };
+	jsonifier::jsonifier_core parser{};
+	for (auto& value: json_files) {
+		auto new_tensor = parser.parseJson<nihilus::intermediary_tensor>(value);
+		std::cout << "Tensor Name: " << new_tensor.name << std::endl;
+		std::cout << "Dims: " << new_tensor.dims << std::endl;
+		std::cout << "Type: " << new_tensor.type << std::endl;
+		std::cout << "Op: " << ggml_op_name(static_cast<ggml_op>(new_tensor.op)) << std::endl;
+		std::cout << "Inputs: " << new_tensor.inputs << std::endl;
+	}
+}
+
 int main(int argc, char** argv) {
 	try {
+		
 		static constexpr auto model_config =
 			nihilus::generate_model_config(nihilus::model_generations::v3, model_size, nihilus::kernel_type_profiles::q8_gqa, nihilus::model_arches::llama);
 		static constexpr auto model_config01 = nihilus::update_model_config_dev(model_config, true);

@@ -31,7 +31,7 @@ namespace nihilus {
 
 	template<model_config config, processing_phase phase, device_types dev_type, single_input_types core_type> struct kernel_dispatcher<config, phase, dev_type, core_type> {
 		NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {
-			kernel_dispatcher_impl<config.cpu_arch_index, core_type::kernel_type, phase, typename core_type::transform_type, core_type, typename core_type::output_type,
+			kernel_dispatcher_impl<config.cpu_arch_index, core_type::kernel_type, phase, core_type, typename core_type::output_type,
 				typename core_type::input_01_type::output_type>::impl(thread_index, thread_count, current_block, params,
 				get_adjacent_value<config, core_type::op_type>::impl(params));
 		}
@@ -39,18 +39,27 @@ namespace nihilus {
 
 	template<model_config config, processing_phase phase, device_types dev_type, double_input_types core_type> struct kernel_dispatcher<config, phase, dev_type, core_type> {
 		NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {
-			kernel_dispatcher_impl<config.cpu_arch_index, core_type::kernel_type, phase, typename core_type::transform_type, core_type, typename core_type::output_type,
-				typename core_type::input_01_type::output_type, typename core_type::input_02_type::output_type>::impl(thread_index, thread_count, current_block, params,
+			kernel_dispatcher_impl<config.cpu_arch_index, core_type::kernel_type, phase, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type,
+				typename core_type::input_02_type::output_type>::impl(thread_index, thread_count, current_block, params,
 				get_adjacent_value<config, core_type::op_type>::impl(params), get_adjacent_value<config, core_type::op_type>::impl(params));
 		}
 	};
 
 	template<model_config config, processing_phase phase, device_types dev_type, triple_input_types core_type> struct kernel_dispatcher<config, phase, dev_type, core_type> {
 		NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {
-			kernel_dispatcher_impl<config.cpu_arch_index, core_type::kernel_type, phase, typename core_type::transform_type, core_type, typename core_type::output_type,
-				typename core_type::input_01_type::output_type, typename core_type::input_02_type::output_type, typename core_type::input_03_type::output_type>::impl(thread_index,
-				thread_count, current_block, params, get_adjacent_value<config, core_type::op_type>::impl(params), get_adjacent_value<config, core_type::op_type>::impl(params),
+			kernel_dispatcher_impl<config.cpu_arch_index, core_type::kernel_type, phase, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type,
+				typename core_type::input_02_type::output_type, typename core_type::input_03_type::output_type>::impl(thread_index, thread_count, current_block, params,
+				get_adjacent_value<config, core_type::op_type>::impl(params), get_adjacent_value<config, core_type::op_type>::impl(params),
 				get_adjacent_value<config, core_type::op_type>::impl(params));
+		}
+	};
+
+	template<model_config config, processing_phase phase, device_types dev_type, quadruple_input_types core_type> struct kernel_dispatcher<config, phase, dev_type, core_type> {
+		NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {
+			kernel_dispatcher_impl<config.cpu_arch_index, core_type::kernel_type, phase, core_type, typename core_type::output_type, typename core_type::input_01_type::output_type,
+				typename core_type::input_02_type::output_type, typename core_type::input_03_type::output_type, typename core_type::input_04_type::output_type>::impl(thread_index,
+				thread_count, current_block, params, get_adjacent_value<config, core_type::op_type>::impl(params), get_adjacent_value<config, core_type::op_type>::impl(params),
+				get_adjacent_value<config, core_type::op_type>::impl(params), get_adjacent_value<config, core_type::op_type>::impl(params));
 		}
 	};
 
