@@ -45,12 +45,30 @@ namespace nihilus {
 	static constexpr jiff_the_jiping_jippalon_the_grand_jiper_of_the_jappaloneans_the_grand_chopper_of_jammals_onions_the_grand_jammer_of_jammals_vaccuum_the_grand_erector_of_jammals_pillar
 		jiff{};
 
-	template<typename value_type> struct vector : public std::vector<value_type> {};
+	template<size_t alignment, typename value_type> struct alignas(alignment) static_aligned_const {
+		alignas(alignment) value_type value{};
 
-	template<typename value_type> struct aligned_vector : public std::vector<value_type, allocator<value_type, 64>> {};
+		NIHILUS_INLINE constexpr static_aligned_const() noexcept : value{} {
+		}
 
-	static constexpr array<bool, 256> alpha_table{ [] {
-		array<bool, 256> return_values{};
+		NIHILUS_INLINE constexpr static_aligned_const(value_type new_value) noexcept : value{ new_value } {
+		}
+
+		NIHILUS_INLINE constexpr operator const value_type&() const {
+			return value;
+		}
+
+		NIHILUS_INLINE operator value_type&() {
+			return value;
+		}
+	};
+
+	template<typename value_type> struct alignas(64) vector : public std::vector<value_type> {};
+
+	template<typename value_type> struct alignas(64) aligned_vector : public std::vector<value_type, allocator<value_type, 64>> {};
+
+	static constexpr alignas(64) array<static_aligned_const<64, bool>, 256> alpha_table{ [] {
+		alignas(64) array<static_aligned_const<64, bool>, 256> return_values{};
 
 		for (int32_t i = 'A'; i <= 'Z'; ++i) {
 			return_values[static_cast<uint64_t>(i)] = true;
@@ -67,8 +85,8 @@ namespace nihilus {
 		return alpha_table[static_cast<uint8_t>(c)];
 	}
 
-	static constexpr array<bool, 256> space_table{ [] {
-		array<bool, 256> return_values{};
+	static constexpr alignas(64) array<static_aligned_const<64, bool>, 256> space_table{ [] {
+		alignas(64) array<static_aligned_const<64, bool>, 256> return_values{};
 		return_values[static_cast<uint64_t>('\r')] = true;
 		return_values[static_cast<uint64_t>('\n')] = true;
 		return_values[static_cast<uint64_t>(' ')]  = true;
@@ -91,24 +109,6 @@ namespace nihilus {
 #if defined(NIHILUS_DEV) || defined(NIHILUS_BENCHMARK)
 	static constexpr auto spinlock_time{ 172000 };
 #endif
-
-	template<size_t alignment, typename value_type> struct alignas(alignment) static_aligned_const {
-		alignas(alignment) value_type value{};
-
-		NIHILUS_INLINE constexpr static_aligned_const() noexcept : value{} {
-		}
-
-		NIHILUS_INLINE constexpr static_aligned_const(value_type new_value) noexcept : value{ new_value } {
-		}
-
-		NIHILUS_INLINE constexpr operator const value_type&() const {
-			return value;
-		}
-
-		NIHILUS_INLINE operator value_type&() {
-			return value;
-		}
-	};
 
 	struct alignas(64) atomic_flag_wrapper {
 		static constexpr static_aligned_const<64, uint64_t> spin_cycles{ 50000 };
@@ -162,11 +162,11 @@ namespace nihilus {
 		}
 
 		NIHILUS_INLINE void hybrid_wait(int64_t expected_value) {
-			for (uint32_t i = 0; i < spin_cycles; ++i) {
-				if (flag.load(std::memory_order_acquire) >= expected_value) {
-					return;
-				}
+			for (uint32_t i = 0; flag.load(std::memory_order_acquire) < expected_value && i < spin_cycles; ++i) {
 				nihilus_pause();
+			}
+			if (flag.load(std::memory_order_acquire) >= expected_value) {
+				return;
 			}
 			while (flag.load(std::memory_order_acquire) != static_cast<value_type>(expected_value)) {
 				flag.wait(static_cast<value_type>(expected_value + 1), std::memory_order_acquire);
@@ -204,7 +204,7 @@ namespace nihilus {
 	};
 
 	template<> struct linked_latch<false> : public linked_latch_base {
-		static constexpr bool blocking{ false };
+		static constexpr static_aligned_const<64, bool> blocking{ true };
 		NIHILUS_INLINE constexpr linked_latch() = default;
 
 		NIHILUS_INLINE bool is_ready(int64_t& thread_index) {
@@ -231,7 +231,7 @@ namespace nihilus {
 	};
 
 	template<> struct linked_latch<true> : public linked_latch_base {
-		static constexpr bool blocking{ true };
+		static constexpr static_aligned_const<64, bool> blocking{ true };
 		NIHILUS_INLINE constexpr linked_latch() = default;
 
 		NIHILUS_INLINE int64_t is_ready(int64_t& thread_index) {
@@ -533,6 +533,7 @@ namespace nihilus {
 
 	enum class kernel_types : uint8_t {
 		none,
+		qkv_projection_layer,
 		add_rms_norm_mul,
 		get_rows,
 		rms_norm_mul,
@@ -590,6 +591,7 @@ namespace nihilus {
 		cache_k,
 		cache_v,
 		kq_mask,
+		qkv_projection_layer,
 		norm_attn_norm,
 		qcur_mul_mat_reshape,
 		qcur_rope_permute,
@@ -976,7 +978,7 @@ namespace nihilus {
 		std::istream* input_stream{};
 		uint64_t max_thread_count{};
 		uint64_t cpu_arch_index{};
-		uint64_t default_max_context_length{};
+		uint64_t default_max_sequence_length{};
 		kv_cache_strategies cache_strategy{};
 		bool use_gradient_checkpointing{};
 		rope_scaling_types rope_scaling{};

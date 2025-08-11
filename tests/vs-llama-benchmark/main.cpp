@@ -91,7 +91,6 @@ int main(int argc, char** argv) {
 			bnch_swt::doNotOptimizeAway(cli_args.n_tokens);
 			return cli_args.n_tokens;
 		});
-		/*
 		test::stop_watch stop_watch_val{ 0 };
 		std::string return_value{};
 		common_params params;
@@ -598,7 +597,7 @@ int main(int argc, char** argv) {
 			return static_cast<int32_t>(cli_args.n_tokens);
 		});
 		
-		std::cout << return_value << std::endl;*/
+		std::cout << return_value << std::endl;
 		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 4, 2, true, "Token">::printResults();
 	} catch (const std::exception& error) {
 		std::cout << "Error: " << error.what() << std::endl;

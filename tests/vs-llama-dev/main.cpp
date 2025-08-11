@@ -142,8 +142,16 @@ bool is_first_block(const std::string& file_name) {
 	}
 }
 
-std::vector<std::string> collect_json_files() {
-	std::vector<std::string> json_contents;
+struct tensor_holder {
+	int64_t modified_time{};
+	std::string data{};
+	bool operator<(const tensor_holder& other) const {
+		return modified_time < other.modified_time;
+	}
+};
+
+std::vector<tensor_holder> collect_json_files() {
+	std::vector<tensor_holder> json_contents;
 
 	try {
 		for (const auto& entry: std::filesystem::directory_iterator(".")) {
@@ -153,8 +161,11 @@ std::vector<std::string> collect_json_files() {
 					std::ifstream file(entry.path());
 					if (file.is_open()) {
 						std::stringstream buffer;
-						buffer << file.rdbuf();
-						json_contents.push_back(buffer.str());
+						buffer << file.rdbuf(); 
+						json_contents.push_back(tensor_holder{
+							.modified_time = entry.last_write_time().time_since_epoch().count(),
+							.data		   = buffer.str()
+						});
 						file.close();
 					}
 				}
@@ -170,8 +181,9 @@ std::vector<std::string> collect_json_files() {
 void print_tensors() {
 	auto json_files{ collect_json_files() };
 	jsonifier::jsonifier_core parser{};
+	std::sort(json_files.begin(), json_files.end(), std::less<tensor_holder>{});
 	for (auto& value: json_files) {
-		auto new_tensor = parser.parseJson<nihilus::intermediary_tensor>(value);
+		auto new_tensor = parser.parseJson<nihilus::intermediary_tensor>(value.data);
 		std::cout << "Tensor Name: " << new_tensor.name << std::endl;
 		std::cout << "Dims: " << new_tensor.dims << std::endl;
 		std::cout << "Type: " << new_tensor.type << std::endl;
@@ -182,7 +194,7 @@ void print_tensors() {
 
 int main(int argc, char** argv) {
 	try {
-		
+		print_tensors();
 		static constexpr auto model_config =
 			nihilus::generate_model_config(nihilus::model_generations::v3, model_size, nihilus::kernel_type_profiles::q8_gqa, nihilus::model_arches::llama);
 		static constexpr auto model_config01 = nihilus::update_model_config_dev(model_config, true);

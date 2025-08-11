@@ -203,12 +203,12 @@ namespace nihilus {
 
 		static constexpr float rope_freq_base		   = core_type::model_traits_type::rope_freq_base;
 		static constexpr uint32_t rope_dimension_count = core_type::model_traits_type::rope_dimension_count;
-		static constexpr uint64_t head_dim			   = core_type::model_traits_type::head_dim;
+		static constexpr uint64_t rope_dimension_count			   = core_type::model_traits_type::rope_dimension_count;
 		static constexpr uint32_t attention_head_count = core_type::model_traits_type::attention_head_count;
 
 		static constexpr uint64_t batch_size	  = input_type01::get_array()[0];
 		static constexpr uint64_t num_heads		  = input_type01::get_array()[2];
-		static constexpr uint64_t tensor_head_dim = input_type01::get_array()[3];
+		static constexpr uint64_t tensor_rope_dimension_count = input_type01::get_array()[3];
 
 		static constexpr uint64_t rope_dim		= rope_dimension_count;
 		static constexpr uint64_t half_rope_dim = rope_dim / 2;
@@ -226,7 +226,7 @@ namespace nihilus {
 			const uint64_t seq_len = input01[1];
 
 			const uint64_t total_work_items = batch_size * seq_len * num_heads;
-			const uint64_t total_elements	= batch_size * seq_len * num_heads * head_dim;
+			const uint64_t total_elements	= batch_size * seq_len * num_heads * rope_dimension_count;
 
 			const uint64_t work_per_thread = (total_work_items + thread_count - 1) / thread_count;
 			const uint64_t work_start	   = thread_index * work_per_thread;
@@ -245,8 +245,8 @@ namespace nihilus {
 						if (ir > work_end)
 							break;
 
-						const uint64_t src_offset = i3 * seq_len * num_heads * head_dim + i2 * num_heads * head_dim + i1 * head_dim;
-						const uint64_t dst_offset = i3 * seq_len * num_heads * head_dim + i2 * num_heads * head_dim + i1 * head_dim;
+						const uint64_t src_offset = i3 * seq_len * num_heads * rope_dimension_count + i2 * num_heads * rope_dimension_count + i1 * rope_dimension_count;
+						const uint64_t dst_offset = i3 * seq_len * num_heads * rope_dimension_count + i2 * num_heads * rope_dimension_count + i1 * rope_dimension_count;
 
 						for (int64_t i0 = 0; i0 < rope_dim; i0 += 2) {
 							const uint64_t dim_pair = i0 / 2;
@@ -268,7 +268,7 @@ namespace nihilus {
 							dst_data[dst_offset + i0 + 1] = x0 * sin_theta + x1 * cos_theta;
 						}
 
-						for (int64_t i0 = rope_dim; i0 < head_dim; i0++) {
+						for (int64_t i0 = rope_dim; i0 < rope_dimension_count; i0++) {
 							dst_data[dst_offset + i0] = src_data[src_offset + i0];
 						}
 					}
@@ -477,12 +477,12 @@ namespace nihilus {
 
 		static constexpr float rope_freq_base		   = core_type::model_traits_type::rope_freq_base;
 		static constexpr uint32_t rope_dimension_count = core_type::model_traits_type::rope_dimension_count;
-		static constexpr uint64_t head_dim			   = core_type::model_traits_type::head_dim;
+		static constexpr uint64_t rope_dimension_count			   = core_type::model_traits_type::rope_dimension_count;
 		static constexpr uint32_t attention_head_count = core_type::model_traits_type::attention_head_count;
 
 		static constexpr uint64_t batch_size	  = input_type01::get_array()[0];
 		static constexpr uint64_t num_heads		  = input_type01::get_array()[2];
-		static constexpr uint64_t tensor_head_dim = input_type01::get_array()[3];
+		static constexpr uint64_t tensor_rope_dimension_count = input_type01::get_array()[3];
 
 		static constexpr uint64_t rope_dim		= rope_dimension_count;
 		static constexpr uint64_t half_rope_dim = rope_dim / 2;
@@ -500,7 +500,7 @@ namespace nihilus {
 			const uint64_t seq_len = input01[1];
 
 			const uint64_t total_work_items = batch_size * seq_len * num_heads;
-			const uint64_t total_elements	= batch_size * seq_len * num_heads * head_dim;
+			const uint64_t total_elements	= batch_size * seq_len * num_heads * rope_dimension_count;
 
 			const uint64_t work_per_thread = (total_work_items + thread_count - 1) / thread_count;
 			const uint64_t work_start	   = thread_index * work_per_thread;
@@ -519,8 +519,8 @@ namespace nihilus {
 						if (ir > work_end)
 							break;
 
-						const uint64_t src_offset = i3 * seq_len * num_heads * head_dim + i2 * num_heads * head_dim + i1 * head_dim;
-						const uint64_t dst_offset = i3 * seq_len * num_heads * head_dim + i2 * num_heads * head_dim + i1 * head_dim;
+						const uint64_t src_offset = i3 * seq_len * num_heads * rope_dimension_count + i2 * num_heads * rope_dimension_count + i1 * rope_dimension_count;
+						const uint64_t dst_offset = i3 * seq_len * num_heads * rope_dimension_count + i2 * num_heads * rope_dimension_count + i1 * rope_dimension_count;
 
 						for (int64_t i0 = 0; i0 < rope_dim; i0 += 2) {
 							const uint64_t dim_pair = i0 / 2;
@@ -542,7 +542,7 @@ namespace nihilus {
 							dst_data[dst_offset + i0 + 1] = x0 * sin_theta + x1 * cos_theta;
 						}
 
-						for (int64_t i0 = rope_dim; i0 < head_dim; i0++) {
+						for (int64_t i0 = rope_dim; i0 < rope_dimension_count; i0++) {
 							dst_data[dst_offset + i0] = src_data[src_offset + i0];
 						}
 					}

@@ -248,7 +248,7 @@ namespace nihilus {
 			return true;
 		}
 
-		value_type data_val[size_val]{};
+		NIHILUS_ALIGN(cpu_alignment_holder::cpu_alignment) value_type data_val[size_val] {};
 	};
 
 	template<typename T, typename... U> array(T, U...) -> array<T, 1 + sizeof...(U)>;

@@ -92,90 +92,458 @@ namespace nihilus {
 		}
 	}
 
+	NIHILUS_INLINE static void dequantize_row_q8_0(const block_q8_0<half>* __restrict x, float* __restrict y, uint64_t k) {
+		static constexpr int64_t qk = Q_SIZE;
+
+		const uint64_t nb = k & ~(Q_SIZE - 1);
+
+		for (uint64_t i = 0; i < nb; i++) {
+			const float d = fp16_to_fp32(x[i].d);
+
+			for (uint64_t j = 0; j < qk; ++j) {
+				y[i * qk + j] = x[i].qs[j] * d;
+			}
+		}
+	}
+
 	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::add_rms_norm, processing_phase::prompt_eval_time, core_type, float, float, block_q8_0<half>>
 		: public kernel_base<kernel_types::add_rms_norm, core_type, float, float, block_q8_0<half>> {
-		using input_type01 = typename core_type::input_01_type;
-		using input_type02 = typename core_type::input_02_type;
+		using input_type01			   = typename core_type::input_01_type;
+		using input_type02			   = typename core_type::input_02_type;
+		static constexpr uint64_t ne00 = input_type01::get_array()[0];
+		static constexpr uint64_t ne02 = input_type01::get_array()[2];
+		static constexpr uint64_t ne03 = input_type01::get_array()[3];
+		static constexpr uint64_t ne10 = input_type02::get_array()[0];
+		static constexpr uint64_t ne12 = input_type02::get_array()[2];
+		static constexpr uint64_t ne13 = input_type02::get_array()[3];
+		static constexpr uint64_t ne0  = core_type::get_array()[0];
+		static constexpr uint64_t ne2  = core_type::get_array()[2];
+		static constexpr uint64_t ne3  = core_type::get_array()[3];
 
-		template<bool is_power_of_2able> NIHILUS_INLINE static void process_tensor_elements(uint64_t ith, uint64_t nth, uint64_t ne01, uint64_t ne11,
-			const float* __restrict src0_data, const float* __restrict src1_data, float* __restrict dst_data) {
-		}
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01, const typename core_type::input_02_type& input02) {
+			if constexpr (blocks_per_element) {
+				const uint64_t elements_per_block_count{};
+
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
+
+			} else {
+				const uint64_t blocks_per_element_count{};
+
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
+			}
+		};
+
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01, const typename core_type::input_02_type& input02) {
+			if constexpr (blocks_per_element) {
+				const uint64_t blocks_per_element_count{};
+
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
+
+			} else {
+				const uint64_t elements_per_block_count{};
+
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
+			}
+		};
 
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
 			const typename core_type::input_02_type& input02) {
+			const uint64_t ne01 = input01[1];
+			const uint64_t ne11 = input02[1];
+			const uint64_t ne1	= output[1];
+
+			const uint64_t chunk_count = count_elements(output) / thread_count;
+			const uint64_t block_byte_size{};
+			const uint64_t element_byte_size{};
+			if (block_byte_size > element_byte_size) {
+				for (uint64_t index = thread_index; index < chunk_count; ++index) {
+					produce_single_block<false>(thread_index, thread_count, current_block, output, input01, input02);
+				}
+			} else {
+				for (uint64_t index = thread_index; index < chunk_count; ++index) {
+					produce_single_element<true>(thread_index, thread_count, current_block, output, input01, input02);
+				}
+			}
 		}
 	};
 
 	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::add_rms_norm, processing_phase::eval_time, core_type, float, float, block_q8_0<half>>
 		: public kernel_base<kernel_types::add_rms_norm, core_type, float, float, block_q8_0<half>> {
-		using input_type01 = typename core_type::input_01_type;
-		using input_type02 = typename core_type::input_02_type;
+		using input_type01			   = typename core_type::input_01_type;
+		using input_type02			   = typename core_type::input_02_type;
+		static constexpr uint64_t ne00 = input_type01::get_array()[0];
+		static constexpr uint64_t ne02 = input_type01::get_array()[2];
+		static constexpr uint64_t ne03 = input_type01::get_array()[3];
+		static constexpr uint64_t ne10 = input_type02::get_array()[0];
+		static constexpr uint64_t ne12 = input_type02::get_array()[2];
+		static constexpr uint64_t ne13 = input_type02::get_array()[3];
+		static constexpr uint64_t ne0  = core_type::get_array()[0];
+		static constexpr uint64_t ne2  = core_type::get_array()[2];
+		static constexpr uint64_t ne3  = core_type::get_array()[3];
 
-		template<bool is_power_of_2able> NIHILUS_INLINE static void process_tensor_elements(uint64_t ith, uint64_t nth, uint64_t ne01, uint64_t ne11,
-			const float* __restrict src0_data, const float* __restrict src1_data, float* __restrict dst_data) {
-		}
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01, const typename core_type::input_02_type& input02) {
+			if constexpr (blocks_per_element) {
+				const uint64_t elements_per_block_count{};
+
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
+
+			} else {
+				const uint64_t blocks_per_element_count{};
+
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
+			}
+		};
+
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01, const typename core_type::input_02_type& input02) {
+			if constexpr (blocks_per_element) {
+				const uint64_t blocks_per_element_count{};
+
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
+
+			} else {
+				const uint64_t elements_per_block_count{};
+
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
+			}
+		};
 
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
 			const typename core_type::input_02_type& input02) {
+			const uint64_t chunk_count = count_elements(output) / thread_count;
+			const uint64_t block_byte_size{};
+			const uint64_t element_byte_size{};
+			if (block_byte_size > element_byte_size) {
+				for (uint64_t index = thread_index; index < chunk_count; ++index) {
+					produce_single_block<false>(thread_index, thread_count, current_block, output, input01, input02);
+				}
+			} else {
+				for (uint64_t index = thread_index; index < chunk_count; ++index) {
+					produce_single_element<true>(thread_index, thread_count, current_block, output, input01, input02);
+				}
+			}
 		}
 	};
 
 	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::add_rms_norm, processing_phase::prompt_eval_time, core_type, float, float, float>
 		: public kernel_base<kernel_types::add_rms_norm, core_type, float, float, float> {
-		using input_type01 = typename core_type::input_01_type;
-		using input_type02 = typename core_type::input_02_type;
+		using input_type01			   = typename core_type::input_01_type;
+		using input_type02			   = typename core_type::input_02_type;
+		static constexpr uint64_t ne00 = input_type01::get_array()[0];
+		static constexpr uint64_t ne02 = input_type01::get_array()[2];
+		static constexpr uint64_t ne03 = input_type01::get_array()[3];
+		static constexpr uint64_t ne10 = input_type02::get_array()[0];
+		static constexpr uint64_t ne12 = input_type02::get_array()[2];
+		static constexpr uint64_t ne13 = input_type02::get_array()[3];
+		static constexpr uint64_t ne0  = core_type::get_array()[0];
+		static constexpr uint64_t ne2  = core_type::get_array()[2];
+		static constexpr uint64_t ne3  = core_type::get_array()[3];
 
-		template<bool is_power_of_2able> NIHILUS_INLINE static void process_tensor_elements(uint64_t ith, uint64_t nth, uint64_t ne01, uint64_t ne11,
-			const float* __restrict src0_data, const float* __restrict src1_data, float* __restrict dst_data) {
-		}
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01, const typename core_type::input_02_type& input02) {
+			if constexpr (blocks_per_element) {
+				const uint64_t elements_per_block_count{};
+
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
+
+			} else {
+				const uint64_t blocks_per_element_count{};
+
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
+			}
+		};
+
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01, const typename core_type::input_02_type& input02) {
+			if constexpr (blocks_per_element) {
+				const uint64_t blocks_per_element_count{};
+
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
+
+			} else {
+				const uint64_t elements_per_block_count{};
+
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
+			}
+		};
 
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
 			const typename core_type::input_02_type& input02) {
+			const uint64_t ne01 = input01[1];
+			const uint64_t ne11 = input02[1];
+			const uint64_t ne1	= output[1];
+
+			uint64_t sync_ith = output.current_chunk[current_block].fetch_add(1);
+
+			const uint64_t chunk_count = detail::max((type_traits<typename core_type::output_type>::total_byte_size(output) / (l1_cache_size) * 4) / 3, 1);
+			const uint64_t block_byte_size{};
+			const uint64_t element_byte_size{};
+			if (block_byte_size > element_byte_size) {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
+					produce_single_block<false>(thread_index, thread_count, current_block, output, input01, input02);
+				}
+			} else {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
+					produce_single_element<true>(thread_index, thread_count, current_block, output, input01, input02);
+				}
+			}
 		}
 	};
 
 	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::add_rms_norm, processing_phase::eval_time, core_type, float, float, float>
 		: public kernel_base<kernel_types::add_rms_norm, core_type, float, float, float> {
-		using input_type01 = typename core_type::input_01_type;
-		using input_type02 = typename core_type::input_02_type;
+		using input_type01			   = typename core_type::input_01_type;
+		using input_type02			   = typename core_type::input_02_type;
+		static constexpr uint64_t ne00 = input_type01::get_array()[0];
+		static constexpr uint64_t ne02 = input_type01::get_array()[2];
+		static constexpr uint64_t ne03 = input_type01::get_array()[3];
+		static constexpr uint64_t ne10 = input_type02::get_array()[0];
+		static constexpr uint64_t ne12 = input_type02::get_array()[2];
+		static constexpr uint64_t ne13 = input_type02::get_array()[3];
+		static constexpr uint64_t ne0  = core_type::get_array()[0];
+		static constexpr uint64_t ne2  = core_type::get_array()[2];
+		static constexpr uint64_t ne3  = core_type::get_array()[3];
 
-		template<bool is_power_of_2able> NIHILUS_INLINE static void process_tensor_elements(uint64_t ith, uint64_t nth, uint64_t ne01, uint64_t ne11,
-			const float* __restrict src0_data, const float* __restrict src1_data, float* __restrict dst_data) {
-		}
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01, const typename core_type::input_02_type& input02) {
+			if constexpr (blocks_per_element) {
+				const uint64_t elements_per_block_count{};
+
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
+
+			} else {
+				const uint64_t blocks_per_element_count{};
+
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
+			}
+		};
+
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01, const typename core_type::input_02_type& input02) {
+			if constexpr (blocks_per_element) {
+				const uint64_t blocks_per_element_count{};
+
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
+
+			} else {
+				const uint64_t elements_per_block_count{};
+
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
+			}
+		};
 
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
 			const typename core_type::input_02_type& input02) {
+			const uint64_t ne01 = input01[1];
+			const uint64_t ne11 = input02[1];
+			const uint64_t ne1	= output[1];
+
+			uint64_t sync_ith = output.current_chunk[current_block].fetch_add(1);
+
+			const uint64_t chunk_count = detail::max((type_traits<typename core_type::output_type>::total_byte_size(output) / (l1_cache_size) * 4) / 3, 1);
+			const uint64_t block_byte_size{};
+			const uint64_t element_byte_size{};
+			if (block_byte_size > element_byte_size) {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
+					produce_single_block<false>(thread_index, thread_count, current_block, output, input01, input02);
+				}
+			} else {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
+					produce_single_element<true>(thread_index, thread_count, current_block, output, input01, input02);
+				}
+			}
 		}
 	};
 
 	template<typename core_type>
 	struct kernel_dispatcher_impl<1, kernel_types::add_rms_norm_mul, processing_phase::prompt_eval_time, core_type, block_q8_0<half>, float, float, float>
 		: public kernel_base<kernel_types::add_rms_norm_mul, core_type, block_q8_0<half>, float, float, float> {
-		using input_type01 = typename core_type::input_01_type;
-		using input_type02 = typename core_type::input_02_type;
-		using input_type03 = typename core_type::input_03_type;
+		using input_type01			   = typename core_type::input_01_type;
+		using input_type02			   = typename core_type::input_02_type;
+		using input_type03			   = typename core_type::input_03_type;
+		static constexpr uint64_t ne00 = input_type01::get_array()[0];
+		static constexpr uint64_t ne02 = input_type01::get_array()[2];
+		static constexpr uint64_t ne03 = input_type01::get_array()[3];
+		static constexpr uint64_t ne10 = input_type02::get_array()[0];
+		static constexpr uint64_t ne12 = input_type02::get_array()[2];
+		static constexpr uint64_t ne13 = input_type02::get_array()[3];
+		static constexpr uint64_t ne20 = input_type03::get_array()[0];
+		static constexpr uint64_t ne22 = input_type03::get_array()[2];
+		static constexpr uint64_t ne23 = input_type03::get_array()[3];
+		static constexpr uint64_t ne0  = core_type::get_array()[0];
+		static constexpr uint64_t ne2  = core_type::get_array()[2];
+		static constexpr uint64_t ne3  = core_type::get_array()[3];
 
-		template<bool is_power_of_2able> NIHILUS_INLINE static void process_tensor_elements(uint64_t ith, uint64_t nth, uint64_t ne01, uint64_t ne11, uint64_t ne21,
-			const float* __restrict src0_data, const float* __restrict src1_data, const block_q8_0<half>* __restrict src2_data, float* __restrict dst_data) {
-		}
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01, const typename core_type::input_02_type& input02, const typename core_type::input_03_type& input03) {
+			if constexpr (blocks_per_element) {
+				const uint64_t elements_per_block_count{};
+
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
+
+			} else {
+				const uint64_t blocks_per_element_count{};
+
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
+			}
+		};
+
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01, const typename core_type::input_02_type& input02, const typename core_type::input_03_type& input03) {
+			if constexpr (blocks_per_element) {
+				const uint64_t blocks_per_element_count{};
+
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
+
+			} else {
+				const uint64_t elements_per_block_count{};
+
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
+			}
+		};
 
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
 			const typename core_type::input_02_type& input02, const typename core_type::input_03_type& input03) {
+			const uint64_t ne01 = input01[1];
+			const uint64_t ne11 = input02[1];
+			const uint64_t ne21 = input03[1];
+			const uint64_t ne1	= output[1];
+
+			const uint64_t chunk_count = count_elements(output) / thread_count;
+			const uint64_t block_byte_size{};
+			const uint64_t element_byte_size{};
+			if (block_byte_size > element_byte_size) {
+				for (uint64_t index = thread_index; index < chunk_count; ++index) {
+					produce_single_block<false>(thread_index, thread_count, current_block, output, input01, input02, input03);
+				}
+			} else {
+				for (uint64_t index = thread_index; index < chunk_count; ++index) {
+					produce_single_element<true>(thread_index, thread_count, current_block, output, input01, input02, input03);
+				}
+			}
 		}
 	};
 
 	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::add_rms_norm_mul, processing_phase::eval_time, core_type, block_q8_0<half>, float, float, float>
 		: public kernel_base<kernel_types::add_rms_norm_mul, core_type, block_q8_0<half>, float, float, float> {
-		using input_type01 = typename core_type::input_01_type;
-		using input_type02 = typename core_type::input_02_type;
-		using input_type03 = typename core_type::input_03_type;
+		using input_type01			   = typename core_type::input_01_type;
+		using input_type02			   = typename core_type::input_02_type;
+		using input_type03			   = typename core_type::input_03_type;
+		static constexpr uint64_t ne00 = input_type01::get_array()[0];
+		static constexpr uint64_t ne02 = input_type01::get_array()[2];
+		static constexpr uint64_t ne03 = input_type01::get_array()[3];
+		static constexpr uint64_t ne10 = input_type02::get_array()[0];
+		static constexpr uint64_t ne12 = input_type02::get_array()[2];
+		static constexpr uint64_t ne13 = input_type02::get_array()[3];
+		static constexpr uint64_t ne20 = input_type03::get_array()[0];
+		static constexpr uint64_t ne22 = input_type03::get_array()[2];
+		static constexpr uint64_t ne23 = input_type03::get_array()[3];
+		static constexpr uint64_t ne0  = core_type::get_array()[0];
+		static constexpr uint64_t ne2  = core_type::get_array()[2];
+		static constexpr uint64_t ne3  = core_type::get_array()[3];
 
-		template<bool is_power_of_2able> NIHILUS_INLINE static void process_tensor_elements(uint64_t ith, uint64_t nth, uint64_t ne01, uint64_t ne11, uint64_t ne21,
-			const float* __restrict src0_data, const float* __restrict src1_data, const block_q8_0<half>* __restrict src2_data, float* __restrict dst_data) {
-		}
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01, const typename core_type::input_02_type& input02, const typename core_type::input_03_type& input03) {
+			if constexpr (blocks_per_element) {
+				const uint64_t elements_per_block_count{};
+
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
+
+			} else {
+				const uint64_t blocks_per_element_count{};
+
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
+			}
+		};
+
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01, const typename core_type::input_02_type& input02, const typename core_type::input_03_type& input03) {
+			if constexpr (blocks_per_element) {
+				const uint64_t blocks_per_element_count{};
+
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
+
+			} else {
+				const uint64_t elements_per_block_count{};
+
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
+			}
+		};
 
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
 			const typename core_type::input_02_type& input02, const typename core_type::input_03_type& input03) {
+			const uint64_t ne01 = input01[1];
+			const uint64_t ne11 = input02[1];
+			const uint64_t ne21 = input03[1];
+			const uint64_t ne1	= output[1];
+
+			const uint64_t chunk_count = count_elements(output) / thread_count;
+			const uint64_t block_byte_size{};
+			const uint64_t element_byte_size{};
+			if (block_byte_size > element_byte_size) {
+				for (uint64_t index = thread_index; index < chunk_count; ++index) {
+					produce_single_block<false>(thread_index, thread_count, current_block, output, input01, input02, input03);
+				}
+			} else {
+				for (uint64_t index = thread_index; index < chunk_count; ++index) {
+					produce_single_element<true>(thread_index, thread_count, current_block, output, input01, input02, input03);
+				}
+			}
 		}
 	};
 
@@ -317,371 +685,8 @@ namespace nihilus {
 
 	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::rms_norm_mul, processing_phase::prompt_eval_time, core_type, block_q8_0<half>, float, float>
 		: public kernel_base<kernel_types::rms_norm_mul, core_type, block_q8_0<half>, float, float> {
-		using input_type01 = typename core_type::input_01_type;
-		using input_type02 = typename core_type::input_02_type;
-
-		template<bool is_power_of_2able> NIHILUS_INLINE static void process_tensor_elements(uint64_t ith, uint64_t nth, uint64_t ne01, uint64_t ne11,
-			const float* __restrict src0_data, const float* __restrict src1_data, block_q8_0<half>* __restrict dst_data) {
-			static constexpr uint64_t ne00 = input_type01::get_array()[0];
-			static constexpr uint64_t ne02 = input_type01::get_array()[2];
-			static constexpr uint64_t ne03 = input_type01::get_array()[3];
-			static constexpr uint64_t ne10 = input_type02::get_array()[0];
-			static constexpr uint64_t ne12 = input_type02::get_array()[2];
-			static constexpr uint64_t ne13 = input_type02::get_array()[3];
-
-			const uint64_t src0_stride_03			 = ne02 * ne01 * ne00;
-			const uint64_t src0_stride_02			 = ne01 * ne00;
-			static constexpr uint64_t src0_stride_01 = ne00;
-
-			const uint64_t src1_stride_13			 = ne12 * ne11 * ne10;
-			const uint64_t src1_stride_12			 = ne11 * ne10;
-			static constexpr uint64_t src1_stride_11 = ne10;
-
-			static constexpr float eps = core_type::model_traits_type::layer_norm_rms_epsilon;
-			const uint64_t total_rows  = ne01 * ne02 * ne03;
-
-			// Thread-local accumulation buffer for quantization
-			alignas(32) float quantization_buffer[32] = { 0 };
-			uint64_t buffer_pos						  = 0;
-			uint64_t current_block					  = 0;
-
-			if constexpr (is_power_of_2able) {
-				const uint64_t log2_ne01			= tzcnt(ne01);
-				static constexpr uint64_t log2_ne02 = tzcnt_constexpr(ne02);
-				const uint64_t log2_ne11			= tzcnt(ne11);
-				static constexpr uint64_t log2_ne12 = tzcnt_constexpr(ne12);
-				static constexpr uint64_t log2_ne13 = tzcnt_constexpr(ne13);
-				static constexpr uint64_t log2_ne10 = tzcnt_constexpr(ne10);
-				const uint64_t log2_ne02_ne01		= log2_ne02 + log2_ne01;
-
-				for (uint64_t row_idx = ith; row_idx < total_rows; row_idx += nth) {
-					const uint64_t i03 = row_idx >> log2_ne02_ne01;
-					const uint64_t i02 = (row_idx - (i03 << log2_ne02_ne01)) >> log2_ne01;
-					const uint64_t i01 = row_idx - (i03 << log2_ne02_ne01) - (i02 << log2_ne01);
-					const uint64_t i13 = i03 & ((1ULL << log2_ne13) - 1ULL);
-					const uint64_t i12 = i02 & ((1ULL << log2_ne12) - 1ULL);
-					const uint64_t i11 = i01 & ((1ULL << log2_ne11) - 1ULL);
-
-					const uint64_t src0_offset = i03 * src0_stride_03 + i02 * src0_stride_02 + i01 * src0_stride_01;
-					const uint64_t src1_offset = i13 * src1_stride_13 + i12 * src1_stride_12 + i11 * src1_stride_11;
-
-					const float* __restrict src0_ptr = &src0_data[src0_offset];
-					const float* __restrict src1_ptr = &src1_data[src1_offset];
-
-					const float sum	  = simd_sum_squares(src0_ptr, ne00);
-					const float mean  = sum / static_cast<float>(ne00);
-					const float scale = 1.0f / sqrtf_fast(mean + eps);
-
-					if constexpr (ne10 == ne00) {
-						const uint64_t nr0 = ne00 >> log2_ne10;
-						for (uint64_t r = 0; r < nr0; ++r) {
-							if constexpr (ne10 == 8) {
-								const __m256 scale_vec = _mm256_set1_ps(scale);
-								__m256 ax0			   = _mm256_load_ps(src0_ptr + (r << log2_ne10));
-								__m256 az0			   = _mm256_load_ps(src1_ptr);
-								__m256 temp			   = _mm256_mul_ps(ax0, az0);
-								__m256 result		   = _mm256_mul_ps(temp, scale_vec);
-
-								alignas(32) float temp_output[8];
-								_mm256_store_ps(temp_output, result);
-
-								for (uint64_t k = 0; k < ne10; ++k) {
-									const uint64_t src_idx = (r << log2_ne10) + k;
-									const uint64_t dst_idx{};//= output_transform_type::impl(i01, src_idx, ne01, ne00);
-
-									quantization_buffer[buffer_pos] = temp_output[k];
-									buffer_pos++;
-
-									if (buffer_pos == 32) {
-										quantize_row_q8_0_avx2(quantization_buffer, &dst_data[current_block], 1);
-										current_block++;
-										buffer_pos = 0;
-									}
-								}
-							}
-						}
-					} else {
-						for (uint64_t i0 = 0; i0 < ne00; ++i0) {
-							const uint64_t i10 = i0 & ((1ULL << log2_ne10) - 1ULL);
-							const float result = src0_ptr[i0] * scale * src1_ptr[i10];
-
-							quantization_buffer[buffer_pos] = result;
-							buffer_pos++;
-
-							if (buffer_pos == 32) {
-								quantize_row_q8_0_avx2(quantization_buffer, &dst_data[current_block], 1);
-								current_block++;
-								buffer_pos = 0;
-							}
-						}
-					}
-				}
-			} else {
-				for (uint64_t row_idx = ith; row_idx < total_rows; row_idx += nth) {
-					const uint64_t i03 = row_idx / (ne02 * ne01);
-					const uint64_t i02 = (row_idx - i03 * ne02 * ne01) / ne01;
-					const uint64_t i01 = row_idx - i03 * ne02 * ne01 - i02 * ne01;
-					const uint64_t i13 = i03 % ne13;
-					const uint64_t i12 = i02 % ne12;
-					const uint64_t i11 = i01 % ne11;
-
-					const uint64_t src0_offset = i03 * src0_stride_03 + i02 * src0_stride_02 + i01 * src0_stride_01;
-					const uint64_t src1_offset = i13 * src1_stride_13 + i12 * src1_stride_12 + i11 * src1_stride_11;
-
-					const float* __restrict src0_ptr = &src0_data[src0_offset];
-					const float* __restrict src1_ptr = &src1_data[src1_offset];
-
-					const float sum	  = simd_sum_squares(src0_ptr, ne00);
-					const float mean  = sum / static_cast<float>(ne00);
-					const float scale = 1.0f / sqrtf_fast(mean + eps);
-
-					if constexpr (ne10 == ne00) {
-						const uint64_t nr0 = ne00 / ne10;
-						for (uint64_t r = 0; r < nr0; ++r) {
-							alignas(32) float temp_output[ne10];
-							vec_scale_mul_f32_contiguous<ne10>::impl(temp_output, src0_ptr + r * ne10, scale, src1_ptr);
-
-							for (uint64_t k = 0; k < ne10; ++k) {
-								quantization_buffer[buffer_pos] = temp_output[k];
-								buffer_pos++;
-								if (buffer_pos == 32) {
-									quantize_row_q8_0_avx2(quantization_buffer, &dst_data[current_block], 1);
-									current_block++;
-									buffer_pos = 0;
-								}
-							}
-						}
-					} else {
-						for (uint64_t i0 = 0; i0 < ne00; ++i0) {
-							const uint64_t i10				= i0 % ne10;
-							const float result				= src0_ptr[i0] * scale * src1_ptr[i10];
-							quantization_buffer[buffer_pos] = result;
-							buffer_pos++;
-							if (buffer_pos == 32) {
-								quantize_row_q8_0_avx2(quantization_buffer, &dst_data[current_block], 1);
-								current_block++;
-								buffer_pos = 0;
-							}
-						}
-					}
-				}
-			}
-
-			if (buffer_pos > 0) {
-				for (uint64_t i = buffer_pos; i < 32; ++i) {
-					quantization_buffer[i] = 0.0f;
-				}
-				quantize_row_q8_0_avx2(quantization_buffer, &dst_data[current_block], 1);
-			}
-		}
-
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
-			const typename core_type::input_02_type& input02) {
-			const uint64_t ne01			   = input01[1];
-			static constexpr uint64_t ne02 = input_type01::get_array()[2];
-			static constexpr uint64_t ne03 = input_type01::get_array()[3];
-			static constexpr uint64_t ne10 = input_type02::get_array()[0];
-			const uint64_t ne11			   = input02[1];
-			static constexpr uint64_t ne12 = input_type02::get_array()[2];
-			static constexpr uint64_t ne13 = input_type02::get_array()[3];
-
-			const uint64_t ith			  = static_cast<uint64_t>(thread_index);
-			const uint64_t nth			  = static_cast<uint64_t>(thread_count);
-			const float* __restrict src01 = input02.data[current_block];
-
-			const bool is_power_of_2 = ((ne01 & (ne01 - 1ULL)) == 0) && ((ne02 & (ne02 - 1ULL)) == 0) && ((ne10 & (ne10 - 1ULL)) == 0) && ((ne11 & (ne11 - 1ULL)) == 0) &&
-				((ne12 & (ne12 - 1ULL)) == 0) && ((ne13 & (ne13 - 1ULL)) == 0);
-
-			if (is_power_of_2) {
-				process_tensor_elements<true>(ith, nth, ne01, ne11, input01.data, src01, output.data);
-			} else {
-				process_tensor_elements<false>(ith, nth, ne01, ne11, input01.data, src01, output.data);
-			}
-		}
-	};
-
-	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::rms_norm_mul, processing_phase::eval_time, core_type, block_q8_0<half>, float, float>
-		: public kernel_base<kernel_types::rms_norm_mul, core_type, block_q8_0<half>, float, float> {
-		using input_type01 = typename core_type::input_01_type;
-		using input_type02 = typename core_type::input_02_type;
-
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
-			const typename core_type::input_02_type& input02) {
-			static constexpr float eps	   = core_type::model_traits_type::layer_norm_rms_epsilon;
-			static constexpr uint64_t ne00 = input_type01::get_array()[0];
-
-			const uint64_t ith = static_cast<uint64_t>(thread_index);
-
-			const float* __restrict input01_data = input01.data;
-			const float* __restrict input02_data = input02.data[current_block];
-			/*
-			float* __restrict output_data		 = output.data;
-
-			if (ith == 0) {
-				float sum_squares = 0.0f;
-				for (uint64_t j = 0; j < ne00; ++j) {
-					const float val = input01_data[j];
-					sum_squares += val * val;
-				}
-
-				const float mean_square = sum_squares / static_cast<float>(ne00);
-				const float rms_norm	= 1.0f / sqrtf_fast(mean_square + eps);
-
-				for (uint64_t j = 0; j < ne00; ++j) {
-					output_data[j] = input01_data[j] * rms_norm * input02_data[j];
-				}
-			}*/
-		}
-	};
-
-	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::mul, processing_phase::prompt_eval_time, core_type, float, float, float>
-		: public kernel_base<kernel_types::mul, core_type, float, float, float> {
-		using input_type01 = typename core_type::input_01_type;
-		using input_type02 = typename core_type::input_02_type;
-
-		template<bool is_power_of_2able> NIHILUS_INLINE static void process_tensor_elements(uint64_t ith, uint64_t nth, uint64_t nr, uint64_t ne01, uint64_t ne11,
-			const float* __restrict src0_data, const float* __restrict src1_data, float* __restrict dst_data) {
-		}
-
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t, core_type& output, const typename core_type::input_01_type& input01,
-			const typename core_type::input_02_type& input02) {
-		}
-	};
-
-	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::mul, processing_phase::eval_time, core_type, float, float, float>
-		: public kernel_base<kernel_types::mul, core_type, float, float, float> {
-		using input_type01 = typename core_type::input_01_type;
-		using input_type02 = typename core_type::input_02_type;
-
-		template<bool is_power_of_2able> NIHILUS_INLINE static void process_tensor_elements(uint64_t ith, uint64_t nth, uint64_t nr, uint64_t ne01, uint64_t ne11,
-			const float* __restrict src0_data, const float* __restrict src1_data, float* __restrict dst_data) {
-		}
-
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t, core_type& output, const typename core_type::input_01_type& input01,
-			const typename core_type::input_02_type& input02) {
-		}
-	};
-
-	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::mul, processing_phase::prompt_eval_time, core_type, block_q8_0<half>, float, float>
-		: public kernel_base<kernel_types::mul, core_type, block_q8_0<half>, float, float> {
-		using input_type01 = typename core_type::input_01_type;
-		using input_type02 = typename core_type::input_02_type;
-
-		template<bool is_power_of_2able> NIHILUS_INLINE static void process_tensor_elements(uint64_t ith, uint64_t nth, uint64_t nr, uint64_t ne01, uint64_t ne11,
-			const float* __restrict src0_data, const float* __restrict src1_data, float* __restrict dst_data) {
-		}
-
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t, core_type& output, const typename core_type::input_01_type& input01,
-			const typename core_type::input_02_type& input02) {
-		}
-	};
-
-	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::mul, processing_phase::eval_time, core_type, block_q8_0<half>, float, float>
-		: public kernel_base<kernel_types::mul, core_type, block_q8_0<half>, float, float> {
-		using input_type01 = typename core_type::input_01_type;
-		using input_type02 = typename core_type::input_02_type;
-
-		template<bool is_power_of_2able> NIHILUS_INLINE static void process_tensor_elements(uint64_t ith, uint64_t nth, uint64_t nr, uint64_t ne01, uint64_t ne11,
-			const float* __restrict src0_data, const float* __restrict src1_data, float* __restrict dst_data) {
-		}
-
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t, core_type& output, const typename core_type::input_01_type& input01,
-			const typename core_type::input_02_type& input02) {
-		}
-	};
-
-	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::get_rows, processing_phase::prompt_eval_time, core_type, float, block_q8_0<half>, int32_t>
-		: public kernel_base<kernel_types::get_rows, core_type, float, block_q8_0<half>, int32_t> {
-		using input_type01 = core_type::input_01_type;
-		using input_type02 = core_type::input_02_type;
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
-			const typename core_type::input_02_type& input02) {
-			static constexpr uint64_t ne00					= input_type01::get_array()[0];
-			const uint64_t ne01								= input01[1];
-			static constexpr uint64_t ne02					= input_type01::get_array()[2];
-			static constexpr uint64_t ne10					= input_type02::get_array()[0];
-			const uint64_t ne11								= input02[1];
-			const uint64_t nr								= count_elements(input02);
-			const uint64_t ith								= static_cast<uint64_t>(thread_index);
-			const uint64_t nth								= static_cast<uint64_t>(thread_count);
-			const uint64_t dr								= (nr + nth - 1ull) / nth;
-			const uint64_t ir0								= dr * ith;
-			const uint64_t ir1								= detail::min(ir0 + dr, nr);
-			const block_q8_0<half>* __restrict input01_data = input01.data;
-			const int32_t* __restrict input02_data			= input02.data;
-			float* __restrict output_data					= output.data;
-			static constexpr uint64_t blocks_per_row		= ne00 / Q_SIZE;
-			static constexpr uint64_t input01_stride_dim1	= blocks_per_row;
-			const uint64_t input01_stride_dim2				= ne01 * blocks_per_row;
-			const uint64_t input01_stride_dim3				= ne01 * ne02 * blocks_per_row;
-			static constexpr uint64_t input02_stride_dim1	= 1;
-			static constexpr uint64_t input02_stride_dim2	= ne10;
-			const uint64_t input02_stride_dim3				= ne10 * ne11;
-			static constexpr uint64_t output_stride_dim1	= ne00;
-			const uint64_t output_stride_dim2				= output[1] * ne00;
-			const uint64_t output_stride_dim3				= output[1] * output[2] * ne00;
-			for (uint64_t i = ir0; i < ir1; ++i) {
-				const uint64_t i12				 = i / (ne11 * ne10);
-				const uint64_t i11				 = (i - i12 * ne11 * ne10) / ne10;
-				const uint64_t i10				 = i - i12 * ne11 * ne10 - i11 * ne10;
-				const uint64_t input02_idx		 = i10 * input02_stride_dim1 + i11 * input02_stride_dim2 + i12 * input02_stride_dim3;
-				const uint64_t token_id			 = static_cast<uint64_t>(input02_data[input02_idx]);
-				const uint64_t input01_block_idx = token_id * input01_stride_dim1 + i11 * input01_stride_dim2 + i12 * input01_stride_dim3;
-				const uint64_t output_idx		 = i10 * output_stride_dim1 + i11 * output_stride_dim2 + i12 * output_stride_dim3;
-
-				for (uint64_t j = 0; j < blocks_per_row; ++j) {
-					const uint64_t final_block_idx = input01_block_idx + j;
-
-					const block_q8_0<half>& block = input01_data[final_block_idx];
-					const float scale			  = fp16_to_fp32(block.d);
-
-					for (uint64_t k = 0; k < Q_SIZE; ++k) {
-						int8_t quant_val						 = static_cast<int8_t>(block.qs[k]);
-						float result							 = scale * static_cast<float>(quant_val);
-						output_data[output_idx + j * Q_SIZE + k] = result;
-					}
-				}
-			}
-		}
-	};
-
-	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::get_rows, processing_phase::eval_time, core_type, float, block_q8_0<half>, int32_t>
-		: public kernel_base<kernel_types::get_rows, core_type, float, block_q8_0<half>, int32_t> {
-		using input_type01 = core_type::input_01_type;
-		using input_type02 = core_type::input_02_type;
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
-			const typename core_type::input_02_type& input02) {
-			static constexpr uint64_t ne00					= input_type01::get_array()[0];
-			const uint64_t nr								= count_elements(input02);
-			const uint64_t ith								= static_cast<uint64_t>(thread_index);
-			const uint64_t nth								= static_cast<uint64_t>(thread_count);
-			const uint64_t dr								= (nr + nth - 1ull) / nth;
-			const uint64_t ir0								= dr * ith;
-			const uint64_t ir1								= detail::min(ir0 + dr, nr);
-			const block_q8_0<half>* __restrict input01_data = input01.data;
-			const int32_t* __restrict input02_data			= input02.data;
-			float* __restrict output_data					= output.data;
-			static constexpr uint64_t blocks_per_row		= ne00 / Q_SIZE;
-			for (uint64_t i = ir0; i < ir1; ++i) {
-				const uint64_t token_id			 = static_cast<uint64_t>(input02_data[i]);
-				const uint64_t input01_block_idx = token_id * blocks_per_row;
-				const uint64_t output_idx		 = i * ne00;
-				for (uint64_t j = 0; j < blocks_per_row; ++j) {
-					const block_q8_0<half>& block = input01_data[input01_block_idx + j];
-					const float scale			  = fp16_to_fp32(block.d);
-					for (uint64_t k = 0; k < Q_SIZE; ++k) {
-						output_data[output_idx + j * Q_SIZE + k] = scale * static_cast<float>(static_cast<int8_t>(block.qs[k]));
-					}
-				}
-			}
-		}
-	};
-
-	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::mul_mat, processing_phase::prompt_eval_time, core_type, float, block_q8_0<half>, block_q8_0<half>>
-		: public kernel_base<kernel_types::mul_mat, core_type, float, block_q8_0<half>, block_q8_0<half>> {
-		using input_type01 = typename core_type::input_01_type;
-		using input_type02 = typename core_type::input_02_type;
-
+		using input_type01			   = typename core_type::input_01_type;
+		using input_type02			   = typename core_type::input_02_type;
 		static constexpr uint64_t ne00 = input_type01::get_array()[0];
 		static constexpr uint64_t ne02 = input_type01::get_array()[2];
 		static constexpr uint64_t ne03 = input_type01::get_array()[3];
@@ -692,28 +697,41 @@ namespace nihilus {
 		static constexpr uint64_t ne2  = core_type::get_array()[2];
 		static constexpr uint64_t ne3  = core_type::get_array()[3];
 
-		NIHILUS_INLINE static void compute_forward_mul_mat_one_chunk(const uint64_t thread_index, uint64_t thread_count, int64_t current_block, core_type& output,
-			const typename core_type::input_01_type& input01, const typename core_type::input_02_type& input02, const int64_t num_rows_per_vec_dot, const int64_t ir0_start,
-			const int64_t ir0_end, const int64_t ir1_start, const int64_t ir1_end) {
-			const uint64_t ne01 = input01[1];
-			const uint64_t ne11 = input02[1];
-			const uint64_t ne1	= output[1];
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01, const typename core_type::input_02_type& input02) {
+			if constexpr (blocks_per_element) {
+				const uint64_t elements_per_block_count{};
 
-			const block_q8_0<half>* src01;
-			if constexpr (array_types<decltype(input01.data)>) {
-				src01 = input01.data[current_block];
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
+
 			} else {
-				src01 = input01.data;
+				const uint64_t blocks_per_element_count{};
+
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
 			}
+		};
 
-			float* dst						  = output.data;
-			const uint64_t output_size		  = count_elements(output);
-			block_q8_0<half>* quantized_input = reinterpret_cast<block_q8_0<half>*>(dst + output_size);
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01, const typename core_type::input_02_type& input02) {
+			if constexpr (blocks_per_element) {
+				const uint64_t blocks_per_element_count{};
 
-			const uint64_t M = ir0_end - ir0_start;
-			const uint64_t N = ir1_end - ir1_start;
-			const uint64_t K = ne00;
-		}
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
+
+			} else {
+				const uint64_t elements_per_block_count{};
+
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
+			}
+		};
 
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
 			const typename core_type::input_02_type& input02) {
@@ -721,64 +739,511 @@ namespace nihilus {
 			const uint64_t ne11 = input02[1];
 			const uint64_t ne1	= output[1];
 
-			const block_q8_0<half>* __restrict src01;
-			if constexpr (array_types<decltype(input01.data)>) {
-				src01 = input01.data[current_block];
+			const uint64_t chunk_count = count_elements(output) / thread_count;
+			const uint64_t block_byte_size{};
+			const uint64_t element_byte_size{};
+			if (block_byte_size > element_byte_size) {
+				for (uint64_t index = thread_index; index < chunk_count; ++index) {
+					produce_single_block<false>(thread_index, thread_count, current_block, output, input01, input02);
+				}
 			} else {
-				src01 = input01.data;
+				for (uint64_t index = thread_index; index < chunk_count; ++index) {
+					produce_single_element<true>(thread_index, thread_count, current_block, output, input01, input02);
+				}
 			}
-			/*
-			const float* __restrict src02 = input02.data;
-			float* __restrict dst		  = output.data;
+		}
+	};
 
-			const uint64_t output_size		  = count_elements(output);
-			block_q8_0<half>* quantized_input = reinterpret_cast<block_q8_0<half>*>(dst + output_size);
+	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::rms_norm_mul, processing_phase::eval_time, core_type, block_q8_0<half>, float, float>
+		: public kernel_base<kernel_types::rms_norm_mul, core_type, block_q8_0<half>, float, float> {
+		using input_type01			   = typename core_type::input_01_type;
+		using input_type02			   = typename core_type::input_02_type;
+		static constexpr uint64_t ne00 = input_type01::get_array()[0];
+		static constexpr uint64_t ne02 = input_type01::get_array()[2];
+		static constexpr uint64_t ne03 = input_type01::get_array()[3];
+		static constexpr uint64_t ne10 = input_type02::get_array()[0];
+		static constexpr uint64_t ne12 = input_type02::get_array()[2];
+		static constexpr uint64_t ne13 = input_type02::get_array()[3];
+		static constexpr uint64_t ne0  = core_type::get_array()[0];
+		static constexpr uint64_t ne2  = core_type::get_array()[2];
+		static constexpr uint64_t ne3  = core_type::get_array()[3];
 
-			const uint64_t ith = static_cast<uint64_t>(thread_index);
-			const uint64_t nth = static_cast<uint64_t>(thread_count);
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01, const typename core_type::input_02_type& input02) {
+			if constexpr (blocks_per_element) {
+				const uint64_t elements_per_block_count{};
 
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
 
-			const uint64_t sync_ith = output.current_chunk[current_block].fetch_add(1);
-			if (sync_ith < nth - 1) {
-				output.current_chunk[current_block].hybrid_wait(nth);
 			} else {
-				output.current_chunk[current_block].store(nth);
-				output.current_chunk[current_block].notify_all();
+				const uint64_t blocks_per_element_count{};
+
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
 			}
-			/*
-			if (nchunk0 * nchunk1 < nth * 4) {
-				nchunk0 = nr0 > nr1 ? nth : 1;
-				nchunk1 = nr0 > nr1 ? 1 : nth;
+		};
+
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01, const typename core_type::input_02_type& input02) {
+			if constexpr (blocks_per_element) {
+				const uint64_t blocks_per_element_count{};
+
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
+
+			} else {
+				const uint64_t elements_per_block_count{};
+
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
 			}
+		};
 
-			const int64_t dr0 = (nr0 + nchunk0 - 1) / nchunk0;
-			const int64_t dr1 = (nr1 + nchunk1 - 1) / nchunk1;
+		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
+			const typename core_type::input_02_type& input02) {
+			const uint64_t ne01 = input01[1];
+			const uint64_t ne11 = input02[1];
+			const uint64_t ne1	= output[1];
 
-			int64_t current_chunk = ith;
-
-			if (nth >= nchunk0 * nchunk1) {
-				return;
+			const uint64_t chunk_count = count_elements(output) / thread_count;
+			const uint64_t block_byte_size{};
+			const uint64_t element_byte_size{};
+			if (block_byte_size > element_byte_size) {
+				for (uint64_t index = thread_index; index < chunk_count; ++index) {
+					produce_single_block<false>(thread_index, thread_count, current_block, output, input01, input02);
+				}
+			} else {
+				for (uint64_t index = thread_index; index < chunk_count; ++index) {
+					produce_single_element<true>(thread_index, thread_count, current_block, output, input01, input02);
+				}
 			}
+		}
+	};
 
-			while (current_chunk < nchunk0 * nchunk1) {
+	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::mul, processing_phase::prompt_eval_time, core_type, float, float, float>
+		: public kernel_base<kernel_types::mul, core_type, float, float, float> {
+		using input_type01			   = typename core_type::input_01_type;
+		using input_type02			   = typename core_type::input_02_type;
+		static constexpr uint64_t ne00 = input_type01::get_array()[0];
+		static constexpr uint64_t ne02 = input_type01::get_array()[2];
+		static constexpr uint64_t ne03 = input_type01::get_array()[3];
+		static constexpr uint64_t ne10 = input_type02::get_array()[0];
+		static constexpr uint64_t ne12 = input_type02::get_array()[2];
+		static constexpr uint64_t ne13 = input_type02::get_array()[3];
+		static constexpr uint64_t ne0  = core_type::get_array()[0];
+		static constexpr uint64_t ne2  = core_type::get_array()[2];
+		static constexpr uint64_t ne3  = core_type::get_array()[3];
 
-				const int64_t ith0 = current_chunk % nchunk0;
-				const int64_t ith1 = current_chunk / nchunk0;
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01, const typename core_type::input_02_type& input02) {
+			if constexpr (blocks_per_element) {
+				const uint64_t elements_per_block_count{};
 
-				const int64_t ir0_start = dr0 * ith0;
-				const int64_t ir0_end	= detail::min(ir0_start + dr0, nr0);
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
 
-				const int64_t ir1_start = dr1 * ith1;
-				const int64_t ir1_end	= detail::min(ir1_start + dr1, nr1);
+			} else {
+				const uint64_t blocks_per_element_count{};
 
-				int64_t num_rows_per_vec_dot = 1;
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
+			}
+		};
 
-				compute_forward_mul_mat_one_chunk(thread_index, thread_count, current_block, output, input01, input02, num_rows_per_vec_dot, ir0_start, ir0_end, ir1_start,
-					ir1_end);
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01, const typename core_type::input_02_type& input02) {
+			if constexpr (blocks_per_element) {
+				const uint64_t blocks_per_element_count{};
 
-				int64_t old_chunk = current_chunk;
-				current_chunk	  = output.current_chunk[current_block].fetch_add(1);
-			}*/
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
+
+			} else {
+				const uint64_t elements_per_block_count{};
+
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
+			}
+		};
+
+		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
+			const typename core_type::input_02_type& input02) {
+			const uint64_t ne01 = input01[1];
+			const uint64_t ne11 = input02[1];
+			const uint64_t ne1	= output[1];
+
+			uint64_t sync_ith = output.current_chunk[current_block].fetch_add(1);
+
+			const uint64_t chunk_count = detail::max((type_traits<typename core_type::output_type>::total_byte_size(output) / (l1_cache_size) * 4) / 3, 1);
+			const uint64_t block_byte_size{};
+			const uint64_t element_byte_size{};
+			if (block_byte_size > element_byte_size) {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
+					produce_single_block<false>(thread_index, thread_count, current_block, output, input01, input02);
+				}
+			} else {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
+					produce_single_element<true>(thread_index, thread_count, current_block, output, input01, input02);
+				}
+			}
+		}
+	};
+
+	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::mul, processing_phase::eval_time, core_type, float, float, float>
+		: public kernel_base<kernel_types::mul, core_type, float, float, float> {
+		using input_type01			   = typename core_type::input_01_type;
+		using input_type02			   = typename core_type::input_02_type;
+		static constexpr uint64_t ne00 = input_type01::get_array()[0];
+		static constexpr uint64_t ne02 = input_type01::get_array()[2];
+		static constexpr uint64_t ne03 = input_type01::get_array()[3];
+		static constexpr uint64_t ne10 = input_type02::get_array()[0];
+		static constexpr uint64_t ne12 = input_type02::get_array()[2];
+		static constexpr uint64_t ne13 = input_type02::get_array()[3];
+		static constexpr uint64_t ne0  = core_type::get_array()[0];
+		static constexpr uint64_t ne2  = core_type::get_array()[2];
+		static constexpr uint64_t ne3  = core_type::get_array()[3];
+
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01, const typename core_type::input_02_type& input02) {
+			if constexpr (blocks_per_element) {
+				const uint64_t elements_per_block_count{};
+
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
+
+			} else {
+				const uint64_t blocks_per_element_count{};
+
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
+			}
+		};
+
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01, const typename core_type::input_02_type& input02) {
+			if constexpr (blocks_per_element) {
+				const uint64_t blocks_per_element_count{};
+
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
+
+			} else {
+				const uint64_t elements_per_block_count{};
+
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
+			}
+		};
+
+		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
+			const typename core_type::input_02_type& input02) {
+			const uint64_t ne01 = input01[1];
+			const uint64_t ne11 = input02[1];
+			const uint64_t ne1	= output[1];
+
+			uint64_t sync_ith = output.current_chunk[current_block].fetch_add(1);
+
+			const uint64_t chunk_count = detail::max((type_traits<typename core_type::output_type>::total_byte_size(output) / (l1_cache_size) * 4) / 3, 1);
+			const uint64_t block_byte_size{};
+			const uint64_t element_byte_size{};
+			if (block_byte_size > element_byte_size) {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
+					produce_single_block<false>(thread_index, thread_count, current_block, output, input01, input02);
+				}
+			} else {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
+					produce_single_element<true>(thread_index, thread_count, current_block, output, input01, input02);
+				}
+			}
+		}
+	};
+
+	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::mul, processing_phase::prompt_eval_time, core_type, block_q8_0<half>, float, float>
+		: public kernel_base<kernel_types::mul, core_type, block_q8_0<half>, float, float> {
+		using input_type01			   = typename core_type::input_01_type;
+		using input_type02			   = typename core_type::input_02_type;
+		static constexpr uint64_t ne00 = input_type01::get_array()[0];
+		static constexpr uint64_t ne02 = input_type01::get_array()[2];
+		static constexpr uint64_t ne03 = input_type01::get_array()[3];
+		static constexpr uint64_t ne10 = input_type02::get_array()[0];
+		static constexpr uint64_t ne12 = input_type02::get_array()[2];
+		static constexpr uint64_t ne13 = input_type02::get_array()[3];
+		static constexpr uint64_t ne0  = core_type::get_array()[0];
+		static constexpr uint64_t ne2  = core_type::get_array()[2];
+		static constexpr uint64_t ne3  = core_type::get_array()[3];
+
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01, const typename core_type::input_02_type& input02) {
+			if constexpr (blocks_per_element) {
+				const uint64_t elements_per_block_count{};
+
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
+
+			} else {
+				const uint64_t blocks_per_element_count{};
+
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
+			}
+		};
+
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01, const typename core_type::input_02_type& input02) {
+			if constexpr (blocks_per_element) {
+				const uint64_t blocks_per_element_count{};
+
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
+
+			} else {
+				const uint64_t elements_per_block_count{};
+
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
+			}
+		};
+
+		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
+			const typename core_type::input_02_type& input02) {
+			const uint64_t ne01 = input01[1];
+			const uint64_t ne11 = input02[1];
+			const uint64_t ne1	= output[1];
+
+			const uint64_t chunk_count = count_elements(output) / thread_count;
+			const uint64_t block_byte_size{};
+			const uint64_t element_byte_size{};
+			if (block_byte_size > element_byte_size) {
+				for (uint64_t index = thread_index; index < chunk_count; ++index) {
+					produce_single_block<false>(thread_index, thread_count, current_block, output, input01, input02);
+				}
+			} else {
+				for (uint64_t index = thread_index; index < chunk_count; ++index) {
+					produce_single_element<true>(thread_index, thread_count, current_block, output, input01, input02);
+				}
+			}
+		}
+	};
+
+	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::mul, processing_phase::eval_time, core_type, block_q8_0<half>, float, float>
+		: public kernel_base<kernel_types::mul, core_type, block_q8_0<half>, float, float> {
+		using input_type01			   = typename core_type::input_01_type;
+		using input_type02			   = typename core_type::input_02_type;
+		static constexpr uint64_t ne00 = input_type01::get_array()[0];
+		static constexpr uint64_t ne02 = input_type01::get_array()[2];
+		static constexpr uint64_t ne03 = input_type01::get_array()[3];
+		static constexpr uint64_t ne10 = input_type02::get_array()[0];
+		static constexpr uint64_t ne12 = input_type02::get_array()[2];
+		static constexpr uint64_t ne13 = input_type02::get_array()[3];
+		static constexpr uint64_t ne0  = core_type::get_array()[0];
+		static constexpr uint64_t ne2  = core_type::get_array()[2];
+		static constexpr uint64_t ne3  = core_type::get_array()[3];
+
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01, const typename core_type::input_02_type& input02) {
+			if constexpr (blocks_per_element) {
+				const uint64_t elements_per_block_count{};
+
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
+
+			} else {
+				const uint64_t blocks_per_element_count{};
+
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
+			}
+		};
+
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01, const typename core_type::input_02_type& input02) {
+			if constexpr (blocks_per_element) {
+				const uint64_t blocks_per_element_count{};
+
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
+
+			} else {
+				const uint64_t elements_per_block_count{};
+
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
+			}
+		};
+
+		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
+			const typename core_type::input_02_type& input02) {
+			const uint64_t ne01 = input01[1];
+			const uint64_t ne11 = input02[1];
+			const uint64_t ne1	= output[1];
+
+			const uint64_t chunk_count = count_elements(output) / thread_count;
+			const uint64_t block_byte_size{};
+			const uint64_t element_byte_size{};
+			if (block_byte_size > element_byte_size) {
+				for (uint64_t index = thread_index; index < chunk_count; ++index) {
+					produce_single_block<false>(thread_index, thread_count, current_block, output, input01, input02);
+				}
+			} else {
+				for (uint64_t index = thread_index; index < chunk_count; ++index) {
+					produce_single_element<true>(thread_index, thread_count, current_block, output, input01, input02);
+				}
+			}
+		}
+	};
+
+	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::get_rows, processing_phase::prompt_eval_time, core_type, float, block_q8_0<half>, int32_t>
+		: public kernel_base<kernel_types::get_rows, core_type, float, block_q8_0<half>, int32_t> {
+		using input_type01			   = typename core_type::input_01_type;
+		static constexpr uint64_t ne00 = input_type01::get_array()[0];
+		static constexpr uint64_t ne0  = core_type ::get_array()[0];
+		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
+			const typename core_type::input_02_type& input02) {
+			static constexpr uint64_t blocks_per_row = ne00 / Q_SIZE;
+			const uint64_t ne1						 = output[1];
+			const auto* src_base					 = input01.data;
+			float* dst_base							 = output.data;
+			const int32_t* token_ids				 = input02.data;
+
+			for (uint64_t row_idx = 0; row_idx < ne1; ++row_idx) {
+				const uint32_t token_id = static_cast<uint32_t>(token_ids[row_idx]);
+				const auto* src_blocks	= src_base + token_id * blocks_per_row;
+				float* dst_row			= dst_base + row_idx * ne0;
+
+				for (uint64_t block_idx = 0; block_idx < blocks_per_row; ++block_idx) {
+					const auto& src_block = src_blocks[block_idx];
+					float* dst_block	  = dst_row + block_idx * Q_SIZE;
+					const float d		  = fp16_to_fp32(src_block.d);
+
+					for (uint64_t j = 0; j < Q_SIZE; ++j) {
+						dst_block[j] = src_block.qs[j] * d;
+					}
+				}
+			}
+		}
+	};
+
+	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::get_rows, processing_phase::eval_time, core_type, float, block_q8_0<half>, int32_t>
+		: public kernel_base<kernel_types::get_rows, core_type, float, block_q8_0<half>, int32_t> {
+		using input_type01			   = typename core_type::input_01_type;
+		static constexpr uint64_t ne00 = input_type01::get_array()[0];
+		static constexpr uint64_t ne0  = core_type ::get_array()[0];
+		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
+			const typename core_type::input_02_type& input02) {
+			static constexpr uint64_t blocks_per_row = ne00 / Q_SIZE;
+			const uint32_t token_id					 = static_cast<uint32_t>(input02.data[0]);
+			const auto* src_blocks					 = input01.data + token_id * blocks_per_row;
+			float* dst_row							 = output.data;
+
+			for (uint64_t block_idx = 0; block_idx < blocks_per_row; ++block_idx) {
+				const auto& src_block = src_blocks[block_idx];
+				float* dst_block	  = dst_row + block_idx * Q_SIZE;
+				const float d		  = fp16_to_fp32(src_block.d);
+
+				for (uint64_t j = 0; j < Q_SIZE; ++j) {
+					dst_block[j] = src_block.qs[j] * d;
+				}
+			}
+		}
+	};
+
+	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::mul_mat, processing_phase::prompt_eval_time, core_type, float, block_q8_0<half>, block_q8_0<half>>
+		: public kernel_base<kernel_types::mul_mat, core_type, float, block_q8_0<half>, block_q8_0<half>> {
+		using input_type01			   = typename core_type::input_01_type;
+		using input_type02			   = typename core_type::input_02_type;
+		static constexpr uint64_t ne00 = input_type01::get_array()[0];
+		static constexpr uint64_t ne02 = input_type01::get_array()[2];
+		static constexpr uint64_t ne03 = input_type01::get_array()[3];
+		static constexpr uint64_t ne10 = input_type02::get_array()[0];
+		static constexpr uint64_t ne12 = input_type02::get_array()[2];
+		static constexpr uint64_t ne13 = input_type02::get_array()[3];
+		static constexpr uint64_t ne0  = core_type::get_array()[0];
+		static constexpr uint64_t ne2  = core_type::get_array()[2];
+		static constexpr uint64_t ne3  = core_type::get_array()[3];
+
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01, const typename core_type::input_02_type& input02) {
+			if constexpr (blocks_per_element) {
+				const uint64_t elements_per_block_count{};
+
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
+
+			} else {
+				const uint64_t blocks_per_element_count{};
+
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
+			}
+		};
+
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01, const typename core_type::input_02_type& input02) {
+			if constexpr (blocks_per_element) {
+				const uint64_t blocks_per_element_count{};
+
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
+
+			} else {
+				const uint64_t elements_per_block_count{};
+
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
+			}
+		};
+
+		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
+			const typename core_type::input_02_type& input02) {
+			const uint64_t ne01 = input01[1];
+			const uint64_t ne11 = input02[1];
+			const uint64_t ne1	= output[1];
+
+			uint64_t sync_ith = output.current_chunk[current_block].fetch_add(1);
+
+			const uint64_t chunk_count = detail::max((type_traits<typename core_type::output_type>::total_byte_size(output) / (l1_cache_size) * 4) / 3, 1);
+			const uint64_t block_byte_size{};
+			const uint64_t element_byte_size{};
+			if (block_byte_size > element_byte_size) {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
+					produce_single_block<false>(thread_index, thread_count, current_block, output, input01, input02);
+				}
+			} else {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
+					produce_single_element<true>(thread_index, thread_count, current_block, output, input01, input02);
+				}
+			}
 		}
 	};
 
@@ -796,165 +1261,64 @@ namespace nihilus {
 		static constexpr uint64_t ne2  = core_type::get_array()[2];
 		static constexpr uint64_t ne3  = core_type::get_array()[3];
 
-		NIHILUS_INLINE static __m256 sum_i16_pairs_float(const __m256i x) {
-			const __m256i ones		   = _mm256_set1_epi16(1);
-			const __m256i summed_pairs = _mm256_madd_epi16(x, ones);
-			return _mm256_cvtepi32_ps(summed_pairs);
-		}
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01, const typename core_type::input_02_type& input02) {
+			if constexpr (blocks_per_element) {
+				const uint64_t elements_per_block_count{};
 
-		NIHILUS_INLINE static __m256 mul_sum_us8_pairs_float(const __m256i ax, const __m256i sy) {
-			const __m256i dot = _mm256_maddubs_epi16(ax, sy);
-			return sum_i16_pairs_float(dot);
-		}
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
 
-		NIHILUS_INLINE static __m256 mul_sum_i8_pairs_float(const __m256i x, const __m256i y) {
-			const __m256i ax = _mm256_sign_epi8(x, x);
-			const __m256i sy = _mm256_sign_epi8(y, x);
-			return mul_sum_us8_pairs_float(ax, sy);
-		}
+			} else {
+				const uint64_t blocks_per_element_count{};
 
-		NIHILUS_INLINE static float hsum_float_8(const __m256 x) {
-			__m256 sum128 = _mm256_add_ps(x, _mm256_permute2f128_ps(x, x, 1));
-			__m256 sum64  = _mm256_add_ps(sum128, _mm256_shuffle_ps(sum128, sum128, 0x4E));
-			__m256 sum32  = _mm256_add_ps(sum64, _mm256_shuffle_ps(sum64, sum64, 0xB1));
-			return _mm256_cvtss_f32(sum32);
-		}
-
-		NIHILUS_INLINE static void quantize_row_q8_0_avx2(const float* __restrict src, block_q8_0<half>* __restrict dst, uint64_t n) {
-			static constexpr uint64_t QK = Q_SIZE;
-			const uint64_t nb			 = n / QK;
-			const __m256 signBit		 = _mm256_set1_ps(-0.0f);
-
-			for (uint64_t i = 0; i < nb; i++) {
-				__m256 v0 = _mm256_load_ps(src + i * QK + 0);
-				__m256 v1 = _mm256_load_ps(src + i * QK + 8);
-				__m256 v2 = _mm256_load_ps(src + i * QK + 16);
-				__m256 v3 = _mm256_load_ps(src + i * QK + 24);
-
-				__m256 maxAbs = _mm256_andnot_ps(signBit, v0);
-				maxAbs		  = _mm256_max_ps(maxAbs, _mm256_andnot_ps(signBit, v1));
-				maxAbs		  = _mm256_max_ps(maxAbs, _mm256_andnot_ps(signBit, v2));
-				maxAbs		  = _mm256_max_ps(maxAbs, _mm256_andnot_ps(signBit, v3));
-
-				__m128 max4			  = _mm_max_ps(_mm256_extractf128_ps(maxAbs, 1), _mm256_castps256_ps128(maxAbs));
-				max4				  = _mm_max_ps(max4, _mm_movehl_ps(max4, max4));
-				max4				  = _mm_max_ss(max4, _mm_movehdup_ps(max4));
-				const float maxScalar = _mm_cvtss_f32(max4);
-
-				const float d	 = maxScalar / 127.f;
-				dst[i].d		 = fp32_to_fp16(d);
-				const float id	 = (maxScalar != 0.0f) ? 127.f / maxScalar : 0.0f;
-				const __m256 mul = _mm256_set1_ps(id);
-
-				v0 = _mm256_mul_ps(v0, mul);
-				v1 = _mm256_mul_ps(v1, mul);
-				v2 = _mm256_mul_ps(v2, mul);
-				v3 = _mm256_mul_ps(v3, mul);
-
-				v0 = _mm256_round_ps(v0, _MM_ROUND_NEAREST);
-				v1 = _mm256_round_ps(v1, _MM_ROUND_NEAREST);
-				v2 = _mm256_round_ps(v2, _MM_ROUND_NEAREST);
-				v3 = _mm256_round_ps(v3, _MM_ROUND_NEAREST);
-
-				__m256i i0 = _mm256_cvtps_epi32(v0);
-				__m256i i1 = _mm256_cvtps_epi32(v1);
-				__m256i i2 = _mm256_cvtps_epi32(v2);
-				__m256i i3 = _mm256_cvtps_epi32(v3);
-
-				i0 = _mm256_packs_epi32(i0, i1);
-				i2 = _mm256_packs_epi32(i2, i3);
-				i0 = _mm256_packs_epi16(i0, i2);
-
-				const __m256i perm = _mm256_setr_epi32(0, 4, 1, 5, 2, 6, 3, 7);
-				i0				   = _mm256_permutevar8x32_epi32(i0, perm);
-
-				_mm256_store_si256(( __m256i* )dst[i].qs, i0);
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
 			}
-		}
+		};
 
-		NIHILUS_INLINE static void vec_dot_q8_0_q8_0_optimized(uint64_t n, float* __restrict s, const block_q8_0<half>* __restrict x, const block_q8_0<half>* __restrict y) {
-			const uint64_t nb = n / Q_SIZE;
-			float sumf		  = 0.0f;
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01, const typename core_type::input_02_type& input02) {
+			if constexpr (blocks_per_element) {
+				const uint64_t blocks_per_element_count{};
 
-			__m256 acc1				  = _mm256_setzero_ps();
-			__m256 acc2				  = _mm256_setzero_ps();
-			const uint64_t unroll_end = (nb / 2) * 2;
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
 
-			for (uint64_t ib = 0; ib < unroll_end; ib += 2) {
-				const __m256 d1 = _mm256_set1_ps(fp16_to_fp32(x[ib].d) * fp16_to_fp32(y[ib].d));
-				const __m256 d2 = _mm256_set1_ps(fp16_to_fp32(x[ib + 1].d) * fp16_to_fp32(y[ib + 1].d));
+			} else {
+				const uint64_t elements_per_block_count{};
 
-				__m256i qx1 = _mm256_load_si256(( const __m256i* )x[ib].qs);
-				__m256i qy1 = _mm256_load_si256(( const __m256i* )y[ib].qs);
-				__m256i qx2 = _mm256_load_si256(( const __m256i* )x[ib + 1].qs);
-				__m256i qy2 = _mm256_load_si256(( const __m256i* )y[ib + 1].qs);
-
-				const __m256 q1 = mul_sum_i8_pairs_float(qx1, qy1);
-				const __m256 q2 = mul_sum_i8_pairs_float(qx2, qy2);
-
-				acc1 = _mm256_fmadd_ps(d1, q1, acc1);
-				acc2 = _mm256_fmadd_ps(d2, q2, acc2);
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
 			}
-
-			acc1 = _mm256_add_ps(acc1, acc2);
-			sumf = hsum_float_8(acc1);
-
-			for (uint64_t ib = unroll_end; ib < nb; ++ib) {
-				const __m256 d = _mm256_set1_ps(fp16_to_fp32(x[ib].d) * fp16_to_fp32(y[ib].d));
-				__m256i qx	   = _mm256_load_si256(( const __m256i* )x[ib].qs);
-				__m256i qy	   = _mm256_load_si256(( const __m256i* )y[ib].qs);
-				const __m256 q = mul_sum_i8_pairs_float(qx, qy);
-				acc1		   = _mm256_fmadd_ps(d, q, acc1);
-			}
-
-			if (unroll_end < nb) {
-				sumf += hsum_float_8(acc1);
-			}
-			*s = sumf;
-		}
+		};
 
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
 			const typename core_type::input_02_type& input02) {
 			const uint64_t ne01 = input01[1];
+			const uint64_t ne11 = input02[1];
+			const uint64_t ne1	= output[1];
 
-			const block_q8_0<half>* src01;
-			if constexpr (array_types<decltype(input01.data)>) {
-				src01 = input01.data[current_block];
+			uint64_t sync_ith = output.current_chunk[current_block].fetch_add(1);
+
+			const uint64_t chunk_count = detail::max((type_traits<typename core_type::output_type>::total_byte_size(output) / (l1_cache_size) * 4) / 3, 1);
+			const uint64_t block_byte_size{};
+			const uint64_t element_byte_size{};
+			if (block_byte_size > element_byte_size) {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
+					produce_single_block<false>(thread_index, thread_count, current_block, output, input01, input02);
+				}
 			} else {
-				src01 = input01.data;
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
+					produce_single_element<true>(thread_index, thread_count, current_block, output, input01, input02);
+				}
 			}
-			/*
-			const float* src02 = input02.data;
-			float* dst		   = output.data;
-
-			const uint64_t output_size		  = ne01;
-			block_q8_0<half>* quantized_input = reinterpret_cast<block_q8_0<half>*>(dst + output_size);
-
-			static constexpr uint64_t blocks_per_row		   = ne00 / Q_SIZE;
-			static constexpr uint64_t quantized_blocks_per_col = ne10 / Q_SIZE;
-
-			const uint64_t ith = static_cast<uint64_t>(thread_index);
-			const uint64_t nth = static_cast<uint64_t>(thread_count);
-
-			if (ith == 0) {
-				quantize_row_q8_0_avx2(src02, quantized_input, ne10);
-			}
-
-			const uint64_t sync_ith = output.current_chunk[current_block].fetch_add(1);
-			if (sync_ith < nth - 1) {
-				output.current_chunk[current_block].hybrid_wait(nth);
-			} else {
-				output.current_chunk[current_block].store(nth);
-				output.current_chunk[current_block].notify_all();
-			}
-
-			const uint64_t rows_per_thread = (ne01 + nth - 1) / nth;
-			const uint64_t row_start	   = ith * rows_per_thread;
-			const uint64_t row_end		   = detail::min(row_start + rows_per_thread, ne01);
-
-			for (uint64_t ir0 = row_start; ir0 < row_end; ++ir0) {
-				//vec_dot_q8_0_q8_0_optimized<ne00>(&dst[ir0], &src01[ir0 * blocks_per_row], quantized_input);
-			}*/
 		}
 	};
 
@@ -971,88 +1335,65 @@ namespace nihilus {
 		static constexpr uint64_t ne0  = core_type::get_array()[0];
 		static constexpr uint64_t ne2  = core_type::get_array()[2];
 		static constexpr uint64_t ne3  = core_type::get_array()[3];
-		static constexpr int64_t r2	   = ne12 / ne02;
-		static constexpr int64_t r3	   = ne13 / ne03;
 
-		NIHILUS_INLINE static float hsum_float_8(const __m256 x) {
-			__m256 sum128 = _mm256_add_ps(x, _mm256_permute2f128_ps(x, x, 1));
-			__m256 sum64  = _mm256_add_ps(sum128, _mm256_shuffle_ps(sum128, sum128, 0x4E));
-			__m256 sum32  = _mm256_add_ps(sum64, _mm256_shuffle_ps(sum64, sum64, 0xB1));
-			return _mm256_cvtss_f32(sum32);
-		}
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01, const typename core_type::input_02_type& input02) {
+			if constexpr (blocks_per_element) {
+				const uint64_t elements_per_block_count{};
 
-		NIHILUS_INLINE static void vec_dot_f16_f32_optimized(uint64_t n, float* __restrict s, const half* __restrict x, const float* __restrict y) {
-			float sumf				= 0.0f;
-			__m256 acc1				= _mm256_setzero_ps();
-			__m256 acc2				= _mm256_setzero_ps();
-			const uint64_t simd_end = (n / 16) * 16;
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
 
-			for (uint64_t i = 0; i < simd_end; i += 16) {
-				__m128i x_half1 = _mm_load_si128(( const __m128i* )(x + i));
-				__m128i x_half2 = _mm_load_si128(( const __m128i* )(x + i + 8));
-				__m256 x_float1 = _mm256_cvtph_ps(x_half1);
-				__m256 x_float2 = _mm256_cvtph_ps(x_half2);
-				__m256 y_vec1	= _mm256_load_ps(y + i);
-				__m256 y_vec2	= _mm256_load_ps(y + i + 8);
-				acc1			= _mm256_fmadd_ps(x_float1, y_vec1, acc1);
-				acc2			= _mm256_fmadd_ps(x_float2, y_vec2, acc2);
+			} else {
+				const uint64_t blocks_per_element_count{};
+
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
 			}
+		};
 
-			acc1 = _mm256_add_ps(acc1, acc2);
-			sumf = hsum_float_8(acc1);
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01, const typename core_type::input_02_type& input02) {
+			if constexpr (blocks_per_element) {
+				const uint64_t blocks_per_element_count{};
 
-			for (uint64_t i = simd_end; i < n; ++i) {
-				sumf += fp16_to_fp32(x[i]) * y[i];
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
+
+			} else {
+				const uint64_t elements_per_block_count{};
+
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
 			}
-			*s = sumf;
-		}
+		};
 
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
 			const typename core_type::input_02_type& input02) {
-			const uint64_t ne01		  = input01[1];
-			const uint64_t ne11		  = input02[1];
-			const uint64_t output_ne1 = output[1];
+			const uint64_t ne01 = input01[1];
+			const uint64_t ne11 = input02[1];
+			const uint64_t ne1	= output[1];
 
-			const half* __restrict src0_data = nullptr;
-			if constexpr (array_types<decltype(input01.data)>) {
-				src0_data = input01.data[current_block];
-			} else {
-				src0_data = input01.data;
-			}
+			uint64_t sync_ith = output.current_chunk[current_block].fetch_add(1);
 
-			const float* __restrict src1_data = input02.data;
-			/*
-			float* __restrict dst_data		  = output.data;
-
-			const uint64_t ith = static_cast<uint64_t>(thread_index);
-			const uint64_t nth = static_cast<uint64_t>(thread_count);
-
-			const uint64_t total_work_items = output_ne1 * ne2 * ne3;
-			const uint64_t work_per_thread	= (total_work_items + nth - 1) / nth;
-			const uint64_t work_start		= ith * work_per_thread;
-			const uint64_t work_end			= detail::min(work_start + work_per_thread, total_work_items);
-
-			for (uint64_t work_idx = work_start; work_idx < work_end; ++work_idx) {
-				const uint64_t i13 = work_idx / (ne12 * output_ne1);
-				const uint64_t i12 = (work_idx - i13 * ne12 * output_ne1) / output_ne1;
-				const uint64_t i11 = work_idx - i13 * ne12 * output_ne1 - i12 * output_ne1;
-
-				const uint64_t i03 = i13 / r3;
-				const uint64_t i02 = i12 / r2;
-
-				const uint64_t src1_offset = i11 * ne10 + i12 * ne10 * ne11 + i13 * ne10 * ne11 * ne12;
-				const uint64_t dst_offset  = work_idx * ne0;
-
-				const float* __restrict src1_ptr = &src1_data[src1_offset];
-				float* __restrict dst_ptr		 = &dst_data[dst_offset];
-
-				for (uint64_t ir0 = 0; ir0 < ne01; ++ir0) {
-					const uint64_t src0_offset		= ir0 * ne00 + i02 * ne00 * ne01 + i03 * ne00 * ne01 * ne02;
-					const half* __restrict src0_ptr = &src0_data[src0_offset];
-
-					vec_dot_f16_f32_optimized(ne10, &dst_ptr[ir0], src0_ptr, src1_ptr);
+			const uint64_t chunk_count = detail::max((type_traits<typename core_type::output_type>::total_byte_size(output) / (l1_cache_size) * 4) / 3, 1);
+			const uint64_t block_byte_size{};
+			const uint64_t element_byte_size{};
+			if (block_byte_size > element_byte_size) {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
+					produce_single_block<false>(thread_index, thread_count, current_block, output, input01, input02);
 				}
-			}*/
+			} else {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
+					produce_single_element<true>(thread_index, thread_count, current_block, output, input01, input02);
+				}
+			}
 		}
 	};
 
@@ -1070,110 +1411,367 @@ namespace nihilus {
 		static constexpr uint64_t ne2  = core_type::get_array()[2];
 		static constexpr uint64_t ne3  = core_type::get_array()[3];
 
-		NIHILUS_INLINE static float hsum_float_8(const __m256 x) {
-			__m256 sum128 = _mm256_add_ps(x, _mm256_permute2f128_ps(x, x, 1));
-			__m256 sum64  = _mm256_add_ps(sum128, _mm256_shuffle_ps(sum128, sum128, 0x4E));
-			__m256 sum32  = _mm256_add_ps(sum64, _mm256_shuffle_ps(sum64, sum64, 0xB1));
-			return _mm256_cvtss_f32(sum32);
-		}
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01, const typename core_type::input_02_type& input02) {
+			if constexpr (blocks_per_element) {
+				const uint64_t elements_per_block_count{};
 
-		NIHILUS_INLINE static void vec_dot_f16_f32_optimized(uint64_t n, float* __restrict s, const half* __restrict x, const float* __restrict y) {
-			float sumf = 0.0f;
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
 
-			__m256 acc1				= _mm256_setzero_ps();
-			__m256 acc2				= _mm256_setzero_ps();
-			const uint64_t simd_end = (n / 16) * 16;
+			} else {
+				const uint64_t blocks_per_element_count{};
 
-			for (uint64_t i = 0; i < simd_end; i += 16) {
-				__m128i x_half1 = _mm_load_si128(( const __m128i* )(x + i));
-				__m128i x_half2 = _mm_load_si128(( const __m128i* )(x + i + 8));
-				__m256 x_float1 = _mm256_cvtph_ps(x_half1);
-				__m256 x_float2 = _mm256_cvtph_ps(x_half2);
-				__m256 y_vec1	= _mm256_load_ps(y + i);
-				__m256 y_vec2	= _mm256_load_ps(y + i + 8);
-				acc1			= _mm256_fmadd_ps(x_float1, y_vec1, acc1);
-				acc2			= _mm256_fmadd_ps(x_float2, y_vec2, acc2);
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
 			}
+		};
 
-			acc1 = _mm256_add_ps(acc1, acc2);
-			sumf = hsum_float_8(acc1);
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01, const typename core_type::input_02_type& input02) {
+			if constexpr (blocks_per_element) {
+				const uint64_t blocks_per_element_count{};
 
-			for (uint64_t i = simd_end; i < n; ++i) {
-				sumf += fp16_to_fp32(x[i]) * y[i];
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
+
+			} else {
+				const uint64_t elements_per_block_count{};
+
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
 			}
-			*s = sumf;
-		}
+		};
 
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
 			const typename core_type::input_02_type& input02) {
 			const uint64_t ne01 = input01[1];
+			const uint64_t ne11 = input02[1];
+			const uint64_t ne1	= output[1];
 
-			const half* src01;
-			if constexpr (array_types<decltype(input01.data)>) {
-				src01 = input01.data[current_block];
+			uint64_t sync_ith = output.current_chunk[current_block].fetch_add(1);
+
+			const uint64_t chunk_count = detail::max((type_traits<typename core_type::output_type>::total_byte_size(output) / (l1_cache_size) * 4) / 3, 1);
+			const uint64_t block_byte_size{};
+			const uint64_t element_byte_size{};
+			if (block_byte_size > element_byte_size) {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
+					produce_single_block<false>(thread_index, thread_count, current_block, output, input01, input02);
+				}
 			} else {
-				src01 = input01.data;
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
+					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
+					produce_single_element<true>(thread_index, thread_count, current_block, output, input01, input02);
+				}
 			}
-			/*
-			const float* src02 = input02.data;
-			float* dst		   = output.data;
-
-			const uint64_t ith = static_cast<uint64_t>(thread_index);
-			const uint64_t nth = static_cast<uint64_t>(thread_count);
-
-			const uint64_t rows_per_thread = (ne01 + nth - 1) / nth;
-			const uint64_t row_start	   = ith * rows_per_thread;
-			const uint64_t row_end		   = detail::min(row_start + rows_per_thread, ne01);
-
-			for (uint64_t ir0 = row_start; ir0 < row_end; ++ir0) {
-				vec_dot_f16_f32_optimized(ne00, &dst[ir0], &src01[ir0 * ne00], src02);
-			}*/
 		}
 	};
 
 	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::softmax, processing_phase::prompt_eval_time, core_type, float, block_q8_0<half>, float>
 		: public kernel_base<kernel_types::softmax, core_type, float, block_q8_0<half>, float> {
-		using input_type01 = typename core_type::input_01_type;
-		using input_type02 = typename core_type::input_02_type;
+		using input_type01			   = typename core_type::input_01_type;
+		using input_type02			   = typename core_type::input_02_type;
+		static constexpr uint64_t ne00 = input_type01::get_array()[0];
+		static constexpr uint64_t ne02 = input_type01::get_array()[2];
+		static constexpr uint64_t ne03 = input_type01::get_array()[3];
+		static constexpr uint64_t ne10 = input_type02::get_array()[0];
+		static constexpr uint64_t ne12 = input_type02::get_array()[2];
+		static constexpr uint64_t ne13 = input_type02::get_array()[3];
+		static constexpr uint64_t ne0  = core_type::get_array()[0];
+		static constexpr uint64_t ne2  = core_type::get_array()[2];
+		static constexpr uint64_t ne3  = core_type::get_array()[3];
+
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01, const typename core_type::input_02_type& input02) {
+			if constexpr (blocks_per_element) {
+				const uint64_t elements_per_block_count{};
+
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
+
+			} else {
+				const uint64_t blocks_per_element_count{};
+
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
+			}
+		};
+
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01, const typename core_type::input_02_type& input02) {
+			if constexpr (blocks_per_element) {
+				const uint64_t blocks_per_element_count{};
+
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
+
+			} else {
+				const uint64_t elements_per_block_count{};
+
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
+			}
+		};
 
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
 			const typename core_type::input_02_type& input02) {
+			const uint64_t ne01 = input01[1];
+			const uint64_t ne11 = input02[1];
+			const uint64_t ne1	= output[1];
+
+			const uint64_t chunk_count = count_elements(output) / thread_count;
+			const uint64_t block_byte_size{};
+			const uint64_t element_byte_size{};
+			if (block_byte_size > element_byte_size) {
+				for (uint64_t index = thread_index; index < chunk_count; ++index) {
+					produce_single_block<false>(thread_index, thread_count, current_block, output, input01, input02);
+				}
+			} else {
+				for (uint64_t index = thread_index; index < chunk_count; ++index) {
+					produce_single_element<true>(thread_index, thread_count, current_block, output, input01, input02);
+				}
+			}
 		}
 	};
 
 	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::softmax, processing_phase::eval_time, core_type, float, block_q8_0<half>, float>
 		: public kernel_base<kernel_types::softmax, core_type, float, block_q8_0<half>, float> {
-		using input_type01 = typename core_type::input_01_type;
-		using input_type02 = typename core_type::input_02_type;
+		using input_type01			   = typename core_type::input_01_type;
+		using input_type02			   = typename core_type::input_02_type;
+		static constexpr uint64_t ne00 = input_type01::get_array()[0];
+		static constexpr uint64_t ne02 = input_type01::get_array()[2];
+		static constexpr uint64_t ne03 = input_type01::get_array()[3];
+		static constexpr uint64_t ne10 = input_type02::get_array()[0];
+		static constexpr uint64_t ne12 = input_type02::get_array()[2];
+		static constexpr uint64_t ne13 = input_type02::get_array()[3];
+		static constexpr uint64_t ne0  = core_type::get_array()[0];
+		static constexpr uint64_t ne2  = core_type::get_array()[2];
+		static constexpr uint64_t ne3  = core_type::get_array()[3];
+
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01, const typename core_type::input_02_type& input02) {
+			if constexpr (blocks_per_element) {
+				const uint64_t elements_per_block_count{};
+
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
+
+			} else {
+				const uint64_t blocks_per_element_count{};
+
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
+			}
+		};
+
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01, const typename core_type::input_02_type& input02) {
+			if constexpr (blocks_per_element) {
+				const uint64_t blocks_per_element_count{};
+
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
+
+			} else {
+				const uint64_t elements_per_block_count{};
+
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
+			}
+		};
 
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
 			const typename core_type::input_02_type& input02) {
+			const uint64_t ne01 = input01[1];
+			const uint64_t ne11 = input02[1];
+			const uint64_t ne1	= output[1];
+
+			const uint64_t chunk_count = count_elements(output) / thread_count;
+			const uint64_t block_byte_size{};
+			const uint64_t element_byte_size{};
+			if (block_byte_size > element_byte_size) {
+				for (uint64_t index = thread_index; index < chunk_count; ++index) {
+					produce_single_block<false>(thread_index, thread_count, current_block, output, input01, input02);
+				}
+			} else {
+				for (uint64_t index = thread_index; index < chunk_count; ++index) {
+					produce_single_element<true>(thread_index, thread_count, current_block, output, input01, input02);
+				}
+			}
 		}
 	};
 
 	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::rope, processing_phase::prompt_eval_time, core_type, float, float, int32_t, float>
 		: public kernel_base<kernel_types::rope, core_type, float, float, int32_t, float> {
-		using input_type01 = typename core_type::input_01_type;
-		using input_type02 = typename core_type::input_02_type;
-		using input_type03 = typename core_type::input_03_type;
+		using input_type01			   = typename core_type::input_01_type;
+		using input_type02			   = typename core_type::input_02_type;
+		using input_type03			   = typename core_type::input_03_type;
+		static constexpr uint64_t ne00 = input_type01::get_array()[0];
+		static constexpr uint64_t ne02 = input_type01::get_array()[2];
+		static constexpr uint64_t ne03 = input_type01::get_array()[3];
+		static constexpr uint64_t ne10 = input_type02::get_array()[0];
+		static constexpr uint64_t ne12 = input_type02::get_array()[2];
+		static constexpr uint64_t ne13 = input_type02::get_array()[3];
+		static constexpr uint64_t ne20 = input_type03::get_array()[0];
+		static constexpr uint64_t ne22 = input_type03::get_array()[2];
+		static constexpr uint64_t ne23 = input_type03::get_array()[3];
+		static constexpr uint64_t ne0  = core_type::get_array()[0];
+		static constexpr uint64_t ne2  = core_type::get_array()[2];
+		static constexpr uint64_t ne3  = core_type::get_array()[3];
+
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01, const typename core_type::input_02_type& input02, const typename core_type::input_03_type& input03) {
+			if constexpr (blocks_per_element) {
+				const uint64_t elements_per_block_count{};
+
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
+
+			} else {
+				const uint64_t blocks_per_element_count{};
+
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
+			}
+		};
+
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01, const typename core_type::input_02_type& input02, const typename core_type::input_03_type& input03) {
+			if constexpr (blocks_per_element) {
+				const uint64_t blocks_per_element_count{};
+
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
+
+			} else {
+				const uint64_t elements_per_block_count{};
+
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
+			}
+		};
 
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
 			const typename core_type::input_02_type& input02, const typename core_type::input_03_type& input03) {
-			const float* __restrict src_data		  = input01.data;
-			const int32_t* pos_data					  = input02.data;
-			const float* __restrict freq_scaling_data = input03.data;
-			float* __restrict dst_data				  = output.data;
+			const uint64_t ne01 = input01[1];
+			const uint64_t ne11 = input02[1];
+			const uint64_t ne21 = input03[1];
+			const uint64_t ne1	= output[1];
+
+			uint64_t sync_ith = output.current_chunk[current_block].fetch_add(1);
+
+			const uint64_t chunk_count = detail::max((type_traits<typename core_type::output_type>::total_byte_size(output) / (l1_cache_size) * 4) / 3, 1);
+			const uint64_t block_byte_size{};
+			const uint64_t element_byte_size{};
+			if (block_byte_size > element_byte_size) {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
+					produce_single_block<false>(thread_index, thread_count, current_block, output, input01, input02, input03);
+				}
+			} else {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
+					produce_single_element<true>(thread_index, thread_count, current_block, output, input01, input02, input03);
+				}
+			}
 		}
 	};
 
 	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::rope, processing_phase::eval_time, core_type, float, float, int32_t, float>
 		: public kernel_base<kernel_types::rope, core_type, float, float, int32_t, float> {
-		using input_type01 = typename core_type::input_01_type;
-		using input_type02 = typename core_type::input_02_type;
-		using input_type03 = typename core_type::input_03_type;
+		using input_type01			   = typename core_type::input_01_type;
+		using input_type02			   = typename core_type::input_02_type;
+		using input_type03			   = typename core_type::input_03_type;
+		static constexpr uint64_t ne00 = input_type01::get_array()[0];
+		static constexpr uint64_t ne02 = input_type01::get_array()[2];
+		static constexpr uint64_t ne03 = input_type01::get_array()[3];
+		static constexpr uint64_t ne10 = input_type02::get_array()[0];
+		static constexpr uint64_t ne12 = input_type02::get_array()[2];
+		static constexpr uint64_t ne13 = input_type02::get_array()[3];
+		static constexpr uint64_t ne20 = input_type03::get_array()[0];
+		static constexpr uint64_t ne22 = input_type03::get_array()[2];
+		static constexpr uint64_t ne23 = input_type03::get_array()[3];
+		static constexpr uint64_t ne0  = core_type::get_array()[0];
+		static constexpr uint64_t ne2  = core_type::get_array()[2];
+		static constexpr uint64_t ne3  = core_type::get_array()[3];
+
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01, const typename core_type::input_02_type& input02, const typename core_type::input_03_type& input03) {
+			if constexpr (blocks_per_element) {
+				const uint64_t elements_per_block_count{};
+
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
+
+			} else {
+				const uint64_t blocks_per_element_count{};
+
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
+			}
+		};
+
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01, const typename core_type::input_02_type& input02, const typename core_type::input_03_type& input03) {
+			if constexpr (blocks_per_element) {
+				const uint64_t blocks_per_element_count{};
+
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
+
+			} else {
+				const uint64_t elements_per_block_count{};
+
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
+			}
+		};
 
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
 			const typename core_type::input_02_type& input02, const typename core_type::input_03_type& input03) {
+			const uint64_t ne01 = input01[1];
+			const uint64_t ne11 = input02[1];
+			const uint64_t ne21 = input03[1];
+			const uint64_t ne1	= output[1];
+
+			uint64_t sync_ith = output.current_chunk[current_block].fetch_add(1);
+
+			const uint64_t chunk_count = detail::max((type_traits<typename core_type::output_type>::total_byte_size(output) / (l1_cache_size) * 4) / 3, 1);
+			const uint64_t block_byte_size{};
+			const uint64_t element_byte_size{};
+			if (block_byte_size > element_byte_size) {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
+					produce_single_block<false>(thread_index, thread_count, current_block, output, input01, input02, input03);
+				}
+			} else {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
+					produce_single_element<true>(thread_index, thread_count, current_block, output, input01, input02, input03);
+				}
+			}
 		}
 	};
 
@@ -1181,6 +1779,26 @@ namespace nihilus {
 		: public kernel_base<kernel_types::get_rows, core_type, float, float, int32_t> {
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
 			const typename core_type::input_02_type& input02) {
+			const uint64_t ne1		 = output[1];
+			const uint64_t ne0		 = output[0];
+			const float* src_base	 = input01.data;
+			float* dst_base			 = output.data;
+			const int32_t* token_ids = input02.data;
+
+			for (uint64_t row_idx = 0; row_idx < ne1; ++row_idx) {
+				const uint32_t token_id = static_cast<uint32_t>(token_ids[row_idx]);
+				const float* src_row	= src_base + token_id * ne0;
+				float* dst_row			= dst_base + row_idx * ne0;
+
+				uint64_t i = 0;
+				for (; i + 8 <= ne0; i += 8) {
+					__m256 src_vec = _mm256_loadu_ps(src_row + i);
+					_mm256_storeu_ps(dst_row + i, src_vec);
+				}
+				for (; i < ne0; ++i) {
+					dst_row[i] = src_row[i];
+				}
+			}
 		}
 	};
 
@@ -1188,73 +1806,794 @@ namespace nihilus {
 		: public kernel_base<kernel_types::get_rows, core_type, float, float, int32_t> {
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
 			const typename core_type::input_02_type& input02) {
+			const uint64_t ne0		= output[0];
+			const uint32_t token_id = static_cast<uint32_t>(input02.data[0]);
+			const float* src_row	= input01.data + token_id * ne0;
+			float* dst_row			= output.data;
+
+			uint64_t i = 0;
+			for (; i + 8 <= ne0; i += 8) {
+				__m256 src_vec = _mm256_loadu_ps(src_row + i);
+				_mm256_storeu_ps(dst_row + i, src_vec);
+			}
+			for (; i < ne0; ++i) {
+				dst_row[i] = src_row[i];
+			}
 		}
 	};
 
 	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::silu, processing_phase::prompt_eval_time, core_type, float, float>
 		: public kernel_base<kernel_types::silu, core_type, float, float> {
-		NIHILUS_INLINE static void impl(int64_t, int64_t, int64_t, core_type&, const typename core_type::input_01_type&) {
+		using input_type01			   = typename core_type::input_01_type;
+		static constexpr uint64_t ne00 = input_type01::get_array()[0];
+		static constexpr uint64_t ne02 = input_type01::get_array()[2];
+		static constexpr uint64_t ne03 = input_type01::get_array()[3];
+		static constexpr uint64_t ne0  = core_type::get_array()[0];
+		static constexpr uint64_t ne2  = core_type::get_array()[2];
+		static constexpr uint64_t ne3  = core_type::get_array()[3];
+
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01) {
+			if constexpr (blocks_per_element) {
+				const uint64_t elements_per_block_count{};
+
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
+
+			} else {
+				const uint64_t blocks_per_element_count{};
+
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
+			}
+		};
+
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01) {
+			if constexpr (blocks_per_element) {
+				const uint64_t blocks_per_element_count{};
+
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
+
+			} else {
+				const uint64_t elements_per_block_count{};
+
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
+			}
+		};
+
+		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01) {
+			const uint64_t ne01 = input01[1];
+			const uint64_t ne1	= output[1];
+
+			const uint64_t chunk_count = count_elements(output) / thread_count;
+			const uint64_t block_byte_size{};
+			const uint64_t element_byte_size{};
+			if (block_byte_size > element_byte_size) {
+				for (uint64_t index = thread_index; index < chunk_count; ++index) {
+					produce_single_block<false>(thread_index, thread_count, current_block, output, input01);
+				}
+			} else {
+				for (uint64_t index = thread_index; index < chunk_count; ++index) {
+					produce_single_element<true>(thread_index, thread_count, current_block, output, input01);
+				}
+			}
+		}
+	};
+
+	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::silu, processing_phase::eval_time, core_type, float, float>
+		: public kernel_base<kernel_types::silu, core_type, float, float> {
+		using input_type01			   = typename core_type::input_01_type;
+		static constexpr uint64_t ne00 = input_type01::get_array()[0];
+		static constexpr uint64_t ne02 = input_type01::get_array()[2];
+		static constexpr uint64_t ne03 = input_type01::get_array()[3];
+		static constexpr uint64_t ne0  = core_type::get_array()[0];
+		static constexpr uint64_t ne2  = core_type::get_array()[2];
+		static constexpr uint64_t ne3  = core_type::get_array()[3];
+
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01) {
+			if constexpr (blocks_per_element) {
+				const uint64_t elements_per_block_count{};
+
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
+
+			} else {
+				const uint64_t blocks_per_element_count{};
+
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
+			}
+		};
+
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01) {
+			if constexpr (blocks_per_element) {
+				const uint64_t blocks_per_element_count{};
+
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
+
+			} else {
+				const uint64_t elements_per_block_count{};
+
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
+			}
+		};
+
+		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01) {
+			const uint64_t ne01 = input01[1];
+			const uint64_t ne1	= output[1];
+
+			const uint64_t chunk_count = count_elements(output) / thread_count;
+			const uint64_t block_byte_size{};
+			const uint64_t element_byte_size{};
+			if (block_byte_size > element_byte_size) {
+				for (uint64_t index = thread_index; index < chunk_count; ++index) {
+					produce_single_block<false>(thread_index, thread_count, current_block, output, input01);
+				}
+			} else {
+				for (uint64_t index = thread_index; index < chunk_count; ++index) {
+					produce_single_element<true>(thread_index, thread_count, current_block, output, input01);
+				}
+			}
 		}
 	};
 
 	template<typename core_type>
 	struct kernel_dispatcher_impl<1, kernel_types::mul_mat_reshape, processing_phase::prompt_eval_time, core_type, float, block_q8_0<half>, block_q8_0<half>>
 		: public kernel_base<kernel_types::mul_mat_reshape, core_type, float, block_q8_0<half>, block_q8_0<half>> {
-		NIHILUS_INLINE static void impl(int64_t, int64_t, int64_t, core_type&, const typename core_type::input_01_type&, const typename core_type::input_02_type&) {
+		using input_type01			   = typename core_type::input_01_type;
+		using input_type02			   = typename core_type::input_02_type;
+		static constexpr uint64_t ne00 = input_type01::get_array()[0];
+		static constexpr uint64_t ne02 = input_type01::get_array()[2];
+		static constexpr uint64_t ne03 = input_type01::get_array()[3];
+		static constexpr uint64_t ne10 = input_type02::get_array()[0];
+		static constexpr uint64_t ne12 = input_type02::get_array()[2];
+		static constexpr uint64_t ne13 = input_type02::get_array()[3];
+		static constexpr uint64_t ne0  = core_type::get_array()[0];
+		static constexpr uint64_t ne2  = core_type::get_array()[2];
+		static constexpr uint64_t ne3  = core_type::get_array()[3];
+
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01, const typename core_type::input_02_type& input02) {
+			if constexpr (blocks_per_element) {
+				const uint64_t elements_per_block_count{};
+
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
+
+			} else {
+				const uint64_t blocks_per_element_count{};
+
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
+			}
+		};
+
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01, const typename core_type::input_02_type& input02) {
+			if constexpr (blocks_per_element) {
+				const uint64_t blocks_per_element_count{};
+
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
+
+			} else {
+				const uint64_t elements_per_block_count{};
+
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
+			}
+		};
+
+		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
+			const typename core_type::input_02_type& input02) {
+			const uint64_t ne01 = input01[1];
+			const uint64_t ne11 = input02[1];
+			const uint64_t ne1	= output[1];
+
+			uint64_t sync_ith = output.current_chunk[current_block].fetch_add(1);
+
+			const uint64_t chunk_count = detail::max((type_traits<typename core_type::output_type>::total_byte_size(output) / (l1_cache_size) * 4) / 3, 1);
+			const uint64_t block_byte_size{};
+			const uint64_t element_byte_size{};
+			if (block_byte_size > element_byte_size) {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
+					produce_single_block<false>(thread_index, thread_count, current_block, output, input01, input02);
+				}
+			} else {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
+					produce_single_element<true>(thread_index, thread_count, current_block, output, input01, input02);
+				}
+			}
 		}
 	};
 
 	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::mul_mat_reshape, processing_phase::eval_time, core_type, float, block_q8_0<half>, block_q8_0<half>>
 		: public kernel_base<kernel_types::mul_mat_reshape, core_type, float, block_q8_0<half>, block_q8_0<half>> {
-		NIHILUS_INLINE static void impl(int64_t, int64_t, int64_t, core_type&, const typename core_type::input_01_type&, const typename core_type::input_02_type&) {
-		}
-	};
+		using input_type01			   = typename core_type::input_01_type;
+		using input_type02			   = typename core_type::input_02_type;
+		static constexpr uint64_t ne00 = input_type01::get_array()[0];
+		static constexpr uint64_t ne02 = input_type01::get_array()[2];
+		static constexpr uint64_t ne03 = input_type01::get_array()[3];
+		static constexpr uint64_t ne10 = input_type02::get_array()[0];
+		static constexpr uint64_t ne12 = input_type02::get_array()[2];
+		static constexpr uint64_t ne13 = input_type02::get_array()[3];
+		static constexpr uint64_t ne0  = core_type::get_array()[0];
+		static constexpr uint64_t ne2  = core_type::get_array()[2];
+		static constexpr uint64_t ne3  = core_type::get_array()[3];
 
-	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::silu, processing_phase::eval_time, core_type, float, float>
-		: public kernel_base<kernel_types::silu, core_type, float, float> {
-		NIHILUS_INLINE static void impl(int64_t, int64_t, int64_t, core_type&, const typename core_type::input_01_type&) {
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01, const typename core_type::input_02_type& input02) {
+			if constexpr (blocks_per_element) {
+				const uint64_t elements_per_block_count{};
+
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
+
+			} else {
+				const uint64_t blocks_per_element_count{};
+
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
+			}
+		};
+
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01, const typename core_type::input_02_type& input02) {
+			if constexpr (blocks_per_element) {
+				const uint64_t blocks_per_element_count{};
+
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
+
+			} else {
+				const uint64_t elements_per_block_count{};
+
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
+			}
+		};
+
+		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
+			const typename core_type::input_02_type& input02) {
+			const uint64_t ne01 = input01[1];
+			const uint64_t ne11 = input02[1];
+			const uint64_t ne1	= output[1];
+
+			uint64_t sync_ith = output.current_chunk[current_block].fetch_add(1);
+
+			const uint64_t chunk_count = detail::max((type_traits<typename core_type::output_type>::total_byte_size(output) / (l1_cache_size) * 4) / 3, 1);
+			const uint64_t block_byte_size{};
+			const uint64_t element_byte_size{};
+			if (block_byte_size > element_byte_size) {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
+					produce_single_block<false>(thread_index, thread_count, current_block, output, input01, input02);
+				}
+			} else {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
+					produce_single_element<true>(thread_index, thread_count, current_block, output, input01, input02);
+				}
+			}
 		}
 	};
 
 	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::rope_permute, processing_phase::prompt_eval_time, core_type, float, float, int32_t, float>
 		: public kernel_base<kernel_types::rope_permute, core_type, float, float, int32_t, float> {
-		NIHILUS_INLINE static void impl(int64_t, int64_t, int64_t, core_type&, const typename core_type::input_01_type&, const typename core_type::input_02_type&,
-			const typename core_type::input_03_type&) {
+		using input_type01			   = typename core_type::input_01_type;
+		using input_type02			   = typename core_type::input_02_type;
+		using input_type03			   = typename core_type::input_03_type;
+		static constexpr uint64_t ne00 = input_type01::get_array()[0];
+		static constexpr uint64_t ne02 = input_type01::get_array()[2];
+		static constexpr uint64_t ne03 = input_type01::get_array()[3];
+		static constexpr uint64_t ne10 = input_type02::get_array()[0];
+		static constexpr uint64_t ne12 = input_type02::get_array()[2];
+		static constexpr uint64_t ne13 = input_type02::get_array()[3];
+		static constexpr uint64_t ne20 = input_type03::get_array()[0];
+		static constexpr uint64_t ne22 = input_type03::get_array()[2];
+		static constexpr uint64_t ne23 = input_type03::get_array()[3];
+		static constexpr uint64_t ne0  = core_type::get_array()[0];
+		static constexpr uint64_t ne2  = core_type::get_array()[2];
+		static constexpr uint64_t ne3  = core_type::get_array()[3];
+
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01, const typename core_type::input_02_type& input02, const typename core_type::input_03_type& input03) {
+			if constexpr (blocks_per_element) {
+				const uint64_t elements_per_block_count{};
+
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
+
+			} else {
+				const uint64_t blocks_per_element_count{};
+
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
+			}
+		};
+
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01, const typename core_type::input_02_type& input02, const typename core_type::input_03_type& input03) {
+			if constexpr (blocks_per_element) {
+				const uint64_t blocks_per_element_count{};
+
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
+
+			} else {
+				const uint64_t elements_per_block_count{};
+
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
+			}
+		};
+
+		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
+			const typename core_type::input_02_type& input02, const typename core_type::input_03_type& input03) {
+			const uint64_t ne01 = input01[1];
+			const uint64_t ne11 = input02[1];
+			const uint64_t ne21 = input03[1];
+			const uint64_t ne1	= output[1];
+
+			uint64_t sync_ith = output.current_chunk[current_block].fetch_add(1);
+
+			const uint64_t chunk_count = detail::max((type_traits<typename core_type::output_type>::total_byte_size(output) / (l1_cache_size) * 4) / 3, 1);
+			const uint64_t block_byte_size{};
+			const uint64_t element_byte_size{};
+			if (block_byte_size > element_byte_size) {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
+					produce_single_block<false>(thread_index, thread_count, current_block, output, input01, input02, input03);
+				}
+			} else {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
+					produce_single_element<true>(thread_index, thread_count, current_block, output, input01, input02, input03);
+				}
+			}
 		}
 	};
 
 	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::rope_permute, processing_phase::eval_time, core_type, float, float, int32_t, float>
 		: public kernel_base<kernel_types::rope_permute, core_type, float, float, int32_t, float> {
-		NIHILUS_INLINE static void impl(int64_t, int64_t, int64_t, core_type&, const typename core_type::input_01_type&, const typename core_type::input_02_type&,
-			const typename core_type::input_03_type&) {
+		using input_type01			   = typename core_type::input_01_type;
+		using input_type02			   = typename core_type::input_02_type;
+		using input_type03			   = typename core_type::input_03_type;
+		static constexpr uint64_t ne00 = input_type01::get_array()[0];
+		static constexpr uint64_t ne02 = input_type01::get_array()[2];
+		static constexpr uint64_t ne03 = input_type01::get_array()[3];
+		static constexpr uint64_t ne10 = input_type02::get_array()[0];
+		static constexpr uint64_t ne12 = input_type02::get_array()[2];
+		static constexpr uint64_t ne13 = input_type02::get_array()[3];
+		static constexpr uint64_t ne20 = input_type03::get_array()[0];
+		static constexpr uint64_t ne22 = input_type03::get_array()[2];
+		static constexpr uint64_t ne23 = input_type03::get_array()[3];
+		static constexpr uint64_t ne0  = core_type::get_array()[0];
+		static constexpr uint64_t ne2  = core_type::get_array()[2];
+		static constexpr uint64_t ne3  = core_type::get_array()[3];
+
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01, const typename core_type::input_02_type& input02, const typename core_type::input_03_type& input03) {
+			if constexpr (blocks_per_element) {
+				const uint64_t elements_per_block_count{};
+
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
+
+			} else {
+				const uint64_t blocks_per_element_count{};
+
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
+			}
+		};
+
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01, const typename core_type::input_02_type& input02, const typename core_type::input_03_type& input03) {
+			if constexpr (blocks_per_element) {
+				const uint64_t blocks_per_element_count{};
+
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
+
+			} else {
+				const uint64_t elements_per_block_count{};
+
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
+			}
+		};
+
+		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
+			const typename core_type::input_02_type& input02, const typename core_type::input_03_type& input03) {
+			const uint64_t ne01 = input01[1];
+			const uint64_t ne11 = input02[1];
+			const uint64_t ne21 = input03[1];
+			const uint64_t ne1	= output[1];
+
+			uint64_t sync_ith = output.current_chunk[current_block].fetch_add(1);
+
+			const uint64_t chunk_count = detail::max((type_traits<typename core_type::output_type>::total_byte_size(output) / (l1_cache_size) * 4) / 3, 1);
+			const uint64_t block_byte_size{};
+			const uint64_t element_byte_size{};
+			if (block_byte_size > element_byte_size) {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
+					produce_single_block<false>(thread_index, thread_count, current_block, output, input01, input02, input03);
+				}
+			} else {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
+					produce_single_element<true>(thread_index, thread_count, current_block, output, input01, input02, input03);
+				}
+			}
 		}
 	};
 
 	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::rope_copy, processing_phase::prompt_eval_time, core_type, float, float, int32_t, float, int16_t>
 		: public kernel_base<kernel_types::rope_copy, core_type, float, float, int32_t, float, int16_t> {
-		NIHILUS_INLINE static void impl(int64_t, int64_t, int64_t, core_type&, const typename core_type::input_01_type&, const typename core_type::input_02_type&,
-			const typename core_type::input_03_type&, const typename core_type::input_04_type&) {
+		using input_type01			   = typename core_type::input_01_type;
+		using input_type02			   = typename core_type::input_02_type;
+		using input_type03			   = typename core_type::input_03_type;
+		using input_type04			   = typename core_type::input_04_type;
+		static constexpr uint64_t ne00 = input_type01::get_array()[0];
+		static constexpr uint64_t ne02 = input_type01::get_array()[2];
+		static constexpr uint64_t ne03 = input_type01::get_array()[3];
+		static constexpr uint64_t ne10 = input_type02::get_array()[0];
+		static constexpr uint64_t ne12 = input_type02::get_array()[2];
+		static constexpr uint64_t ne13 = input_type02::get_array()[3];
+		static constexpr uint64_t ne20 = input_type03::get_array()[0];
+		static constexpr uint64_t ne22 = input_type03::get_array()[2];
+		static constexpr uint64_t ne23 = input_type03::get_array()[3];
+		static constexpr uint64_t ne30 = input_type04::get_array()[0];
+		static constexpr uint64_t ne32 = input_type04::get_array()[2];
+		static constexpr uint64_t ne33 = input_type04::get_array()[3];
+		static constexpr uint64_t ne0  = core_type::get_array()[0];
+		static constexpr uint64_t ne2  = core_type::get_array()[2];
+		static constexpr uint64_t ne3  = core_type::get_array()[3];
+
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01, const typename core_type::input_02_type& input02, const typename core_type::input_03_type& input03,
+			const typename core_type::input_04_type& input04) {
+			if constexpr (blocks_per_element) {
+				const uint64_t elements_per_block_count{};
+
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
+
+			} else {
+				const uint64_t blocks_per_element_count{};
+
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
+			}
+		};
+
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01, const typename core_type::input_02_type& input02, const typename core_type::input_03_type& input03,
+			const typename core_type::input_04_type& input04) {
+			if constexpr (blocks_per_element) {
+				const uint64_t blocks_per_element_count{};
+
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
+
+			} else {
+				const uint64_t elements_per_block_count{};
+
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
+			}
+		};
+
+		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
+			const typename core_type::input_02_type& input02, const typename core_type::input_03_type& input03, const typename core_type::input_04_type& input04) {
+			const uint64_t ne01 = input01[1];
+			const uint64_t ne11 = input02[1];
+			const uint64_t ne21 = input03[1];
+			const uint64_t ne31 = input04[1];
+			const uint64_t ne1	= output[1];
+
+			uint64_t sync_ith = output.current_chunk[current_block].fetch_add(1);
+
+			const uint64_t chunk_count = detail::max((type_traits<typename core_type::output_type>::total_byte_size(output) / (l1_cache_size) * 4) / 3, 1);
+			const uint64_t block_byte_size{};
+			const uint64_t element_byte_size{};
+			if (block_byte_size > element_byte_size) {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
+					produce_single_block<false>(thread_index, thread_count, current_block, output, input01, input02, input03, input04);
+				}
+			} else {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
+					produce_single_element<true>(thread_index, thread_count, current_block, output, input01, input02, input03, input04);
+				}
+			}
 		}
 	};
 
 	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::rope_copy, processing_phase::eval_time, core_type, float, float, int32_t, float, int16_t>
 		: public kernel_base<kernel_types::rope_copy, core_type, float, float, int32_t, float, int16_t> {
-		NIHILUS_INLINE static void impl(int64_t, int64_t, int64_t, core_type&, const typename core_type::input_01_type&, const typename core_type::input_02_type&,
-			const typename core_type::input_03_type&, const typename core_type::input_04_type&) {
+		using input_type01			   = typename core_type::input_01_type;
+		using input_type02			   = typename core_type::input_02_type;
+		using input_type03			   = typename core_type::input_03_type;
+		using input_type04			   = typename core_type::input_04_type;
+		static constexpr uint64_t ne00 = input_type01::get_array()[0];
+		static constexpr uint64_t ne02 = input_type01::get_array()[2];
+		static constexpr uint64_t ne03 = input_type01::get_array()[3];
+		static constexpr uint64_t ne10 = input_type02::get_array()[0];
+		static constexpr uint64_t ne12 = input_type02::get_array()[2];
+		static constexpr uint64_t ne13 = input_type02::get_array()[3];
+		static constexpr uint64_t ne20 = input_type03::get_array()[0];
+		static constexpr uint64_t ne22 = input_type03::get_array()[2];
+		static constexpr uint64_t ne23 = input_type03::get_array()[3];
+		static constexpr uint64_t ne30 = input_type04::get_array()[0];
+		static constexpr uint64_t ne32 = input_type04::get_array()[2];
+		static constexpr uint64_t ne33 = input_type04::get_array()[3];
+		static constexpr uint64_t ne0  = core_type::get_array()[0];
+		static constexpr uint64_t ne2  = core_type::get_array()[2];
+		static constexpr uint64_t ne3  = core_type::get_array()[3];
+
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01, const typename core_type::input_02_type& input02, const typename core_type::input_03_type& input03,
+			const typename core_type::input_04_type& input04) {
+			if constexpr (blocks_per_element) {
+				const uint64_t elements_per_block_count{};
+
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
+
+			} else {
+				const uint64_t blocks_per_element_count{};
+
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
+			}
+		};
+
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01, const typename core_type::input_02_type& input02, const typename core_type::input_03_type& input03,
+			const typename core_type::input_04_type& input04) {
+			if constexpr (blocks_per_element) {
+				const uint64_t blocks_per_element_count{};
+
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
+
+			} else {
+				const uint64_t elements_per_block_count{};
+
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
+			}
+		};
+
+		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
+			const typename core_type::input_02_type& input02, const typename core_type::input_03_type& input03, const typename core_type::input_04_type& input04) {
+			const uint64_t ne01 = input01[1];
+			const uint64_t ne11 = input02[1];
+			const uint64_t ne21 = input03[1];
+			const uint64_t ne31 = input04[1];
+			const uint64_t ne1	= output[1];
+
+			uint64_t sync_ith = output.current_chunk[current_block].fetch_add(1);
+
+			const uint64_t chunk_count = detail::max((type_traits<typename core_type::output_type>::total_byte_size(output) / (l1_cache_size) * 4) / 3, 1);
+			const uint64_t block_byte_size{};
+			const uint64_t element_byte_size{};
+			if (block_byte_size > element_byte_size) {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
+					produce_single_block<false>(thread_index, thread_count, current_block, output, input01, input02, input03, input04);
+				}
+			} else {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
+					produce_single_element<true>(thread_index, thread_count, current_block, output, input01, input02, input03, input04);
+				}
+			}
 		}
 	};
 
-	template<typename core_type>struct kernel_dispatcher_impl<1, nihilus::kernel_types::mul_mat_transpose_copy, nihilus::processing_phase::prompt_eval_time, core_type, float,
+	template<typename core_type> struct kernel_dispatcher_impl<1, nihilus::kernel_types::mul_mat_transpose_copy, nihilus::processing_phase::prompt_eval_time, core_type, float,
 		nihilus::block_q8_0<nihilus::half>, nihilus::block_q8_0<nihilus::half>, short> {
-		NIHILUS_INLINE static void impl(int64_t, int64_t, int64_t, core_type&, const typename core_type::input_01_type&, const typename core_type::input_02_type&,
-			const typename core_type::input_03_type&) {
+		using input_type01			   = typename core_type::input_01_type;
+		using input_type02			   = typename core_type::input_02_type;
+		using input_type03			   = typename core_type::input_03_type;
+		static constexpr uint64_t ne00 = input_type01::get_array()[0];
+		static constexpr uint64_t ne02 = input_type01::get_array()[2];
+		static constexpr uint64_t ne03 = input_type01::get_array()[3];
+		static constexpr uint64_t ne10 = input_type02::get_array()[0];
+		static constexpr uint64_t ne12 = input_type02::get_array()[2];
+		static constexpr uint64_t ne13 = input_type02::get_array()[3];
+		static constexpr uint64_t ne20 = input_type03::get_array()[0];
+		static constexpr uint64_t ne22 = input_type03::get_array()[2];
+		static constexpr uint64_t ne23 = input_type03::get_array()[3];
+		static constexpr uint64_t ne0  = core_type::get_array()[0];
+		static constexpr uint64_t ne2  = core_type::get_array()[2];
+		static constexpr uint64_t ne3  = core_type::get_array()[3];
+
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01, const typename core_type::input_02_type& input02, const typename core_type::input_03_type& input03) {
+			if constexpr (blocks_per_element) {
+				const uint64_t elements_per_block_count{};
+
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
+
+			} else {
+				const uint64_t blocks_per_element_count{};
+
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
+			}
+		};
+
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01, const typename core_type::input_02_type& input02, const typename core_type::input_03_type& input03) {
+			if constexpr (blocks_per_element) {
+				const uint64_t blocks_per_element_count{};
+
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
+
+			} else {
+				const uint64_t elements_per_block_count{};
+
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
+			}
+		};
+
+		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
+			const typename core_type::input_02_type& input02, const typename core_type::input_03_type& input03) {
+			const uint64_t ne01 = input01[1];
+			const uint64_t ne11 = input02[1];
+			const uint64_t ne21 = input03[1];
+			const uint64_t ne1	= output[1];
+
+			uint64_t sync_ith = output.current_chunk[current_block].fetch_add(1);
+
+			const uint64_t chunk_count = detail::max((type_traits<typename core_type::output_type>::total_byte_size(output) / (l1_cache_size) * 4) / 3, 1);
+			const uint64_t block_byte_size{};
+			const uint64_t element_byte_size{};
+			if (block_byte_size > element_byte_size) {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
+					produce_single_block<false>(thread_index, thread_count, current_block, output, input01, input02, input03);
+				}
+			} else {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
+					produce_single_element<true>(thread_index, thread_count, current_block, output, input01, input02, input03);
+				}
+			}
 		}
 	};
 
 	template<typename core_type> struct kernel_dispatcher_impl<1, nihilus::kernel_types::mul_mat_transpose_copy, nihilus::processing_phase::eval_time, core_type, float,
 		nihilus::block_q8_0<nihilus::half>, nihilus::block_q8_0<nihilus::half>, short> {
-		NIHILUS_INLINE static void impl(int64_t, int64_t, int64_t, core_type&, const typename core_type::input_01_type&, const typename core_type::input_02_type&,
-			const typename core_type::input_03_type&) {
+		using input_type01			   = typename core_type::input_01_type;
+		using input_type02			   = typename core_type::input_02_type;
+		using input_type03			   = typename core_type::input_03_type;
+		static constexpr uint64_t ne00 = input_type01::get_array()[0];
+		static constexpr uint64_t ne02 = input_type01::get_array()[2];
+		static constexpr uint64_t ne03 = input_type01::get_array()[3];
+		static constexpr uint64_t ne10 = input_type02::get_array()[0];
+		static constexpr uint64_t ne12 = input_type02::get_array()[2];
+		static constexpr uint64_t ne13 = input_type02::get_array()[3];
+		static constexpr uint64_t ne20 = input_type03::get_array()[0];
+		static constexpr uint64_t ne22 = input_type03::get_array()[2];
+		static constexpr uint64_t ne23 = input_type03::get_array()[3];
+		static constexpr uint64_t ne0  = core_type::get_array()[0];
+		static constexpr uint64_t ne2  = core_type::get_array()[2];
+		static constexpr uint64_t ne3  = core_type::get_array()[3];
+
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01, const typename core_type::input_02_type& input02, const typename core_type::input_03_type& input03) {
+			if constexpr (blocks_per_element) {
+				const uint64_t elements_per_block_count{};
+
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
+
+			} else {
+				const uint64_t blocks_per_element_count{};
+
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
+			}
+		};
+
+		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output,
+			const typename core_type::input_01_type& input01, const typename core_type::input_02_type& input02, const typename core_type::input_03_type& input03) {
+			if constexpr (blocks_per_element) {
+				const uint64_t blocks_per_element_count{};
+
+				for (uint64_t x = 0; x < blocks_per_element_count; ++x) {
+					// process with actual working function.
+				}
+
+			} else {
+				const uint64_t elements_per_block_count{};
+
+				for (uint64_t x = 0; x < elements_per_block_count; ++x) {
+					// process with actual working function.
+				}
+			}
+		};
+
+		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
+			const typename core_type::input_02_type& input02, const typename core_type::input_03_type& input03) {
+			const uint64_t ne01 = input01[1];
+			const uint64_t ne11 = input02[1];
+			const uint64_t ne21 = input03[1];
+			const uint64_t ne1	= output[1];
+
+			uint64_t sync_ith = output.current_chunk[current_block].fetch_add(1);
+
+			const uint64_t chunk_count = detail::max((type_traits<typename core_type::output_type>::total_byte_size(output) / (l1_cache_size) * 4) / 3, 1);
+			const uint64_t block_byte_size{};
+			const uint64_t element_byte_size{};
+			if (block_byte_size > element_byte_size) {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
+					produce_single_block<false>(thread_index, thread_count, current_block, output, input01, input02, input03);
+				}
+			} else {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
+					produce_single_element<true>(thread_index, thread_count, current_block, output, input01, input02, input03);
+				}
+			}
 		}
 	};
 
@@ -1525,7 +2864,7 @@ namespace nihilus {
 		using input_type01 = typename core_type::input_01_type;
 		using input_type02 = typename core_type::input_02_type;
 
-		template<bool is_power_of_2able> NIHILUS_INLINE static void process_tensor_elements(uint64_t ith, uint64_t nth, uint64_t ne01, uint64_t ne11,
+		template<bool is_power_of_2able> NIHILUS_INLINE static void process_tensor_elements(uint64_t thread_index, uint64_t thread_count, uint64_t ne01, uint64_t ne11,
 			const float* __restrict src0_data, const float* __restrict src1_data, float* __restrict dst_data) {
 			static constexpr uint64_t ne00 = input_type01::get_array()[0];
 			static constexpr uint64_t ne02 = input_type01::get_array()[2];
@@ -1558,7 +2897,7 @@ namespace nihilus {
 				static constexpr uint64_t log2_ne10 = tzcnt_constexpr(ne10);
 				const uint64_t log2_ne02_ne01		= log2_ne02 + log2_ne01;
 
-				for (uint64_t row_idx = ith; row_idx < total_rows; row_idx += nth) {
+				for (uint64_t row_idx = thread_index; row_idx < total_rows; row_idx += thread_count) {
 					const uint64_t i03 = row_idx >> log2_ne02_ne01;
 					const uint64_t i02 = (row_idx - (i03 << log2_ne02_ne01)) >> log2_ne01;
 					const uint64_t i01 = row_idx - (i03 << log2_ne02_ne01) - (i02 << log2_ne01);
@@ -1592,7 +2931,7 @@ namespace nihilus {
 					}
 				}
 			} else {
-				for (uint64_t row_idx = ith; row_idx < total_rows; row_idx += nth) {
+				for (uint64_t row_idx = thread_index; row_idx < total_rows; row_idx += thread_count) {
 					const uint64_t i03 = row_idx / (ne02 * ne01);
 					const uint64_t i02 = (row_idx - i03 * ne02 * ne01) / ne01;
 					const uint64_t i01 = row_idx - i03 * ne02 * ne01 - i02 * ne01;
@@ -1638,17 +2977,17 @@ namespace nihilus {
 			static constexpr uint64_t ne12 = input_type02::get_array()[2];
 			static constexpr uint64_t ne13 = input_type02::get_array()[3];
 
-			const uint64_t ith			  = static_cast<uint64_t>(thread_index);
-			const uint64_t nth			  = static_cast<uint64_t>(thread_count);
+			const uint64_t thread_index			  = static_cast<uint64_t>(thread_index);
+			const uint64_t thread_count			  = static_cast<uint64_t>(thread_count);
 			const float* __restrict src01 = input02.data;
 
 			const bool is_power_of_2 = ((ne01 & (ne01 - 1ULL)) == 0) && ((ne02 & (ne02 - 1ULL)) == 0) && ((ne10 & (ne10 - 1ULL)) == 0) && ((ne11 & (ne11 - 1ULL)) == 0) &&
 				((ne12 & (ne12 - 1ULL)) == 0) && ((ne13 & (ne13 - 1ULL)) == 0);
 
 			if (is_power_of_2) {
-				process_tensor_elements<true>(ith, nth, ne01, ne11, input01.data, src01, output.data);
+				process_tensor_elements<true>(thread_index, thread_count, ne01, ne11, input01.data, src01, output.data);
 			} else {
-				process_tensor_elements<false>(ith, nth, ne01, ne11, input01.data, src01, output.data);
+				process_tensor_elements<false>(thread_index, thread_count, ne01, ne11, input01.data, src01, output.data);
 			}
 		}
 	};
@@ -1960,7 +3299,7 @@ namespace nihilus {
 		using input_type02 = typename core_type::input_02_type;
 		using input_type03 = typename core_type::input_03_type;
 
-		template<bool is_power_of_2able> NIHILUS_INLINE static void process_tensor_elements(uint64_t ith, uint64_t nth, uint64_t ne01, uint64_t ne11, uint64_t ne21,
+		template<bool is_power_of_2able> NIHILUS_INLINE static void process_tensor_elements(uint64_t thread_index, uint64_t thread_count, uint64_t ne01, uint64_t ne11, uint64_t ne21,
 			const float* __restrict src0_data, const float* __restrict src1_data, const block_q8_0<half>* __restrict src2_data, float* __restrict dst_data) {
 			static constexpr uint64_t ne00 = input_type01::get_array()[0];
 			static constexpr uint64_t ne02 = input_type01::get_array()[2];
@@ -2004,7 +3343,7 @@ namespace nihilus {
 				static constexpr uint64_t log2_ne20 = tzcnt_constexpr(ne20);
 				const uint64_t log2_ne02_ne01		= log2_ne02 + log2_ne01;
 
-				for (uint64_t row_idx = ith; row_idx < total_rows; row_idx += nth) {
+				for (uint64_t row_idx = thread_index; row_idx < total_rows; row_idx += thread_count) {
 					const uint64_t i03 = row_idx >> log2_ne02_ne01;
 					const uint64_t i02 = (row_idx - (i03 << log2_ne02_ne01)) >> log2_ne01;
 					const uint64_t i01 = row_idx - (i03 << log2_ne02_ne01) - (i02 << log2_ne01);
@@ -2054,7 +3393,7 @@ namespace nihilus {
 					}
 				}
 			} else {
-				for (uint64_t row_idx = ith; row_idx < total_rows; row_idx += nth) {
+				for (uint64_t row_idx = thread_index; row_idx < total_rows; row_idx += thread_count) {
 					const uint64_t i03 = row_idx / (ne02 * ne01);
 					const uint64_t i02 = (row_idx - i03 * ne02 * ne01) / ne01;
 					const uint64_t i01 = row_idx - i03 * ne02 * ne01 - i02 * ne01;
@@ -2120,8 +3459,8 @@ namespace nihilus {
 			static constexpr uint64_t ne22 = input_type03::get_array()[2];
 			static constexpr uint64_t ne23 = input_type03::get_array()[3];
 
-			const uint64_t ith						 = static_cast<uint64_t>(thread_index);
-			const uint64_t nth						 = static_cast<uint64_t>(thread_count);
+			const uint64_t thread_index						 = static_cast<uint64_t>(thread_index);
+			const uint64_t thread_count						 = static_cast<uint64_t>(thread_count);
 			const float* __restrict src01			 = input02.data;
 			const block_q8_0<half>* __restrict src02 = input03.data[current_block];
 
@@ -2130,9 +3469,9 @@ namespace nihilus {
 				((ne23 & (ne23 - 1ULL)) == 0);
 
 			if (is_power_of_2) {
-				process_tensor_elements<true>(ith, nth, ne01, ne11, ne21, input01.data, src01, src02, output.data);
+				process_tensor_elements<true>(thread_index, thread_count, ne01, ne11, ne21, input01.data, src01, src02, output.data);
 			} else {
-				process_tensor_elements<false>(ith, nth, ne01, ne11, ne21, input01.data, src01, src02, output.data);
+				process_tensor_elements<false>(thread_index, thread_count, ne01, ne11, ne21, input01.data, src01, src02, output.data);
 			}
 		}
 	};
@@ -2397,7 +3736,7 @@ namespace nihilus {
 		using input_type01 = typename core_type::input_01_type;
 		using input_type02 = typename core_type::input_02_type;
 
-		template<bool is_power_of_2able> NIHILUS_INLINE static void process_tensor_elements(uint64_t ith, uint64_t nth, uint64_t ne01, uint64_t ne11,
+		template<bool is_power_of_2able> NIHILUS_INLINE static void process_tensor_elements(uint64_t thread_index, uint64_t thread_count, uint64_t ne01, uint64_t ne11,
 			const float* __restrict src0_data, const float* __restrict src1_data, float* __restrict dst_data) {
 			static constexpr uint64_t ne00 = input_type01::get_array()[0];
 			static constexpr uint64_t ne02 = input_type01::get_array()[2];
@@ -2430,7 +3769,7 @@ namespace nihilus {
 				static constexpr uint64_t log2_ne10 = tzcnt_constexpr(ne10);
 				const uint64_t log2_ne02_ne01		= log2_ne02 + log2_ne01;
 
-				for (uint64_t row_idx = ith; row_idx < total_rows; row_idx += nth) {
+				for (uint64_t row_idx = thread_index; row_idx < total_rows; row_idx += thread_count) {
 					const uint64_t i03 = row_idx >> log2_ne02_ne01;
 					const uint64_t i02 = (row_idx - (i03 << log2_ne02_ne01)) >> log2_ne01;
 					const uint64_t i01 = row_idx - (i03 << log2_ne02_ne01) - (i02 << log2_ne01);
@@ -2463,7 +3802,7 @@ namespace nihilus {
 					}
 				}
 			} else {
-				for (uint64_t row_idx = ith; row_idx < total_rows; row_idx += nth) {
+				for (uint64_t row_idx = thread_index; row_idx < total_rows; row_idx += thread_count) {
 					const uint64_t i03 = row_idx / (ne02 * ne01);
 					const uint64_t i02 = (row_idx - i03 * ne02 * ne01) / ne01;
 					const uint64_t i01 = row_idx - i03 * ne02 * ne01 - i02 * ne01;
@@ -2508,17 +3847,17 @@ namespace nihilus {
 			static constexpr uint64_t ne12 = input_type02::get_array()[2];
 			static constexpr uint64_t ne13 = input_type02::get_array()[3];
 
-			const uint64_t ith			  = static_cast<uint64_t>(thread_index);
-			const uint64_t nth			  = static_cast<uint64_t>(thread_count);
+			const uint64_t thread_index			  = static_cast<uint64_t>(thread_index);
+			const uint64_t thread_count			  = static_cast<uint64_t>(thread_count);
 			const float* __restrict src01 = input02.data[current_block];
 
 			const bool is_power_of_2 = ((ne01 & (ne01 - 1ULL)) == 0) && ((ne02 & (ne02 - 1ULL)) == 0) && ((ne10 & (ne10 - 1ULL)) == 0) && ((ne11 & (ne11 - 1ULL)) == 0) &&
 				((ne12 & (ne12 - 1ULL)) == 0) && ((ne13 & (ne13 - 1ULL)) == 0);
 
 			if (is_power_of_2) {
-				process_tensor_elements<true>(ith, nth, ne01, ne11, input01.data, src01, output.data);
+				process_tensor_elements<true>(thread_index, thread_count, ne01, ne11, input01.data, src01, output.data);
 			} else {
-				process_tensor_elements<false>(ith, nth, ne01, ne11, input01.data, src01, output.data);
+				process_tensor_elements<false>(thread_index, thread_count, ne01, ne11, input01.data, src01, output.data);
 			}
 		}
 	};
@@ -2708,7 +4047,7 @@ namespace nihilus {
 		using input_type01 = typename core_type::input_01_type;
 		using input_type02 = typename core_type::input_02_type;
 
-		template<bool is_power_of_2able> NIHILUS_INLINE static void process_tensor_elements(uint64_t ith, uint64_t nth, uint64_t nr, uint64_t ne01, uint64_t ne11,
+		template<bool is_power_of_2able> NIHILUS_INLINE static void process_tensor_elements(uint64_t thread_index, uint64_t thread_count, uint64_t nr, uint64_t ne01, uint64_t ne11,
 			const float* __restrict src0_data, const float* __restrict src1_data, float* __restrict dst_data) {
 			static constexpr uint64_t ne00 = input_type01::get_array()[0];
 			static constexpr uint64_t ne02 = input_type01::get_array()[2];
@@ -2740,7 +4079,7 @@ namespace nihilus {
 
 				const uint64_t log2_ne02_ne01 = log2_ne02 + log2_ne01;
 
-				for (uint64_t ir = ith; ir < nr; ir += nth) {
+				for (uint64_t ir = thread_index; ir < nr; ir += thread_count) {
 					const uint64_t i03 = ir >> log2_ne02_ne01;
 					const uint64_t i02 = (ir - (i03 << log2_ne02_ne01)) >> log2_ne01;
 					const uint64_t i01 = ir - (i03 << log2_ne02_ne01) - (i02 << log2_ne01);
@@ -2770,7 +4109,7 @@ namespace nihilus {
 					}
 				}
 			} else {
-				for (uint64_t ir = ith; ir < nr; ir += nth) {
+				for (uint64_t ir = thread_index; ir < nr; ir += thread_count) {
 					const uint64_t i03 = ir / (ne02 * ne01);
 					const uint64_t i02 = (ir - i03 * ne02 * ne01) / ne01;
 					const uint64_t i01 = ir - i03 * ne02 * ne01 - i02 * ne01;
@@ -2814,17 +4153,17 @@ namespace nihilus {
 			static constexpr uint64_t ne12 = input_type02::get_array()[2];
 			static constexpr uint64_t ne13 = input_type02::get_array()[3];
 
-			const uint64_t ith = static_cast<uint64_t>(thread_index);
-			const uint64_t nth = static_cast<uint64_t>(thread_count);
+			const uint64_t thread_index = static_cast<uint64_t>(thread_index);
+			const uint64_t thread_count = static_cast<uint64_t>(thread_count);
 			const uint64_t nr  = ne01 * ne02 * ne03;
 
 			const bool is_power_of_2 = ((ne01 & (ne01 - 1ULL)) == 0) && ((ne02 & (ne02 - 1ULL)) == 0) && ((ne10 & (ne10 - 1ULL)) == 0) && ((ne11 & (ne11 - 1ULL)) == 0) &&
 				((ne12 & (ne12 - 1ULL)) == 0) && ((ne13 & (ne13 - 1ULL)) == 0);
 
 			if (is_power_of_2) {
-				process_tensor_elements<true>(ith, nth, nr, ne01, ne11, input01.data, input02.data, output.data);
+				process_tensor_elements<true>(thread_index, thread_count, nr, ne01, ne11, input01.data, input02.data, output.data);
 			} else {
-				process_tensor_elements<false>(ith, nth, nr, ne01, ne11, input01.data, input02.data, output.data);
+				process_tensor_elements<false>(thread_index, thread_count, nr, ne01, ne11, input01.data, input02.data, output.data);
 			}
 		}
 	};
@@ -2857,10 +4196,10 @@ namespace nihilus {
 			const uint64_t ne11			   = input02[1];
 
 			const uint64_t nr  = count_elements(input02);
-			const uint64_t ith = static_cast<uint64_t>(thread_index);
-			const uint64_t nth = static_cast<uint64_t>(thread_count);
-			const uint64_t dr  = (nr + nth - 1ull) / nth;
-			const uint64_t ir0 = dr * ith;
+			const uint64_t thread_index = static_cast<uint64_t>(thread_index);
+			const uint64_t thread_count = static_cast<uint64_t>(thread_count);
+			const uint64_t dr  = (nr + thread_count - 1ull) / thread_count;
+			const uint64_t ir0 = dr * thread_index;
 			const uint64_t ir1 = detail::min(ir0 + dr, nr);
 
 			const block_q8_0<half>* __restrict input01_data = input01.data;
@@ -2926,10 +4265,10 @@ namespace nihilus {
 			const uint64_t ne11 = input02[1];
 
 			const uint64_t nr  = count_elements(input02);
-			const uint64_t ith = static_cast<uint64_t>(thread_index);
-			const uint64_t nth = static_cast<uint64_t>(thread_count);
-			const uint64_t dr  = (nr + nth - 1ull) / nth;
-			const uint64_t ir0 = dr * ith;
+			const uint64_t thread_index = static_cast<uint64_t>(thread_index);
+			const uint64_t thread_count = static_cast<uint64_t>(thread_count);
+			const uint64_t dr  = (nr + thread_count - 1ull) / thread_count;
+			const uint64_t ir0 = dr * thread_index;
 			const uint64_t ir1 = detail::min(ir0 + dr, nr);
 
 			const float* __restrict input01_data   = input01.data;
@@ -3745,12 +5084,12 @@ namespace nihilus {
 
 		static constexpr float rope_freq_base		   = core_type::model_traits_type::rope_freq_base;
 		static constexpr uint32_t rope_dimension_count = core_type::model_traits_type::rope_dimension_count;
-		static constexpr uint64_t head_dim			   = core_type::model_traits_type::head_dim;
+		static constexpr uint64_t rope_dimension_count			   = core_type::model_traits_type::rope_dimension_count;
 		static constexpr uint32_t attention_head_count = core_type::model_traits_type::attention_head_count;
 
 		static constexpr uint64_t batch_size	  = input_type01::get_array()[0];
 		static constexpr uint64_t num_heads		  = input_type01::get_array()[2];
-		static constexpr uint64_t tensor_head_dim = input_type01::get_array()[3];
+		static constexpr uint64_t tensor_rope_dimension_count = input_type01::get_array()[3];
 
 		static constexpr uint64_t rope_dim		= rope_dimension_count;
 		static constexpr uint64_t half_rope_dim = rope_dim / 2;
@@ -3767,7 +5106,7 @@ namespace nihilus {
 			const uint64_t seq_len = input01[1];
 
 			const uint64_t total_work_items = batch_size * seq_len * num_heads;
-			const uint64_t total_elements	= batch_size * seq_len * num_heads * head_dim;
+			const uint64_t total_elements	= batch_size * seq_len * num_heads * rope_dimension_count;
 
 			const uint64_t work_per_thread = (total_work_items + thread_count - 1) / thread_count;
 			const uint64_t work_start	   = thread_index * work_per_thread;
@@ -3786,8 +5125,8 @@ namespace nihilus {
 						if (ir > work_end)
 							break;
 
-						const uint64_t src_offset = i3 * seq_len * num_heads * head_dim + i2 * num_heads * head_dim + i1 * head_dim;
-						const uint64_t dst_offset = i3 * seq_len * num_heads * head_dim + i2 * num_heads * head_dim + i1 * head_dim;
+						const uint64_t src_offset = i3 * seq_len * num_heads * rope_dimension_count + i2 * num_heads * rope_dimension_count + i1 * rope_dimension_count;
+						const uint64_t dst_offset = i3 * seq_len * num_heads * rope_dimension_count + i2 * num_heads * rope_dimension_count + i1 * rope_dimension_count;
 
 						for (int64_t i0 = 0; i0 < rope_dim; i0 += 2) {
 							const uint64_t dim_pair = i0 / 2;
@@ -3809,7 +5148,7 @@ namespace nihilus {
 							dst_data[dst_offset + i0 + 1] = x0 * sin_theta + x1 * cos_theta;
 						}
 
-						for (int64_t i0 = rope_dim; i0 < head_dim; i0++) {
+						for (int64_t i0 = rope_dim; i0 < rope_dimension_count; i0++) {
 							dst_data[dst_offset + i0] = src_data[src_offset + i0];
 						}
 					}
@@ -4151,12 +5490,12 @@ namespace nihilus {
 
 		static constexpr float rope_freq_base		   = core_type::model_traits_type::rope_freq_base;
 		static constexpr uint32_t rope_dimension_count = core_type::model_traits_type::rope_dimension_count;
-		static constexpr uint64_t head_dim			   = core_type::model_traits_type::head_dim;
+		static constexpr uint64_t rope_dimension_count			   = core_type::model_traits_type::rope_dimension_count;
 		static constexpr uint32_t attention_head_count = core_type::model_traits_type::attention_head_count;
 
 		static constexpr uint64_t batch_size	  = input_type01::get_array()[0];
 		static constexpr uint64_t num_heads		  = input_type01::get_array()[2];
-		static constexpr uint64_t tensor_head_dim = input_type01::get_array()[3];
+		static constexpr uint64_t tensor_rope_dimension_count = input_type01::get_array()[3];
 
 		static constexpr uint64_t rope_dim		= rope_dimension_count;
 		static constexpr uint64_t half_rope_dim = rope_dim / 2;
@@ -4173,7 +5512,7 @@ namespace nihilus {
 			const uint64_t seq_len = input01[1];
 
 			const uint64_t total_work_items = batch_size * seq_len * num_heads;
-			const uint64_t total_elements	= batch_size * seq_len * num_heads * head_dim;
+			const uint64_t total_elements	= batch_size * seq_len * num_heads * rope_dimension_count;
 
 			const uint64_t work_per_thread = (total_work_items + thread_count - 1) / thread_count;
 			const uint64_t work_start	   = thread_index * work_per_thread;
@@ -4192,8 +5531,8 @@ namespace nihilus {
 						if (ir > work_end)
 							break;
 
-						const uint64_t src_offset = i3 * seq_len * num_heads * head_dim + i2 * num_heads * head_dim + i1 * head_dim;
-						const uint64_t dst_offset = i3 * seq_len * num_heads * head_dim + i2 * num_heads * head_dim + i1 * head_dim;
+						const uint64_t src_offset = i3 * seq_len * num_heads * rope_dimension_count + i2 * num_heads * rope_dimension_count + i1 * rope_dimension_count;
+						const uint64_t dst_offset = i3 * seq_len * num_heads * rope_dimension_count + i2 * num_heads * rope_dimension_count + i1 * rope_dimension_count;
 
 						for (int64_t i0 = 0; i0 < rope_dim; i0 += 2) {
 							const uint64_t dim_pair = i0 / 2;
@@ -4215,7 +5554,7 @@ namespace nihilus {
 							dst_data[dst_offset + i0 + 1] = x0 * sin_theta + x1 * cos_theta;
 						}
 
-						for (int64_t i0 = rope_dim; i0 < head_dim; i0++) {
+						for (int64_t i0 = rope_dim; i0 < rope_dimension_count; i0++) {
 							dst_data[dst_offset + i0] = src_data[src_offset + i0];
 						}
 					}

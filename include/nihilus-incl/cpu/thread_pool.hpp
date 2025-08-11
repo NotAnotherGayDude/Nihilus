@@ -173,7 +173,7 @@ namespace nihilus {
 
 		template<processing_phase phase, uint64_t current_index = 0> inline void execute_blocks(uint64_t thread_index) {
 			if constexpr (current_index < model_traits_type<config>::block_count) {
-				core_base_type::template impl_thread<per_block_thread_function, phase>(current_index, thread_index);
+				core_base_type::template impl_thread<per_block_thread_function, phase>(current_index, thread_index, thread_count);
 				if constexpr (config.dev && current_index == 0) {
 					if (thread_index == 0) {
 						core_base_type::template impl<tensor_debugger_impl>(current_index, perf_base<config>::perf_stats.current_iteration);
@@ -191,13 +191,13 @@ namespace nihilus {
 				thread_latch.worker_wait(thread_index);
 				if (!stop.load()) {
 					if (phase.load() == processing_phase::prompt_eval_time) {
-						core_base_type::template impl_thread<global_input_thread_function, processing_phase::prompt_eval_time>(thread_index);
+						core_base_type::template impl_thread<global_input_thread_function, processing_phase::prompt_eval_time>(thread_index, thread_count);
 						execute_blocks<processing_phase::prompt_eval_time, 0>(thread_index);
-						core_base_type::template impl_thread<global_output_thread_function, processing_phase::prompt_eval_time>(thread_index);
+						core_base_type::template impl_thread<global_output_thread_function, processing_phase::prompt_eval_time>(thread_index, thread_count);
 					} else {
-						core_base_type::template impl_thread<global_input_thread_function, processing_phase::eval_time>(thread_index);
+						core_base_type::template impl_thread<global_input_thread_function, processing_phase::eval_time>(thread_index, thread_count);
 						execute_blocks<processing_phase::eval_time, 0>(thread_index);
-						core_base_type::template impl_thread<global_output_thread_function, processing_phase::eval_time>(thread_index);
+						core_base_type::template impl_thread<global_output_thread_function, processing_phase::eval_time>(thread_index, thread_count);
 					}
 
 					thread_latch.arrive_and_wait(thread_index);
