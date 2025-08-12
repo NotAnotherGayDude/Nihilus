@@ -50,7 +50,7 @@ namespace nihilus {
 		using tokenizer_type   = tokenizer<config_new, config_new.arch, config_new.tokenizer_type>;
 
 		template<auto op_type> auto& get_core() {
-			return *static_cast<core_traits<config_new, op_type>*>(static_cast<get_core_bases_t<config_new>*>(this));
+			return *static_cast<op_traits<config_new, op_type>*>(static_cast<get_core_bases_t<config_new>*>(this));
 		}
 
 		NIHILUS_INLINE model() noexcept {
@@ -76,7 +76,7 @@ namespace nihilus {
 		NIHILUS_INLINE void init(cli_params params) {
 			std::cout << "TOTAL BYTES REQUIRED: " << core_bases_traits_type<config_new>::max_size << std::endl;
 			memory.init(core_bases_traits_type<config_new>::memory_plan_val.memory_total);
-			array<array<void*, model_traits_type<config_new>::block_count>, op_types::count> data{};
+			array<array<void*, model_traits_type<config_new>::block_count>, weight_types::count> data{};
 			this->template impl<weight_mapper>(data);
 			this->template impl<memory_mapper>(core_bases_traits_type<config_new>::memory_plan_val, memory);
 
@@ -84,7 +84,7 @@ namespace nihilus {
 				perf_base<config_new>::perf_stats.load_start = clock_type::now();
 			}
 			weight_memory									  = memory_mapped_file{ params.model_file };
-			gguf_metadata<config_new> model_construction_data = model_parser<config_new>::parse_model(data, &weight_memory, *static_cast<tokenizer_type*>(this));
+			//gguf_metadata<config_new> model_construction_data = model_parser<config_new>::parse_model(data, &weight_memory, *static_cast<tokenizer_type*>(this));
 
 			if constexpr (config_new.benchmark || config_new.dev) {
 				auto load_end										 = clock_type::now();
@@ -179,7 +179,7 @@ namespace nihilus {
 		}
 
 		NIHILUS_INLINE void generate_causal_mask() {
-			static constexpr auto dims = core_traits<config_new, op_types::kq_mask>::core_traits_dims_type::get_array();
+			static constexpr auto dims = op_traits<config_new, op_types::kq_mask>::core_traits_dims_type::get_array();
 			auto& kq_mask			   = get_core<op_type_type::kq_mask>();
 			float* mask_data		   = static_cast<float*>(kq_mask.data);
 

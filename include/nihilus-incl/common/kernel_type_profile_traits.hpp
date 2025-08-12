@@ -48,7 +48,21 @@ namespace nihilus {
 
 	template<kernel_type_profiles kernel_profile> struct kernel_type_profile_traits;
 
-	template<> struct kernel_type_profile_traits<kernel_type_profiles::q8_gqa> : public kernel_type_profile_traits_impl<block_q8_0<half>, half, float, half, float, int32_t,
-																					 int32_t, int32_t, float, float, half, int8_t, half, float, int32_t, uint64_t> {};
+	template<> struct kernel_type_profile_traits<kernel_type_profiles::q8_gqa> : public kernel_type_profile_traits_impl<block_q8_0<half>,// weight_type
+																					 half,// activation_type
+																					 float,// compute_type
+																					 half,// embedding_type
+																					 float,// logit_type
+																					 int32_t,// input_token_type
+																					 int32_t,// output_token_type
+																					 int32_t,// position_type
+																					 float,// attention_type
+																					 float,// norm_type
+																					 half,// scale_type
+																					 int8_t,// zero_point_type
+																					 half,// kv_cache_type
+																					 float,// mask_type
+																					 int32_t,// index_type
+																					 uint64_t> {};// size_type
 
 }

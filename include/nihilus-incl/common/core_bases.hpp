@@ -69,7 +69,7 @@ namespace nihilus {
 	template<model_config config, typename index_sequence> struct get_core_bases;
 
 	template<model_config config, size_t... index> struct get_core_bases<config, std::index_sequence<index...>> {
-		using type = core_bases<config, core_traits<config, static_cast<typename model_traits_type<config>::op_type_type>(index)>...>;
+		using type = core_bases<config, op_traits<config, static_cast<typename model_traits_type<config>::op_type_type>(index)>...>;
 	};
 
 	template<model_config config> using get_core_bases_t = typename get_core_bases<config, std::make_index_sequence<static_cast<uint64_t>(op_types::count)>>::type;

@@ -105,9 +105,9 @@ namespace nihilus {
 			}
 		}
 	}
-
-	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::add_rms_norm, processing_phase::prompt_eval_time, core_type, float, float, block_q8_0<half>>
-		: public kernel_base<kernel_types::add_rms_norm, core_type, float, float, block_q8_0<half>> {
+	/*
+	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::none, processing_phase::prompt_eval_time, core_type, float, float, block_q8_0<half>>
+		: public kernel_base<kernel_types::none, core_type, float, float, block_q8_0<half>> {
 		using input_type01			   = typename core_type::input_01_type;
 		using input_type02			   = typename core_type::input_02_type;
 		static constexpr uint64_t ne00 = input_type01::get_array()[0];
@@ -177,8 +177,8 @@ namespace nihilus {
 		}
 	};
 
-	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::add_rms_norm, processing_phase::eval_time, core_type, float, float, block_q8_0<half>>
-		: public kernel_base<kernel_types::add_rms_norm, core_type, float, float, block_q8_0<half>> {
+	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::none, processing_phase::eval_time, core_type, float, float, block_q8_0<half>>
+		: public kernel_base<kernel_types::none, core_type, float, float, block_q8_0<half>> {
 		using input_type01			   = typename core_type::input_01_type;
 		using input_type02			   = typename core_type::input_02_type;
 		static constexpr uint64_t ne00 = input_type01::get_array()[0];
@@ -244,8 +244,8 @@ namespace nihilus {
 		}
 	};
 
-	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::add_rms_norm, processing_phase::prompt_eval_time, core_type, float, float, float>
-		: public kernel_base<kernel_types::add_rms_norm, core_type, float, float, float> {
+	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::none, processing_phase::prompt_eval_time, core_type, float, float, float>
+		: public kernel_base<kernel_types::none, core_type, float, float, float> {
 		using input_type01			   = typename core_type::input_01_type;
 		using input_type02			   = typename core_type::input_02_type;
 		static constexpr uint64_t ne00 = input_type01::get_array()[0];
@@ -319,8 +319,8 @@ namespace nihilus {
 		}
 	};
 
-	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::add_rms_norm, processing_phase::eval_time, core_type, float, float, float>
-		: public kernel_base<kernel_types::add_rms_norm, core_type, float, float, float> {
+	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::none, processing_phase::eval_time, core_type, float, float, float>
+		: public kernel_base<kernel_types::none, core_type, float, float, float> {
 		using input_type01			   = typename core_type::input_01_type;
 		using input_type02			   = typename core_type::input_02_type;
 		static constexpr uint64_t ne00 = input_type01::get_array()[0];
@@ -395,8 +395,8 @@ namespace nihilus {
 	};
 
 	template<typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::add_rms_norm_mul, processing_phase::prompt_eval_time, core_type, block_q8_0<half>, float, float, float>
-		: public kernel_base<kernel_types::add_rms_norm_mul, core_type, block_q8_0<half>, float, float, float> {
+	struct kernel_dispatcher_impl<1, kernel_types::none, processing_phase::prompt_eval_time, core_type, block_q8_0<half>, float, float, float>
+		: public kernel_base<kernel_types::none, core_type, block_q8_0<half>, float, float, float> {
 		using input_type01			   = typename core_type::input_01_type;
 		using input_type02			   = typename core_type::input_02_type;
 		using input_type03			   = typename core_type::input_03_type;
@@ -471,8 +471,8 @@ namespace nihilus {
 		}
 	};
 
-	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::add_rms_norm_mul, processing_phase::eval_time, core_type, block_q8_0<half>, float, float, float>
-		: public kernel_base<kernel_types::add_rms_norm_mul, core_type, block_q8_0<half>, float, float, float> {
+	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::none, processing_phase::eval_time, core_type, block_q8_0<half>, float, float, float>
+		: public kernel_base<kernel_types::none, core_type, block_q8_0<half>, float, float, float> {
 		using input_type01			   = typename core_type::input_01_type;
 		using input_type02			   = typename core_type::input_02_type;
 		using input_type03			   = typename core_type::input_03_type;
@@ -683,8 +683,8 @@ namespace nihilus {
 		}
 	};
 
-	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::rms_norm_mul, processing_phase::prompt_eval_time, core_type, block_q8_0<half>, float, float>
-		: public kernel_base<kernel_types::rms_norm_mul, core_type, block_q8_0<half>, float, float> {
+	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::none, processing_phase::prompt_eval_time, core_type, block_q8_0<half>, float, float>
+		: public kernel_base<kernel_types::none, core_type, block_q8_0<half>, float, float> {
 		using input_type01			   = typename core_type::input_01_type;
 		using input_type02			   = typename core_type::input_02_type;
 		static constexpr uint64_t ne00 = input_type01::get_array()[0];
@@ -754,8 +754,8 @@ namespace nihilus {
 		}
 	};
 
-	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::rms_norm_mul, processing_phase::eval_time, core_type, block_q8_0<half>, float, float>
-		: public kernel_base<kernel_types::rms_norm_mul, core_type, block_q8_0<half>, float, float> {
+	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::none, processing_phase::eval_time, core_type, block_q8_0<half>, float, float>
+		: public kernel_base<kernel_types::none, core_type, block_q8_0<half>, float, float> {
 		using input_type01			   = typename core_type::input_01_type;
 		using input_type02			   = typename core_type::input_02_type;
 		static constexpr uint64_t ne00 = input_type01::get_array()[0];
@@ -1953,8 +1953,8 @@ namespace nihilus {
 	};
 
 	template<typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::mul_mat_reshape, processing_phase::prompt_eval_time, core_type, float, block_q8_0<half>, block_q8_0<half>>
-		: public kernel_base<kernel_types::mul_mat_reshape, core_type, float, block_q8_0<half>, block_q8_0<half>> {
+	struct kernel_dispatcher_impl<1, kernel_types::none, processing_phase::prompt_eval_time, core_type, float, block_q8_0<half>, block_q8_0<half>>
+		: public kernel_base<kernel_types::none, core_type, float, block_q8_0<half>, block_q8_0<half>> {
 		using input_type01			   = typename core_type::input_01_type;
 		using input_type02			   = typename core_type::input_02_type;
 		static constexpr uint64_t ne00 = input_type01::get_array()[0];
@@ -2028,8 +2028,8 @@ namespace nihilus {
 		}
 	};
 
-	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::mul_mat_reshape, processing_phase::eval_time, core_type, float, block_q8_0<half>, block_q8_0<half>>
-		: public kernel_base<kernel_types::mul_mat_reshape, core_type, float, block_q8_0<half>, block_q8_0<half>> {
+	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::none, processing_phase::eval_time, core_type, float, block_q8_0<half>, block_q8_0<half>>
+		: public kernel_base<kernel_types::none, core_type, float, block_q8_0<half>, block_q8_0<half>> {
 		using input_type01			   = typename core_type::input_01_type;
 		using input_type02			   = typename core_type::input_02_type;
 		static constexpr uint64_t ne00 = input_type01::get_array()[0];
@@ -2103,8 +2103,8 @@ namespace nihilus {
 		}
 	};
 
-	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::rope_permute, processing_phase::prompt_eval_time, core_type, float, float, int32_t, float>
-		: public kernel_base<kernel_types::rope_permute, core_type, float, float, int32_t, float> {
+	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::none, processing_phase::prompt_eval_time, core_type, float, float, int32_t, float>
+		: public kernel_base<kernel_types::none, core_type, float, float, int32_t, float> {
 		using input_type01			   = typename core_type::input_01_type;
 		using input_type02			   = typename core_type::input_02_type;
 		using input_type03			   = typename core_type::input_03_type;
@@ -2183,8 +2183,8 @@ namespace nihilus {
 		}
 	};
 
-	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::rope_permute, processing_phase::eval_time, core_type, float, float, int32_t, float>
-		: public kernel_base<kernel_types::rope_permute, core_type, float, float, int32_t, float> {
+	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::none, processing_phase::eval_time, core_type, float, float, int32_t, float>
+		: public kernel_base<kernel_types::none, core_type, float, float, int32_t, float> {
 		using input_type01			   = typename core_type::input_01_type;
 		using input_type02			   = typename core_type::input_02_type;
 		using input_type03			   = typename core_type::input_03_type;
@@ -2437,7 +2437,7 @@ namespace nihilus {
 		}
 	};
 
-	template<typename core_type> struct kernel_dispatcher_impl<1, nihilus::kernel_types::mul_mat_transpose_copy, nihilus::processing_phase::prompt_eval_time, core_type, float,
+	template<typename core_type> struct kernel_dispatcher_impl<1, nihilus::kernel_types::none, nihilus::processing_phase::prompt_eval_time, core_type, float,
 		nihilus::block_q8_0<nihilus::half>, nihilus::block_q8_0<nihilus::half>, short> {
 		using input_type01			   = typename core_type::input_01_type;
 		using input_type02			   = typename core_type::input_02_type;
@@ -2517,7 +2517,7 @@ namespace nihilus {
 		}
 	};
 
-	template<typename core_type> struct kernel_dispatcher_impl<1, nihilus::kernel_types::mul_mat_transpose_copy, nihilus::processing_phase::eval_time, core_type, float,
+	template<typename core_type> struct kernel_dispatcher_impl<1, nihilus::kernel_types::none, nihilus::processing_phase::eval_time, core_type, float,
 		nihilus::block_q8_0<nihilus::half>, nihilus::block_q8_0<nihilus::half>, short> {
 		using input_type01			   = typename core_type::input_01_type;
 		using input_type02			   = typename core_type::input_02_type;
@@ -2859,8 +2859,8 @@ namespace nihilus {
 	}
 
 	template<typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::add_rms_norm, processing_phase::prompt_eval_time, core_type, float, float, float>
-		: public kernel_base<kernel_types::add_rms_norm, core_type, float, float, float> {
+	struct kernel_dispatcher_impl<1, kernel_types::none, processing_phase::prompt_eval_time, core_type, float, float, float>
+		: public kernel_base<kernel_types::none, core_type, float, float, float> {
 		using input_type01 = typename core_type::input_01_type;
 		using input_type02 = typename core_type::input_02_type;
 
@@ -3293,8 +3293,8 @@ namespace nihilus {
 	}
 
 	template<typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::add_rms_norm_mul, processing_phase::prompt_eval_time, core_type, float, float, float, block_q8_0<half>>
-		: public kernel_base<kernel_types::add_rms_norm_mul, core_type, float, float, float, block_q8_0<half>> {
+	struct kernel_dispatcher_impl<1, kernel_types::none, processing_phase::prompt_eval_time, core_type, float, float, float, block_q8_0<half>>
+		: public kernel_base<kernel_types::none, core_type, float, float, float, block_q8_0<half>> {
 		using input_type01 = typename core_type::input_01_type;
 		using input_type02 = typename core_type::input_02_type;
 		using input_type03 = typename core_type::input_03_type;
@@ -5227,8 +5227,8 @@ namespace nihilus {
 	};
 
 	template<typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::add_rms_norm, processing_phase::eval_time, core_type, float, float, float>
-		: public kernel_base<kernel_types::add_rms_norm, core_type, float, float, float> {
+	struct kernel_dispatcher_impl<1, kernel_types::none, processing_phase::eval_time, core_type, float, float, float>
+		: public kernel_base<kernel_types::none, core_type, float, float, float> {
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
 			const typename core_type::input_02_type& input02) {
 			if (thread_index != 0)
@@ -5265,8 +5265,8 @@ namespace nihilus {
 	};
 
 	template<typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::add_rms_norm_mul, processing_phase::eval_time, core_type, float, float, float, block_q8_0<half>>
-		: public kernel_base<kernel_types::add_rms_norm_mul, core_type, float, float, float, block_q8_0<half>> {
+	struct kernel_dispatcher_impl<1, kernel_types::none, processing_phase::eval_time, core_type, float, float, float, block_q8_0<half>>
+		: public kernel_base<kernel_types::none, core_type, float, float, float, block_q8_0<half>> {
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
 			const typename core_type::input_02_type& input02, const typename core_type::input_03_type& input03) {
 			if (thread_index != 0)

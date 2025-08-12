@@ -64,7 +64,7 @@ namespace nihilus {
 		if constexpr (kernel_type == kernel_types::get_rows || kernel_type == kernel_types::sub || kernel_type == kernel_types::view || kernel_type == kernel_types::none) {
 			return 1;
 		} else if constexpr (kernel_type == kernel_types::add || kernel_type == kernel_types::mul || kernel_type == kernel_types::mul_mat ||
-			kernel_type == kernel_types::add_rms_norm || kernel_type == kernel_types::rms_norm_mul || kernel_type == kernel_types::add_rms_norm_mul ||
+			kernel_type == kernel_types::none || kernel_type == kernel_types::none || kernel_type == kernel_types::none ||
 			kernel_type == kernel_types::rope || kernel_type == kernel_types::silu || kernel_type == kernel_types::softmax) {
 			return static_cast<int64_t>(base_count);
 		} else {
@@ -159,14 +159,14 @@ namespace nihilus {
 		NIHILUS_INLINE static constexpr bool filter() {
 			return static_cast<uint64_t>(base_type::op_type) <= 12;
 		}
-		NIHILUS_INLINE static void impl(base_type& parse_core, array<array<void*, model_traits_type<config>::block_count>, op_types::count>& data) {
+		NIHILUS_INLINE static void impl(base_type& parse_core, array<array<void*, model_traits_type<config>::block_count>, weight_types::count>& data) {
 			if constexpr (array_types<decltype(parse_core.data)>) {
 				for (uint64_t x = 0; x < model_traits_type<config>::block_count; ++x) {
-					data[base_type::op_type][x] = reinterpret_cast<void*>(&parse_core.data[x]);
+					//data[base_type::op_type][x] = reinterpret_cast<void*>(&parse_core.data[x]);
 				}
 			} else {
 				for (uint64_t x = 0; x < model_traits_type<config>::block_count; ++x) {
-					data[base_type::op_type][x] = reinterpret_cast<void*>(&parse_core.data);
+					//data[base_type::op_type][x] = reinterpret_cast<void*>(&parse_core.data);
 				}
 			}
 		}
@@ -219,8 +219,8 @@ namespace nihilus {
 		NIHILUS_INLINE memory_planner_depths(memory_planner_depths&&) noexcept				   = delete;
 		using base_type																		   = base_type_new;
 		NIHILUS_INLINE static constexpr bool filter() {
-			return base_type::allocation_strategy_type != allocation_strategy_types::mmap && base_type::allocation_strategy_type != allocation_strategy_types::none &&
-				base_type::allocation_strategy_type != allocation_strategy_types::remap;
+			return base_type::data_strategy_type != data_strategy_types::global && base_type::data_strategy_type != data_strategy_types::none &&
+				base_type::data_strategy_type != data_strategy_types::global;
 		}
 
 		NIHILUS_INLINE static constexpr void impl(const base_type&, array<depth_and_bytes, op_types::count>& depths_new) {
@@ -265,11 +265,11 @@ namespace nihilus {
 		NIHILUS_INLINE memory_mapper(memory_mapper&&) noexcept				   = delete;
 		using base_type														   = base_type_new;
 		NIHILUS_INLINE static constexpr bool filter() {
-			return base_type::allocation_strategy_type != allocation_strategy_types::mmap;
+			return base_type::data_strategy_type != data_strategy_types::global;
 		}
 		NIHILUS_INLINE static void impl(base_type& parse_core, const memory_plan& plan, memory_buffer<config>& memory_buffer) {
 			using output_type = typename base_type::output_type;
-			if constexpr (base_type::allocation_strategy_type == allocation_strategy_types::remap) {
+			if constexpr (base_type::data_strategy_type == data_strategy_types::global) {
 				using input_01_type	  = typename base_type::input_01_type;
 				using other_data_type = decltype(input_01_type::data);
 				if constexpr (array_types<decltype(parse_core.data)> && array_types<other_data_type>) {
@@ -378,7 +378,7 @@ namespace nihilus {
 					log<log_levels::status>(stream.str());
 				}
 
-				kernel_dispatcher<config, phase, device_types::cpu, base_type>::impl(parse_core, thread_index_new, thread_count, 0);
+				//kernel_dispatcher<config, phase, device_types::cpu, base_type>::impl(parse_core, thread_index_new, thread_count, 0);
 				parse_core.latch[0].complete_work();
 				if constexpr (config.dev) {
 					const auto byte_count = type_traits<typename base_type::output_type>::total_byte_size(parse_core);
@@ -443,7 +443,7 @@ namespace nihilus {
 					log<log_levels::status>(stream.str());
 				}
 
-				kernel_dispatcher<config, phase, device_types::cpu, base_type>::impl(parse_core, thread_index_new, thread_count, current_block);
+				//kernel_dispatcher<config, phase, device_types::cpu, base_type>::impl(parse_core, thread_index_new, thread_count, current_block);
 
 				parse_core.latch[current_block].complete_work();
 
@@ -492,7 +492,7 @@ namespace nihilus {
 				log<log_levels::status>(stream.str());
 			}
 
-			kernel_dispatcher<config, phase, device_types::cpu, base_type>::impl(parse_core, thread_index_new, thread_count, current_block);
+			//kernel_dispatcher<config, phase, device_types::cpu, base_type>::impl(parse_core, thread_index_new, thread_count, current_block);
 
 			if constexpr (config.dev) {
 				std::stringstream stream{};
@@ -547,7 +547,7 @@ namespace nihilus {
 					log<log_levels::status>(stream.str());
 				}
 
-				kernel_dispatcher<config, phase, device_types::cpu, base_type>::impl(parse_core, thread_index_new, thread_count, 0);
+				//kernel_dispatcher<config, phase, device_types::cpu, base_type>::impl(parse_core, thread_index_new, thread_count, 0);
 
 				parse_core.latch[0].complete_work();
 
@@ -602,7 +602,7 @@ namespace nihilus {
 				log<log_levels::status>(stream.str());
 			}
 
-			kernel_dispatcher<config, phase, device_types::cpu, base_type>::impl(parse_core, thread_index_new, thread_count, 0);
+			//kernel_dispatcher<config, phase, device_types::cpu, base_type>::impl(parse_core, thread_index_new, thread_count, 0);
 
 			if constexpr (config.dev) {
 				std::stringstream stream{};

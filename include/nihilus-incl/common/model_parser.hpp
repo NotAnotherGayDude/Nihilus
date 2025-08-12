@@ -557,25 +557,25 @@ namespace nihilus {
 	template<model_arches arch> struct string_to_op_type;
 
 	template<> struct string_to_op_type<model_arches::llama> {
-		NIHILUS_INLINE static op_types impl(std::string_view input) noexcept {
+		NIHILUS_INLINE static weight_types impl(std::string_view input) noexcept {
 			if (string_literal_comparison<"token_embd.weight">(input.data())) {
-				return op_types::token_embd_weight;
+				return weight_types::token_embd;
 			}
 			if (string_literal_comparison<"rope_freqs.weight">(input.data())) {
-				return op_types::rope_freqs_weight;
+				return weight_types::rope_freqs;
 			}
 			if (string_literal_comparison<"output_norm.weight">(input.data())) {
-				return op_types::output_norm_weight;
+				return weight_types::output_norm;
 			}
 			if (string_literal_comparison<"output.weight">(input.data())) {
-				return op_types::output_weight;
+				return weight_types::output;
 			}
 
 			if (string_literal_comparison<".attn_q.weight">(input.data() + input.find(".attn_q.weight"))) {
-				return op_types::attn_q_weight;
+				return weight_types::attn_q;
 			}
 			if (string_literal_comparison<".attn_norm.weight">(input.data() + input.find(".attn_norm.weight"))) {
-				return op_types::attn_norm_weight;
+				return weight_types::attn_norm;
 			}
 
 			if (string_literal_comparison<"blk.">(input.data()) && string_literal_comparison<".weight">(input.data() + input.size() - 7)) {
@@ -584,36 +584,36 @@ namespace nihilus {
 					auto suffix = input.substr(second_dot + 1);
 
 					if (string_literal_comparison<"attn_q.weight">(suffix.data())) {
-						return op_types::attn_q_weight;
+						return weight_types::attn_q;
 					}
 					if (string_literal_comparison<"attn_norm.weight">(suffix.data())) {
-						return op_types::attn_norm_weight;
+						return weight_types::attn_norm;
 					}
 					if (string_literal_comparison<"attn_k.weight">(suffix.data())) {
-						return op_types::attn_k_weight;
+						return weight_types::attn_k;
 					}
 					if (string_literal_comparison<"attn_v.weight">(suffix.data())) {
-						return op_types::attn_v_weight;
+						return weight_types::attn_v;
 					}
 					if (string_literal_comparison<"attn_output.weight">(suffix.data())) {
-						return op_types::attn_output_weight;
+						return weight_types::attn_output;
 					}
 					if (string_literal_comparison<"ffn_down.weight">(suffix.data())) {
-						return op_types::ffn_down_weight;
+						return weight_types::ffn_down;
 					}
 					if (string_literal_comparison<"ffn_gate.weight">(suffix.data())) {
-						return op_types::ffn_gate_weight;
+						return weight_types::ffn_gate;
 					}
 					if (string_literal_comparison<"ffn_up.weight">(suffix.data())) {
-						return op_types::ffn_up_weight;
+						return weight_types::ffn_up;
 					}
 					if (string_literal_comparison<"ffn_norm.weight">(suffix.data())) {
-						return op_types::ffn_norm_weight;
+						return weight_types::ffn_norm;
 					}
 				}
 			}
 
-			return op_types::count;
+			return weight_types::count;
 		}
 	};
 
@@ -621,7 +621,7 @@ namespace nihilus {
 		array<uint64_t, 4> dimensions{ { 1, 1, 1, 1 } };
 		uint32_t n_dimensions{};
 		uint64_t layer_number{};
-		op_types op_type{};
+		weight_types op_type{};
 		uint64_t offset{};
 		data_types type{};
 
@@ -637,8 +637,8 @@ namespace nihilus {
 			return num_blocks * type_size_val;
 		}
 
-		template<core_traits_types core_traits> NIHILUS_INLINE bool operator==(const core_traits&) const {
-			static constexpr auto other_dims = core_traits::get_array();
+		template<core_traits_types op_traits> NIHILUS_INLINE bool operator==(const op_traits&) const {
+			static constexpr auto other_dims = op_traits::get_array();
 			return dimensions[0] == other_dims[0] && dimensions[1] == other_dims[1] && dimensions[2] == other_dims[2] && dimensions[3] == other_dims[3];
 		}
 
@@ -656,44 +656,44 @@ namespace nihilus {
 	template<model_config config> struct core_traits_comparitor<config, model_arches::llama> {
 		NIHILUS_INLINE static bool impl(const core_base_creation_data& parse_core) noexcept {
 			switch (static_cast<uint64_t>(parse_core.op_type)) {
-				case static_cast<uint64_t>(op_types::token_embd_weight): {
-					return parse_core == core_traits<config, op_types::token_embd_weight>{};
+				case static_cast<uint64_t>(weight_types::token_embd): {
+					//return parse_core == op_traits<config, weight_types::token_embd>{};
 				}
-				case static_cast<uint64_t>(op_types::rope_freqs_weight): {
-					return parse_core == core_traits<config, op_types::rope_freqs_weight>{};
+				case static_cast<uint64_t>(weight_types::rope_freqs): {
+					//return parse_core == op_traits<config, weight_types::rope_freqs>{};
 				}
-				case static_cast<uint64_t>(op_types::output_norm_weight): {
-					return parse_core == core_traits<config, op_types::output_norm_weight>{};
+				case static_cast<uint64_t>(weight_types::output_norm): {
+					//return parse_core == op_traits<config, weight_types::output_norm>{};
 				}
-				case static_cast<uint64_t>(op_types::output_weight): {
-					return parse_core == core_traits<config, op_types::output_weight>{};
+				case static_cast<uint64_t>(weight_types::output): {
+					//return parse_core == op_traits<config, weight_types::output>{};
 				}
-				case static_cast<uint64_t>(op_types::attn_q_weight): {
-					return parse_core == core_traits<config, op_types::attn_q_weight>{};
+				case static_cast<uint64_t>(weight_types::attn_q): {
+					//return parse_core == op_traits<config, weight_types::attn_q>{};
 				}
-				case static_cast<uint64_t>(op_types::attn_norm_weight): {
-					return parse_core == core_traits<config, op_types::attn_norm_weight>{};
+				case static_cast<uint64_t>(weight_types::attn_norm): {
+					//return parse_core == op_traits<config, weight_types::attn_norm>{};
 				}
-				case static_cast<uint64_t>(op_types::attn_k_weight): {
-					return parse_core == core_traits<config, op_types::attn_k_weight>{};
+				case static_cast<uint64_t>(weight_types::attn_k): {
+					//return parse_core == op_traits<config, weight_types::attn_k>{};
 				}
-				case static_cast<uint64_t>(op_types::attn_v_weight): {
-					return parse_core == core_traits<config, op_types::attn_v_weight>{};
+				case static_cast<uint64_t>(weight_types::attn_v): {
+					//return parse_core == op_traits<config, weight_types::attn_v>{};
 				}
-				case static_cast<uint64_t>(op_types::attn_output_weight): {
-					return parse_core == core_traits<config, op_types::attn_output_weight>{};
+				case static_cast<uint64_t>(weight_types::attn_output): {
+					//return parse_core == op_traits<config, weight_types::attn_output>{};
 				}
-				case static_cast<uint64_t>(op_types::ffn_down_weight): {
-					return parse_core == core_traits<config, op_types::ffn_down_weight>{};
+				case static_cast<uint64_t>(weight_types::ffn_down): {
+					//return parse_core == op_traits<config, weight_types::ffn_down>{};
 				}
-				case static_cast<uint64_t>(op_types::ffn_gate_weight): {
-					return parse_core == core_traits<config, op_types::ffn_gate_weight>{};
+				case static_cast<uint64_t>(weight_types::ffn_gate): {
+					//return parse_core == op_traits<config, weight_types::ffn_gate>{};
 				}
-				case static_cast<uint64_t>(op_types::ffn_up_weight): {
-					return parse_core == core_traits<config, op_types::ffn_up_weight>{};
+				case static_cast<uint64_t>(weight_types::ffn_up): {
+					//return parse_core == op_traits<config, weight_types::ffn_up>{};
 				}
-				case static_cast<uint64_t>(op_types::ffn_norm_weight): {
-					return parse_core == core_traits<config, op_types::ffn_norm_weight>{};
+				case static_cast<uint64_t>(weight_types::ffn_norm): {
+					//return parse_core == op_traits<config, weight_types::ffn_norm>{};
 				}
 				default: {
 					return false;
@@ -779,7 +779,7 @@ namespace nihilus {
 	struct model_parser_impl<config> {
 		using model_traits_type = model_traits<config.arch, config.model_size, config.model_generation>;
 		static_assert((std::endian::native == std::endian::little), "Sorry, but big-endian is not yet supported by the library");
-		template<typename tokenizer_type> NIHILUS_INLINE static gguf_metadata<config> parse_model(array<array<void*, model_traits_type::block_count>, op_types::count>& data,
+		template<typename tokenizer_type> NIHILUS_INLINE static gguf_metadata<config> parse_model(array<array<void*, model_traits_type::block_count>, weight_types::count>& data,
 			memory_mapped_file* memory_file, tokenizer_type& tokenizer) {
 			stream_iterator ptr{ memory_file };
 			gguf_metadata<config> gguf_file{ value_reader<config, gguf_metadata<config>>::gather_value(ptr) };
@@ -818,7 +818,7 @@ namespace nihilus {
 	template<model_config config> struct model_parser {
 		using model_traits_type = model_traits<config.arch, config.model_size, config.model_generation>;
 
-		template<typename tokenizer_type> NIHILUS_INLINE static gguf_metadata<config> parse_model(array<array<void*, model_traits_type::block_count>, op_types::count>& data,
+		template<typename tokenizer_type> NIHILUS_INLINE static gguf_metadata<config> parse_model(array<array<void*, model_traits_type::block_count>, weight_types::count>& data,
 			memory_mapped_file* memory_file, tokenizer_type& tokenizer) {
 			return model_parser_impl<config>::parse_model(data, memory_file, tokenizer);
 		}

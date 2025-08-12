@@ -67,7 +67,8 @@ namespace nihilus {
 
 	template<typename value_type> struct alignas(64) aligned_vector : public std::vector<value_type, allocator<value_type, 64>> {};
 
-	static constexpr alignas(64) array<static_aligned_const<64, bool>, 256> alpha_table{ [] {
+	NIHILUS_ALIGN(64)
+	static constexpr array<static_aligned_const<64, bool>, 256> alpha_table{ [] {
 		alignas(64) array<static_aligned_const<64, bool>, 256> return_values{};
 
 		for (int32_t i = 'A'; i <= 'Z'; ++i) {
@@ -85,7 +86,8 @@ namespace nihilus {
 		return alpha_table[static_cast<uint8_t>(c)];
 	}
 
-	static constexpr alignas(64) array<static_aligned_const<64, bool>, 256> space_table{ [] {
+	NIHILUS_ALIGN(64)
+	static constexpr array<static_aligned_const<64, bool>, 256> space_table{ [] {
 		alignas(64) array<static_aligned_const<64, bool>, 256> return_values{};
 		return_values[static_cast<uint64_t>('\r')] = true;
 		return_values[static_cast<uint64_t>('\n')] = true;
@@ -533,31 +535,64 @@ namespace nihilus {
 
 	enum class kernel_types : uint8_t {
 		none,
-		qkv_projection_layer,
-		add_rms_norm_mul,
 		get_rows,
-		rms_norm_mul,
-		add_rms_norm,
+		rms_norm,
 		mul,
 		mul_mat,
-		mul_mat_reshape,
-		mul_mat_transpose_copy,
+		reshape,
+		transpose,
+		permute,
 		view,
 		rope,
-		rope_permute,
-		rope_copy,
 		softmax,
 		silu,
+		copy,
+		cont,
 		add,
 		sub,
+		logit_sample,
+		count,
+	};
+
+	enum class composite_kernel_types : uint8_t {
+		none,
+		view,
+		get_rows,
+		mul_mat,
+		rms_norm_mul_mul_mat_reshape,
+		rms_norm_mul_mul_mat_transpose_copy,
+		rope_permute,
+		rope_copy,
+		softmax_mul_mat_permute_cont,
+		add_rms_norm_mul_mat_silu,
+		add_rms_norm_mul_mat,
+		mul_mul_mat_add,
+		mul_mat_logit_sample,
+		rms_norm_mul_mul_mat_logit_sample,
+		count,
+	};
+
+	enum class weight_types {
+		attn_q,
+		attn_k,
+		attn_v,
+		attn_output,
+		attn_norm,
+		ffn_gate,
+		ffn_up,
+		ffn_down,
+		ffn_norm,
+		token_embd,
+		rope_freqs,
+		output_norm,
+		output,
 		count,
 	};
 
 	template<typename value_type>
 	concept remapped_op_types = requires(std::remove_cvref_t<value_type> value) { requires value.kernel_type == kernel_types::view; };
 
-	static constexpr array<const char*, kernel_types::count> kernel_names{ { "none", "add_rms_norm_mul", "get_rows", "rms_norm_mul", "add_rms_norm", "mul", "mul_mat",
-		"mul_mat_reshape", "mul_mat_transpose_copy", "view", "rope", "rope_permute", "rope_copy", "softmax", "silu", "add", "sub" } };
+	static constexpr array<const char*, kernel_types::count> kernel_names{ {} };
 
 	template<typename enum_type>
 		requires(std::is_same_v<kernel_types, enum_type>)
@@ -591,7 +626,6 @@ namespace nihilus {
 		cache_k,
 		cache_v,
 		kq_mask,
-		qkv_projection_layer,
 		norm_attn_norm,
 		qcur_mul_mat_reshape,
 		qcur_rope_permute,
@@ -618,6 +652,21 @@ namespace nihilus {
 		prev_residual,
 		result_norm,
 		result_output,
+		count
+	};
+
+	enum class core_types {
+		weights,
+		global_inputs,
+		global_outputs,
+		token_embeddings,
+		qkv_projection_layer,
+		rope_and_cache_operations,
+		attention_scores_computation,
+		attention_weighted_values,
+		attention_output_projection,
+		ffn_parallel_projections,
+		ffn_down_projection,
 		count
 	};
 
@@ -664,7 +713,7 @@ namespace nihilus {
 			case enum_type::inp_embd:
 				return kernel_types::get_rows;
 			case enum_type::l_out_final_norm:
-				return kernel_types::add_rms_norm;
+				return kernel_types::none;
 			case enum_type::ffn_gate_par:
 			case enum_type::result_norm:
 				return kernel_types::mul;
@@ -695,9 +744,9 @@ namespace nihilus {
 			case enum_type::ffn_silu:
 				return kernel_types::silu;
 			case enum_type::norm_attn_norm:
-				return kernel_types::rms_norm_mul;
+				return kernel_types::none;
 			case enum_type::ffn_inp_norm_out_ffn_norm:
-				return kernel_types::add_rms_norm_mul;
+				return kernel_types::none;
 			case enum_type::count:
 			default:
 				return kernel_types::none;
@@ -820,6 +869,8 @@ namespace nihilus {
 	enum class model_generations : uint64_t {
 		v1_v2,
 		v3,
+		v3_1,
+		v3_2,
 		count,
 	};
 
@@ -872,9 +923,7 @@ namespace nihilus {
 		llm_40B,
 		llm_65B,
 		llm_70B,
-		llm_236B,
-		llm_314B,
-		llm_671B,
+		llm_405B,
 		llm_SMALL,
 		llm_MEDIUM,
 		llm_LARGE,

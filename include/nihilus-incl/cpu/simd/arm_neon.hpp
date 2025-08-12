@@ -29,8 +29,8 @@ RealTimeChris (Chris M.)
 namespace nihilus {
 
 	template<typename transform_type, typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::add_rms_norm, processing_phase::prompt_eval_time, transform_type, core_type, float, float, float>
-		: public kernel_base<kernel_types::add_rms_norm, core_type, float, float, float> {
+	struct kernel_dispatcher_impl<1, kernel_types::none, processing_phase::prompt_eval_time, transform_type, core_type, float, float, float>
+		: public kernel_base<kernel_types::none, core_type, float, float, float> {
 		using input_type01 = typename core_type::input_01_type;
 		using input_type02 = typename core_type::input_02_type;
 
@@ -44,8 +44,8 @@ namespace nihilus {
 	};
 
 	template<typename transform_type, typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::add_rms_norm_mul, processing_phase::prompt_eval_time, transform_type, core_type, float, float, float, float>
-		: public kernel_base<kernel_types::add_rms_norm_mul, core_type, float, float, float, float> {
+	struct kernel_dispatcher_impl<1, kernel_types::none, processing_phase::prompt_eval_time, transform_type, core_type, float, float, float, float>
+		: public kernel_base<kernel_types::none, core_type, float, float, float, float> {
 		using input_type01 = typename core_type::input_01_type;
 		using input_type02 = typename core_type::input_02_type;
 		using input_type03 = typename core_type::input_03_type;
@@ -60,8 +60,8 @@ namespace nihilus {
 	};
 
 	template<typename transform_type, typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::rms_norm_mul, processing_phase::prompt_eval_time, transform_type, core_type, float, float, float>
-		: public kernel_base<kernel_types::rms_norm_mul, core_type, float, float, float> {
+	struct kernel_dispatcher_impl<1, kernel_types::none, processing_phase::prompt_eval_time, transform_type, core_type, float, float, float>
+		: public kernel_base<kernel_types::none, core_type, float, float, float> {
 		using input_type01 = typename core_type::input_01_type;
 		using input_type02 = typename core_type::input_02_type;
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
@@ -405,8 +405,8 @@ namespace nihilus {
 	};
 
 	template<typename transform_type, typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::add_rms_norm, processing_phase::eval_time, transform_type, core_type, float, float, float>
-		: public kernel_base<kernel_types::add_rms_norm, core_type, float, float, float> {
+	struct kernel_dispatcher_impl<1, kernel_types::none, processing_phase::eval_time, transform_type, core_type, float, float, float>
+		: public kernel_base<kernel_types::none, core_type, float, float, float> {
 		using input_type01 = typename core_type::input_01_type;
 		using input_type02 = typename core_type::input_02_type;
 
@@ -420,8 +420,8 @@ namespace nihilus {
 	};
 
 	template<typename transform_type, typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::add_rms_norm_mul, processing_phase::eval_time, transform_type, core_type, float, float, float, float>
-		: public kernel_base<kernel_types::add_rms_norm_mul, core_type, float, float, float, float> {
+	struct kernel_dispatcher_impl<1, kernel_types::none, processing_phase::eval_time, transform_type, core_type, float, float, float, float>
+		: public kernel_base<kernel_types::none, core_type, float, float, float, float> {
 		using input_type01 = typename core_type::input_01_type;
 		using input_type02 = typename core_type::input_02_type;
 		using input_type03 = typename core_type::input_03_type;
@@ -436,8 +436,8 @@ namespace nihilus {
 	};
 
 	template<typename transform_type, typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::rms_norm_mul, processing_phase::eval_time, transform_type, core_type, float, float, float>
-		: public kernel_base<kernel_types::rms_norm_mul, core_type, float, float, float> {
+	struct kernel_dispatcher_impl<1, kernel_types::none, processing_phase::eval_time, transform_type, core_type, float, float, float>
+		: public kernel_base<kernel_types::none, core_type, float, float, float> {
 		using input_type01 = typename core_type::input_01_type;
 		using input_type02 = typename core_type::input_02_type;
 

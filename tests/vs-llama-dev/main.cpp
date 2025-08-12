@@ -134,7 +134,6 @@ std::vector<int> extract_numbers(const std::string& str) {
 
 bool is_first_block(const std::string& file_name) {
 	auto values = extract_numbers(file_name);
-	std::cout << "VALUES: " << values << ", FROM FILE NAME: " << file_name << std::endl;
 	if (values.size() != 0 && values[0] == 0 && values[values.size() - 1] == 0) {
 		return true;
 	} else {
@@ -184,11 +183,13 @@ void print_tensors() {
 	std::sort(json_files.begin(), json_files.end(), std::less<tensor_holder>{});
 	for (auto& value: json_files) {
 		auto new_tensor = parser.parseJson<nihilus::intermediary_tensor>(value.data);
-		std::cout << "Tensor Name: " << new_tensor.name << std::endl;
-		std::cout << "Dims: " << new_tensor.dims << std::endl;
-		std::cout << "Type: " << new_tensor.type << std::endl;
-		std::cout << "Op: " << ggml_op_name(static_cast<ggml_op>(new_tensor.op)) << std::endl;
-		std::cout << "Inputs: " << new_tensor.inputs << std::endl;
+		if (!new_tensor.name.empty()) {
+			std::cout << "Tensor Name: " << new_tensor.name << std::endl;
+			std::cout << "Dims: " << new_tensor.dims << std::endl;
+			std::cout << "Type: " << new_tensor.type << std::endl;
+			std::cout << "Op: " << ggml_op_name(static_cast<ggml_op>(new_tensor.op)) << std::endl;
+			std::cout << "Inputs: " << new_tensor.inputs << std::endl;
+		}
 	}
 }
 
@@ -200,14 +201,14 @@ int main(int argc, char** argv) {
 		static constexpr auto model_config01 = nihilus::update_model_config_dev(model_config, true);
 		nihilus::cli_params cli_args	 = nihilus::harbinger<model_config01>::parse_cli_arguments(argc, argv);
 		std::string return_value{};
-		
+		/*
 		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 1, 1, true, "Token">::runBenchmark<"nihilus">([&] {
 			auto model_new{ nihilus::harbinger<model_config01>::parse_model_graph_data(cli_args) };
 			while (model_new->process_input(cli_args.prompt)) {
 			}
 			bnch_swt::doNotOptimizeAway(cli_args.n_tokens);
 			return cli_args.n_tokens;
-		});
+		});*/
 		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 1, 1, true, "Token">::runBenchmark<"llama.cpp">([&] {
 			return_value.clear();
 			size_t token_count{};
