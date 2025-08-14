@@ -55,7 +55,6 @@ namespace nihilus {
 		}
 
 		NIHILUS_INLINE void init(uint64_t size) noexcept {
-			std::cout << "SIZE: " << size << std::endl;
 			if (data_val) {
 				clear();
 			}

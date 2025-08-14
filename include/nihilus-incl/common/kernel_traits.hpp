@@ -102,9 +102,9 @@ namespace nihilus {
 	enum class processing_phase {
 		prompt_eval_time,
 		eval_time,
-	};
+	};	
 
-	template<model_config config_new, op_types op_type> struct op_traits;
+	template<model_config config_new> using model_traits_type = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
 
 	template<size_t... indices> struct core_trait_dims;
 
@@ -250,146 +250,6 @@ namespace nihilus {
 	enum class get_new_dims_errors { unknown_kernel_type };
 
 	template<uint64_t, kernel_types kernel_type, processing_phase phase, typename... operand_types> struct kernel_dispatcher_impl;
-
-	template<kernel_types kernel_type, typename core_traits01, typename... operand_types> struct get_new_dims_1;
-
-	template<kernel_types kernel_type, typename core_traits01, typename core_traits02, typename... operand_types> struct get_new_dims_2;
-
-	template<kernel_types kernel_type, typename core_traits01, typename core_traits02, typename core_traits03, typename... operand_types> struct get_new_dims_3;
-
-	template<kernel_types kernel_type, core_traits_types core_traits01, runtime_dims_t... dimension_type> struct get_new_dims_1<kernel_type, core_traits01, dimension_type...> {
-		using dim_traits01			 = typename core_traits01::core_traits_dims_type;
-		static constexpr auto dims01 = dim_traits01::get_array();
-
-		static constexpr auto get_new_dims_fn() {
-			if constexpr (kernel_type == kernel_types::silu) {
-				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], (dimension_type::dimension, ...)>{};
-			} else {
-				static_assert(static_assert_printer<false, get_new_dims_errors::unknown_kernel_type, core_traits01, dimension_type...>::impl);
-			}
-		}
-
-		using type = decltype(get_new_dims_fn());
-	};
-
-	template<kernel_types kernel_type, core_traits_types core_traits01> struct get_new_dims_1<kernel_type, core_traits01> {
-		using dim_traits01			 = typename core_traits01::core_traits_dims_type;
-		static constexpr auto dims01 = dim_traits01::get_array();
-
-		static constexpr auto get_new_dims_fn() {
-			if constexpr (kernel_type == kernel_types::silu) {
-				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3]>{};
-			} else {
-				static_assert(static_assert_printer<false, get_new_dims_errors::unknown_kernel_type, core_traits01>::impl);
-			}
-		}
-
-		using type = decltype(get_new_dims_fn());
-	};
-
-	template<kernel_types kernel_type, core_traits_types core_traits01, core_traits_types core_traits02> struct get_new_dims_2<kernel_type, core_traits01, core_traits02> {
-		using dim_traits01			 = typename core_traits01::core_traits_dims_type;
-		using dim_traits02			 = typename core_traits02::core_traits_dims_type;
-		static constexpr auto dims01 = dim_traits01::get_array();
-		static constexpr auto dims02 = dim_traits02::get_array();
-
-		static constexpr auto get_new_dims_fn() {
-			if constexpr (kernel_type == kernel_types::get_rows) {
-				return core_trait_dims<dims01[1], dims02[0], dims01[2], dims01[3]>{};
-			} else if constexpr (kernel_type == kernel_types::mul_mat) {
-				return core_trait_dims<dims01[1], dims02[1], dims02[2], dims02[3]>{};
-			} else if constexpr (kernel_type == kernel_types::sub) {
-				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3]>{};
-			} else if constexpr (kernel_type == kernel_types::add) {
-				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3]>{};
-			} else if constexpr (kernel_type == kernel_types::mul) {
-				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3]>{};
-			} else if constexpr (kernel_type == kernel_types::softmax) {
-				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3]>{};
-			} else if constexpr (kernel_type == kernel_types::view) {
-				return core_trait_dims<dims02[0], dims02[1], dims02[2], dims02[3]>{};
-			} else if constexpr (kernel_type == kernel_types::none) {
-				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3]>{};
-			} else {
-				static_assert(static_assert_printer<false, get_new_dims_errors::unknown_kernel_type, core_traits01, core_traits02>::impl);
-			}
-		}
-
-		using type = decltype(get_new_dims_fn());
-	};
-
-	template<kernel_types kernel_type, core_traits_types core_traits01, core_traits_types core_traits02, runtime_dims_t... dimension_type>
-	struct get_new_dims_2<kernel_type, core_traits01, core_traits02, dimension_type...> {
-		using dim_traits01			 = typename core_traits01::core_traits_dims_type;
-		using dim_traits02			 = typename core_traits02::core_traits_dims_type;
-		static constexpr auto dims01 = dim_traits01::get_array();
-		static constexpr auto dims02 = dim_traits02::get_array();
-
-		static constexpr auto get_new_dims_fn() {
-			if constexpr (kernel_type == kernel_types::get_rows) {
-				return core_trait_dims<dims01[0], dims02[0], dims01[2], dims01[3], (dimension_type::dimension, ...)>{};
-			} else if constexpr (kernel_type == kernel_types::mul_mat) {
-				return core_trait_dims<dims01[1], dims02[1], dims02[2], dims02[3], (dimension_type::dimension, ...)>{};
-			} else if constexpr (kernel_type == kernel_types::sub) {
-				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], (dimension_type::dimension, ...)>{};
-			} else if constexpr (kernel_type == kernel_types::add) {
-				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], (dimension_type::dimension, ...)>{};
-			} else if constexpr (kernel_type == kernel_types::mul) {
-				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], (dimension_type::dimension, ...)>{};
-			} else if constexpr (kernel_type == kernel_types::softmax) {
-				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], (dimension_type::dimension, ...)>{};
-			} else if constexpr (kernel_type == kernel_types::view) {
-				return core_trait_dims<dims02[0], dims02[1], dims02[2], dims02[3], (dimension_type::dimension, ...)>{};
-			} else if constexpr (kernel_type == kernel_types::none) {
-				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], (dimension_type::dimension, ...)>{};
-			} else {
-				static_assert(static_assert_printer<false, get_new_dims_errors::unknown_kernel_type, core_traits01, core_traits02, dimension_type...>::impl);
-			}
-		}
-
-		using type = decltype(get_new_dims_fn());
-	};
-
-	template<kernel_types kernel_type, core_traits_types core_traits01, core_traits_types core_traits02, core_traits_types core_traits03, runtime_dims_t... dimension_type>
-	struct get_new_dims_3<kernel_type, core_traits01, core_traits02, core_traits03, dimension_type...> {
-		using dim_traits01			 = typename core_traits01::core_traits_dims_type;
-		using dim_traits02			 = typename core_traits02::core_traits_dims_type;
-		using dim_traits03			 = typename core_traits03::core_traits_dims_type;
-		static constexpr auto dims01 = dim_traits01::get_array();
-		static constexpr auto dims02 = dim_traits02::get_array();
-		static constexpr auto dims03 = dim_traits03::get_array();
-
-		static constexpr auto get_new_dims_fn() {
-			if constexpr (kernel_type == kernel_types::rope) {
-				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], (dimension_type::dimension, ...)>{};
-			} else if constexpr (kernel_type == kernel_types::none) {
-				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], (dimension_type::dimension, ...)>{};
-			} else {
-				static_assert(static_assert_printer<false, get_new_dims_errors::unknown_kernel_type, core_traits01, core_traits02, core_traits03, dimension_type...>::impl);
-			}
-		}
-
-		using type = decltype(get_new_dims_fn());
-	};
-
-	template<model_config config, kernel_types kernel_type, op_types op_type, typename... dimensions_type> using get_new_dims_1_t =
-		typename get_new_dims_1<kernel_type, op_traits<config, op_type>, dimensions_type...>::type;
-
-	template<model_config config, kernel_types kernel_type, op_types op_type01, op_types op_type02, typename... dimensions_type> using get_new_dims_2_t =
-		typename get_new_dims_2<kernel_type, op_traits<config, op_type01>, op_traits<config, op_type02>, dimensions_type...>::type;
-
-	template<model_config config, kernel_types kernel_type, op_types op_type01, op_types op_type02, op_types op_type03, typename... dimensions_type> using get_new_dims_3_t =
-		typename get_new_dims_3<kernel_type, op_traits<config, op_type01>, op_traits<config, op_type02>, op_traits<config, op_type03>, dimensions_type...>::type;
-
-	template<model_config config, kernel_types kernel_type, op_types op_type> using get_new_dims_1_2_t = typename get_new_dims_1<kernel_type, op_traits<config, op_type>>::type;
-
-	template<model_config config, kernel_types kernel_type, op_types op_type01, op_types op_type02> using get_new_dims_2_2_t =
-		typename get_new_dims_2<kernel_type, op_traits<config, op_type01>, op_traits<config, op_type02>>::type;
-
-	template<model_config config, kernel_types kernel_type, op_types op_type01, op_types op_type02, op_types op_type03> using get_new_dims_3_2_t =
-		typename get_new_dims_3<kernel_type, op_traits<config, op_type01>, op_traits<config, op_type02>, op_traits<config, op_type03>>::type;
-
-	template<model_config config_new> using model_traits_type = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
 
 	template<model_config config, typename dims_type, kernel_types kernel_type, typename output_type_new, typename... operand_types> struct kernel_traits;
 

@@ -53,7 +53,7 @@ namespace nihilus::benchmarking::internal {
 		}
 
 		NIHILUS_INLINE performance_metrics operator*() {
-			return collectMetrics(std::span<event_count>{ std::vector<event_count>::data(), std::vector<event_count>::size() }, current_index);
+			return collect_metrics(std::span<event_count>{ std::vector<event_count>::data(), std::vector<event_count>::size() }, current_index);
 		}
 
 		NIHILUS_INLINE void end(uint64_t bytes_processed) {

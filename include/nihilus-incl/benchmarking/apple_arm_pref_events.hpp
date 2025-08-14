@@ -49,35 +49,35 @@
 namespace nihilus::benchmarking::internal {
 
 	struct performance_counters {
-		double branchMisses{};
+		double branch_misses{};
 		double instructions{};
 		double branches{};
 		double cycles{};
 
-		NIHILUS_INLINE performance_counters(double c, double b, double m, double i) : branchMisses(m), instructions(i), branches(b), cycles(c) {
+		NIHILUS_INLINE performance_counters(double c, double b, double m, double i) : branch_misses(m), instructions(i), branches(b), cycles(c) {
 		}
 
-		NIHILUS_INLINE performance_counters(double init = 0.0) : branchMisses(init), instructions(init), branches(init), cycles(init) {
+		NIHILUS_INLINE performance_counters(double init = 0.0) : branch_misses(init), instructions(init), branches(init), cycles(init) {
 		}
 
 		NIHILUS_INLINE performance_counters& operator-=(const performance_counters& other) {
 			cycles -= other.cycles;
 			branches -= other.branches;
-			branchMisses -= other.branchMisses;
+			branch_misses -= other.branch_misses;
 			instructions -= other.instructions;
 			return *this;
 		}
 		NIHILUS_INLINE performance_counters& min(const performance_counters& other) {
 			cycles		 = other.cycles < cycles ? other.cycles : cycles;
 			branches	 = other.branches < branches ? other.branches : branches;
-			branchMisses = other.branchMisses < branchMisses ? other.branchMisses : branchMisses;
+			branch_misses = other.branch_misses < branch_misses ? other.branch_misses : branch_misses;
 			instructions = other.instructions < instructions ? other.instructions : instructions;
 			return *this;
 		}
 		NIHILUS_INLINE performance_counters& operator+=(const performance_counters& other) {
 			cycles += other.cycles;
 			branches += other.branches;
-			branchMisses += other.branchMisses;
+			branch_misses += other.branch_misses;
 			instructions += other.instructions;
 			return *this;
 		}
@@ -85,14 +85,14 @@ namespace nihilus::benchmarking::internal {
 		NIHILUS_INLINE performance_counters& operator/=(double numerator) {
 			cycles /= numerator;
 			branches /= numerator;
-			branchMisses /= numerator;
+			branch_misses /= numerator;
 			instructions /= numerator;
 			return *this;
 		}
 	};
 
 	NIHILUS_INLINE performance_counters operator-(const performance_counters& a, const performance_counters& b) {
-		return performance_counters(a.cycles - b.cycles, a.branches - b.branches, a.branchMisses - b.branchMisses, a.instructions - b.instructions);
+		return performance_counters(a.cycles - b.cycles, a.branches - b.branches, a.branch_misses - b.branch_misses, a.instructions - b.instructions);
 	}
 
 	#define KPC_CLASS_FIXED (0)
@@ -971,7 +971,7 @@ namespace nihilus::benchmarking::internal {
 		}
 
 		NIHILUS_INLINE performance_metrics operator*() {
-			return collectMetrics(std::span<event_count>{ std::vector<event_count>::data(), std::vector<event_count>::size() }, std::vector<event_count>::size());
+			return collect_metrics(std::span<event_count>{ std::vector<event_count>::data(), std::vector<event_count>::size() }, std::vector<event_count>::size());
 		}
 
 		NIHILUS_INLINE void end(uint64_t bytes_processed) {
@@ -991,7 +991,7 @@ namespace nihilus::benchmarking::internal {
 				std::vector<event_count>::operator[](current_index).cyclesVal.emplace(diff.cycles);
 				std::vector<event_count>::operator[](current_index).instructionsVal.emplace(diff.instructions);
 				std::vector<event_count>::operator[](current_index).branchesVal.emplace(diff.branches);
-				std::vector<event_count>::operator[](current_index).branchMissesVal.emplace(diff.branchMisses);
+				std::vector<event_count>::operator[](current_index).branch_missesVal.emplace(diff.branch_misses);
 			} else {
 				std::vector<event_count>::operator[](current_index).cyclesVal.emplace(cycleEnd - cycle_start);
 			}

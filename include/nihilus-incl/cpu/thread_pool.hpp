@@ -108,7 +108,7 @@ namespace nihilus {
 	}
 
 	struct benchmark_stats {
-		array<array<benchmarking::internal::event_collector, op_types::count>, max_thread_count_holder::max_thread_count> collector{};
+		array<array<benchmarking::internal::event_collector, core_types::count>, max_thread_count_holder::max_thread_count> collector{};
 		clock_type::time_point sampling_start = {};
 		clock_type::time_point prompt_start	  = {};
 		clock_type::time_point token_start	  = {};
@@ -134,8 +134,8 @@ namespace nihilus {
 		benchmark_stats perf_stats{};
 	};
 
-	template<model_config config> struct thread_pool : public get_core_bases_t<config>, public perf_base<config> {
-		using core_base_type											   = get_core_bases_t<config>;
+	template<model_config config> struct thread_pool : public get_core_bases_t<config, core_types>, public perf_base<config> {
+		using core_base_type											   = get_core_bases_t<config, core_types>;
 		NIHILUS_INLINE thread_pool() noexcept							   = default;
 		NIHILUS_INLINE thread_pool& operator=(const thread_pool&) noexcept = delete;
 		NIHILUS_INLINE thread_pool(const thread_pool&) noexcept			   = delete;
@@ -176,7 +176,7 @@ namespace nihilus {
 				core_base_type::template impl_thread<per_block_thread_function, phase>(current_index, thread_index, thread_count);
 				if constexpr (config.dev && current_index == 0) {
 					if (thread_index == 0) {
-						core_base_type::template impl<tensor_debugger_impl>(current_index, perf_base<config>::perf_stats.current_iteration);
+						//core_base_type::template impl<tensor_debugger_impl>(current_index, perf_base<config>::perf_stats.current_iteration);
 					}
 				}
 				execute_blocks<phase, current_index + 1>(thread_index);
@@ -207,25 +207,16 @@ namespace nihilus {
 
 		template<processing_phase phase_new> NIHILUS_INLINE void execute_tasks(uint64_t runtime_dimensions_new) {
 			phase.store(phase_new, std::memory_order_release);
-			core_base_type::template impl<latch_resetter>();
-			core_base_type::template impl<dim_updater>(runtime_dimensions_new);
+			core_base_type::template impl<current_chunk_resetter>();
+			//core_base_type::template impl<dim_updater>(runtime_dimensions_new);
 			if constexpr (config.benchmark) {
 				for (uint64_t x = 0; x < threads.size(); ++x) {
 					perf_base<config>::perf_stats.runtime_dimensions[x] = runtime_dimensions_new;
 				}
 			}
 			thread_latch.count_down();
+			core_base_type::template impl_thread<main_thread_function, phase_new>();
 			thread_latch.main_wait();
-			if constexpr (config.benchmark || config.dev) {
-				//for (uint64_t y = 0; y < static_cast<uint64_t>(op_types::count); ++y) {
-					//for (uint64_t x = 0; x < thread_count; ++x) {
-						//if (perf_base<config>::perf_stats.collector[x][y]) {
-							//std::cout << benchmarking::internal::printResults(*perf_base<config>::perf_stats.collector[x][y], x, op_names[y]) << std::endl;
-							//perf_base<config>::perf_stats.collector[x][y].reset();
-						//}
-						//}
-						//}
-			}
 		}
 
 	  protected:

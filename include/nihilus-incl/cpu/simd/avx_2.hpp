@@ -4850,24 +4850,8 @@ namespace nihilus {
 			typename core_type::input_02_type& input02) {
 			int64_t current_chunk = thread_index;
 
-			const float* __restrict src0_data = input02.data;
-			const block_q8_0<half>* __restrict src1_data;
-
-			if constexpr (array_types<decltype(input01.data)>) {
-				src1_data = input01.data[current_block];
-			} else {
-				src1_data = input01.data;
-			}
-
-			float* __restrict dst_data = output.data;
-
 			while (current_chunk < chunk_count) {
-				int64_t chunks_completed = process_tensor_elements<false>(current_chunk, src0_data, src1_data, dst_data, input01, input02, output);
-				if (thread_count == 1) {
-					current_chunk += chunks_completed;
-				} else {
-					current_chunk = output.current_chunk.fetch_add(chunks_completed);
-				}
+				current_chunk = output.current_chunk.fetch_add(chunks_completed);
 			}
 		}
 	};

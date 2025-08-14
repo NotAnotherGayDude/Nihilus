@@ -65,30 +65,30 @@ namespace nihilus {
 	concept float64_types = float_types<value_type> && sizeof(std::remove_cvref_t<value_type>) == 8;
 
 	template<typename value_type>
-	concept has_size = requires(std::remove_cvref_t<value_type> value) {
+	concept has_size_types = requires(std::remove_cvref_t<value_type> value) {
 		{ value.size() } -> std::same_as<typename std::remove_cvref_t<value_type>::size_type>;
 	};
 
 	template<typename value_type>
-	concept has_data = requires(std::remove_cvref_t<value_type> value) {
+	concept has_data_types = requires(std::remove_cvref_t<value_type> value) {
 		{ value.data() } -> std::same_as<typename std::remove_cvref_t<value_type>::pointer>;
 	};
 
 	template<typename value_type>
-	concept has_find = requires(std::remove_cvref_t<value_type> value) {
+	concept has_find_types = requires(std::remove_cvref_t<value_type> value) {
 		{ value.find(std::declval<typename std::remove_cvref_t<value_type>::value_type>()) } -> std::same_as<typename std::remove_cvref_t<value_type>::size_type>;
 	};
 
 	template<typename value_type>
-	concept vector_subscriptable = requires(std::remove_cvref_t<value_type> value) {
+	concept vector_subscriptable_types = requires(std::remove_cvref_t<value_type> value) {
 		{ value[std::declval<typename std::remove_cvref_t<value_type>::uint64_types>()] } -> std::same_as<typename std::remove_cvref_t<value_type>::reference>;
 	};
 
 	template<typename value_type>
-	concept string_types = vector_subscriptable<value_type> && has_data<value_type> && has_size<value_type> && has_find<value_type>;
+	concept string_types = vector_subscriptable_types<value_type> && has_data_types<value_type> && has_size_types<value_type> && has_find_types<value_type>;
 
 	template<typename value_type>
-	concept array_types = vector_subscriptable<value_type> && has_data<value_type> && has_size<value_type>;
+	concept array_types = vector_subscriptable_types<value_type> && has_data_types<value_type> && has_size_types<value_type>;
 
 	template<typename value_type>
 	concept core_traits_types = requires(std::remove_cvref_t<value_type>) {
@@ -128,6 +128,9 @@ namespace nihilus {
 
 	template<typename value_type>
 	concept has_latch_types = requires() { std::remove_cvref_t<value_type>::latch; };
+
+	template<typename value_type>
+	concept has_total_required_bytes_types = requires() { std::remove_cvref_t<value_type>::total_required_bytes; };
 
 	template<typename value_type>
 	concept has_chunk_types = requires() { std::remove_cvref_t<value_type>::current_chunk; };
@@ -186,6 +189,12 @@ namespace nihilus {
 		!triple_input_types<value_type> && !double_input_types<value_type> && !single_input_types<value_type>;
 
 	template<typename value_type>
+	concept has_count = requires() { std::remove_cvref_t<value_type>::count; } && static_cast<uint64_t>(std::remove_cvref_t<value_type>::count) < 128;
+
+	template<typename value_type>
 	concept enum_types = std::is_enum_v<std::remove_cvref_t<value_type>>;
+
+	template<typename value_type>
+	concept printable_enum_types = enum_types<value_type> && has_count<value_type>;
 
 }

@@ -288,7 +288,7 @@ namespace nihilus {
 			const uint64_t output_size		  = ne01 * ne11;
 			const uint64_t input_size		  = ne10 * ne11;
 			const uint64_t quantized_blocks	  = (input_size + Q_SIZE - 1) / Q_SIZE;
-			block_q8_0<half>* quantized_input = reinterpret_cast<block_q8_0<half>*>(dst + output_size);
+			block_q8_0<half>* quantized_input = d<block_q8_0<half>*>(dst + output_size);
 
 			const uint64_t ith = static_cast<uint64_t>(thread_index);
 			const uint64_t nth = static_cast<uint64_t>(thread_count);

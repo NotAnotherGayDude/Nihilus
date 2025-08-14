@@ -33,7 +33,7 @@ namespace nihilus {
 		invalid_index_type,
 	};
 
-	template<uint64_t index> using tag = std::integral_constant<uint64_t, index>;
+	template<auto index> using tag = std::integral_constant<uint64_t, static_cast<uint64_t>(index)>;
 
 	template<typename value_type_new, auto size_new> struct array {
 	  public:
@@ -248,7 +248,7 @@ namespace nihilus {
 			return true;
 		}
 
-		NIHILUS_ALIGN(cpu_alignment_holder::cpu_alignment) value_type data_val[size_val] {};
+		value_type data_val[size_val]{};
 	};
 
 	template<typename T, typename... U> array(T, U...) -> array<T, 1 + sizeof...(U)>;

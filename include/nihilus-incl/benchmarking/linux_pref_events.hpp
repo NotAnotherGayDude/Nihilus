@@ -177,7 +177,7 @@ namespace nihilus::benchmarking::internal {
 		}
 
 		NIHILUS_INLINE performance_metrics operator*() {
-			return collectMetrics(std::span<event_count>{ std::vector<event_count>::data(), std::vector<event_count>::size() }, std::vector<event_count>::size());
+			return collect_metrics(std::span<event_count>{ std::vector<event_count>::data(), std::vector<event_count>::size() }, std::vector<event_count>::size());
 		}
 
 		NIHILUS_INLINE void end(uint64_t bytes_processed) {
@@ -199,9 +199,9 @@ namespace nihilus::benchmarking::internal {
 				linux_events::end(results);
 				std::vector<event_count>::operator[](current_index).instructionsVal.emplace(results[1]);
 				std::vector<event_count>::operator[](current_index).branchesVal.emplace(results[2]);
-				std::vector<event_count>::operator[](current_index).branchMissesVal.emplace(results[3]);
-				std::vector<event_count>::operator[](current_index).cacheReferencesVal.emplace(results[4]);
-				std::vector<event_count>::operator[](current_index).cacheMissesVal.emplace(results[5]);
+				std::vector<event_count>::operator[](current_index).branch_missesVal.emplace(results[3]);
+				std::vector<event_count>::operator[](current_index).cache_referencesVal.emplace(results[4]);
+				std::vector<event_count>::operator[](current_index).cache_missesVal.emplace(results[5]);
 			}
 			++current_index;
 		}
