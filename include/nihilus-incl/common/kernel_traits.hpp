@@ -97,14 +97,24 @@ namespace nihilus {
 		rope_position_dimension_1_must_be_one,
 		rope_position_dimension_2_must_be_one,
 		rope_position_dimension_3_must_be_one,
+		unary_dimension_mismatch,
+		repetition_penalty_logits_dim_mismatch,
+		presence_penalty_logits_dim_mismatch,
+		frequency_penalty_logits_dim_mismatch,
+		temperature_scale_logits_dim_mismatch,
+		top_k_filter_logits_dim_mismatch,
+		top_p_filter_logits_dim_mismatch,
+		vocab_mask_dimension_mismatch,
+		vocab_mask_logits_dim_mismatch,
+		sample_output_must_be_single_token,
 	};
 
 	enum class processing_phase {
 		prompt_eval_time,
 		eval_time,
-	};
+	};	
 
-	template<model_config config_new, op_types op_type> struct op_traits;
+	template<model_config config_new> using model_traits_type = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
 
 	template<size_t... indices> struct core_trait_dims;
 
@@ -124,6 +134,10 @@ namespace nihilus {
 
 		NIHILUS_INLINE static constexpr array<uint64_t, 4> get_array() {
 			return { { dim00, dim01, dim02, dim03 } };
+		}
+
+		NIHILUS_INLINE static constexpr uint64_t get_total_elements() {
+			return dim00_new * dim01_new * dim02_new * dim03_new;
 		}
 
 		NIHILUS_INLINE operator array<uint64_t, 4>() const {
@@ -153,6 +167,10 @@ namespace nihilus {
 			return { { dim00, dim01, dim02, dim03 } };
 		}
 
+		NIHILUS_INLINE static constexpr uint64_t get_total_elements() {
+			return dim00_new * dim01_new * dim02_new * dim03_new;
+		}
+
 		NIHILUS_INLINE operator array<uint64_t, 4>() const {
 			return { { dim00, dim01, dim02, dim03 } };
 		}
@@ -175,9 +193,13 @@ namespace nihilus {
 			return { { dim00_new, dim01_new, dim02_new, dim03_new } };
 		}
 
+		NIHILUS_INLINE static constexpr uint64_t get_total_elements() {
+			return dim00_new * dim01_new * dim02_new * dim03_new;
+		}
+
 		NIHILUS_INLINE operator array<uint64_t, 4>() const {
 			return { { dim00, dim01, dim02, dim03 } };
-		}
+		}		
 
 		NIHILUS_INLINE uint64_t& get_mutable_dim() const {
 			return dim00;
@@ -199,6 +221,10 @@ namespace nihilus {
 
 		NIHILUS_INLINE static constexpr array<uint64_t, 4> get_array() {
 			return { { dim00_new, dim01_new, dim02_new, dim03_new } };
+		}
+
+		NIHILUS_INLINE static constexpr uint64_t get_total_elements() {
+			return dim00_new * dim01_new * dim02_new * dim03_new;
 		}
 
 		NIHILUS_INLINE operator array<uint64_t, 4>() const {
@@ -227,6 +253,10 @@ namespace nihilus {
 			return { { dim00_new, dim01_new, dim02_new, dim03_new } };
 		}
 
+		NIHILUS_INLINE static constexpr uint64_t get_total_elements() {
+			return dim00_new * dim01_new * dim02_new * dim03_new;
+		}
+
 		NIHILUS_INLINE operator array<uint64_t, 4>() const {
 			return { { dim00, dim01, dim02, dim03 } };
 		}
@@ -249,147 +279,7 @@ namespace nihilus {
 
 	enum class get_new_dims_errors { unknown_kernel_type };
 
-	template<uint64_t, kernel_types kernel_type, processing_phase phase, typename... operand_types> struct kernel_dispatcher_impl;
-
-	template<kernel_types kernel_type, typename core_traits01, typename... operand_types> struct get_new_dims_1;
-
-	template<kernel_types kernel_type, typename core_traits01, typename core_traits02, typename... operand_types> struct get_new_dims_2;
-
-	template<kernel_types kernel_type, typename core_traits01, typename core_traits02, typename core_traits03, typename... operand_types> struct get_new_dims_3;
-
-	template<kernel_types kernel_type, core_traits_types core_traits01, runtime_dims_t... dimension_type> struct get_new_dims_1<kernel_type, core_traits01, dimension_type...> {
-		using dim_traits01			 = typename core_traits01::core_traits_dims_type;
-		static constexpr auto dims01 = dim_traits01::get_array();
-
-		static constexpr auto get_new_dims_fn() {
-			if constexpr (kernel_type == kernel_types::silu) {
-				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], (dimension_type::dimension, ...)>{};
-			} else {
-				static_assert(static_assert_printer<false, get_new_dims_errors::unknown_kernel_type, core_traits01, dimension_type...>::impl);
-			}
-		}
-
-		using type = decltype(get_new_dims_fn());
-	};
-
-	template<kernel_types kernel_type, core_traits_types core_traits01> struct get_new_dims_1<kernel_type, core_traits01> {
-		using dim_traits01			 = typename core_traits01::core_traits_dims_type;
-		static constexpr auto dims01 = dim_traits01::get_array();
-
-		static constexpr auto get_new_dims_fn() {
-			if constexpr (kernel_type == kernel_types::silu) {
-				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3]>{};
-			} else {
-				static_assert(static_assert_printer<false, get_new_dims_errors::unknown_kernel_type, core_traits01>::impl);
-			}
-		}
-
-		using type = decltype(get_new_dims_fn());
-	};
-
-	template<kernel_types kernel_type, core_traits_types core_traits01, core_traits_types core_traits02> struct get_new_dims_2<kernel_type, core_traits01, core_traits02> {
-		using dim_traits01			 = typename core_traits01::core_traits_dims_type;
-		using dim_traits02			 = typename core_traits02::core_traits_dims_type;
-		static constexpr auto dims01 = dim_traits01::get_array();
-		static constexpr auto dims02 = dim_traits02::get_array();
-
-		static constexpr auto get_new_dims_fn() {
-			if constexpr (kernel_type == kernel_types::get_rows) {
-				return core_trait_dims<dims01[1], dims02[0], dims01[2], dims01[3]>{};
-			} else if constexpr (kernel_type == kernel_types::mul_mat) {
-				return core_trait_dims<dims01[1], dims02[1], dims02[2], dims02[3]>{};
-			} else if constexpr (kernel_type == kernel_types::sub) {
-				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3]>{};
-			} else if constexpr (kernel_type == kernel_types::add) {
-				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3]>{};
-			} else if constexpr (kernel_type == kernel_types::mul) {
-				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3]>{};
-			} else if constexpr (kernel_type == kernel_types::softmax) {
-				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3]>{};
-			} else if constexpr (kernel_type == kernel_types::view) {
-				return core_trait_dims<dims02[0], dims02[1], dims02[2], dims02[3]>{};
-			} else if constexpr (kernel_type == kernel_types::none) {
-				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3]>{};
-			} else {
-				static_assert(static_assert_printer<false, get_new_dims_errors::unknown_kernel_type, core_traits01, core_traits02>::impl);
-			}
-		}
-
-		using type = decltype(get_new_dims_fn());
-	};
-
-	template<kernel_types kernel_type, core_traits_types core_traits01, core_traits_types core_traits02, runtime_dims_t... dimension_type>
-	struct get_new_dims_2<kernel_type, core_traits01, core_traits02, dimension_type...> {
-		using dim_traits01			 = typename core_traits01::core_traits_dims_type;
-		using dim_traits02			 = typename core_traits02::core_traits_dims_type;
-		static constexpr auto dims01 = dim_traits01::get_array();
-		static constexpr auto dims02 = dim_traits02::get_array();
-
-		static constexpr auto get_new_dims_fn() {
-			if constexpr (kernel_type == kernel_types::get_rows) {
-				return core_trait_dims<dims01[0], dims02[0], dims01[2], dims01[3], (dimension_type::dimension, ...)>{};
-			} else if constexpr (kernel_type == kernel_types::mul_mat) {
-				return core_trait_dims<dims01[1], dims02[1], dims02[2], dims02[3], (dimension_type::dimension, ...)>{};
-			} else if constexpr (kernel_type == kernel_types::sub) {
-				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], (dimension_type::dimension, ...)>{};
-			} else if constexpr (kernel_type == kernel_types::add) {
-				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], (dimension_type::dimension, ...)>{};
-			} else if constexpr (kernel_type == kernel_types::mul) {
-				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], (dimension_type::dimension, ...)>{};
-			} else if constexpr (kernel_type == kernel_types::softmax) {
-				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], (dimension_type::dimension, ...)>{};
-			} else if constexpr (kernel_type == kernel_types::view) {
-				return core_trait_dims<dims02[0], dims02[1], dims02[2], dims02[3], (dimension_type::dimension, ...)>{};
-			} else if constexpr (kernel_type == kernel_types::none) {
-				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], (dimension_type::dimension, ...)>{};
-			} else {
-				static_assert(static_assert_printer<false, get_new_dims_errors::unknown_kernel_type, core_traits01, core_traits02, dimension_type...>::impl);
-			}
-		}
-
-		using type = decltype(get_new_dims_fn());
-	};
-
-	template<kernel_types kernel_type, core_traits_types core_traits01, core_traits_types core_traits02, core_traits_types core_traits03, runtime_dims_t... dimension_type>
-	struct get_new_dims_3<kernel_type, core_traits01, core_traits02, core_traits03, dimension_type...> {
-		using dim_traits01			 = typename core_traits01::core_traits_dims_type;
-		using dim_traits02			 = typename core_traits02::core_traits_dims_type;
-		using dim_traits03			 = typename core_traits03::core_traits_dims_type;
-		static constexpr auto dims01 = dim_traits01::get_array();
-		static constexpr auto dims02 = dim_traits02::get_array();
-		static constexpr auto dims03 = dim_traits03::get_array();
-
-		static constexpr auto get_new_dims_fn() {
-			if constexpr (kernel_type == kernel_types::rope) {
-				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], (dimension_type::dimension, ...)>{};
-			} else if constexpr (kernel_type == kernel_types::none) {
-				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], (dimension_type::dimension, ...)>{};
-			} else {
-				static_assert(static_assert_printer<false, get_new_dims_errors::unknown_kernel_type, core_traits01, core_traits02, core_traits03, dimension_type...>::impl);
-			}
-		}
-
-		using type = decltype(get_new_dims_fn());
-	};
-
-	template<model_config config, kernel_types kernel_type, op_types op_type, typename... dimensions_type> using get_new_dims_1_t =
-		typename get_new_dims_1<kernel_type, op_traits<config, op_type>, dimensions_type...>::type;
-
-	template<model_config config, kernel_types kernel_type, op_types op_type01, op_types op_type02, typename... dimensions_type> using get_new_dims_2_t =
-		typename get_new_dims_2<kernel_type, op_traits<config, op_type01>, op_traits<config, op_type02>, dimensions_type...>::type;
-
-	template<model_config config, kernel_types kernel_type, op_types op_type01, op_types op_type02, op_types op_type03, typename... dimensions_type> using get_new_dims_3_t =
-		typename get_new_dims_3<kernel_type, op_traits<config, op_type01>, op_traits<config, op_type02>, op_traits<config, op_type03>, dimensions_type...>::type;
-
-	template<model_config config, kernel_types kernel_type, op_types op_type> using get_new_dims_1_2_t = typename get_new_dims_1<kernel_type, op_traits<config, op_type>>::type;
-
-	template<model_config config, kernel_types kernel_type, op_types op_type01, op_types op_type02> using get_new_dims_2_2_t =
-		typename get_new_dims_2<kernel_type, op_traits<config, op_type01>, op_traits<config, op_type02>>::type;
-
-	template<model_config config, kernel_types kernel_type, op_types op_type01, op_types op_type02, op_types op_type03> using get_new_dims_3_2_t =
-		typename get_new_dims_3<kernel_type, op_traits<config, op_type01>, op_traits<config, op_type02>, op_traits<config, op_type03>>::type;
-
-	template<model_config config_new> using model_traits_type = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+	template<uint64_t, core_types core_type, processing_phase phase> struct kernel_dispatcher_impl;
 
 	template<model_config config, typename dims_type, kernel_types kernel_type, typename output_type_new, typename... operand_types> struct kernel_traits;
 
@@ -573,7 +463,7 @@ namespace nihilus {
 	};
 
 	template<model_config config, typename dims_type_new, typename output_type_new, typename input_01_type_new>
-	struct kernel_traits<config, dims_type_new, kernel_types::logit_sample, output_type_new, input_01_type_new> : public dims_type_new {
+	struct kernel_traits<config, dims_type_new, kernel_types::sample_logits, output_type_new, input_01_type_new> : public dims_type_new {
 		using input_01_type					= input_01_type_new;
 		using output_type					= output_type_new;
 		using dims_type						= dims_type_new;
@@ -723,6 +613,105 @@ namespace nihilus {
 			input_01_dims[3], output_dims[3]>::impl);
 	};
 
+	template<model_config config, typename dims_type_new, typename output_type_new, typename input_01_type_new, typename input_02_type_new, typename input_03_type_new>
+	struct kernel_traits<config, dims_type_new, kernel_types::repetition_penalty, output_type_new, input_01_type_new, input_02_type_new, input_03_type_new> : public dims_type_new {
+		using input_01_type					= input_01_type_new;
+		using input_02_type					= input_02_type_new;
+		using input_03_type					= input_03_type_new;
+		using output_type					= output_type_new;
+		using dims_type						= dims_type_new;
+		static constexpr auto input_01_dims = input_01_type::get_array();
+		static constexpr auto input_02_dims = input_02_type::get_array();
+		static constexpr auto input_03_dims = input_03_type::get_array();
+		static constexpr auto output_dims	= dims_type::get_array();
+		static_assert(static_assert_printer_val<(input_01_dims[0] == output_dims[0]), kernel_trait_static_assert_errors::repetition_penalty_logits_dim_mismatch>::impl);
+	};
+
+	template<model_config config, typename dims_type_new, typename output_type_new, typename input_01_type_new, typename input_02_type_new, typename input_03_type_new>
+	struct kernel_traits<config, dims_type_new, kernel_types::presence_penalty, output_type_new, input_01_type_new, input_02_type_new, input_03_type_new> : public dims_type_new {
+		using input_01_type					= input_01_type_new;
+		using input_02_type					= input_02_type_new;
+		using input_03_type					= input_03_type_new;
+		using output_type					= output_type_new;
+		using dims_type						= dims_type_new;
+		static constexpr auto input_01_dims = input_01_type::get_array();
+		static constexpr auto input_02_dims = input_02_type::get_array();
+		static constexpr auto input_03_dims = input_03_type::get_array();
+		static constexpr auto output_dims	= dims_type::get_array();
+		static_assert(static_assert_printer_val<(input_01_dims[0] == output_dims[0]), kernel_trait_static_assert_errors::presence_penalty_logits_dim_mismatch>::impl);
+	};
+
+	template<model_config config, typename dims_type_new, typename output_type_new, typename input_01_type_new, typename input_02_type_new, typename input_03_type_new>
+	struct kernel_traits<config, dims_type_new, kernel_types::frequency_penalty, output_type_new, input_01_type_new, input_02_type_new, input_03_type_new> : public dims_type_new {
+		using input_01_type					= input_01_type_new;
+		using input_02_type					= input_02_type_new;
+		using input_03_type					= input_03_type_new;
+		using output_type					= output_type_new;
+		using dims_type						= dims_type_new;
+		static constexpr auto input_01_dims = input_01_type::get_array();
+		static constexpr auto input_02_dims = input_02_type::get_array();
+		static constexpr auto input_03_dims = input_03_type::get_array();
+		static constexpr auto output_dims	= dims_type::get_array();
+		static_assert(static_assert_printer_val<(input_01_dims[0] == output_dims[0]), kernel_trait_static_assert_errors::frequency_penalty_logits_dim_mismatch>::impl);
+	};
+
+	template<model_config config, typename dims_type_new, typename output_type_new, typename input_01_type_new, typename input_02_type_new>
+	struct kernel_traits<config, dims_type_new, kernel_types::temperature_scale, output_type_new, input_01_type_new, input_02_type_new> : public dims_type_new {
+		using input_01_type					= input_01_type_new;
+		using input_02_type					= input_02_type_new;
+		using output_type					= output_type_new;
+		using dims_type						= dims_type_new;
+		static constexpr auto input_01_dims = input_01_type::get_array();
+		static constexpr auto output_dims	= dims_type::get_array();
+		static_assert(static_assert_printer_val<(input_01_dims[0] == output_dims[0]), kernel_trait_static_assert_errors::temperature_scale_logits_dim_mismatch>::impl);
+	};
+
+	template<model_config config, typename dims_type_new, typename output_type_new, typename input_01_type_new, typename input_02_type_new>
+	struct kernel_traits<config, dims_type_new, kernel_types::top_k_filter, output_type_new, input_01_type_new, input_02_type_new> : public dims_type_new {
+		using input_01_type					= input_01_type_new;
+		using input_02_type					= input_02_type_new;
+		using output_type					= output_type_new;
+		using dims_type						= dims_type_new;
+		static constexpr auto input_01_dims = input_01_type::get_array();
+		static constexpr auto output_dims	= dims_type::get_array();
+		static_assert(static_assert_printer_val<(input_01_dims[0] == output_dims[0]), kernel_trait_static_assert_errors::top_k_filter_logits_dim_mismatch>::impl);
+	};
+
+	template<model_config config, typename dims_type_new, typename output_type_new, typename input_01_type_new, typename input_02_type_new>
+	struct kernel_traits<config, dims_type_new, kernel_types::top_p_filter, output_type_new, input_01_type_new, input_02_type_new> : public dims_type_new {
+		using input_01_type					= input_01_type_new;
+		using input_02_type					= input_02_type_new;
+		using output_type					= output_type_new;
+		using dims_type						= dims_type_new;
+		static constexpr auto input_01_dims = input_01_type::get_array();
+		static constexpr auto output_dims	= dims_type::get_array();
+		static_assert(static_assert_printer_val<(input_01_dims[0] == output_dims[0]), kernel_trait_static_assert_errors::top_p_filter_logits_dim_mismatch>::impl);
+	};
+
+	template<model_config config, typename dims_type_new, typename output_type_new, typename input_01_type_new, typename input_02_type_new>
+	struct kernel_traits<config, dims_type_new, kernel_types::vocab_mask, output_type_new, input_01_type_new, input_02_type_new> : public dims_type_new {
+		using input_01_type					= input_01_type_new;
+		using input_02_type					= input_02_type_new;
+		using output_type					= output_type_new;
+		using dims_type						= dims_type_new;
+		static constexpr auto input_01_dims = input_01_type::get_array();
+		static constexpr auto input_02_dims = input_02_type::get_array();
+		static constexpr auto output_dims	= dims_type::get_array();
+		static_assert(static_assert_printer_val<(input_01_dims[0] == input_02_dims[0]), kernel_trait_static_assert_errors::vocab_mask_dimension_mismatch>::impl);
+		static_assert(static_assert_printer_val<(input_01_dims[0] == output_dims[0]), kernel_trait_static_assert_errors::vocab_mask_logits_dim_mismatch>::impl);
+	};
+
+	template<model_config config, typename dims_type_new, typename output_type_new, typename input_01_type_new, typename input_02_type_new>
+	struct kernel_traits<config, dims_type_new, kernel_types::sample_logits, output_type_new, input_01_type_new, input_02_type_new> : public dims_type_new {
+		using input_01_type				  = input_01_type_new;
+		using input_02_type				  = input_02_type_new;
+		using output_type				  = output_type_new;
+		using dims_type					  = dims_type_new;
+		static constexpr auto output_dims = dims_type::get_array();
+		static_assert(static_assert_printer_val<(output_dims[0] == 1 && output_dims[1] == 1 && output_dims[2] == 1 && output_dims[3] == 1),
+			kernel_trait_static_assert_errors::sample_output_must_be_single_token>::impl);
+	};
+
 	enum class get_new_dims_new_errors { unknown_kernel_type, not_allowed_for_automatic_generation };
 
 	template<kernel_types kernel_type, typename dims_01_type> struct get_new_dims_new_1;
@@ -733,13 +722,14 @@ namespace nihilus {
 
 	template<kernel_types kernel_type, typename dims_01_type> struct get_new_dims_new_1 {
 		static constexpr auto dims01 = dims_01_type::get_array();
-
 		static constexpr auto get_new_dims_new_fn() {
 			if constexpr (kernel_type == kernel_types::silu) {
 				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_01_type::runtime_dims>{};
 			} else if constexpr (kernel_type == kernel_types::rms_norm) {
 				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_01_type::runtime_dims>{};
 			} else if constexpr (kernel_type == kernel_types::cont) {
+				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_01_type::runtime_dims>{};
+			} else if constexpr (kernel_type == kernel_types::silu) {
 				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_01_type::runtime_dims>{};
 			} else {
 				if constexpr (kernel_type == kernel_types::reshape || kernel_type == kernel_types::transpose || kernel_type == kernel_types::permute ||
@@ -750,14 +740,12 @@ namespace nihilus {
 				}
 			}
 		}
-
 		using type = decltype(get_new_dims_new_fn());
 	};
 
 	template<kernel_types kernel_type, typename dims_01_type, typename dims_02_type> struct get_new_dims_new_2 {
 		static constexpr auto dims01 = dims_01_type::get_array();
 		static constexpr auto dims02 = dims_02_type::get_array();
-
 		static constexpr auto get_new_dims_new_fn() {
 			if constexpr (kernel_type == kernel_types::get_rows) {
 				return core_trait_dims<dims01[0], dims02[0], dims01[2], dims01[3], dims_01_type::runtime_dims>{};
@@ -773,23 +761,37 @@ namespace nihilus {
 				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_01_type::runtime_dims>{};
 			} else if constexpr (kernel_type == kernel_types::softmax) {
 				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_02_type::runtime_dims>{};
+			} else if constexpr (kernel_type == kernel_types::temperature_scale) {
+				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_01_type::runtime_dims>{};
+			} else if constexpr (kernel_type == kernel_types::top_k_filter) {
+				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_01_type::runtime_dims>{};
+			} else if constexpr (kernel_type == kernel_types::top_p_filter) {
+				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_01_type::runtime_dims>{};
+			} else if constexpr (kernel_type == kernel_types::vocab_mask) {
+				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_01_type::runtime_dims>{};
+			} else if constexpr (kernel_type == kernel_types::sample_logits) {
+				return core_trait_dims<1, 1, 1, 1, 0>{};
 			} else if constexpr (kernel_type == kernel_types::none) {
 				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_01_type::runtime_dims>{};
 			} else {
 				static_assert(static_assert_printer<false, get_new_dims_new_errors::unknown_kernel_type, dims_01_type, dims_02_type>::impl);
 			}
 		}
-
 		using type = decltype(get_new_dims_new_fn());
 	};
 
 	template<kernel_types kernel_type, typename dims_01_type, typename dims_02_type, typename dims_03_type> struct get_new_dims_new_3 {
 		static constexpr auto dims01 = dims_01_type::get_array();
 		static constexpr auto dims02 = dims_02_type::get_array();
-		static constexpr auto dims03 = dims_02_type::get_array();
-
+		static constexpr auto dims03 = dims_03_type::get_array();
 		static constexpr auto get_new_dims_new_fn() {
 			if constexpr (kernel_type == kernel_types::rope) {
+				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_01_type::runtime_dims>{};
+			} else if constexpr (kernel_type == kernel_types::repetition_penalty) {
+				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_01_type::runtime_dims>{};
+			} else if constexpr (kernel_type == kernel_types::presence_penalty) {
+				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_01_type::runtime_dims>{};
+			} else if constexpr (kernel_type == kernel_types::frequency_penalty) {
 				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_01_type::runtime_dims>{};
 			} else if constexpr (kernel_type == kernel_types::none) {
 				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_01_type::runtime_dims>{};
@@ -797,7 +799,6 @@ namespace nihilus {
 				static_assert(static_assert_printer<false, get_new_dims_new_errors::unknown_kernel_type, dims_01_type, dims_02_type, dims_03_type>::impl);
 			}
 		}
-
 		using type = decltype(get_new_dims_new_fn());
 	};
 
@@ -809,120 +810,19 @@ namespace nihilus {
 
 	template<model_config config, core_types core_type> struct core_traits {};
 
-	template<model_config config, composite_kernel_types composite_kernel_type, typename output_type_new, typename... input_kernel_traits_types> struct composite_kernel_traits {};
+	template<model_config config, composite_kernel_types kernel_type_new, typename output_type_new, typename... input_kernel_traits_types> struct composite_kernel_traits {
+		using output_type									= output_type_new;
+		static constexpr composite_kernel_types kernel_type = kernel_type_new;
 
-	template<model_config config, composite_kernel_types kernel_type_new, typename output_type_new, typename input_type_01_kernel_traits_type_new>
-	struct composite_kernel_traits<config, kernel_type_new, output_type_new, input_type_01_kernel_traits_type_new> : public input_type_01_kernel_traits_type_new::dims_type {
-		using output_type					   = output_type_new;
-		using input_type_01_kernel_traits_type = input_type_01_kernel_traits_type_new;
-		using dims_type						   = typename input_type_01_kernel_traits_type::dims_type;
-		static constexpr composite_kernel_types kernel_type{ kernel_type_new };
-	};
+		using dims_type = std::conditional_t<sizeof...(input_kernel_traits_types) >= 2,
+			typename std::tuple_element_t<sizeof...(input_kernel_traits_types) - 2, std::tuple<input_kernel_traits_types...>>::dims_type,
+			typename std::tuple_element_t<sizeof...(input_kernel_traits_types) - 1, std::tuple<input_kernel_traits_types...>>::dims_type>;
 
-	template<model_config config, composite_kernel_types kernel_type_new, typename output_type_new, typename input_type_01_kernel_traits_type_new,
-		typename input_type_02_kernel_traits_type_new>
-	struct composite_kernel_traits<config, kernel_type_new, output_type_new, input_type_01_kernel_traits_type_new, input_type_02_kernel_traits_type_new>
-		: public input_type_02_kernel_traits_type_new::dims_type {
-		using output_type					   = output_type_new;
-		using input_type_01_kernel_traits_type = input_type_01_kernel_traits_type_new;
-		using input_type_02_kernel_traits_type = input_type_02_kernel_traits_type_new;
-		using dims_type						   = typename input_type_02_kernel_traits_type::dims_type;
-		static constexpr composite_kernel_types kernel_type{ kernel_type_new };
-	};
+		using input_types_tuple = std::tuple<input_kernel_traits_types...>;
 
-	template<model_config config, composite_kernel_types kernel_type_new, typename output_type_new, typename input_type_01_kernel_traits_type_new,
-		typename input_type_02_kernel_traits_type_new, typename input_type_03_kernel_traits_type_new>
-	struct composite_kernel_traits<config, kernel_type_new, output_type_new, input_type_01_kernel_traits_type_new, input_type_02_kernel_traits_type_new,
-		input_type_03_kernel_traits_type_new> : public input_type_03_kernel_traits_type_new::dims_type {
-		using output_type					   = output_type_new;
-		using input_type_01_kernel_traits_type = input_type_01_kernel_traits_type_new;
-		using input_type_02_kernel_traits_type = input_type_02_kernel_traits_type_new;
-		using input_type_03_kernel_traits_type = input_type_03_kernel_traits_type_new;
-		using dims_type						   = typename input_type_03_kernel_traits_type::dims_type;
-		static constexpr composite_kernel_types kernel_type{ kernel_type_new };
-	};
+		template<size_t N> using input_type = std::conditional_t<(N < sizeof...(input_kernel_traits_types)), std::tuple_element_t<N, input_types_tuple>, void>;
 
-	template<model_config config, composite_kernel_types kernel_type_new, typename output_type_new, typename input_type_01_kernel_traits_type_new,
-		typename input_type_02_kernel_traits_type_new, typename input_type_03_kernel_traits_type_new, typename input_type_04_kernel_traits_type_new>
-	struct composite_kernel_traits<config, kernel_type_new, output_type_new, input_type_01_kernel_traits_type_new, input_type_02_kernel_traits_type_new,
-		input_type_03_kernel_traits_type_new, input_type_04_kernel_traits_type_new> : public input_type_04_kernel_traits_type_new::dims_type {
-		using output_type					   = output_type_new;
-		using input_type_01_kernel_traits_type = input_type_01_kernel_traits_type_new;
-		using input_type_02_kernel_traits_type = input_type_02_kernel_traits_type_new;
-		using input_type_03_kernel_traits_type = input_type_03_kernel_traits_type_new;
-		using input_type_04_kernel_traits_type = input_type_04_kernel_traits_type_new;
-		using dims_type						   = typename input_type_04_kernel_traits_type::dims_type;
-		static constexpr composite_kernel_types kernel_type{ kernel_type_new };
-	};
-
-	template<model_config config, composite_kernel_types kernel_type_new, typename output_type_new, typename input_type_01_kernel_traits_type_new,
-		typename input_type_02_kernel_traits_type_new, typename input_type_03_kernel_traits_type_new, typename input_type_04_kernel_traits_type_new,
-		typename input_type_05_kernel_traits_type_new>
-	struct composite_kernel_traits<config, kernel_type_new, output_type_new, input_type_01_kernel_traits_type_new, input_type_02_kernel_traits_type_new,
-		input_type_03_kernel_traits_type_new, input_type_04_kernel_traits_type_new, input_type_05_kernel_traits_type_new> : public input_type_05_kernel_traits_type_new::dims_type {
-		using output_type					   = output_type_new;
-		using input_type_01_kernel_traits_type = input_type_01_kernel_traits_type_new;
-		using input_type_02_kernel_traits_type = input_type_02_kernel_traits_type_new;
-		using input_type_03_kernel_traits_type = input_type_03_kernel_traits_type_new;
-		using input_type_04_kernel_traits_type = input_type_04_kernel_traits_type_new;
-		using input_type_05_kernel_traits_type = input_type_05_kernel_traits_type_new;
-		using dims_type						   = typename input_type_05_kernel_traits_type::dims_type;
-		static constexpr composite_kernel_types kernel_type{ kernel_type_new };
-	};
-
-	template<model_config config, composite_kernel_types kernel_type_new, typename output_type_new, typename input_type_01_kernel_traits_type_new,
-		typename input_type_02_kernel_traits_type_new, typename input_type_03_kernel_traits_type_new, typename input_type_04_kernel_traits_type_new,
-		typename input_type_05_kernel_traits_type_new, typename input_type_06_kernel_traits_type_new>
-	struct composite_kernel_traits<config, kernel_type_new, output_type_new, input_type_01_kernel_traits_type_new, input_type_02_kernel_traits_type_new,
-		input_type_03_kernel_traits_type_new, input_type_04_kernel_traits_type_new, input_type_05_kernel_traits_type_new, input_type_06_kernel_traits_type_new>
-		: public input_type_06_kernel_traits_type_new::dims_type {
-		using output_type					   = output_type_new;
-		using input_type_01_kernel_traits_type = input_type_01_kernel_traits_type_new;
-		using input_type_02_kernel_traits_type = input_type_02_kernel_traits_type_new;
-		using input_type_03_kernel_traits_type = input_type_03_kernel_traits_type_new;
-		using input_type_04_kernel_traits_type = input_type_04_kernel_traits_type_new;
-		using input_type_05_kernel_traits_type = input_type_05_kernel_traits_type_new;
-		using input_type_06_kernel_traits_type = input_type_06_kernel_traits_type_new;
-		using dims_type						   = typename input_type_06_kernel_traits_type::dims_type;
-		static constexpr composite_kernel_types kernel_type{ kernel_type_new };
-	};
-
-	template<model_config config, composite_kernel_types kernel_type_new, typename output_type_new, typename input_type_01_kernel_traits_type_new,
-		typename input_type_02_kernel_traits_type_new, typename input_type_03_kernel_traits_type_new, typename input_type_04_kernel_traits_type_new,
-		typename input_type_05_kernel_traits_type_new, typename input_type_06_kernel_traits_type_new, typename input_type_07_kernel_traits_type_new>
-	struct composite_kernel_traits<config, kernel_type_new, output_type_new, input_type_01_kernel_traits_type_new, input_type_02_kernel_traits_type_new,
-		input_type_03_kernel_traits_type_new, input_type_04_kernel_traits_type_new, input_type_05_kernel_traits_type_new, input_type_06_kernel_traits_type_new,
-		input_type_07_kernel_traits_type_new> : public input_type_07_kernel_traits_type_new::dims_type {
-		using output_type					   = output_type_new;
-		using input_type_01_kernel_traits_type = input_type_01_kernel_traits_type_new;
-		using input_type_02_kernel_traits_type = input_type_02_kernel_traits_type_new;
-		using input_type_03_kernel_traits_type = input_type_03_kernel_traits_type_new;
-		using input_type_04_kernel_traits_type = input_type_04_kernel_traits_type_new;
-		using input_type_05_kernel_traits_type = input_type_05_kernel_traits_type_new;
-		using input_type_06_kernel_traits_type = input_type_06_kernel_traits_type_new;
-		using input_type_07_kernel_traits_type = input_type_07_kernel_traits_type_new;
-		using dims_type						   = typename input_type_07_kernel_traits_type::dims_type;
-		static constexpr composite_kernel_types kernel_type{ kernel_type_new };
-	};
-
-	template<model_config config, composite_kernel_types kernel_type_new, typename output_type_new, typename input_type_01_kernel_traits_type_new,
-		typename input_type_02_kernel_traits_type_new, typename input_type_03_kernel_traits_type_new, typename input_type_04_kernel_traits_type_new,
-		typename input_type_05_kernel_traits_type_new, typename input_type_06_kernel_traits_type_new, typename input_type_07_kernel_traits_type_new,
-		typename input_type_08_kernel_traits_type_new>
-	struct composite_kernel_traits<config, kernel_type_new, output_type_new, input_type_01_kernel_traits_type_new, input_type_02_kernel_traits_type_new,
-		input_type_03_kernel_traits_type_new, input_type_04_kernel_traits_type_new, input_type_05_kernel_traits_type_new, input_type_06_kernel_traits_type_new,
-		input_type_07_kernel_traits_type_new, input_type_08_kernel_traits_type_new> : public input_type_08_kernel_traits_type_new::dims_type {
-		using output_type					   = output_type_new;
-		using input_type_01_kernel_traits_type = input_type_01_kernel_traits_type_new;
-		using input_type_02_kernel_traits_type = input_type_02_kernel_traits_type_new;
-		using input_type_03_kernel_traits_type = input_type_03_kernel_traits_type_new;
-		using input_type_04_kernel_traits_type = input_type_04_kernel_traits_type_new;
-		using input_type_05_kernel_traits_type = input_type_05_kernel_traits_type_new;
-		using input_type_06_kernel_traits_type = input_type_06_kernel_traits_type_new;
-		using input_type_07_kernel_traits_type = input_type_07_kernel_traits_type_new;
-		using input_type_08_kernel_traits_type = input_type_08_kernel_traits_type_new;
-		using dims_type						   = typename input_type_08_kernel_traits_type::dims_type;
-		static constexpr composite_kernel_types kernel_type{ kernel_type_new };
+		static constexpr size_t input_count = sizeof...(input_kernel_traits_types);
 	};
 
 }

@@ -25,27 +25,29 @@ RealTimeChris (Chris M.)
 
 namespace detail {
 
+	template<typename value_type>
+	concept r_value_reference_types = std::is_rvalue_reference_v<value_type>;
+
 	template<typename value_01_type, typename value_02_type>
 	concept convertible_to = std::is_convertible_v<value_02_type, value_01_type>;
 
 	template<typename value_01_type, convertible_to<value_01_type> value_02_type> NIHILUS_INLINE constexpr value_01_type max(value_01_type val01, value_02_type val02) noexcept {
-		return val01 > static_cast<value_01_type>(val02) ? val01 : static_cast<value_01_type>(val02);
+		return val01 > static_cast<std::remove_cvref_t<value_01_type>>(val02) ? val01 : static_cast<std::remove_cvref_t<value_01_type>>(val02);
 	}
 
 	template<typename value_01_type, convertible_to<value_01_type> value_02_type> NIHILUS_INLINE constexpr value_01_type min(value_01_type val01, value_02_type val02) noexcept {
-		return val01 < static_cast<value_01_type>(val02) ? val01 : static_cast<value_01_type>(val02);
+		return val01 < static_cast<std::remove_cvref_t<value_01_type>>(val02) ? val01 : static_cast<std::remove_cvref_t<value_01_type>>(val02);
 	}
 
-	template<class value_type> NIHILUS_INLINE constexpr value_type&& forward(std::remove_reference_t<value_type>& arg) noexcept {
+	template<typename value_type> NIHILUS_INLINE constexpr value_type&& forward(value_type& arg) noexcept {
 		return static_cast<value_type&&>(arg);
 	}
 
-	template<class value_type> NIHILUS_INLINE constexpr value_type&& forward(std::remove_reference_t<value_type>&& arg) noexcept {
-		static_assert(!std::is_lvalue_reference_v<value_type>, "bad detail::forward call");
-		return static_cast<value_type&&>(arg);
+	template<r_value_reference_types value_type> NIHILUS_INLINE constexpr value_type&& forward(value_type arg) noexcept {
+		return arg;
 	}
 
-	template<class value_type> NIHILUS_INLINE constexpr std::remove_reference_t<value_type>&& move(value_type&& arg) noexcept {
+	template<typename value_type> NIHILUS_INLINE constexpr std::remove_cvref_t<value_type>&& move(value_type&& arg) noexcept {
 		return static_cast<std::remove_reference_t<value_type>&&>(arg);
 	}
 

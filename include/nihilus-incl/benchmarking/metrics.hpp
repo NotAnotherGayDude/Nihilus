@@ -29,11 +29,11 @@ RealTimeChris (Chris M.)
 namespace nihilus::benchmarking {
 
 	struct performance_metrics {
-		double throughputPercentageDeviation{ std::numeric_limits<double>::max() };
-		std::optional<double> cacheReferencesPerExecution{};
-		std::optional<double> instructionsPerExecution{};
-		std::optional<double> branchMissesPerExecution{};
-		std::optional<double> cacheMissesPerExecution{};
+		double throughput_percentage_deviation{ std::numeric_limits<double>::max() };
+		std::optional<double> cache_references_per_execution{};
+		std::optional<double> instructions_per_execution{};
+		std::optional<double> branch_missesPerExecution{};
+		std::optional<double> cache_missesPerExecution{};
 		std::optional<uint64_t> totalIterationCount{};
 		std::optional<double> instructionsPerCycle{};
 		std::optional<double> branchesPerExecution{};
@@ -53,7 +53,7 @@ namespace nihilus::benchmarking {
 
 namespace nihilus::benchmarking::internal {
 
-	NIHILUS_INLINE double calculateThroughputMBps(double nanoseconds, double bytesProcessed) {
+	NIHILUS_INLINE double calculate_throughput_mbps(double nanoseconds, double bytesProcessed) {
 		constexpr double bytesPerMB		= 1024.0 * 1024.0;
 		constexpr double nanosPerSecond = 1e9;
 		double megabytes = bytesProcessed / bytesPerMB;
@@ -64,11 +64,11 @@ namespace nihilus::benchmarking::internal {
 		return megabytes / seconds;
 	}
 
-	NIHILUS_INLINE double calculateUnitsPs(double nanoseconds, double bytesProcessed) {
+	NIHILUS_INLINE double calculate_unitsps(double nanoseconds, double bytesProcessed) {
 		return (bytesProcessed * 1000000000.0) / nanoseconds;
 	}
 
-	NIHILUS_INLINE static performance_metrics collectMetrics(std::span<event_count>&& eventsNewer, size_t totalIterationCount) {
+	NIHILUS_INLINE static performance_metrics collect_metrics(std::span<event_count>&& eventsNewer, size_t totalIterationCount) {
 		performance_metrics metrics{};
 		metrics.totalIterationCount.emplace(totalIterationCount);
 		double throughPut{};
@@ -90,22 +90,22 @@ namespace nihilus::benchmarking::internal {
 		double branches{};
 		double branchesTotal{};
 		double branchesAvg{};
-		double branchMisses{};
-		double branchMissesTotal{};
-		double branchMissesAvg{};
-		double cacheReferences{};
-		double cacheReferencesTotal{};
-		double cacheReferencesAvg{};
-		double cacheMisses{};
-		double cacheMissesTotal{};
-		double cacheMissesAvg{};
+		double branch_misses{};
+		double branch_missesTotal{};
+		double branch_missesAvg{};
+		double cache_references{};
+		double cache_referencesTotal{};
+		double cache_referencesAvg{};
+		double cache_misses{};
+		double cache_missesTotal{};
+		double cache_missesAvg{};
 		for (const event_count& e: eventsNewer) {
 			ns = e.elapsedNs();
 			nsTotal += ns;
 
 			if (e.bytesProcessed(bytesProcessed)) {
 				bytesProcessedTotal += bytesProcessed;
-				throughPut = calculateThroughputMBps(ns, static_cast<double>(bytesProcessed));
+				throughPut = calculate_throughput_mbps(ns, static_cast<double>(bytesProcessed));
 				throughPutTotal += throughPut;
 				throughPutMin = throughPut < throughPutMin ? throughPut : throughPutMin;
 			}
@@ -122,16 +122,16 @@ namespace nihilus::benchmarking::internal {
 				branchesTotal += branches;
 			}
 
-			if (e.branchMisses(branchMisses)) {
-				branchMissesTotal += branchMisses;
+			if (e.branch_misses(branch_misses)) {
+				branch_missesTotal += branch_misses;
 			}
 
-			if (e.cacheReferences(cacheReferences)) {
-				cacheReferencesTotal += cacheReferences;
+			if (e.cache_references(cache_references)) {
+				cache_referencesTotal += cache_references;
 			}
 
-			if (e.cacheMisses(cacheMisses)) {
-				cacheMissesTotal += cacheMisses;
+			if (e.cache_misses(cache_misses)) {
+				cache_missesTotal += cache_misses;
 			}
 		}
 		if (eventsNewer.size() > 0) {
@@ -141,9 +141,9 @@ namespace nihilus::benchmarking::internal {
 			cyclesAvg		   = cyclesTotal / static_cast<double>(eventsNewer.size());
 			instructionsAvg	   = instructionsTotal / static_cast<double>(eventsNewer.size());
 			branchesAvg		   = branchesTotal / static_cast<double>(eventsNewer.size());
-			branchMissesAvg	   = branchMissesTotal / static_cast<double>(eventsNewer.size());
-			cacheReferencesAvg = cacheReferencesTotal / static_cast<double>(eventsNewer.size());
-			cacheMissesAvg	   = cacheMissesTotal / static_cast<double>(eventsNewer.size());
+			branch_missesAvg	   = branch_missesTotal / static_cast<double>(eventsNewer.size());
+			cache_referencesAvg = cache_referencesTotal / static_cast<double>(eventsNewer.size());
+			cache_missesAvg	   = cache_missesTotal / static_cast<double>(eventsNewer.size());
 			metrics.timeInNs   = nsAvg;
 		} else {
 			return {};
@@ -153,7 +153,7 @@ namespace nihilus::benchmarking::internal {
 		if (std::abs(nsAvg) > epsilon) {
 			metrics.bytesProcessed				  = bytesProcessedAvg;
 			metrics.throughputMbPerSec			  = throughPutAvg;
-			metrics.throughputPercentageDeviation = ((throughPutAvg - throughPutMin) * 100.0) / throughPutAvg;
+			metrics.throughput_percentage_deviation = ((throughPutAvg - throughPutMin) * 100.0) / throughPutAvg;
 		}
 		if (std::abs(cyclesAvg) > epsilon) {
 			if (metrics.bytesProcessed > 0) {
@@ -169,17 +169,17 @@ namespace nihilus::benchmarking::internal {
 			if (std::abs(cyclesAvg) > epsilon) {
 				metrics.instructionsPerCycle.emplace(instructionsAvg / cyclesAvg);
 			}
-			metrics.instructionsPerExecution.emplace(instructionsTotal / static_cast<double>(eventsNewer.size()));
+			metrics.instructions_per_execution.emplace(instructionsTotal / static_cast<double>(eventsNewer.size()));
 		}
 		if (std::abs(branchesAvg) > epsilon) {
-			metrics.branchMissesPerExecution.emplace(branchMissesAvg / static_cast<double>(eventsNewer.size()));
+			metrics.branch_missesPerExecution.emplace(branch_missesAvg / static_cast<double>(eventsNewer.size()));
 			metrics.branchesPerExecution.emplace(branchesAvg / static_cast<double>(eventsNewer.size()));
 		}
-		if (std::abs(cacheMissesAvg) > epsilon) {
-			metrics.cacheMissesPerExecution.emplace(cacheMissesAvg / static_cast<double>(eventsNewer.size()));
+		if (std::abs(cache_missesAvg) > epsilon) {
+			metrics.cache_missesPerExecution.emplace(cache_missesAvg / static_cast<double>(eventsNewer.size()));
 		}
-		if (std::abs(cacheReferencesAvg) > epsilon) {
-			metrics.cacheReferencesPerExecution.emplace(cacheReferencesAvg / static_cast<double>(eventsNewer.size()));
+		if (std::abs(cache_referencesAvg) > epsilon) {
+			metrics.cache_references_per_execution.emplace(cache_referencesAvg / static_cast<double>(eventsNewer.size()));
 		}
 		return metrics;
 	}
@@ -193,48 +193,45 @@ namespace nihilus::benchmarking::internal {
 		{ opt.emplace(typename std::remove_cvref_t<metrics_type>::value_type{}) } -> std::same_as<typename std::remove_cvref_t<metrics_type>::value_type&>;
 	};
 
-	NIHILUS_INLINE static std::string printResults(const performance_metrics& metrics, uint64_t thread, std::string_view kernel_name, bool showComparison = true,
-		bool showMetrics = true) {
+	NIHILUS_INLINE static std::string printResults(const performance_metrics& metrics, uint64_t thread, std::string_view kernel_name) {
 		std::stringstream stream{};
 		stream << "Performance Metrics: " << std::endl;
-		if (showMetrics) {
-			stream << "Metrics for: " << kernel_name << ", For Thread #" << std::to_string(thread) << std::endl;
-			stream << std::fixed << std::setprecision(2);
+		stream << "Metrics for: " << kernel_name << ", For Thread #" << std::to_string(thread) << std::endl;
+		stream << std::fixed << std::setprecision(2);
 
-			static constexpr auto printMetric = []<typename metrics_type>(const std::string_view& label, const metrics_type& metricsNew, std::stringstream& stream) {
-				if constexpr (optional_t<metrics_type>) {
-					if (metricsNew.has_value()) {
-						stream << std::left << std::setw(60ull) << label << ": " << metricsNew.value() << std::endl;
-					}
-				} else {
-					stream << std::left << std::setw(60ull) << label << ": " << metricsNew << std::endl;
+		static constexpr auto printMetric = []<typename metrics_type>(const std::string_view& label, const metrics_type& metricsNew, std::stringstream& stream) {
+			if constexpr (optional_t<metrics_type>) {
+				if (metricsNew.has_value()) {
+					stream << std::left << std::setw(60ull) << label << ": " << metricsNew.value() << std::endl;
 				}
-			};
-			std::string instructionCount{};
-			std::string throughPutString{};
-			std::string cycleCount{};
-			std::string metricName{};
-			throughPutString = "Throughput (MB/s)";
-			metricName		 = "Bytes Processed";
-			cycleCount		 = "Cycles per Byte";
-			instructionCount = "Instructions per Byte";
-			printMetric("Iterations", metrics.totalIterationCount, stream);
-			printMetric(metricName, metrics.bytesProcessed, stream);
-			printMetric("Nanoseconds per Execution", metrics.timeInNs, stream);
-			printMetric("Frequency (GHz)", metrics.frequencyGHz, stream);
-			printMetric(throughPutString, metrics.throughputMbPerSec, stream);
-			printMetric("Cycles per Execution", metrics.cyclesPerExecution, stream);
-			printMetric(cycleCount, metrics.cyclesPerByte, stream);
-			printMetric("Instructions per Execution", metrics.instructionsPerExecution, stream);
-			printMetric("Instructions per Cycle", metrics.instructionsPerCycle, stream);
-			printMetric(instructionCount, metrics.instructionsPerByte, stream);
-			printMetric("Branches per Execution", metrics.branchesPerExecution, stream);
-			printMetric("Branch Misses per Execution", metrics.branchMissesPerExecution, stream);
-			printMetric("Cache References per Execution", metrics.cacheReferencesPerExecution,stream);
-			printMetric("Cache Misses per Execution", metrics.cacheMissesPerExecution, stream);
-			stream << "----------------------------------------" << std::endl;
-			return stream.str();
-		}
+			} else {
+				stream << std::left << std::setw(60ull) << label << ": " << metricsNew << std::endl;
+			}
+		};
+		std::string instructionCount{};
+		std::string throughPutString{};
+		std::string cycleCount{};
+		std::string metricName{};
+		throughPutString = "Throughput (MB/s)";
+		metricName		 = "Bytes Processed";
+		cycleCount		 = "Cycles per Byte";
+		instructionCount = "Instructions per Byte";
+		printMetric("Iterations", metrics.totalIterationCount, stream);
+		printMetric(metricName, metrics.bytesProcessed, stream);
+		printMetric("Nanoseconds per Execution", metrics.timeInNs, stream);
+		printMetric("Frequency (GHz)", metrics.frequencyGHz, stream);
+		printMetric(throughPutString, metrics.throughputMbPerSec, stream);
+		printMetric("Cycles per Execution", metrics.cyclesPerExecution, stream);
+		printMetric(cycleCount, metrics.cyclesPerByte, stream);
+		printMetric("Instructions per Execution", metrics.instructions_per_execution, stream);
+		printMetric("Instructions per Cycle", metrics.instructionsPerCycle, stream);
+		printMetric(instructionCount, metrics.instructionsPerByte, stream);
+		printMetric("Branches per Execution", metrics.branchesPerExecution, stream);
+		printMetric("Branch Misses per Execution", metrics.branch_missesPerExecution, stream);
+		printMetric("Cache References per Execution", metrics.cache_references_per_execution, stream);
+		printMetric("Cache Misses per Execution", metrics.cache_missesPerExecution, stream);
+		stream << "----------------------------------------" << std::endl;
+		return stream.str();
 	}
 
 }

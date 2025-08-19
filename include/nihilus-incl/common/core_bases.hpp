@@ -25,11 +25,18 @@ RealTimeChris (Chris M.)
 namespace nihilus {
 
 	template<model_config config, typename... bases> struct core_bases : public bases... {
+		using bases::operator[]...;
+		using bases::decl_elem...;
 		NIHILUS_INLINE core_bases()				 = default;
 		core_bases& operator=(core_bases&&)		 = delete;
 		core_bases(core_bases&&)				 = delete;
 		core_bases& operator=(const core_bases&) = delete;
 		core_bases(const core_bases&)			 = delete;
+
+		template<template<model_config, typename> typename mixin_type, typename... arg_types> NIHILUS_INLINE static constexpr void impl_static(arg_types&&... args) {
+			(impl_internal_filtered_static<mixin_type, bases>(args...), ...);
+		}
+
 		template<template<model_config, typename> typename mixin_type, typename... arg_types> NIHILUS_INLINE constexpr void impl(arg_types&&... args) const {
 			(impl_internal_filtered<mixin_type, bases>(detail::forward<arg_types>(args)...), ...);
 		}
@@ -43,7 +50,22 @@ namespace nihilus {
 			(impl_internal_filtered_thread<mixin_type, phase, bases>(args...), ...);
 		}
 
+		template<enum_types enum_type, enum_type enum_value> constexpr decltype(auto) get_core() const {
+			return (*this)[tag<enum_value>()];
+		}
+
+		template<enum_types enum_type, enum_type enum_value> constexpr decltype(auto) get_core() {
+			return (*this)[tag<enum_value>()];
+		}
+
 	  protected:
+		template<template<model_config, typename> typename mixin_type, typename base_type, typename... arg_types>
+		NIHILUS_INLINE static constexpr void impl_internal_filtered_static([[maybe_unused]] arg_types&&... args) {
+			if constexpr (mixin_type<config, base_type>::filter()) {
+				mixin_type<config, base_type>::impl(detail::forward<arg_types>(args)...);
+			}
+		}
+
 		template<template<model_config, typename> typename mixin_type, typename base_type, typename... arg_types>
 		NIHILUS_INLINE constexpr void impl_internal_filtered([[maybe_unused]] arg_types&&... args) const {
 			if constexpr (mixin_type<config, base_type>::filter()) {
@@ -66,83 +88,19 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename index_sequence> struct get_core_bases;
+	template<model_config config, typename enum_type, typename index_sequence> struct get_core_bases;
 
-	template<model_config config, size_t... index> struct get_core_bases<config, std::index_sequence<index...>> {
-		using type = core_bases<config, op_traits<config, static_cast<typename model_traits_type<config>::op_type_type>(index)>...>;
+	template<model_config config, typename enum_type, size_t... index> struct get_core_bases<config, enum_type, std::index_sequence<index...>> {
+		using type = core_bases<config, core_traits<config, static_cast<enum_type>(index)>...>;
 	};
 
-	template<model_config config> using get_core_bases_t = typename get_core_bases<config, std::make_index_sequence<static_cast<uint64_t>(op_types::count)>>::type;
+	template<model_config config, typename enum_type> using get_core_bases_t =
+		typename get_core_bases<config, enum_type, std::make_index_sequence<static_cast<uint64_t>(enum_type::count)>>::type;
 
-	template<model_config config_new> static constexpr get_core_bases_t<config_new> core_bases_val{};
-
-	template<uint64_t max_depth> NIHILUS_INLINE constexpr uint64_t calculate_peak_concurrent_memory(const array<depth_and_bytes, op_types::count>& depths_new) {
-		array<depth_and_bytes, op_types::count> depths_newer{ depths_new };
-		array<uint64_t, max_depth> depth_byte_counts{};
-
-		for (uint64_t x = 0; x < max_depth; ++x) {
-			for (uint64_t y = 0; y < depths_new.size(); ++y) {
-				//depth_byte_counts[x] += static_cast<uint64_t>(depths_newer[y].required_bytes);
-			}
-		}
-
-		uint64_t max_size{};
-		for (uint64_t x = 0; x < depth_byte_counts.size(); ++x) {
-			if (max_size < depth_byte_counts[x]) {
-				max_size = depth_byte_counts[x];
-			}
-		}
-		return max_size;
-	}
-
-	constexpr int64_t alignment = cpu_alignment_holder::cpu_alignment;
-	constexpr int64_t align_up(int64_t x) {
-		return (x + (alignment - 1)) & ~(alignment - 1);
-	}
-
-	constexpr bool overlaps(int64_t a_start, int64_t a_end, int64_t b_start, int64_t b_end) {
-		return !(a_end < b_start || b_end < a_start);
-	}
-
-	constexpr memory_plan compute_offsets(array<depth_and_bytes, op_types::count> tensors, int64_t max_size_guess) {
-		memory_plan result{ static_cast<uint64_t>(max_size_guess) };
-		//int64_t  alloc_count	   = 0;
-		int64_t current_offset = 0;
-
-		for (uint64_t x = 0; x < tensors.size(); ++x) {
-			result.offsets[x].offset = current_offset;
-			current_offset += tensors[x].required_bytes;
-		}
-
-		result.memory_total = static_cast<uint64_t>(current_offset);
-		return result;
-	}
-
-	template<model_config config_new> struct core_bases_traits_type {
-		static constexpr uint64_t max_depth{ []() {
-			uint64_t return_value{};
-			core_bases_val<config_new>.template impl<max_depth_calculator>(return_value);
-			return return_value;
-		}() };
-		static constexpr auto depths{ []() {
-			array<depth_and_bytes, op_types::count> return_value{};
-			depth_and_bytes fill_value{};
-			fill_value.last_used_depth	= max_depth;
-			fill_value.first_used_depth = -1;
-			return_value.fill(fill_value);
-			std::sort(return_value.begin(), return_value.end(), std::less<depth_and_bytes>{});
-			core_bases_val<config_new>.template impl<memory_planner_depths>(return_value);
-			return return_value;
-		}() };
-		static constexpr uint64_t max_size{ []() {
-			return calculate_peak_concurrent_memory<max_depth>(depths);
-		}() };
-		static constexpr auto memory_plan_val{ []() {
-			return compute_offsets(depths, max_size);
-		}() };
-		static constexpr array<uint64_t, max_depth + 1> ops_per_depth{ []() {
-			array<uint64_t, max_depth + 1> return_value{};
-			core_bases_val<config_new>.template impl<ops_per_depth_calculator>(return_value);
+	template<model_config config, typename enum_type> struct core_bases_traits {
+		static constexpr memory_plan total_required_bytes{ []() {
+			memory_plan<config> return_value{};
+			get_core_bases_t<config, enum_type>::template impl_static<total_bytes_collector>(return_value);
 			return return_value;
 		}() };
 	};

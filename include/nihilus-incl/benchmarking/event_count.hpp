@@ -72,27 +72,27 @@ namespace nihilus::benchmarking::internal {
 			}
 		}
 
-		NIHILUS_INLINE bool branchMisses(double& branchMissesNew) const noexcept {
-			if (branchMissesVal.has_value()) {
-				branchMissesNew = static_cast<double>(branchMissesVal.value());
+		NIHILUS_INLINE bool branch_misses(double& branch_missesNew) const noexcept {
+			if (branch_missesVal.has_value()) {
+				branch_missesNew = static_cast<double>(branch_missesVal.value());
 				return true;
 			} else {
 				return false;
 			}
 		}
 
-		NIHILUS_INLINE bool cacheMisses(double& cacheMissesNew) const noexcept {
-			if (cacheMissesVal.has_value()) {
-				cacheMissesNew = static_cast<double>(cacheMissesVal.value());
+		NIHILUS_INLINE bool cache_misses(double& cache_missesNew) const noexcept {
+			if (cache_missesVal.has_value()) {
+				cache_missesNew = static_cast<double>(cache_missesVal.value());
 				return true;
 			} else {
 				return false;
 			}
 		}
 
-		NIHILUS_INLINE bool cacheReferences(double& cacheReferencesNew) const noexcept {
-			if (cacheReferencesVal.has_value()) {
-				cacheReferencesNew = static_cast<double>(cacheReferencesVal.value());
+		NIHILUS_INLINE bool cache_references(double& cache_referencesNew) const noexcept {
+			if (cache_referencesVal.has_value()) {
+				cache_referencesNew = static_cast<double>(cache_referencesVal.value());
 				return true;
 			} else {
 				return false;
@@ -100,11 +100,11 @@ namespace nihilus::benchmarking::internal {
 		}
 
 	  protected:
-		std::optional<uint64_t> cacheReferencesVal{};
+		std::optional<uint64_t> cache_referencesVal{};
 		std::optional<uint64_t> bytesProcessedVal{};
-		std::optional<uint64_t> branchMissesVal{};
+		std::optional<uint64_t> branch_missesVal{};
 		std::optional<uint64_t> instructionsVal{};
-		std::optional<uint64_t> cacheMissesVal{};
+		std::optional<uint64_t> cache_missesVal{};
 		std::chrono::duration<double> elapsed{};
 		std::optional<uint64_t> branchesVal{};
 		std::optional<uint64_t> cyclesVal{};

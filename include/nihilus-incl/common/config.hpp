@@ -88,10 +88,6 @@ RealTimeChris (Chris M.)
 	#define NIHILUS_ELSE_UNLIKELY(...) __VA_ARGS__ [[unlikely]]
 #endif
 
-#if !defined(NIHILUS_ALIGN)
-	#define NIHILUS_ALIGN(N) alignas(N)
-#endif
-
 #if NIHILUS_ARCH_X64
 	#include <immintrin.h>
 #elif NIHILUS_ARCH_ARM64
@@ -150,4 +146,4 @@ inline std::atomic_uint64_t current_count{};
 
 using clock_type = std::conditional_t<std::chrono::high_resolution_clock::is_steady, std::chrono::high_resolution_clock, std::chrono::steady_clock>;
 
-#include "../benchmarking/event_counter.hpp"
+#include <nihilus-incl/benchmarking/event_counter.hpp>

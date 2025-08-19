@@ -75,8 +75,6 @@ namespace nihilus {
 
 	template<typename value_type> using type_t = typename value_type::type;
 
-	template<uint64_t index> using tag = std::integral_constant<uint64_t, index>;
-
 	template<typename tup> using base_list_t = typename std::decay_t<tup>::base_list;
 
 	template<typename tuple>
@@ -141,7 +139,7 @@ namespace nihilus {
 
 	template<typename... types> tuple(types&&...) -> tuple<std::remove_cvref_t<types>...>;
 
-	template<uint64_t index, indexable tup> static constexpr decltype(auto) get(tup&& tupleVal) {
+	template<integral_or_enum_types auto index, indexable tup> static constexpr decltype(auto) get(tup&& tupleVal) {
 		return static_cast<tup&&>(tupleVal)[tag<index>()];
 	}
 

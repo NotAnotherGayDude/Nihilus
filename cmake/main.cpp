@@ -1,6 +1,5 @@
 // Sampled mostly from Simdjson: https://github.com/simdjson/simdjson
 #if defined(NIHILUS_DETECT_ARCH)
-	#include <iostream>
 	#include <cstring>
 	#include <cstdint>
 	#include <cstdlib>
@@ -18,19 +17,6 @@ enum class instruction_set {
 	SVE2	 = 0x8,
 };
 
-namespace {
-	static constexpr uint32_t cpuid_avx2_bit	 = 1ul << 5;
-	static constexpr uint32_t cpuid_avx512_bit	 = 1ul << 16;
-	static constexpr uint64_t cpuid_avx256_saved = 1ull << 2;
-	static constexpr uint64_t cpuid_avx512_saved = 7ull << 5;
-	static constexpr uint32_t cpuid_osx_save	 = (1ul << 26) | (1ul << 27);
-}
-
-	#if defined(__x86_64__) || defined(_M_AMD64)
-inline static void cpuid(uint32_t* eax, uint32_t* ebx, uint32_t* ecx, uint32_t* edx);
-inline static uint64_t xgetbv();
-	#endif
-
 	#if defined(__aarch64__) || defined(_M_ARM64) || defined(_M_ARM64EC)
 		#if defined(__linux__)
 			#include <sys/auxv.h>
@@ -46,16 +32,19 @@ inline static uint32_t detect_supported_architectures() {
 	unsigned long hwcap = getauxval(AT_HWCAP);
 	if (hwcap & HWCAP_SVE) {
 		host_isa |= static_cast<uint32_t>(instruction_set::SVE2);
-		std::cout << "ARM SVE detected\n";
 	}
-		#elif defined(__APPLE__)
-	std::cout << "Apple ARM64 - NEON baseline\n";
 		#endif
 
 	return host_isa;
 }
 
 	#elif defined(__x86_64__) || defined(_M_AMD64)
+static constexpr uint32_t cpuid_avx2_bit	 = 1ul << 5;
+static constexpr uint32_t cpuid_avx512_bit	 = 1ul << 16;
+static constexpr uint64_t cpuid_avx256_saved = 1ull << 2;
+static constexpr uint64_t cpuid_avx512_saved = 7ull << 5;
+static constexpr uint32_t cpuid_osx_save	 = (1ul << 26) | (1ul << 27);
+
 inline static void cpuid(uint32_t* eax, uint32_t* ebx, uint32_t* ecx, uint32_t* edx) {
 		#if defined(_MSC_VER)
 	int32_t cpu_info[4];

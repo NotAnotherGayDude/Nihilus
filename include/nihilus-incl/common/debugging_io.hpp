@@ -252,7 +252,7 @@ namespace nihilus {
 		stream << "]\n";
 	}
 
-	void print_typed_data(std::ostream& stream, const std::vector<uint8_t>& data, data_types type, int64_t offending_index = 0) {
+	void print_typed_data(std::ostream& stream, const vector<uint8_t>& data, data_types type, int64_t offending_index = 0) {
 		if (data.empty()) {
 			stream << "[empty]\n";
 			return;
@@ -533,9 +533,9 @@ namespace nihilus {
 			op	 = convert_ggml_op_to_nihilus_kernel(other.op);
 		}
 		std::string name{};
-		std::vector<uint8_t> data{};
+		vector<uint8_t> data{};
 		source_types source_type{ source_types::ggml };
-		std::vector<std::string> inputs{};
+		vector<std::string> inputs{};
 		data_types type{};
 		kernel_types op{};
 	};

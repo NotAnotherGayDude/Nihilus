@@ -79,8 +79,8 @@ static constexpr nihilus::model_sizes model_size{ LLAMA_MODEL_SIZE };
 
 int main(int argc, char** argv) {
 	try {
-		static constexpr auto model_config = nihilus::generate_model_config(nihilus::model_generations::v3, model_size, nihilus::kernel_type_profiles::q8_gqa,
-			nihilus::model_arches::llama, false);
+		static constexpr auto model_config =
+			nihilus::generate_model_config(nihilus::model_generations::v3_1, model_size, nihilus::kernel_type_profiles::q8_gqa, nihilus::model_arches::llama, false);
 		static constexpr auto model_config01 = nihilus::update_model_config_benchmark(model_config, true);
 
 		nihilus::cli_params cli_args = nihilus::harbinger<model_config01>::parse_cli_arguments(argc, argv);

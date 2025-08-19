@@ -33,7 +33,7 @@ namespace nihilus {
 		invalid_index_type,
 	};
 
-	template<uint64_t index> using tag = std::integral_constant<uint64_t, index>;
+	template<auto index> using tag = std::integral_constant<uint64_t, static_cast<uint64_t>(index)>;
 
 	template<typename value_type_new, auto size_new> struct array {
 	  public:
@@ -179,7 +179,7 @@ namespace nihilus {
 			static_assert(static_assert_printer<is_indexable<index_type, decltype(size_new)>, array_static_assert_errors::invalid_index_type, index_type>::impl,
 				"Sorry, but please index into this array using the correct enum type!");
 			if (size_new <= position) {
-				throw std::runtime_error{ "invalid array<T, N> subscript" };
+				throw std::runtime_error{ "invalid array<value_type, N> subscript" };
 			}
 
 			return data_val[static_cast<uint64_t>(position)];
@@ -189,7 +189,7 @@ namespace nihilus {
 			static_assert(static_assert_printer<is_indexable<index_type, decltype(size_new)>, array_static_assert_errors::invalid_index_type, index_type>::impl,
 				"Sorry, but please index into this array using the correct enum type!");
 			if (size_new <= position) {
-				throw std::runtime_error{ "invalid array<T, N> subscript" };
+				throw std::runtime_error{ "invalid array<value_type, N> subscript" };
 			}
 
 			return data_val[static_cast<uint64_t>(position)];
@@ -248,10 +248,10 @@ namespace nihilus {
 			return true;
 		}
 
-		NIHILUS_ALIGN(cpu_alignment_holder::cpu_alignment) value_type data_val[size_val] {};
+		value_type data_val[size_val]{};
 	};
 
-	template<typename T, typename... U> array(T, U...) -> array<T, 1 + sizeof...(U)>;
+	template<typename value_type, typename... U> array(value_type, U...) -> array<value_type, 1 + sizeof...(U)>;
 
 	struct empty_array_element {};
 
@@ -336,11 +336,11 @@ namespace nihilus {
 		}
 
 		NIHILUS_INLINE constexpr reference at(uint64_types) {
-			throw std::runtime_error{ "invalid array<T, N> subscript" };
+			throw std::runtime_error{ "invalid array<value_type, N> subscript" };
 		}
 
 		NIHILUS_INLINE constexpr const_reference at(uint64_types) const {
-			throw std::runtime_error{ "invalid array<T, N> subscript" };
+			throw std::runtime_error{ "invalid array<value_type, N> subscript" };
 		}
 
 		NIHILUS_INLINE constexpr reference operator[](uint64_types) noexcept {

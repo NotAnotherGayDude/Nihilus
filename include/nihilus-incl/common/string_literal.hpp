@@ -112,11 +112,11 @@ namespace nihilus {
 		}
 
 		template<typename string_types> NIHILUS_INLINE constexpr operator string_types() const noexcept {
-			NIHILUS_ALIGN(cpu_alignment_holder::cpu_alignment) string_types return_values{ values, length };
+			alignas(cpu_alignment_holder::cpu_alignment) string_types return_values{ values, length };
 			return return_values;
 		}
 
-		NIHILUS_ALIGN(cpu_alignment_holder::cpu_alignment) value_type values[size_val] {};
+		alignas(cpu_alignment_holder::cpu_alignment) value_type values[size_val] {};
 	};
 
 	template<uint64_t size> string_literal(char (&)[size]) -> string_literal<size>;

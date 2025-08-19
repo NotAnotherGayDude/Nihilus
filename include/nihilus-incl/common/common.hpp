@@ -39,329 +39,6 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-	struct
-		jiff_the_jiping_jippalon_the_grand_jiper_of_the_jappaloneans_the_grand_chopper_of_jammals_onions_the_grand_jammer_of_jammals_vaccuum_the_grand_erector_of_jammals_pillar {};
-
-	static constexpr jiff_the_jiping_jippalon_the_grand_jiper_of_the_jappaloneans_the_grand_chopper_of_jammals_onions_the_grand_jammer_of_jammals_vaccuum_the_grand_erector_of_jammals_pillar
-		jiff{};
-
-	template<size_t alignment, typename value_type> struct alignas(alignment) static_aligned_const {
-		alignas(alignment) value_type value{};
-
-		NIHILUS_INLINE constexpr static_aligned_const() noexcept : value{} {
-		}
-
-		NIHILUS_INLINE constexpr static_aligned_const(value_type new_value) noexcept : value{ new_value } {
-		}
-
-		NIHILUS_INLINE constexpr operator const value_type&() const {
-			return value;
-		}
-
-		NIHILUS_INLINE operator value_type&() {
-			return value;
-		}
-	};
-
-	template<typename value_type> struct alignas(64) vector : public std::vector<value_type> {};
-
-	template<typename value_type> struct alignas(64) aligned_vector : public std::vector<value_type, allocator<value_type, 64>> {};
-
-	NIHILUS_ALIGN(64)
-	static constexpr array<static_aligned_const<64, bool>, 256> alpha_table{ [] {
-		alignas(64) array<static_aligned_const<64, bool>, 256> return_values{};
-
-		for (int32_t i = 'A'; i <= 'Z'; ++i) {
-			return_values[static_cast<uint64_t>(i)] = true;
-		}
-
-		for (int32_t i = 'a'; i <= 'z'; ++i) {
-			return_values[static_cast<uint64_t>(i)] = true;
-		}
-
-		return return_values;
-	}() };
-
-	template<typename value_type> NIHILUS_INLINE static constexpr bool is_alpha(value_type c) noexcept {
-		return alpha_table[static_cast<uint8_t>(c)];
-	}
-
-	NIHILUS_ALIGN(64)
-	static constexpr array<static_aligned_const<64, bool>, 256> space_table{ [] {
-		alignas(64) array<static_aligned_const<64, bool>, 256> return_values{};
-		return_values[static_cast<uint64_t>('\r')] = true;
-		return_values[static_cast<uint64_t>('\n')] = true;
-		return_values[static_cast<uint64_t>(' ')]  = true;
-		return_values[static_cast<uint64_t>('\t')] = true;
-		return_values[static_cast<uint64_t>('\v')] = true;
-		return_values[static_cast<uint64_t>('\f')] = true;
-		return return_values;
-	}() };
-
-	template<typename value_type> NIHILUS_INLINE static constexpr bool is_space(value_type c) noexcept {
-		return space_table[static_cast<uint8_t>(c)];
-	}
-
-	template<typename value_type> NIHILUS_INLINE static constexpr bool is_digit(value_type c) noexcept {
-		return static_cast<uint8_t>(c - '0') < 10;
-	}
-
-	template<typename value_type> struct parse_core;
-
-#if defined(NIHILUS_DEV) || defined(NIHILUS_BENCHMARK)
-	static constexpr auto spinlock_time{ 172000 };
-#endif
-
-	struct alignas(64) atomic_flag_wrapper {
-		static constexpr static_aligned_const<64, uint64_t> spin_cycles{ 50000 };
-		using value_type										= typename std::atomic_signed_lock_free::value_type;
-		NIHILUS_INLINE constexpr atomic_flag_wrapper() noexcept = default;
-		NIHILUS_INLINE constexpr atomic_flag_wrapper& operator=(const atomic_flag_wrapper&) noexcept {
-			return *this;
-		}
-
-		NIHILUS_INLINE constexpr atomic_flag_wrapper(const atomic_flag_wrapper&) noexcept {
-		}
-
-		NIHILUS_INLINE void store(int64_t value_new) {
-			flag.store(static_cast<value_type>(value_new), std::memory_order_release);
-		}
-
-		NIHILUS_INLINE int64_t load() {
-			return flag.load(std::memory_order_acquire);
-		}
-
-		NIHILUS_INLINE void clear() {
-			flag.store(0, std::memory_order_release);
-		}
-
-		NIHILUS_INLINE void test_and_set() {
-			flag.store(1, std::memory_order_release);
-		}
-
-		NIHILUS_INLINE void notify_one() {
-			flag.notify_one();
-		}
-
-		NIHILUS_INLINE void notify_all() {
-			flag.notify_all();
-		}
-
-		NIHILUS_INLINE int64_t fetch_add(int64_t value) {
-			return flag.fetch_add(static_cast<value_type>(value), std::memory_order_seq_cst);
-		}
-
-		NIHILUS_INLINE int64_t fetch_sub(int64_t value) {
-			return flag.fetch_sub(static_cast<value_type>(value), std::memory_order_seq_cst);
-		}
-
-		NIHILUS_INLINE bool test() {
-			return flag.load(std::memory_order_acquire) == 1;
-		}
-
-		NIHILUS_INLINE void wait(int64_t value) {
-			flag.wait(static_cast<value_type>(value), std::memory_order_acquire);
-		}
-
-		NIHILUS_INLINE void hybrid_wait(int64_t expected_value) {
-			for (uint32_t i = 0; flag.load(std::memory_order_acquire) < expected_value && i < spin_cycles; ++i) {
-				nihilus_pause();
-			}
-			if (flag.load(std::memory_order_acquire) >= expected_value) {
-				return;
-			}
-			while (flag.load(std::memory_order_acquire) != static_cast<value_type>(expected_value)) {
-				flag.wait(static_cast<value_type>(expected_value + 1), std::memory_order_acquire);
-			}
-		}
-
-	  protected:
-		alignas(64) std::atomic_signed_lock_free flag{};
-	};
-
-	template<bool all_blocking> struct linked_latch;
-
-	struct linked_latch_base {
-		alignas(64) int64_t thread_count{};
-		atomic_flag_wrapper completed_dependencies{};
-		atomic_flag_wrapper completed_workers{};
-		atomic_flag_wrapper in_process_workers{};
-		alignas(64) int64_t dependent_count{};
-		alignas(64) int64_t depended_count{};
-		alignas(64) array<linked_latch_base*, 4> dependents{};
-
-		NIHILUS_INLINE void init(int64_t thread_count_new) {
-			thread_count = thread_count_new;
-		}
-
-		NIHILUS_INLINE void reset(int64_t global_input_count) {
-			in_process_workers.store(0);
-			completed_workers.store(0);
-			completed_dependencies.store(global_input_count);
-		}
-
-	  protected:
-		constexpr ~linked_latch_base() {
-		}
-	};
-
-	template<> struct linked_latch<false> : public linked_latch_base {
-		static constexpr static_aligned_const<64, bool> blocking{ true };
-		NIHILUS_INLINE constexpr linked_latch() = default;
-
-		NIHILUS_INLINE bool is_ready(int64_t& thread_index) {
-			if (completed_dependencies.load() < depended_count) {
-				completed_dependencies.hybrid_wait(depended_count);
-			}
-
-			thread_index = in_process_workers.fetch_add(1);
-			return thread_index < thread_count;
-		}
-
-		NIHILUS_INLINE void complete_work() {
-			if (completed_workers.fetch_add(1) + 1 == thread_count) {
-				for (int64_t x = 0; x < dependent_count; ++x) {
-					if ((dependents[x]->completed_dependencies.fetch_add(1) + 1) == dependents[x]->depended_count) {
-						dependents[x]->completed_dependencies.notify_all();
-					}
-				}
-			}
-		}
-
-		NIHILUS_INLINE constexpr ~linked_latch() noexcept {
-		}
-	};
-
-	template<> struct linked_latch<true> : public linked_latch_base {
-		static constexpr static_aligned_const<64, bool> blocking{ true };
-		NIHILUS_INLINE constexpr linked_latch() = default;
-
-		NIHILUS_INLINE int64_t is_ready(int64_t& thread_index) {
-			if (completed_dependencies.load() < depended_count) {
-				completed_dependencies.hybrid_wait(depended_count);
-			}
-
-			thread_index = in_process_workers.fetch_add(1);
-			return thread_count;
-		}
-
-		NIHILUS_INLINE void complete_work() {
-			if (completed_workers.fetch_add(1) + 1 == thread_count) {
-				for (int64_t x = 0; x < dependent_count; ++x) {
-					if ((dependents[x]->completed_dependencies.fetch_add(1) + 1) == dependents[x]->depended_count) {
-						dependents[x]->completed_dependencies.notify_all();
-					}
-				}
-				completed_workers.notify_all();
-			} else {
-				completed_workers.hybrid_wait(thread_count);
-			}
-		}
-
-		NIHILUS_INLINE constexpr ~linked_latch() noexcept {
-		}
-	};
-
-	template<typename value_type> using latch_type = std::remove_cvref_t<decltype(std::remove_cvref_t<value_type>::latch[0])>;
-
-	template<typename value_type>
-	concept has_latch = requires(std::remove_cvref_t<value_type> value) { value.latch; };
-
-	template<typename value_type> static constexpr bool blocking = latch_type<value_type>::blocking;
-
-	template<typename value_type>
-	concept all_blocking = has_latch<value_type> && blocking<value_type>;
-
-	struct alignas(64) op_latch {
-		NIHILUS_INLINE op_latch() = default;
-		atomic_flag_wrapper global_flag{};
-		alignas(64) int64_t thread_count{};
-
-		NIHILUS_INLINE void init(int64_t thread_count_new) {
-			thread_count = thread_count_new;
-			global_flag.store(0);
-		}
-
-		NIHILUS_INLINE int64_t arrive_and_wait_get_thread(int64_t& thread_index) {
-			thread_index = global_flag.fetch_add(1);
-			bool wait{ (thread_index < thread_count - 1) };
-
-			if (wait) {
-				global_flag.hybrid_wait(thread_count);
-			} else {
-				global_flag.notify_all();
-				global_flag.store(0);
-			}
-			return thread_count;
-		}
-
-		NIHILUS_INLINE void arrive_and_wait() {
-			auto thread_index = global_flag.fetch_add(1);
-			bool wait{ (thread_index < thread_count - 1) };
-
-			if (wait) {
-				global_flag.hybrid_wait(thread_count);
-			} else {
-				global_flag.notify_all();
-				global_flag.store(0);
-			}
-			return;
-		}
-	};
-
-	struct alignas(64) main_gate_latch {
-		NIHILUS_INLINE main_gate_latch()								  = default;
-		NIHILUS_INLINE main_gate_latch& operator=(const main_gate_latch&) = delete;
-		NIHILUS_INLINE main_gate_latch(const main_gate_latch&)			  = delete;
-		vector<atomic_flag_wrapper> finish_flags{};
-		vector<atomic_flag_wrapper> start_flags{};
-		atomic_flag_wrapper global_counter{};
-		alignas(64) int64_t thread_count{};
-
-		NIHILUS_INLINE void init(int64_t thread_count_new) {
-			thread_count = thread_count_new;
-			start_flags.resize(static_cast<uint64_t>(thread_count));
-			finish_flags.resize(static_cast<uint64_t>(thread_count));
-			global_counter.store(thread_count);
-		}
-
-		NIHILUS_INLINE void worker_wait(uint64_t thread_index) {
-			start_flags[thread_index].wait(false);
-			start_flags[thread_index].clear();
-		}
-
-		NIHILUS_INLINE void arrive_and_wait(uint64_t thread_index) {
-			global_counter.fetch_sub(1);
-			global_counter.notify_one();
-
-			while (!finish_flags[thread_index].test()) {
-				nihilus_pause();
-			}
-			finish_flags[thread_index].clear();
-		}
-
-		NIHILUS_INLINE void count_down() {
-			for (int64_t x = 0; x < thread_count; ++x) {
-				start_flags[static_cast<uint64_t>(x)].test_and_set();
-				start_flags[static_cast<uint64_t>(x)].notify_one();
-			}
-		}
-
-		NIHILUS_INLINE void main_wait() {
-			int64_t current_value = global_counter.load();
-			while (current_value > 0) {
-				global_counter.wait(current_value + 1);
-				current_value = global_counter.load();
-			}
-
-			global_counter.store(static_cast<int64_t>(thread_count));
-			for (int64_t x = 0; x < thread_count; ++x) {
-				finish_flags[static_cast<uint64_t>(x)].test_and_set();
-				finish_flags[static_cast<uint64_t>(x)].notify_one();
-			}
-		}
-	};
-
 	template<typename value_type>
 	concept time_t = is_specialization_v<value_type, std::chrono::duration>;
 
@@ -449,161 +126,268 @@ namespace nihilus {
 		}
 	};
 
-	template<auto current_index, auto enum_count> NIHILUS_INLINE constexpr std::string_view get_enum_name() {
-		std::string_view return_string{ std::source_location::current().function_name() };
-		auto new_size	   = std::size("get_enum_name<");
-		uint64_t new_index = return_string.find("get_enum_name<") + new_size - 1;
-		return_string	   = return_string.substr(new_index, return_string.size() - new_index);
-		return_string	   = return_string.substr(0, return_string.find(','));
-		return return_string;
+	struct alignas(1024 * 8)
+		jiff_the_jiping_jippalon_the_grand_jiper_of_the_jappaloneans_the_grand_chopper_of_jammals_onions_the_grand_jammer_of_jammals_vaccuum_the_grand_erector_of_jammals_pillar {};
+
+	static constexpr jiff_the_jiping_jippalon_the_grand_jiper_of_the_jappaloneans_the_grand_chopper_of_jammals_onions_the_grand_jammer_of_jammals_vaccuum_the_grand_erector_of_jammals_pillar
+		jiff{};
+
+	template<typename value_type> struct alignas(64) vector : public std::vector<value_type, allocator<value_type, cpu_alignment_holder::cpu_alignment>> {};
+
+	template<size_t alignment, typename value_type> struct alignas(alignment) static_aligned_const {
+		alignas(alignment) value_type value{};
+
+		NIHILUS_INLINE constexpr static_aligned_const() noexcept : value{} {
+		}
+
+		NIHILUS_INLINE constexpr static_aligned_const(value_type new_value) noexcept : value{ new_value } {
+		}
+
+		NIHILUS_INLINE constexpr operator const value_type&() const {
+			return value;
+		}
+
+		NIHILUS_INLINE operator value_type&() {
+			return value;
+		}
+	};
+
+	template<auto value_new> struct make_static {
+		static constexpr auto value{ value_new };
+	};
+
+	template<typename value_type> NIHILUS_INLINE static constexpr bool is_alpha(value_type c) noexcept {
+		alignas(64) static constexpr const static_aligned_const<64, bool>* __restrict alpha_table{ [] constexpr {
+			alignas(64) constexpr array<static_aligned_const<64, bool>, 256> return_values{ [] {
+				array<static_aligned_const<64, bool>, 256> return_values{};
+				for (int32_t i = 'A'; i <= 'Z'; ++i) {
+					return_values[static_cast<uint64_t>(i)] = true;
+				}
+
+				for (int32_t i = 'a'; i <= 'z'; ++i) {
+					return_values[static_cast<uint64_t>(i)] = true;
+				}
+				return return_values;
+			}() };
+			return make_static<return_values>::value.data();
+		}() };
+		return alpha_table[static_cast<uint8_t>(c)];
 	}
 
-	template<auto current_index, auto enum_count> NIHILUS_INLINE std::string print_enum_value(auto enum_val) {
-		if constexpr (static_cast<uint64_t>(current_index) < static_cast<uint64_t>(enum_count)) {
-			if (static_cast<uint64_t>(current_index) == static_cast<uint64_t>(enum_val)) {
-				constexpr std::string_view string{ get_enum_name<current_index, enum_count>() };
-				return static_cast<std::string>(string);
+	template<typename value_type> NIHILUS_INLINE static constexpr bool is_space(value_type c) noexcept {
+		alignas(64) static constexpr const static_aligned_const<64, bool>* __restrict space_table{ [] {
+			alignas(64) constexpr array<static_aligned_const<64, bool>, 256> return_values{ [] {
+				array<static_aligned_const<64, bool>, 256> return_values{};
+				return_values[static_cast<uint64_t>('\r')] = true;
+				return_values[static_cast<uint64_t>('\n')] = true;
+				return_values[static_cast<uint64_t>(' ')]  = true;
+				return_values[static_cast<uint64_t>('\t')] = true;
+				return_values[static_cast<uint64_t>('\v')] = true;
+				return_values[static_cast<uint64_t>('\f')] = true;
+				return return_values;
+			}() };
+			return make_static<return_values>::value.data();
+		}() };
+		return space_table[static_cast<uint8_t>(c)];
+	}
+
+	template<typename value_type> NIHILUS_INLINE static constexpr bool is_digit(value_type c) noexcept {
+		return static_cast<uint8_t>(c - '0') < 10;
+	}
+
+	struct alignas(64) atomic_flag_wrapper {
+		static constexpr static_aligned_const<64, uint64_t> spin_cycles{ 5000 };
+		using value_type										= typename std::atomic_signed_lock_free::value_type;
+		NIHILUS_INLINE constexpr atomic_flag_wrapper() noexcept = default;
+		NIHILUS_INLINE constexpr atomic_flag_wrapper& operator=(const atomic_flag_wrapper&) noexcept {
+			return *this;
+		}
+
+		NIHILUS_INLINE constexpr atomic_flag_wrapper(const atomic_flag_wrapper&) noexcept {
+		}
+
+		NIHILUS_INLINE void store(value_type value_new) {
+			flag.store(value_new, std::memory_order_release);
+		}
+
+		NIHILUS_INLINE value_type load() {
+			return flag.load(std::memory_order_acquire);
+		}
+
+		NIHILUS_INLINE void clear() {
+			flag.store(0, std::memory_order_release);
+		}
+
+		NIHILUS_INLINE void test_and_set() {
+			flag.store(1, std::memory_order_release);
+		}
+
+		NIHILUS_INLINE void notify_one() {
+			flag.notify_one();
+		}
+
+		NIHILUS_INLINE void notify_all() {
+			flag.notify_all();
+		}
+
+		NIHILUS_INLINE value_type fetch_add(value_type value) {
+			return flag.fetch_add(value, std::memory_order_seq_cst);
+		}
+
+		NIHILUS_INLINE value_type fetch_sub(value_type value) {
+			return flag.fetch_sub(value, std::memory_order_seq_cst);
+		}
+
+		NIHILUS_INLINE bool test() {
+			return flag.load(std::memory_order_acquire) == 1;
+		}
+
+		NIHILUS_INLINE void hybrid_wait(value_type expected_value) {
+			for (uint32_t i = 0; i < spin_cycles; ++i) {
+				nihilus_pause();
+				if (flag.load(std::memory_order_acquire) == expected_value) {
+					return;
+				}
+			}
+			while (flag.load(std::memory_order_acquire) != expected_value) {
+				nihilus_pause();
+				flag.wait(expected_value + 1, std::memory_order_acquire);
+			}
+		}
+
+	  protected:
+		alignas(64) std::atomic_signed_lock_free flag{};
+	};
+
+	struct alignas(64) op_latch {
+		NIHILUS_INLINE op_latch() = default;
+		atomic_flag_wrapper global_flag{};
+		alignas(64) int64_t thread_count{};
+
+		NIHILUS_INLINE void init(int64_t thread_count_new) {
+			thread_count = thread_count_new;
+			global_flag.store(0);
+		}
+
+		NIHILUS_INLINE void arrive_and_wait() {
+			auto thread_index = global_flag.fetch_add(1);
+			bool wait{ (thread_index < thread_count - 1) };
+
+			if (wait) {
+				global_flag.hybrid_wait(0);
 			} else {
-				return print_enum_value<static_cast<decltype(enum_count)>(static_cast<uint64_t>(current_index) + 1), enum_count>(enum_val);
+				global_flag.store(0);
+				global_flag.notify_all();
 			}
-		} else {
-			return {};
+			return;
 		}
 	};
 
-	enum class data_types : uint64_t {
-		f32	 = 0,
-		f16	 = 1,
-		q8_0 = 8,
-		i8	 = 24,
-		i16	 = 25,
-		i32	 = 26,
-		i64	 = 27,
-		f64	 = 28,
-		count,
+	struct alignas(64) main_gate_latch {
+		NIHILUS_INLINE main_gate_latch()								  = default;
+		NIHILUS_INLINE main_gate_latch& operator=(const main_gate_latch&) = delete;
+		NIHILUS_INLINE main_gate_latch(const main_gate_latch&)			  = delete;
+		vector<atomic_flag_wrapper> finish_flags{};
+		vector<atomic_flag_wrapper> start_flags{};
+		atomic_flag_wrapper global_counter{};
+		alignas(64) int64_t thread_count{};
+
+		NIHILUS_INLINE void init(int64_t thread_count_new) {
+			thread_count = thread_count_new;
+			start_flags.resize(static_cast<uint64_t>(thread_count));
+			finish_flags.resize(static_cast<uint64_t>(thread_count));
+			global_counter.store(thread_count);
+		}
+
+		NIHILUS_INLINE void worker_wait(uint64_t thread_index) {
+			start_flags[thread_index].hybrid_wait(1);
+			start_flags[thread_index].clear();
+		}
+
+		NIHILUS_INLINE void arrive_and_wait(uint64_t thread_index) {
+			global_counter.fetch_sub(1);
+			global_counter.notify_one();
+
+			finish_flags[thread_index].hybrid_wait(1);
+			finish_flags[thread_index].clear();
+		}
+
+		NIHILUS_INLINE void count_down() {
+			for (int64_t x = 0; x < thread_count; ++x) {
+				start_flags[static_cast<uint64_t>(x)].test_and_set();
+				start_flags[static_cast<uint64_t>(x)].notify_one();
+			}
+		}
+
+		NIHILUS_INLINE void main_wait() {
+			global_counter.hybrid_wait(0);
+
+			global_counter.store(static_cast<int64_t>(thread_count));
+			for (int64_t x = 0; x < thread_count; ++x) {
+				finish_flags[static_cast<uint64_t>(x)].test_and_set();
+				finish_flags[static_cast<uint64_t>(x)].notify_one();
+			}
+		}
 	};
 
-	static constexpr array<const char*, data_types::count> type_names{ { "f32", "f16", "q8_0", "i8", "i16", "i32", "i64", "f64" } };
+	template<printable_enum_types auto current_index> consteval std::string_view get_enum_name() {
+#if defined(NIHILUS_COMPILER_MSVC)
+		constexpr auto pretty_function_tail = ">(void)";
+#else
+		constexpr auto pretty_function_tail = "]";
+#endif
+		std::string_view str = std::source_location::current().function_name();
+#if defined(NIHILUS_COMPILER_GNUCXX)
+		str			   = str.substr(str.find("=") + 2);
+		uint64_t end   = str.find(';');
+		str			   = str.substr(0, end);
+		uint64_t start = str.find_last_of(':') + 1;
+		return str.substr(start);
+#else
+		str			   = str.substr(str.find("=") + 2);
+		uint64_t start = str.find_last_of(':') + 1;
+		uint64_t end   = str.find(pretty_function_tail);
+		return str.substr(start, end - start);
+#endif
+	}
 
-	template<typename enum_type>
-		requires(std::is_same_v<data_types, enum_type>)
-	NIHILUS_INLINE std::ostream& operator<<(std::ostream& os, enum_type type) {
-		if (static_cast<uint64_t>(type) < type_names.size()) {
-			switch (static_cast<uint64_t>(type)) {
-				case static_cast<uint64_t>(data_types::f16): {
-					os << "float_16";
-					return os;
-				}
-				case static_cast<uint64_t>(data_types::f32): {
-					os << "float_32";
-					return os;
-				}
-				case static_cast<uint64_t>(data_types::f64): {
-					os << "float_64";
-					return os;
-				}
-				case static_cast<uint64_t>(data_types::i8): {
-					os << "int_8";
-					return os;
-				}
-				case static_cast<uint64_t>(data_types::i16): {
-					os << "int_16";
-					return os;
-				}
-				case static_cast<uint64_t>(data_types::i32): {
-					os << "int_32";
-					return os;
-				}
-				case static_cast<uint64_t>(data_types::i64): {
-					os << "int_64";
-					return os;
-				}
-				case static_cast<uint64_t>(data_types::q8_0): {
-					os << "q8_0";
-					return os;
-				}
-				default: {
-					os << "Unknown Data Type.";
-					return os;
-				}
-			}
+	template<printable_enum_types current_type, size_t... I> consteval auto get_enum_names_impl(std::index_sequence<I...>) {
+		return array<std::string_view, current_type::count>{ get_enum_name<static_cast<current_type>(I)>()... };
+	}
+
+	template<printable_enum_types current_type> consteval auto get_enum_names() {
+		return get_enum_names_impl<current_type>(std::make_index_sequence<static_cast<size_t>(current_type::count)>{});
+	}
+
+	template<printable_enum_types enum_type> struct names {
+		static constexpr auto data{ get_enum_names<enum_type>() };
+	};
+
+	template<printable_enum_types enum_type> NIHILUS_INLINE std::string_view get_name(enum_type type) {
+		if (static_cast<uint64_t>(type) < names<enum_type>::data.size()) {
+			return names<enum_type>::data[type];
 		} else {
-			os << "Unknown Data Type.";
-			return os;
+			return "Unknown Type.";
 		}
 	}
 
-	enum class kernel_types : uint8_t {
-		none,
-		get_rows,
-		rms_norm,
-		mul,
-		mul_mat,
-		reshape,
-		transpose,
-		permute,
-		view,
-		rope,
-		softmax,
-		silu,
-		copy,
-		cont,
-		add,
-		sub,
-		logit_sample,
-		count,
-	};
-
-	enum class composite_kernel_types : uint8_t {
-		none,
-		view,
-		get_rows,
-		mul_mat,
-		rms_norm_mul_mul_mat_reshape,
-		rms_norm_mul_mul_mat_transpose_copy,
-		rope_permute,
-		rope_copy,
-		softmax_mul_mat_permute_cont,
-		add_rms_norm_mul_mat_silu,
-		add_rms_norm_mul_mat,
-		mul_mul_mat_add,
-		mul_mat_logit_sample,
-		rms_norm_mul_mul_mat_logit_sample,
-		count,
-	};
-
-	enum class weight_types {
-		attn_q,
-		attn_k,
-		attn_v,
-		attn_output,
-		attn_norm,
-		ffn_gate,
-		ffn_up,
-		ffn_down,
-		ffn_norm,
-		token_embd,
-		rope_freqs,
-		output_norm,
-		output,
-		count,
-	};
-
-	template<typename value_type>
-	concept remapped_op_types = requires(std::remove_cvref_t<value_type> value) { requires value.kernel_type == kernel_types::view; };
-
-	static constexpr array<const char*, kernel_types::count> kernel_names{ {} };
-
-	template<typename enum_type>
-		requires(std::is_same_v<kernel_types, enum_type>)
-	NIHILUS_INLINE std::ostream& operator<<(std::ostream& os, enum_type type) {
-		if (static_cast<uint64_t>(type) < kernel_names.size()) {
-			os << kernel_names[type];
-		} else {
-			os << "Unknown Kernel Type.";
-		}
+	template<printable_enum_types enum_type> NIHILUS_INLINE std::ostream& operator<<(std::ostream& os, enum_type type) {
+		os << get_name(type);
 		return os;
 	}
+
+	enum class data_types : uint64_t {
+		f32		= 0,
+		f16		= 1,
+		q8_0	= 8,
+		i8		= 24,
+		i16		= 25,
+		i32		= 26,
+		i64		= 27,
+		f64		= 28,
+		bf16	= 30,
+		count	= 39,
+	};
 
 	enum class op_types : uint16_t {
 		token_embd_weight,
@@ -655,111 +439,165 @@ namespace nihilus {
 		count
 	};
 
-	enum class core_types {
+	enum class core_types : uint8_t {
 		weights,
 		global_inputs,
-		global_outputs,
 		token_embeddings,
-		qkv_projection_layer,
-		rope_and_cache_operations,
-		attention_scores_computation,
-		attention_weighted_values,
-		attention_output_projection,
-		ffn_parallel_projections,
-		ffn_down_projection,
-		count
+		mega_qkv_prep_and_cache_publish,
+		mega_attention_apply,
+		mega_ffn,
+		final_norm_and_sampling,
+		count,
 	};
 
-	static constexpr array<const char*, op_types::count> op_names{ { "token_embd_weight", "rope_freqs_weight", "output_weight", "output_norm_weight", "attn_q_weight",
-		"attn_k_weight", "attn_v_weight", "attn_output_weight", "attn_norm_weight", "ffn_gate_weight", "ffn_up_weight", "ffn_down_weight", "ffn_norm_weight", "inp_tokens",
-		"inp_pos", "inp_out_ids", "inp_embd", "cache_k", "cache_v", "kq_mask", "norm_attn_norm", "qcur_mul_mat_reshape", "qcur_rope_permute", "kcur_mul_mat_reshape",
-		"kcur_rope_copy", "vcur_mul_mat_transposed_copy", "k_cache_view", "v_cache_view", "v", "k", "kq", "kq_soft_max", "kqv_permute_cont", "kqv_out", "l_out_prev",
-		"ffn_inp_norm_out_ffn_norm", "ffn_gate", "ffn_silu", "ffn_up", "ffn_gate_par", "ffn_out", "l_out_final_norm", "attn_residual", "prev_residual", "result_norm",
-		"result_output" } };
+	enum class kernel_types : uint8_t {
+		none,
+		get_rows,
+		rms_norm,
+		mul,
+		mul_mat,
+		reshape,
+		transpose,
+		permute,
+		view,
+		rope,
+		softmax,
+		silu,
+		copy,
+		cont,
+		add,
+		sub,
+		top_k_filter,
+		top_p_filter,
+		repetition_penalty,
+		presence_penalty,
+		temperature_scale,
+		frequency_penalty,
+		vocab_mask,
+		sample_logits,
+		count,
+	};
 
-	template<typename enum_type>
-		requires(std::is_same_v<op_types, enum_type>)
-	NIHILUS_INLINE std::ostream& operator<<(std::ostream& os, enum_type type) {
-		if (static_cast<uint64_t>(type) < op_names.size()) {
-			os << op_names[type];
-		} else {
-			os << "Unknown Op Type.";
-		}
-		return os;
-	}
+	enum class composite_kernel_types : uint8_t {
+		none,
+		view,
+		get_rows,
+		mega_qkv_prep_and_cache,
+		mega_attention_apply,
+		mega_ffn,
+		final_norm_and_sampling,
+		count,
+	};
 
-	template<enum_types enum_type> constexpr kernel_types get_kernel_type_from_llm_op(enum_type op) {
-		switch (op) {
-			case enum_type::inp_tokens:
-			case enum_type::inp_pos:
-			case enum_type::inp_out_ids:
-			case enum_type::token_embd_weight:
-			case enum_type::rope_freqs_weight:
-			case enum_type::output_weight:
-			case enum_type::output_norm_weight:
-			case enum_type::attn_q_weight:
-			case enum_type::attn_k_weight:
-			case enum_type::attn_v_weight:
-			case enum_type::attn_output_weight:
-			case enum_type::attn_norm_weight:
-			case enum_type::ffn_gate_weight:
-			case enum_type::ffn_up_weight:
-			case enum_type::ffn_down_weight:
-			case enum_type::ffn_norm_weight:
-			case enum_type::cache_k:
-			case enum_type::cache_v:
-			case enum_type::kq_mask:
-				return kernel_types::none;
-			case enum_type::inp_embd:
-				return kernel_types::get_rows;
-			case enum_type::l_out_final_norm:
-				return kernel_types::none;
-			case enum_type::ffn_gate_par:
-			case enum_type::result_norm:
-				return kernel_types::mul;
-			case enum_type::qcur_mul_mat_reshape:
-			case enum_type::kcur_mul_mat_reshape:
-			case enum_type::vcur_mul_mat_transposed_copy:
-			case enum_type::kq:
-			case enum_type::kqv_permute_cont:
-			case enum_type::kqv_out:
-			case enum_type::ffn_gate:
-			case enum_type::ffn_up:
-			case enum_type::ffn_out:
-			case enum_type::result_output:
-				return kernel_types::mul_mat;
-			case enum_type::q:
-			case enum_type::k_cache_view:
-			case enum_type::v_cache_view:
-			case enum_type::v:
-			case enum_type::k:
-				return kernel_types::view;
-			case enum_type::k_cache_view_copy:
-			case enum_type::v_cache_view_copy:
-			case enum_type::qcur_rope_permute:
-			case enum_type::kcur_rope_copy:
-				return kernel_types::rope;
-			case enum_type::kq_soft_max:
-				return kernel_types::softmax;
-			case enum_type::ffn_silu:
-				return kernel_types::silu;
-			case enum_type::norm_attn_norm:
-				return kernel_types::none;
-			case enum_type::ffn_inp_norm_out_ffn_norm:
-				return kernel_types::none;
-			case enum_type::count:
-			default:
-				return kernel_types::none;
-		}
-	}
+	enum class weight_types : uint8_t {
+		attn_q,
+		attn_k,
+		attn_v,
+		attn_output,
+		attn_norm,
+		ffn_gate,
+		ffn_up,
+		ffn_down,
+		ffn_norm,
+		token_embd,
+		rope_freqs,
+		output_norm,
+		output,
+		count,
+	};
 
-	enum class device_types {
+	enum class global_input_types : uint8_t {
+		inp_tokens,
+		inp_pos,
+		cache_k,
+		cache_v,
+		kq_mask,
+		inp_out_ids,
+		temperature,
+		top_k,
+		top_p,
+		repetition_penalty,
+		presence_penalty,
+		frequency_penalty,
+		rep_window,
+		token_history,
+		rng_state,
+		logits_bias,
+		allowed_vocab_mask,
+		count,
+	};
+
+	enum class token_embedding_types : uint8_t {
+		get_rows,
+		count,
+	};
+
+	enum class mega_qkv_prep_and_cache_publish_types : uint8_t {
+		q_out,
+		count,
+	};
+
+	enum class mega_attention_apply_types {
+		ffn_inp,
+		count,
+	};
+
+	enum class mega_ffn_types {
+		l_out,
+		count,
+	};
+
+	enum class final_norm_and_sampling_types {
+		result_token_id,
+		count,
+	};
+
+	enum class global_output_types : uint8_t {
+		result_output_composite,
+		count,
+	};
+
+	enum class rope_and_cache_types : uint8_t {
+		rope_q_permute_type,
+		rope_k_copy_type,
+		k_rope_view_type,
+		v_rope_view_type,
+		count,
+	};
+
+	enum class attention_scores_types : uint8_t {
+		kq_scores_type,
+		count,
+	};
+
+	enum class attention_weighted_values_types : uint8_t {
+		attention_output_type,
+		count,
+	};
+
+	enum class attention_output_projection_types : uint8_t {
+		attn_output_type,
+		count,
+	};
+
+	enum class ffn_parallel_projection_types : uint8_t {
+		ffn_gate_type,
+		ffn_up_type,
+		count,
+	};
+
+	enum class ffn_down_projection_types : uint8_t {
+		ffn_down_type,
+		count,
+	};
+
+	enum class device_types : uint8_t {
 		cpu,
 		gpu,
 		numa,
 	};
 
-	enum class model_arches {
+	enum class model_arches : uint8_t {
 		llama,
 		deci,
 		falcon,
@@ -821,7 +659,7 @@ namespace nihilus {
 		count,
 	};
 
-	enum class kernel_type_profiles : uint64_t {
+	enum class kernel_type_profiles : uint8_t {
 		fp16_mha,
 		fp16_moe,
 		bf16_mha,
@@ -837,7 +675,7 @@ namespace nihilus {
 		count,
 	};
 
-	enum class norm_types : uint64_t {
+	enum class norm_types : uint8_t {
 		rms_standard,
 		rms_parallel,
 		rms_grouped,
@@ -848,7 +686,7 @@ namespace nihilus {
 		count,
 	};
 
-	enum class kv_cache_strategies : uint64_t {
+	enum class kv_cache_strategies : uint8_t {
 		contiguous,
 		paged,
 		compressed,
@@ -857,7 +695,7 @@ namespace nihilus {
 		count,
 	};
 
-	enum class rope_scaling_types : uint64_t {
+	enum class rope_scaling_types : uint8_t {
 		none,
 		linear,
 		dynamic,
@@ -866,7 +704,7 @@ namespace nihilus {
 		count,
 	};
 
-	enum class model_generations : uint64_t {
+	enum class model_generations : uint8_t {
 		v1_v2,
 		v3,
 		v3_1,
@@ -874,7 +712,7 @@ namespace nihilus {
 		count,
 	};
 
-	enum class model_sizes {
+	enum class model_sizes : uint8_t {
 		llm_unknown,
 		llm_14M,
 		llm_17M,
@@ -940,16 +778,17 @@ namespace nihilus {
 		count,
 	};
 
-	enum class tokenizer_types {
+	enum class tokenizer_types : uint8_t {
 		none,
 		spm,
 		bpe,
 		wpm,
 		ugm,
 		rwkv,
+		count,
 	};
 
-	enum class tokenizer_pre_types {
+	enum class tokenizer_pre_types : uint8_t {
 		default_pre,
 		llama3,
 		deepseek_llm,
@@ -979,17 +818,19 @@ namespace nihilus {
 		chameleon,
 		minerva,
 		deepseek3_llm,
+		count,
 	};
 
-	enum class rope_types {
+	enum class rope_types : int8_t {
 		none_rope = -1,
 		norm,
 		neox,
 		mrope,
 		vision,
+		count,
 	};
 
-	enum class token_types {
+	enum class token_types : uint8_t {
 		undefined_token,
 		normal,
 		unknown,
@@ -997,9 +838,10 @@ namespace nihilus {
 		user_defined,
 		unused,
 		byte,
+		count,
 	};
 
-	enum class tokens {
+	enum class tokens : uint16_t {
 		undefined	 = 0,
 		unknown		 = 1 << 0,
 		unused		 = 1 << 1,
@@ -1011,11 +853,13 @@ namespace nihilus {
 		lstrip		 = 1 << 7,
 		rstrip		 = 1 << 8,
 		single_word	 = 1 << 9,
+		count,
 	};
 
 	enum class model_format {
 		nh_void,
 		gguf,
+		count,
 	};
 
 	struct model_config {

@@ -28,6 +28,47 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
+	template<> struct kernel_dispatcher_impl<1, core_types::token_embeddings, processing_phase::eval_time> {
+		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count) {};
+	};
+
+	template<> struct kernel_dispatcher_impl<1, core_types::token_embeddings, processing_phase::prompt_eval_time> {
+		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count) {};
+	};
+
+	template<> struct kernel_dispatcher_impl<1, core_types::mega_qkv_prep_and_cache_publish, processing_phase::eval_time> {
+		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {};
+	};
+
+	template<> struct kernel_dispatcher_impl<1, core_types::mega_qkv_prep_and_cache_publish, processing_phase::prompt_eval_time> {
+		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {};
+	};
+
+	template<> struct kernel_dispatcher_impl<1, core_types::mega_attention_apply, processing_phase::eval_time> {
+		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {};
+	};
+
+	template<> struct kernel_dispatcher_impl<1, core_types::mega_attention_apply, processing_phase::prompt_eval_time> {
+		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {};
+	};
+
+	template<> struct kernel_dispatcher_impl<1, core_types::mega_ffn, processing_phase::eval_time> {
+		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {};
+	};
+
+	template<> struct kernel_dispatcher_impl<1, core_types::mega_ffn, processing_phase::prompt_eval_time> {
+		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {};
+	};
+
+	template<> struct kernel_dispatcher_impl<1, core_types::final_norm_and_sampling, processing_phase::eval_time> {
+		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count) {};
+	};
+
+	template<> struct kernel_dispatcher_impl<1, core_types::final_norm_and_sampling, processing_phase::prompt_eval_time> {
+		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count) {};
+	};
+
+	/*
 	template<typename transform_type, typename core_type>
 	struct kernel_dispatcher_impl<1, kernel_types::none, processing_phase::prompt_eval_time, transform_type, core_type, float, float, float>
 		: public kernel_base<kernel_types::none, core_type, float, float, float> {
@@ -647,7 +688,7 @@ namespace nihilus {
 						}
 					}
 				}
-			}*/
+			}
 		}
 	};
 
@@ -671,7 +712,7 @@ namespace nihilus {
 		: public kernel_base<kernel_types::silu, core_type, float, float> {
 		NIHILUS_INLINE static void impl(int64_t, int64_t, int64_t, core_type&, const typename core_type::input_01_type&) {
 		}
-	};
+	};*/
 
 };
 

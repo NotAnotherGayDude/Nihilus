@@ -172,7 +172,7 @@ namespace nihilus {
 			HMODULE kernel32 = GetModuleHandleW(L"kernel32.dll");
 			if (kernel32) {
 				using PrefetchVirtualMemoryFunc = BOOL(WINAPI*)(HANDLE, ULONG_PTR, PWIN32_MEMORY_RANGE_ENTRY, ULONG);
-				auto prefetch_func				= ( PrefetchVirtualMemoryFunc )(GetProcAddress(kernel32, "PrefetchVirtualMemory"));
+				auto prefetch_func				= reinterpret_cast<PrefetchVirtualMemoryFunc>((GetProcAddress(kernel32, "PrefetchVirtualMemory")));
 
 				if (prefetch_func) {
 					WIN32_MEMORY_RANGE_ENTRY range;

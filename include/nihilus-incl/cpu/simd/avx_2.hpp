@@ -27,7 +27,7 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-	NIHILUS_INLINE static half fp32_to_fp16_f16c(float f) {
+	NIHILUS_INLINE static half fp32_to_fp16(float f) {
 		__m128 single_vec = _mm_set_ss(f);
 		__m128i f16_vec	  = _mm_cvtps_ph(single_vec, _MM_FROUND_TO_NEAREST_INT);
 		return static_cast<half>(_mm_extract_epi16(f16_vec, 0));
@@ -37,34 +37,13 @@ namespace nihilus {
 		return _mm_cvtss_f32(_mm_sqrt_ss(_mm_set_ss(x)));
 	}
 
-	NIHILUS_INLINE static half fp32_to_fp16(float f) {
-		static constexpr float scale_to_inf	 = fp32_from_bits(0x77800000);
-		static constexpr float scale_to_zero = fp32_from_bits(0x08800000);
-		float base							 = (fabsf(f) * scale_to_inf) * scale_to_zero;
-
-		const uint32_t w	  = fp32_to_bits(f);
-		const uint32_t shl1_w = w + w;
-		const uint32_t sign	  = w & UINT32_C(0x80000000);
-		uint32_t bias		  = shl1_w & UINT32_C(0xFF000000);
-		if (bias < UINT32_C(0x71000000)) {
-			bias = UINT32_C(0x71000000);
-		}
-
-		base						 = fp32_from_bits((bias >> 1) + UINT32_C(0x07800000)) + base;
-		const uint32_t bits			 = fp32_to_bits(base);
-		const uint32_t exp_bits		 = (bits >> 13) & UINT32_C(0x00007C00);
-		const uint32_t mantissa_bits = bits & UINT32_C(0x00000FFF);
-		const uint32_t nonsign		 = exp_bits + mantissa_bits;
-		return (sign >> 16) | (shl1_w > UINT32_C(0xFF000000) ? UINT16_C(0x7E00) : nonsign);
-	}
-
 	NIHILUS_INLINE void quantize_row_q8_0_scalar(const float* __restrict x, block_q8_0<half>* __restrict vy, int64_t k) {
-		const int64_t nb			   = k / Q_SIZE;
+		const uint64_t nb			   = k / Q_SIZE;
 		block_q8_0<half>* __restrict y = vy;
 
-		for (int64_t i = 0; i < nb; i++) {
+		for (uint64_t i = 0; i < nb; i++) {
 			float maxAbs = 0.0f;
-			for (int64_t j = 0; j < 32; j++) {
+			for (uint64_t j = 0; j < 32; j++) {
 				float absVal = fabsf(x[j]);
 				if (absVal > maxAbs) {
 					maxAbs = absVal;
@@ -72,39 +51,66 @@ namespace nihilus {
 			}
 
 			const float d = maxAbs / 127.0f;
-			y[i].d		  = fp32_to_fp16_f16c(d);
+			y[i].d		  = fp32_to_fp16(d);
 
 			const float id = (maxAbs != 0.0f) ? 127.0f / maxAbs : 0.0f;
 
-			for (int64_t j = 0; j < 32; j++) {
+			for (uint64_t j = 0; j < 32; j++) {
 				float scaled	  = x[j] * id;
 				float rounded	  = roundf(scaled);
-				int32_t quantized = ( int32_t )rounded;
+				uint32_t quantized = static_cast<uint32_t>(rounded);
 				if (quantized > 127)
 					quantized = 127;
 				if (quantized < -128)
 					quantized = -128;
 
-				y[i].qs[j] = ( int8_t )quantized;
+				y[i].qs[j] = static_cast<uint32_t>(quantized);
 			}
 
 			x += 32;
 		}
 	}
 
-	NIHILUS_INLINE static void dequantize_row_q8_0(const block_q8_0<half>* __restrict x, float* __restrict y, uint64_t k) {
-		static constexpr int64_t qk = Q_SIZE;
+	template<> struct kernel_dispatcher_impl<1,core_types::token_embeddings,processing_phase::eval_time> {
+		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count) {};
+	};
 
-		const uint64_t nb = k & ~(Q_SIZE - 1);
+	template<> struct kernel_dispatcher_impl<1, core_types::token_embeddings, processing_phase::prompt_eval_time> {
+		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count) {};
+	};
 
-		for (uint64_t i = 0; i < nb; i++) {
-			const float d = fp16_to_fp32(x[i].d);
+	template<> struct kernel_dispatcher_impl<1, core_types::mega_qkv_prep_and_cache_publish, processing_phase::eval_time> {
+		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {};
+	};
 
-			for (uint64_t j = 0; j < qk; ++j) {
-				y[i * qk + j] = x[i].qs[j] * d;
-			}
-		}
-	}
+	template<> struct kernel_dispatcher_impl<1, core_types::mega_qkv_prep_and_cache_publish, processing_phase::prompt_eval_time> {
+		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {};
+	};
+
+	template<> struct kernel_dispatcher_impl<1, core_types::mega_attention_apply, processing_phase::eval_time> {
+		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {};
+	};
+
+	template<> struct kernel_dispatcher_impl<1, core_types::mega_attention_apply, processing_phase::prompt_eval_time> {
+		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {};
+	};
+
+	template<> struct kernel_dispatcher_impl<1, core_types::mega_ffn, processing_phase::eval_time> {
+		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {};
+	};
+
+	template<> struct kernel_dispatcher_impl<1, core_types::mega_ffn, processing_phase::prompt_eval_time> {
+		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {};
+	};
+
+	template<> struct kernel_dispatcher_impl<1, core_types::final_norm_and_sampling, processing_phase::eval_time> {
+		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count) {};
+	};
+
+	template<> struct kernel_dispatcher_impl<1, core_types::final_norm_and_sampling, processing_phase::prompt_eval_time> {
+		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count) {};
+	};
+
 	/*
 	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::none, processing_phase::prompt_eval_time, core_type, float, float, block_q8_0<half>>
 		: public kernel_base<kernel_types::none, core_type, float, float, block_q8_0<half>> {
@@ -4850,24 +4856,8 @@ namespace nihilus {
 			typename core_type::input_02_type& input02) {
 			int64_t current_chunk = thread_index;
 
-			const float* __restrict src0_data = input02.data;
-			const block_q8_0<half>* __restrict src1_data;
-
-			if constexpr (array_types<decltype(input01.data)>) {
-				src1_data = input01.data[current_block];
-			} else {
-				src1_data = input01.data;
-			}
-
-			float* __restrict dst_data = output.data;
-
 			while (current_chunk < chunk_count) {
-				int64_t chunks_completed = process_tensor_elements<false>(current_chunk, src0_data, src1_data, dst_data, input01, input02, output);
-				if (thread_count == 1) {
-					current_chunk += chunks_completed;
-				} else {
-					current_chunk = output.current_chunk.fetch_add(chunks_completed);
-				}
+				current_chunk = output.current_chunk.fetch_add(chunks_completed);
 			}
 		}
 	};

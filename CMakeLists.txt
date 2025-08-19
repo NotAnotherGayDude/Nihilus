@@ -97,7 +97,7 @@ target_include_directories(
 )
 
 target_link_libraries(
-    "${PROJECT_NAME}" "${NIHILUS_PRIVATE_DEFINITION}" "$<$<STREQUAL:$<UPPER_CASE:${NIHILUS_DEV}>,TRUE>:Jsonifier::Jsonifier">
+    "${PROJECT_NAME}" "${NIHILUS_PRIVATE_DEFINITION}" "$<$<STREQUAL:$<UPPER_CASE:${NIHILUS_DEV}>,TRUE>:Jsonifier::Jsonifier>"
 )
 
 include("cmake/nihilus_detect_max_thread_count.cmake")

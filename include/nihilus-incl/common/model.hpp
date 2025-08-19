@@ -45,13 +45,9 @@ namespace nihilus {
 		  public model_base,
 		  public tokenizer<config_new, model_traits<config_new.arch, config_new.model_size, config_new.model_generation>::arch, config_new.tokenizer_type> {
 		using thread_pool_type = thread_pool<config_new>;
-		using core_bases_type  = get_core_bases_t<config_new>;
-		using op_type_type	   = typename model_traits_type<config_new>::op_type_type;
+		using core_bases_type  = get_core_bases_t<config_new, core_types>;
+		using core_bases_traits_type  = core_bases_traits<config_new, core_types>;
 		using tokenizer_type   = tokenizer<config_new, config_new.arch, config_new.tokenizer_type>;
-
-		template<auto op_type> auto& get_core() {
-			return *static_cast<op_traits<config_new, op_type>*>(static_cast<get_core_bases_t<config_new>*>(this));
-		}
 
 		NIHILUS_INLINE model() noexcept {
 		}
@@ -59,32 +55,33 @@ namespace nihilus {
 		NIHILUS_INLINE model(cli_params params) : thread_pool<config_new>{ static_cast<int64_t>(params.thread_count) }, model_base{ config_new } {
 			exec_params.token_count = params.n_tokens;
 			init(params);
-		}
+		}		
 
 		model& operator=(const model&) = delete;
 		model(const model&)			   = delete;
 
 		NIHILUS_INLINE bool process_input(const std::string_view input) override {
-			tokenizer_type::tokenize_init(get_core<op_type_type::inp_tokens>().data);
-			get_core<op_type_type::inp_pos>().data[1]	  = 1;
-			get_core<op_type_type::inp_out_ids>().data[0] = 1;
+			tokenizer_type::tokenize_init(get<global_input_types::inp_tokens>(this->template get_core<core_types, core_types::global_inputs>().values).data);
+			get<global_input_types::inp_pos>(this->template get_core<core_types, core_types::global_inputs>().values).data[1]	  = 1;
+			get<global_input_types::inp_out_ids>(this->template get_core<core_types, core_types::global_inputs>().values).data[0] = 1;
 			generate_causal_mask();
 			execute_model(input);
 			return false;
 		}
 
 		NIHILUS_INLINE void init(cli_params params) {
-			std::cout << "TOTAL BYTES REQUIRED: " << core_bases_traits_type<config_new>::max_size << std::endl;
-			memory.init(core_bases_traits_type<config_new>::memory_plan_val.memory_total);
+			std::cout << "Total Bytes Required for Intermediate Tensors at Context Length Of: " << config.default_max_sequence_length << ": "
+					  << core_bases_traits_type ::total_required_bytes.peak_allocated_bytes << std::endl;
+			memory.init(core_bases_traits_type ::total_required_bytes.peak_allocated_bytes);
 			array<array<void*, model_traits_type<config_new>::block_count>, weight_types::count> data{};
-			this->template impl<weight_mapper>(data);
-			this->template impl<memory_mapper>(core_bases_traits_type<config_new>::memory_plan_val, memory);
+			weight_mapper<config_new, core_traits<config_new, core_types::weights>>::impl(*static_cast<core_traits<config_new, core_types::weights>*>(this), data);
+			this->template impl<memory_mapper>(core_bases_traits_type ::total_required_bytes, memory);
 
 			if constexpr (config_new.benchmark || config_new.dev) {
 				perf_base<config_new>::perf_stats.load_start = clock_type::now();
 			}
-			weight_memory									  = memory_mapped_file{ params.model_file };
-			//gguf_metadata<config_new> model_construction_data = model_parser<config_new>::parse_model(data, &weight_memory, *static_cast<tokenizer_type*>(this));
+			weight_memory = memory_mapped_file{ params.model_file };
+			gguf_metadata<config_new> model_construction_data = model_parser<config_new>::parse_model(data, &weight_memory, *static_cast<tokenizer_type*>(this));
 
 			if constexpr (config_new.benchmark || config_new.dev) {
 				auto load_end										 = clock_type::now();
@@ -103,14 +100,15 @@ namespace nihilus {
 				++perf_base<config_new>::perf_stats.current_iteration;
 			}
 
-			exec_params.sequence_length = tokenizer_type::tokenize(input, get_core<op_type_type::inp_tokens>().data);
+			exec_params.sequence_length = tokenizer_type::tokenize(input, get<global_input_types::inp_tokens>(this->template get_core<core_types, core_types::global_inputs>().values).data);
 
 			for (uint64_t x = 0; x < exec_params.sequence_length; ++x) {
-				using core_type							  = std::remove_cvref_t<decltype(get_core<op_type_type::inp_pos>())>;
-				get_core<op_type_type::inp_pos>().data[x] = static_cast<core_type::output_type>(x);
+				using core_type							  = std::remove_cvref_t<decltype(get<global_input_types::inp_pos>(this->template get_core<core_types, core_types::global_inputs>().values))>;
+				get<global_input_types::inp_pos>(this->template get_core<core_types, core_types::global_inputs>().values).data[x] = static_cast<core_type::output_type>(x);
 			}
-			using core_type								  = std::remove_cvref_t<decltype(get_core<op_type_type::inp_out_ids>())>;
-			get_core<op_type_type::inp_out_ids>().data[0] = static_cast<core_type::output_type>(exec_params.sequence_length - 1);
+			using core_type								  = std::remove_cvref_t<decltype(get<global_input_types::inp_out_ids>(this->template get_core<core_types, core_types::global_inputs>().values))>;
+			get<global_input_types::inp_out_ids>(this->template get_core<core_types, core_types::global_inputs>().values).data[0] =
+				static_cast<core_type::output_type>(exec_params.sequence_length - 1);
 
 			if constexpr (config_new.benchmark || config_new.dev) {
 				perf_base<config_new>::perf_stats.prompt_token_count	= exec_params.sequence_length;
@@ -172,25 +170,25 @@ namespace nihilus {
 
 	  protected:
 		NIHILUS_INLINE int32_t sample_next_token() {
-			//auto& result_output_tensor = get_core<op_types::result_output>();
+			//auto& result_output_tensor = get_core<core_types, core_types::result_output>();
 			//float* logits			   = static_cast<float*>(result_output_tensor.data);
 			//uint64_t vocab_size		   = model_traits_type::vocab_size;
 			return {};
 		}
 
 		NIHILUS_INLINE void generate_causal_mask() {
-			static constexpr auto dims = op_traits<config_new, op_types::kq_mask>::core_traits_dims_type::get_array();
-			auto& kq_mask			   = get_core<op_type_type::kq_mask>();
-			float* mask_data		   = static_cast<float*>(kq_mask.data);
+			//static constexpr auto dims = op_traits<config_new, core_types::kq_mask>::core_traits_dims_type::get_array();
+			//auto& kq_mask			   = get_core<op_type_type::kq_mask>();
+			//float* mask_data		   = static_cast<float*>(kq_mask.data);
 
-			const uint64_t total_dims = dims[0] * dims[1] * dims[2] * dims[3];
-			for (uint64_t x = 0; x < total_dims; ++x) {
-				if (x == 0 || x == 32 || x == 33) {
-					mask_data[x] = 0.0f;
-				} else {
-					mask_data[x] = -std::numeric_limits<float>::infinity();
-				}
-			}
+			//const uint64_t total_dims = dims[0] * dims[1] * dims[2] * dims[3];
+			//for (uint64_t x = 0; x < total_dims; ++x) {
+			//				if (x == 0 || x == 32 || x == 33) {
+			//mask_data[x] = 0.0f;
+			//				} else {
+			//mask_data[x] = -std::numeric_limits<float>::infinity();
+			//				}
+			//}
 		}
 
 		NIHILUS_INLINE void print_performance_stats() {
