@@ -425,7 +425,7 @@ namespace nihilus {
 			case GGML_OP_MUL_MAT_ID:
 				return kernel_types::mul_mat;
 			case GGML_OP_VIEW:
-				return kernel_types::view;			
+				return kernel_types::view;
 			case GGML_OP_ROPE:
 				return kernel_types::rope;
 			case GGML_OP_SOFT_MAX:
@@ -443,7 +443,7 @@ namespace nihilus {
 	}
 
 	template<typename value_type>
-		requires(std::is_same_v<std::string, std::remove_cvref_t<value_type>>)
+		requires(std::is_same_v<std::string, detail::remove_cvref_t<value_type>>)
 	std::ostream& operator<<(std::ostream& os, const vector<value_type>& tensor) {
 		os << "[";
 		for (uint64_t x = 0; x < tensor.size(); ++x) {
@@ -611,7 +611,6 @@ namespace nihilus {
 					std::cout << "Sorry, but no data for op: " << op << std::endl;
 				}
 			}
-			
 		}
 		array<uint64_t, 4> dims{};
 		std::string name{};
@@ -817,8 +816,9 @@ namespace nihilus {
 
 namespace jsonifier {
 	template<> struct core<nihilus::intermediary_tensor> {
-		using value_type				 = nihilus::intermediary_tensor;
-		static constexpr auto parseValue = jsonifier::createValue<&value_type::inputs, &value_type::dims, &value_type::op, &value_type::type, &value_type::name, &value_type::data>();
+		using value_type = nihilus::intermediary_tensor;
+		static constexpr auto parseValue =
+			jsonifier::createValue<&value_type::inputs, &value_type::dims, &value_type::op, &value_type::type, &value_type::name, &value_type::data>();
 	};
 }
 
@@ -975,7 +975,7 @@ namespace nihilus {
 	}
 
 	template<typename value_type>
-	concept has_mutable_dims = requires(std::remove_cvref_t<value_type> value) { value.get_mutable_dim(); };
+	concept has_mutable_dims = requires(detail::remove_cvref_t<value_type> value) { value.get_mutable_dim(); };
 	template<model_config config> struct tensor_debugger {
 		inline static jsonifier::jsonifier_core parser{};
 
@@ -1011,7 +1011,7 @@ namespace nihilus {
 
 namespace nihilus {
 	template<typename value_type>
-	concept has_mutable_dims = requires(std::remove_cvref_t<value_type> value) { value.get_mutable_dim(); };
+	concept has_mutable_dims = requires(detail::remove_cvref_t<value_type> value) { value.get_mutable_dim(); };
 	template<model_config config> struct tensor_debugger {
 		template<typename tensor_type> static bool compare_tensor_data(tensor_type& tensor, uint64_t current_block, uint64_t iteration, uint64_t runtime_dim) {
 			return false;

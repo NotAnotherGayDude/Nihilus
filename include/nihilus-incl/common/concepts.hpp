@@ -26,62 +26,62 @@ RealTimeChris (Chris M.)
 namespace nihilus {
 
 	template<typename value_type>
-	concept uint_types = std::is_unsigned_v<std::remove_cvref_t<value_type>> && std::is_integral_v<std::remove_cvref_t<value_type>>;
+	concept uint_types = std::is_unsigned_v<detail::remove_cvref_t<value_type>> && std::is_integral_v<detail::remove_cvref_t<value_type>>;
 
 	template<typename value_type>
-	concept int_types = std::is_signed_v<std::remove_cvref_t<value_type>> && std::is_integral_v<std::remove_cvref_t<value_type>> && !uint_types<value_type>;
+	concept int_types = std::is_signed_v<detail::remove_cvref_t<value_type>> && std::is_integral_v<detail::remove_cvref_t<value_type>> && !uint_types<value_type>;
 
 	template<typename value_type>
-	concept int8_types = int_types<std::remove_cvref_t<value_type>> && sizeof(std::remove_cvref_t<value_type>) == 1;
+	concept int8_types = int_types<detail::remove_cvref_t<value_type>> && sizeof(detail::remove_cvref_t<value_type>) == 1;
 
 	template<typename value_type>
-	concept int16_types = int_types<std::remove_cvref_t<value_type>> && sizeof(std::remove_cvref_t<value_type>) == 2;
+	concept int16_types = int_types<detail::remove_cvref_t<value_type>> && sizeof(detail::remove_cvref_t<value_type>) == 2;
 
 	template<typename value_type>
-	concept int32_types = int_types<std::remove_cvref_t<value_type>> && sizeof(std::remove_cvref_t<value_type>) == 4;
+	concept int32_types = int_types<detail::remove_cvref_t<value_type>> && sizeof(detail::remove_cvref_t<value_type>) == 4;
 
 	template<typename value_type>
-	concept int64_types = int_types<std::remove_cvref_t<value_type>> && sizeof(std::remove_cvref_t<value_type>) == 8;
+	concept int64_types = int_types<detail::remove_cvref_t<value_type>> && sizeof(detail::remove_cvref_t<value_type>) == 8;
 
 	template<typename value_type>
-	concept uint8_types = uint_types<std::remove_cvref_t<value_type>> && sizeof(std::remove_cvref_t<value_type>) == 1;
+	concept uint8_types = uint_types<detail::remove_cvref_t<value_type>> && sizeof(detail::remove_cvref_t<value_type>) == 1;
 
 	template<typename value_type>
-	concept uint16_types = uint_types<std::remove_cvref_t<value_type>> && sizeof(std::remove_cvref_t<value_type>) == 2;
+	concept uint16_types = uint_types<detail::remove_cvref_t<value_type>> && sizeof(detail::remove_cvref_t<value_type>) == 2;
 
 	template<typename value_type>
-	concept uint32_types = uint_types<std::remove_cvref_t<value_type>> && sizeof(std::remove_cvref_t<value_type>) == 4;
+	concept uint32_types = uint_types<detail::remove_cvref_t<value_type>> && sizeof(detail::remove_cvref_t<value_type>) == 4;
 
 	template<typename value_type>
-	concept uint64_types = uint_types<std::remove_cvref_t<value_type>> && sizeof(std::remove_cvref_t<value_type>) == 8;
+	concept uint64_types = uint_types<detail::remove_cvref_t<value_type>> && sizeof(detail::remove_cvref_t<value_type>) == 8;
 
 	template<typename value_type>
-	concept float_types = std::floating_point<std::remove_cvref_t<value_type>>;
+	concept float_types = std::floating_point<detail::remove_cvref_t<value_type>>;
 
 	template<typename value_type>
-	concept float32_types = float_types<value_type> && sizeof(std::remove_cvref_t<value_type>) == 4;
+	concept float32_types = float_types<value_type> && sizeof(detail::remove_cvref_t<value_type>) == 4;
 
 	template<typename value_type>
-	concept float64_types = float_types<value_type> && sizeof(std::remove_cvref_t<value_type>) == 8;
+	concept float64_types = float_types<value_type> && sizeof(detail::remove_cvref_t<value_type>) == 8;
 
 	template<typename value_type>
-	concept has_size_types = requires(std::remove_cvref_t<value_type> value) {
-		{ value.size() } -> std::same_as<typename std::remove_cvref_t<value_type>::size_type>;
+	concept has_size_types = requires(detail::remove_cvref_t<value_type> value) {
+		{ value.size() } -> std::same_as<typename detail::remove_cvref_t<value_type>::size_type>;
 	};
 
 	template<typename value_type>
-	concept has_data_types = requires(std::remove_cvref_t<value_type> value) {
-		{ value.data() } -> std::same_as<typename std::remove_cvref_t<value_type>::pointer>;
+	concept has_data_types = requires(detail::remove_cvref_t<value_type> value) {
+		{ value.data() } -> std::same_as<typename detail::remove_cvref_t<value_type>::pointer>;
 	};
 
 	template<typename value_type>
-	concept has_find_types = requires(std::remove_cvref_t<value_type> value) {
-		{ value.find(std::declval<typename std::remove_cvref_t<value_type>::value_type>()) } -> std::same_as<typename std::remove_cvref_t<value_type>::size_type>;
+	concept has_find_types = requires(detail::remove_cvref_t<value_type> value) {
+		{ value.find(std::declval<typename detail::remove_cvref_t<value_type>::value_type>()) } -> std::same_as<typename detail::remove_cvref_t<value_type>::size_type>;
 	};
 
 	template<typename value_type>
-	concept vector_subscriptable_types = requires(std::remove_cvref_t<value_type> value) {
-		{ value[std::declval<typename std::remove_cvref_t<value_type>::uint64_types>()] } -> std::same_as<typename std::remove_cvref_t<value_type>::reference>;
+	concept vector_subscriptable_types = requires(detail::remove_cvref_t<value_type> value) {
+		{ value[std::declval<typename detail::remove_cvref_t<value_type>::uint64_types>()] } -> std::same_as<typename detail::remove_cvref_t<value_type>::reference>;
 	};
 
 	template<typename value_type>
@@ -91,19 +91,19 @@ namespace nihilus {
 	concept array_types = vector_subscriptable_types<value_type> && has_data_types<value_type> && has_size_types<value_type>;
 
 	template<typename value_type>
-	concept core_traits_types = requires(std::remove_cvref_t<value_type>) {
-		typename std::remove_cvref_t<value_type>::output_type;
-		std::remove_cvref_t<value_type>::data;
+	concept core_traits_types = requires(detail::remove_cvref_t<value_type>) {
+		typename detail::remove_cvref_t<value_type>::output_type;
+		detail::remove_cvref_t<value_type>::data;
 	};
 
 	template<typename value_type>
-	concept blocking_types = requires(std::remove_cvref_t<value_type> value) {
-		std::remove_cvref_t<value_type>::sync_flag_start;
-		std::remove_cvref_t<value_type>::sync_flag_end;
+	concept blocking_types = requires(detail::remove_cvref_t<value_type> value) {
+		detail::remove_cvref_t<value_type>::sync_flag_start;
+		detail::remove_cvref_t<value_type>::sync_flag_end;
 	};
 
 	template<typename value_type>
-	concept arithmetic_types = std::is_arithmetic_v<std::remove_cvref_t<value_type>>;
+	concept arithmetic_types = std::is_arithmetic_v<detail::remove_cvref_t<value_type>>;
 
 	template<typename value_type>
 	concept quantized_types = requires {
@@ -112,39 +112,39 @@ namespace nihilus {
 	};
 
 	template<typename value_type>
-	concept fp_types = std::is_floating_point_v<std::remove_cvref_t<value_type>>;
+	concept fp_types = std::is_floating_point_v<detail::remove_cvref_t<value_type>>;
 
 	template<typename value_type>
 	concept valid_activation_types = fp_types<value_type> || quantized_types<value_type>;
 
 	template<typename value_type>
-	concept integral_types = std::is_integral_v<std::remove_cvref_t<value_type>>;
+	concept integral_types = std::is_integral_v<detail::remove_cvref_t<value_type>>;
 
 	template<typename value_type>
 	concept valid_tensor_types = arithmetic_types<value_type> || quantized_types<value_type>;
 
 	template<typename value_type>
-	concept integral_or_enum_types = std::integral<value_type> || std::is_enum_v<std::remove_cvref_t<value_type>>;
+	concept integral_or_enum_types = std::integral<value_type> || std::is_enum_v<detail::remove_cvref_t<value_type>>;
 
 	template<typename value_type>
-	concept has_latch_types = requires() { std::remove_cvref_t<value_type>::latch; };
+	concept has_latch_types = requires() { detail::remove_cvref_t<value_type>::latch_eval; };
 
 	template<typename value_type>
-	concept has_total_required_bytes_types = requires() { std::remove_cvref_t<value_type>::total_required_bytes; };
+	concept has_total_required_bytes_types = requires() { detail::remove_cvref_t<value_type>::total_required_bytes; };
 
 	template<typename value_type>
-	concept has_chunk_types = requires() { std::remove_cvref_t<value_type>::current_chunk; };
+	concept has_chunk_types = requires() { detail::remove_cvref_t<value_type>::current_chunk_eval; };
 
 	template<typename value_type>
-	concept active_input_types = requires() { std::remove_cvref_t<value_type>::runtime_dims; };
+	concept active_input_types = requires() { detail::remove_cvref_t<value_type>::runtime_dims; };
 
 	template<typename value_type>
-	concept has_return_type = requires() { typename std::remove_cvref_t<value_type>::return_type; };
+	concept has_return_type = requires() { typename detail::remove_cvref_t<value_type>::return_type; };
 
 	template<typename value_type>
 	concept is_integral_constant = requires() {
-		typename std::remove_cvref_t<value_type>::value_type;
-		{ std::remove_cvref_t<value_type>::value } -> std::same_as<typename std::remove_cvref_t<value_type>::value_type>;
+		typename detail::remove_cvref_t<value_type>::value_type;
+		{ detail::remove_cvref_t<value_type>::value } -> std::same_as<typename detail::remove_cvref_t<value_type>::value_type>;
 	};
 
 	template<typename value_01_type, typename value_02_type>
@@ -168,31 +168,31 @@ namespace nihilus {
 	};
 
 	template<typename value_type>
-	concept single_input_types = std::remove_cvref_t<value_type>::input_type == input_types::one;
+	concept single_input_types = detail::remove_cvref_t<value_type>::input_type == input_types::one;
 
 	template<typename value_type>
-	concept double_input_types = std::remove_cvref_t<value_type>::input_type == input_types::two && !single_input_types<value_type>;
+	concept double_input_types = detail::remove_cvref_t<value_type>::input_type == input_types::two && !single_input_types<value_type>;
 
 	template<typename value_type>
-	concept triple_input_types = std::remove_cvref_t<value_type>::input_type == input_types::three && !double_input_types<value_type> && !single_input_types<value_type>;
+	concept triple_input_types = detail::remove_cvref_t<value_type>::input_type == input_types::three && !double_input_types<value_type> && !single_input_types<value_type>;
 
 	template<typename value_type>
 	concept quadruple_input_types =
-		std::remove_cvref_t<value_type>::input_type == input_types::four && !triple_input_types<value_type> && !double_input_types<value_type> && !single_input_types<value_type>;
+		detail::remove_cvref_t<value_type>::input_type == input_types::four && !triple_input_types<value_type> && !double_input_types<value_type> && !single_input_types<value_type>;
 
 	template<typename value_type>
-	concept quintuple_input_types = std::remove_cvref_t<value_type>::input_type == input_types::five && !quadruple_input_types<value_type> && !triple_input_types<value_type> &&
+	concept quintuple_input_types = detail::remove_cvref_t<value_type>::input_type == input_types::five && !quadruple_input_types<value_type> && !triple_input_types<value_type> &&
 		!double_input_types<value_type> && !single_input_types<value_type>;
 
 	template<typename value_type>
-	concept sextuple_input_types = std::remove_cvref_t<value_type>::input_type == input_types::six && !quintuple_input_types<value_type> && !quadruple_input_types<value_type> &&
+	concept sextuple_input_types = detail::remove_cvref_t<value_type>::input_type == input_types::six && !quintuple_input_types<value_type> && !quadruple_input_types<value_type> &&
 		!triple_input_types<value_type> && !double_input_types<value_type> && !single_input_types<value_type>;
 
 	template<typename value_type>
-	concept has_count = requires() { std::remove_cvref_t<value_type>::count; } && static_cast<uint64_t>(std::remove_cvref_t<value_type>::count) < 128;
+	concept has_count = requires() { detail::remove_cvref_t<value_type>::count; } && static_cast<uint64_t>(detail::remove_cvref_t<value_type>::count) < 128;
 
 	template<typename value_type>
-	concept enum_types = std::is_enum_v<std::remove_cvref_t<value_type>>;
+	concept enum_types = std::is_enum_v<detail::remove_cvref_t<value_type>>;
 
 	template<typename value_type>
 	concept printable_enum_types = enum_types<value_type> && has_count<value_type>;

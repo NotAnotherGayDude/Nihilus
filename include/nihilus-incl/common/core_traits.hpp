@@ -31,10 +31,6 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-	template<typename type01, typename type02> struct requires_dequant_or_quant {
-		static constexpr bool required{ !std::is_same_v<type01, type02> };
-	};
-
 	template<model_config config, data_strategy_types data_strategy_type, typename output_type> struct data_mixin;
 
 	template<model_config config, typename output_type> struct data_mixin<config, data_strategy_types::global, output_type> {
@@ -45,17 +41,21 @@ namespace nihilus {
 		array<output_type*, model_traits_type<config>::block_count> data{};
 	};
 
-	template<model_config config, enum_types auto enum_value_new, composite_kernel_types kernel_type, data_strategy_types data_strategy_type,
+	template<model_config config, core_types core_type_new, enum_types auto enum_value_new, composite_kernel_types kernel_type, data_strategy_types data_strategy_type,
 		allocation_strategy_types allocation_strategy_type, typename composite_kernel_type_new, typename... input_composite_kernel_types_new>
 	struct op_traits : public data_mixin<config, data_strategy_type, typename composite_kernel_type_new::output_type>, public composite_kernel_type_new {
 		using output_type = composite_kernel_type_new::output_type;
 		using dims_type	  = composite_kernel_type_new::dims_type;
-		static constexpr uint64_t total_required_bytes{ type_traits<output_type>::total_byte_size(dims_type::get_array()) };
+		using enum_type	  = decltype(enum_value_new);
+		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(
+			type_traits<output_type>::total_byte_size(dims_type::get_array())) };
 		static constexpr auto enum_value{ enum_value_new };
+		static constexpr core_types core_type{ core_type_new };
 	};
 
 	template<model_config config, core_types core_type, typename derived_type> struct core_traits_base {
 		static decltype(auto) decl_elem(tag<core_type>);
+		uint64_t runtime_dimension{};
 		constexpr decltype(auto) operator[](tag<core_type>) & {
 			return *static_cast<derived_type*>(this);
 		}
@@ -110,56 +110,57 @@ namespace nihilus {
 		using output_weight_kernel_traits = kernel_traits<config, core_trait_dims<model_traits_type<config>::embedding_length, model_traits_type<config>::vocab_size, 1, 1>,
 			kernel_types::none, typename kernel_type_profile_traits<config.kernel_profile>::weight_type>;
 
-		using attn_q_weight_type =
-			op_traits<config, weight_types::attn_q, composite_kernel_types::none, data_strategy_types::per_block, allocation_strategy_types::mmap, attn_q_weight_kernel_traits>;
+		using attn_q_weight_type = op_traits<config, core_types::weights, weight_types::attn_q, composite_kernel_types::none, data_strategy_types::per_block,
+			allocation_strategy_types::mmap, attn_q_weight_kernel_traits>;
 		using attn_k_weight_type =
-			op_traits<config, weight_types::attn_k, composite_kernel_types::none, data_strategy_types::per_block, allocation_strategy_types::mmap, attn_k_weight_kernel_traits>;
+			op_traits<config, core_types::weights, weight_types::attn_k, composite_kernel_types::none, data_strategy_types::per_block, allocation_strategy_types::mmap, attn_k_weight_kernel_traits>;
 		using attn_v_weight_type =
-			op_traits<config, weight_types::attn_v, composite_kernel_types::none, data_strategy_types::per_block, allocation_strategy_types::mmap, attn_v_weight_kernel_traits>;
-		using attn_output_weight_type = op_traits<config, weight_types::attn_output, composite_kernel_types::none, data_strategy_types::per_block, allocation_strategy_types::mmap,
+			op_traits<config, core_types::weights, weight_types::attn_v, composite_kernel_types::none, data_strategy_types::per_block, allocation_strategy_types::mmap, attn_v_weight_kernel_traits>;
+		using attn_output_weight_type = op_traits<config, core_types::weights, weight_types::attn_output, composite_kernel_types::none, data_strategy_types::per_block, allocation_strategy_types::mmap,
 			attn_output_weight_kernel_traits>;
-		using attn_norm_weight_type	  = op_traits<config, weight_types::attn_norm, composite_kernel_types::none, data_strategy_types::per_block, allocation_strategy_types::mmap,
+		using attn_norm_weight_type	  = op_traits<config, core_types::weights, weight_types::attn_norm, composite_kernel_types::none, data_strategy_types::per_block, allocation_strategy_types::mmap,
 			  attn_norm_weight_kernel_traits>;
 		using ffn_gate_weight_type =
-			op_traits<config, weight_types::ffn_gate, composite_kernel_types::none, data_strategy_types::per_block, allocation_strategy_types::mmap, ffn_gate_weight_kernel_traits>;
+			op_traits<config, core_types::weights, weight_types::ffn_gate, composite_kernel_types::none, data_strategy_types::per_block, allocation_strategy_types::mmap, ffn_gate_weight_kernel_traits>;
 		using ffn_up_weight_type =
-			op_traits<config, weight_types::ffn_up, composite_kernel_types::none, data_strategy_types::per_block, allocation_strategy_types::mmap, ffn_up_weight_kernel_traits>;
+			op_traits<config, core_types::weights, weight_types::ffn_up, composite_kernel_types::none, data_strategy_types::per_block, allocation_strategy_types::mmap, ffn_up_weight_kernel_traits>;
 		using ffn_down_weight_type =
-			op_traits<config, weight_types::ffn_down, composite_kernel_types::none, data_strategy_types::per_block, allocation_strategy_types::mmap, ffn_down_weight_kernel_traits>;
+			op_traits<config, core_types::weights, weight_types::ffn_down, composite_kernel_types::none, data_strategy_types::per_block, allocation_strategy_types::mmap, ffn_down_weight_kernel_traits>;
 		using ffn_norm_weight_type =
-			op_traits<config, weight_types::ffn_norm, composite_kernel_types::none, data_strategy_types::per_block, allocation_strategy_types::mmap, ffn_norm_weight_kernel_traits>;
-		using token_embd_weight_type  = op_traits<config, weight_types::token_embd, composite_kernel_types::none, data_strategy_types::global, allocation_strategy_types::mmap,
+			op_traits<config, core_types::weights, weight_types::ffn_norm, composite_kernel_types::none, data_strategy_types::per_block, allocation_strategy_types::mmap, ffn_norm_weight_kernel_traits>;
+		using token_embd_weight_type  = op_traits<config, core_types::weights, weight_types::token_embd, composite_kernel_types::none, data_strategy_types::global, allocation_strategy_types::mmap,
 			 token_embd_weight_kernel_traits>;
-		using rope_freqs_weight_type  = op_traits<config, weight_types::rope_freqs, composite_kernel_types::none, data_strategy_types::global, allocation_strategy_types::mmap,
+		using rope_freqs_weight_type  = op_traits<config, core_types::weights, weight_types::rope_freqs, composite_kernel_types::none, data_strategy_types::global, allocation_strategy_types::mmap,
 			 rope_freqs_weight_kernel_traits>;
-		using output_norm_weight_type = op_traits<config, weight_types::output_norm, composite_kernel_types::none, data_strategy_types::global, allocation_strategy_types::mmap,
+		using output_norm_weight_type = op_traits<config, core_types::weights, weight_types::output_norm, composite_kernel_types::none, data_strategy_types::global, allocation_strategy_types::mmap,
 			output_norm_weight_kernel_traits>;
 		using output_weight_type =
-			op_traits<config, weight_types::output, composite_kernel_types::none, data_strategy_types::global, allocation_strategy_types::mmap, output_weight_kernel_traits>;
+			op_traits<config, core_types::weights, weight_types::output, composite_kernel_types::none, data_strategy_types::global, allocation_strategy_types::mmap, output_weight_kernel_traits>;
 
-		using list_of_traits = tuple<attn_q_weight_type, attn_k_weight_type, attn_v_weight_type, attn_output_weight_type, attn_norm_weight_type, ffn_gate_weight_type,
-			ffn_up_weight_type, ffn_down_weight_type, ffn_norm_weight_type, token_embd_weight_type, rope_freqs_weight_type, output_norm_weight_type, output_weight_type>;
+		using list_of_traits =
+			core_base_t<config, weight_types, attn_q_weight_type, attn_k_weight_type, attn_v_weight_type, attn_output_weight_type, attn_norm_weight_type, ffn_gate_weight_type,
+				ffn_up_weight_type, ffn_down_weight_type, ffn_norm_weight_type, token_embd_weight_type, rope_freqs_weight_type, output_norm_weight_type, output_weight_type>;
 		list_of_traits values{};
 	};
 
 	template<model_config config> struct core_traits<config, core_types::global_inputs>
 		: public core_traits_base<config, core_types::global_inputs, core_traits<config, core_types::global_inputs>> {
 		static constexpr core_types core_type{ core_types::global_inputs };
-		static constexpr uint64_t depth{ std::numeric_limits<uint64_t>::max() };
+		static constexpr uint64_t depth{ 0 };
 		using enum_type = global_input_types;
 		using mt		= model_traits_type<config>;
 		using prof		= kernel_type_profile_traits<config.kernel_profile>;
 
-		using inp_tokens_kernel_traits = kernel_traits<config, core_trait_dims<config.default_max_sequence_length, 1, 1, 1>, kernel_types::none, typename prof::input_token_type>;
-		using inp_pos_kernel_traits	   = kernel_traits<config, core_trait_dims<config.default_max_sequence_length, 1, 1, 1>, kernel_types::none, typename prof::position_type>;
+		using inp_tokens_kernel_traits =
+			kernel_traits<config, core_trait_dims<config.default_max_sequence_length, 1, 1, 1, 0>, kernel_types::none, typename prof::input_token_type>;
+		using inp_pos_kernel_traits = kernel_traits<config, core_trait_dims<config.default_max_sequence_length, 1, 1, 1, 0>, kernel_types::none, typename prof::position_type>;
 		using cache_k_kernel_traits =
-			kernel_traits<config, core_trait_dims<mt::rope_dimension_count, mt::block_count, mt::attention_head_count_kv, config.default_max_sequence_length, 1>,
-				kernel_types::none, typename prof::kv_cache_type>;
+			kernel_traits<config, core_trait_dims<config.default_max_sequence_length, mt::block_count, mt::n_embd_kv_gqa, 1, 0>, kernel_types::none, typename prof::kv_cache_type>;
 		using cache_v_kernel_traits =
-			kernel_traits<config, core_trait_dims<config.default_max_sequence_length, mt::rope_dimension_count, mt::attention_head_count_kv, mt::block_count, 0>,
-				kernel_types::none, typename prof::kv_cache_type>;
-		using kq_mask_kernel_traits		= kernel_traits<config, core_trait_dims<mt::block_count, mt::block_count, 1, 1>, kernel_types::none, typename prof::mask_type>;
-		using inp_out_ids_kernel_traits = kernel_traits<config, core_trait_dims<config.default_max_sequence_length, 1, 1, 1>, kernel_types::none, typename prof::output_token_type>;
+			kernel_traits<config, core_trait_dims<config.default_max_sequence_length, mt::block_count, mt::n_embd_kv_gqa, 1, 0>, kernel_types::none, typename prof::kv_cache_type>;
+		using kq_mask_kernel_traits = kernel_traits<config, core_trait_dims<mt::block_count, mt::block_count, 1, 1>, kernel_types::none, typename prof::mask_type>;
+		using inp_out_ids_kernel_traits =
+			kernel_traits<config, core_trait_dims<config.default_max_sequence_length, 1, 1, 1, 0>, kernel_types::none, typename prof::output_token_type>;
 
 		using temperature_kernel_traits		   = kernel_traits<config, core_trait_dims<1, 1, 1, 1>, kernel_types::none, float>;
 		using top_k_kernel_traits			   = kernel_traits<config, core_trait_dims<1, 1, 1, 1>, kernel_types::none, int>;
@@ -168,66 +169,65 @@ namespace nihilus {
 		using presence_penalty_kernel_traits   = kernel_traits<config, core_trait_dims<1, 1, 1, 1>, kernel_types::none, float>;
 		using frequency_penalty_kernel_traits  = kernel_traits<config, core_trait_dims<1, 1, 1, 1>, kernel_types::none, float>;
 		using rep_window_kernel_traits		   = kernel_traits<config, core_trait_dims<1, 1, 1, 1>, kernel_types::none, int>;
-		using token_history_kernel_traits	   = kernel_traits<config, core_trait_dims<config.default_max_sequence_length, 1, 1, 1>, kernel_types::none, int>;
+		using token_history_kernel_traits	   = kernel_traits<config, core_trait_dims<config.default_max_sequence_length, 1, 1, 1, 0>, kernel_types::none, int>;
 		using rng_state_kernel_traits		   = kernel_traits<config, core_trait_dims<2, 1, 1, 1>, kernel_types::none, uint64_t>;
 
 		using logits_bias_kernel_traits		   = kernel_traits<config, core_trait_dims<mt::vocab_size, 1, 1, 1>, kernel_types::none, float>;
 		using allowed_vocab_mask_kernel_traits = kernel_traits<config, core_trait_dims<mt::vocab_size, 1, 1, 1>, kernel_types::none, uint8_t>;
 
 		using cache_k_type =
-			op_traits<config, global_input_types::cache_k, composite_kernel_types::none, data_strategy_types::per_block, allocation_strategy_types::alloc, cache_k_kernel_traits>;
+			op_traits<config, core_types::global_inputs, global_input_types::cache_k, composite_kernel_types::none, data_strategy_types::global, allocation_strategy_types::alloc, cache_k_kernel_traits>;
 		using cache_v_type =
-			op_traits<config, global_input_types::cache_v, composite_kernel_types::none, data_strategy_types::per_block, allocation_strategy_types::alloc, cache_v_kernel_traits>;
-		using inp_tokens_type = op_traits<config, global_input_types::inp_tokens, composite_kernel_types::none, data_strategy_types::global, allocation_strategy_types::alloc,
+			op_traits<config, core_types::global_inputs, global_input_types::cache_v, composite_kernel_types::none, data_strategy_types::global, allocation_strategy_types::alloc, cache_v_kernel_traits>;
+		using inp_tokens_type = op_traits<config, core_types::global_inputs, global_input_types::inp_tokens, composite_kernel_types::none, data_strategy_types::global, allocation_strategy_types::alloc,
 			inp_tokens_kernel_traits>;
 		using inp_pos_type =
-			op_traits<config, global_input_types::inp_pos, composite_kernel_types::none, data_strategy_types::global, allocation_strategy_types::alloc, inp_pos_kernel_traits>;
+			op_traits<config, core_types::global_inputs, global_input_types::inp_pos, composite_kernel_types::none, data_strategy_types::global, allocation_strategy_types::alloc, inp_pos_kernel_traits>;
 		using kq_mask_type =
-			op_traits<config, global_input_types::kq_mask, composite_kernel_types::none, data_strategy_types::global, allocation_strategy_types::alloc, kq_mask_kernel_traits>;
-		using inp_out_ids_type = op_traits<config, global_input_types::inp_out_ids, composite_kernel_types::none, data_strategy_types::global, allocation_strategy_types::alloc,
+			op_traits<config, core_types::global_inputs, global_input_types::kq_mask, composite_kernel_types::none, data_strategy_types::global, allocation_strategy_types::alloc, kq_mask_kernel_traits>;
+		using inp_out_ids_type = op_traits<config, core_types::global_inputs, global_input_types::inp_out_ids, composite_kernel_types::none, data_strategy_types::global, allocation_strategy_types::alloc,
 			inp_out_ids_kernel_traits>;
 
-		using temperature_type = op_traits<config, global_input_types::temperature, composite_kernel_types::none, data_strategy_types::global, allocation_strategy_types::alloc,
+		using temperature_type = op_traits<config, core_types::global_inputs, global_input_types::temperature, composite_kernel_types::none, data_strategy_types::global, allocation_strategy_types::alloc,
 			temperature_kernel_traits>;
 		using top_k_type =
-			op_traits<config, global_input_types::top_k, composite_kernel_types::none, data_strategy_types::global, allocation_strategy_types::alloc, top_k_kernel_traits>;
+			op_traits<config, core_types::global_inputs, global_input_types::top_k, composite_kernel_types::none, data_strategy_types::global, allocation_strategy_types::alloc, top_k_kernel_traits>;
 		using top_p_type =
-			op_traits<config, global_input_types::top_p, composite_kernel_types::none, data_strategy_types::global, allocation_strategy_types::alloc, top_p_kernel_traits>;
-		using repetition_penalty_type = op_traits<config, global_input_types::repetition_penalty, composite_kernel_types::none, data_strategy_types::global,
+			op_traits<config, core_types::global_inputs, global_input_types::top_p, composite_kernel_types::none, data_strategy_types::global, allocation_strategy_types::alloc, top_p_kernel_traits>;
+		using repetition_penalty_type = op_traits<config, core_types::global_inputs, global_input_types::repetition_penalty, composite_kernel_types::none, data_strategy_types::global,
 			allocation_strategy_types::alloc, repetition_penalty_kernel_traits>;
-		using presence_penalty_type	  = op_traits<config, global_input_types::presence_penalty, composite_kernel_types::none, data_strategy_types::global,
+		using presence_penalty_type	  = op_traits<config, core_types::global_inputs, global_input_types::presence_penalty, composite_kernel_types::none, data_strategy_types::global,
 			  allocation_strategy_types::alloc, presence_penalty_kernel_traits>;
-		using frequency_penalty_type  = op_traits<config, global_input_types::frequency_penalty, composite_kernel_types::none, data_strategy_types::global,
+		using frequency_penalty_type  = op_traits<config, core_types::global_inputs, global_input_types::frequency_penalty, composite_kernel_types::none, data_strategy_types::global,
 			 allocation_strategy_types::alloc, frequency_penalty_kernel_traits>;
-		using rep_window_type	 = op_traits<config, global_input_types::rep_window, composite_kernel_types::none, data_strategy_types::global, allocation_strategy_types::alloc,
+		using rep_window_type	 = op_traits<config, core_types::global_inputs, global_input_types::rep_window, composite_kernel_types::none, data_strategy_types::global, allocation_strategy_types::alloc,
 			   rep_window_kernel_traits>;
-		using token_history_type = op_traits<config, global_input_types::token_history, composite_kernel_types::none, data_strategy_types::global, allocation_strategy_types::alloc,
+		using token_history_type = op_traits<config, core_types::global_inputs, global_input_types::token_history, composite_kernel_types::none, data_strategy_types::global, allocation_strategy_types::alloc,
 			token_history_kernel_traits>;
 		using rng_state_type =
-			op_traits<config, global_input_types::rng_state, composite_kernel_types::none, data_strategy_types::global, allocation_strategy_types::alloc, rng_state_kernel_traits>;
+			op_traits<config, core_types::global_inputs, global_input_types::rng_state, composite_kernel_types::none, data_strategy_types::global, allocation_strategy_types::alloc, rng_state_kernel_traits>;
 
-		using logits_bias_type = op_traits<config, global_input_types::logits_bias, composite_kernel_types::none, data_strategy_types::global, allocation_strategy_types::alloc,
+		using logits_bias_type = op_traits<config, core_types::global_inputs, global_input_types::logits_bias, composite_kernel_types::none, data_strategy_types::global, allocation_strategy_types::alloc,
 			logits_bias_kernel_traits>;
-		using allowed_vocab_mask_type = op_traits<config, global_input_types::allowed_vocab_mask, composite_kernel_types::none, data_strategy_types::global,
+		using allowed_vocab_mask_type = op_traits<config, core_types::global_inputs, global_input_types::allowed_vocab_mask, composite_kernel_types::none, data_strategy_types::global,
 			allocation_strategy_types::alloc, allowed_vocab_mask_kernel_traits>;
 
-		using list_of_traits = tuple<inp_tokens_type, inp_pos_type, cache_k_type, cache_v_type, kq_mask_type, inp_out_ids_type, temperature_type, top_k_type, top_p_type,
+		using list_of_traits = core_base_t<config, enum_type, inp_tokens_type, inp_pos_type, cache_k_type, cache_v_type, kq_mask_type, inp_out_ids_type, temperature_type, top_k_type, top_p_type,
 			repetition_penalty_type, presence_penalty_type, frequency_penalty_type, rep_window_type, token_history_type, rng_state_type, logits_bias_type, allowed_vocab_mask_type>;
 
 		list_of_traits values{};
 
-		static constexpr uint64_t total_required_bytes{ inp_tokens_type::total_required_bytes + inp_pos_type::total_required_bytes +
-			(mt::block_count * cache_k_type::total_required_bytes) + (mt::block_count * cache_v_type::total_required_bytes) + kq_mask_type::total_required_bytes +
-			inp_out_ids_type::total_required_bytes + temperature_type::total_required_bytes + top_k_type::total_required_bytes + top_p_type::total_required_bytes +
-			repetition_penalty_type::total_required_bytes + presence_penalty_type::total_required_bytes + frequency_penalty_type::total_required_bytes +
-			rep_window_type::total_required_bytes + token_history_type::total_required_bytes + rng_state_type::total_required_bytes + logits_bias_type::total_required_bytes +
-			allowed_vocab_mask_type::total_required_bytes };
+		static constexpr uint64_t total_required_bytes{ inp_tokens_type::total_required_bytes + inp_pos_type::total_required_bytes + cache_k_type::total_required_bytes +
+			cache_v_type::total_required_bytes + kq_mask_type::total_required_bytes + inp_out_ids_type::total_required_bytes + temperature_type::total_required_bytes +
+			top_k_type::total_required_bytes + top_p_type::total_required_bytes + repetition_penalty_type::total_required_bytes + presence_penalty_type::total_required_bytes +
+			frequency_penalty_type::total_required_bytes + rep_window_type::total_required_bytes + token_history_type::total_required_bytes +
+			rng_state_type::total_required_bytes };
 	};
 
 	template<model_config config> struct core_traits<config, core_types::token_embeddings>
 		: public core_traits_base<config, core_types::token_embeddings, core_traits<config, core_types::token_embeddings>> {
 		static constexpr core_types core_type{ core_types::token_embeddings };
-		static constexpr uint64_t depth{ 0 };
+		static constexpr uint64_t depth{ core_traits<config, static_cast<core_types>(static_cast<uint64_t>(core_types::token_embeddings) - 1)>::depth + 1 };
 		using enum_type = token_embedding_types;
 
 		using input_01_type = typename core_traits<config, core_types::weights>::token_embd_weight_type;
@@ -236,15 +236,17 @@ namespace nihilus {
 		using input_embedding_kernel_traits = kernel_traits<config, get_new_dims_new_2_t<kernel_types::get_rows, input_01_type, input_02_type>, kernel_types::get_rows,
 			typename kernel_type_profile_traits<config.kernel_profile>::compute_type, input_01_type, input_02_type>;
 
-		using token_embeddings_type = op_traits<config, token_embedding_types::get_rows, composite_kernel_types::get_rows, data_strategy_types::global,
+		using token_embeddings_type = op_traits<config, core_types::token_embeddings, token_embedding_types::get_rows, composite_kernel_types::get_rows, data_strategy_types::global,
 			allocation_strategy_types::alloc, input_embedding_kernel_traits>;
 
-		using list_of_traits = tuple<token_embeddings_type>;
+		using list_of_traits = core_base_t<config, enum_type, token_embeddings_type>;
 
 		list_of_traits values{};
 
-		array<atomic_flag_wrapper, model_traits_type<config>::block_count> current_chunk{};
-		op_latch latch{};
+		atomic_flag_wrapper<int64_t> current_chunk_prompt_eval{};
+		atomic_flag_wrapper<int64_t> current_chunk_eval{};
+		atomic_flag_wrapper<int64_t> latch_prompt_eval{};
+		atomic_flag_wrapper<int64_t> latch_eval{};
 
 		static constexpr uint64_t total_required_bytes{ token_embeddings_type::total_required_bytes };
 	};
@@ -252,7 +254,7 @@ namespace nihilus {
 	template<model_config config> struct core_traits<config, core_types::mega_qkv_prep_and_cache_publish>
 		: public core_traits_base<config, core_types::mega_qkv_prep_and_cache_publish, core_traits<config, core_types::mega_qkv_prep_and_cache_publish>> {
 		static constexpr core_types core_type{ core_types::mega_qkv_prep_and_cache_publish };
-		static constexpr uint64_t depth{ 1 };
+		static constexpr uint64_t depth{ core_traits<config, static_cast<core_types>(static_cast<uint64_t>(core_types::mega_qkv_prep_and_cache_publish) - 1)>::depth + 1 };
 		using enum_type	 = mega_qkv_prep_and_cache_publish_types;
 		using mt		 = model_traits_type<config>;
 		using prof		 = kernel_type_profile_traits<config.kernel_profile>;
@@ -300,7 +302,7 @@ namespace nihilus {
 		using v_transpose_trait =
 			kernel_traits<config, core_trait_dims<config.default_max_sequence_length, mt::n_embd_kv_gqa, 1, 1, 0>, kernel_types::transpose, compute_t, v_mul_mat_trait>;
 
-		using k_cache_window_view_trait = kernel_traits<config, core_trait_dims<mt::rope_dimension_count, config.default_max_sequence_length, mt::attention_head_count_kv, 1, 0>,
+		using k_cache_window_view_trait = kernel_traits<config, core_trait_dims<mt::rope_dimension_count, config.default_max_sequence_length, mt::attention_head_count_kv, 1, 1>,
 			kernel_types::view, kv_store_t, cache_k_type>;
 
 		using v_cache_window_view_trait = kernel_traits<config, core_trait_dims<config.default_max_sequence_length, mt::rope_dimension_count, mt::attention_head_count_kv, 1, 0>,
@@ -319,14 +321,16 @@ namespace nihilus {
 			q_reshape_trait, q_rope_trait, k_mul_mat_trait, k_reshape_trait, k_rope_trait, k_cache_window_view_trait, k_cache_store_trait, v_mul_mat_trait, v_transpose_trait,
 			v_cache_window_view_trait, v_cache_store_trait>;
 
-		using q_out_type = op_traits<config, mega_qkv_prep_and_cache_publish_types::q_out, composite_kernel_types::mega_qkv_prep_and_cache, data_strategy_types::per_block,
+		using q_out_type = op_traits<config, core_types::mega_qkv_prep_and_cache_publish, mega_qkv_prep_and_cache_publish_types::q_out, composite_kernel_types::mega_qkv_prep_and_cache, data_strategy_types::global,
 			allocation_strategy_types::alloc, mega_qkv_composite_traits>;
 
-		using list_of_traits = tuple<q_out_type>;
+		using list_of_traits = core_base_t<config, enum_type, q_out_type>;
 
 		list_of_traits values{};
-		array<atomic_flag_wrapper, mt::block_count> current_chunk{};
-		array<op_latch, mt::block_count> latch{};
+		array<atomic_flag_wrapper<int64_t>, mt::block_count> current_chunk_prompt_eval{};
+		array<atomic_flag_wrapper<int64_t>, mt::block_count> current_chunk_eval{};
+		array<atomic_flag_wrapper<int64_t>, mt::block_count> latch_prompt_eval{};
+		array<atomic_flag_wrapper<int64_t>, mt::block_count> latch_eval{};
 
 		static constexpr uint64_t total_required_bytes{ q_out_type::total_required_bytes };
 	};
@@ -334,21 +338,21 @@ namespace nihilus {
 	template<model_config config> struct core_traits<config, core_types::mega_attention_apply>
 		: public core_traits_base<config, core_types::mega_attention_apply, core_traits<config, core_types::mega_attention_apply>> {
 		static constexpr core_types core_type{ core_types::mega_attention_apply };
-		static constexpr uint64_t depth{ 1 };
+		static constexpr uint64_t depth{ core_traits<config, static_cast<core_types>(static_cast<uint64_t>(core_types::mega_attention_apply) - 1)>::depth + 1 };
 		using enum_type	 = mega_attention_apply_types;
 		using mt		 = model_traits_type<config>;
 		using prof		 = kernel_type_profile_traits<config.kernel_profile>;
 		using compute_t	 = typename prof::compute_type;
 		using kv_store_t = typename prof::kv_cache_type;
 
-		using q_rope_input_dims	 = core_trait_dims<mt::rope_dimension_count, config.default_max_sequence_length, mt::attention_head_count, 1, 2>;
+		using q_rope_input_dims	 = core_trait_dims<mt::rope_dimension_count, config.default_max_sequence_length, mt::attention_head_count, 1, 1>;
 		using cache_k_type		 = typename core_traits<config, core_types::global_inputs>::cache_k_type;
 		using cache_v_type		 = typename core_traits<config, core_types::global_inputs>::cache_v_type;
 		using kq_mask_type		 = typename core_traits<config, core_types::global_inputs>::kq_mask_type;
 		using attn_output_w_type = typename core_traits<config, core_types::weights>::attn_output_weight_type;
 		using inp_embd_type		 = typename core_traits<config, core_types::token_embeddings>::token_embeddings_type;
 
-		using k_cache_read_view_trait = kernel_traits<config, core_trait_dims<mt::rope_dimension_count, config.default_max_sequence_length, mt::attention_head_count_kv, 1, 0>,
+		using k_cache_read_view_trait = kernel_traits<config, core_trait_dims<mt::rope_dimension_count, config.default_max_sequence_length, mt::attention_head_count_kv, 1, 1>,
 			kernel_types::view, kv_store_t, cache_k_type>;
 		using v_cache_read_view_trait = kernel_traits<config, core_trait_dims<config.default_max_sequence_length, mt::rope_dimension_count, mt::attention_head_count_kv, 1, 0>,
 			kernel_types::view, kv_store_t, cache_v_type>;
@@ -364,11 +368,11 @@ namespace nihilus {
 		using kqv_mul_mat_trait = kernel_traits<config, get_new_dims_new_2_t<kernel_types::mul_mat, v_cache_read_view_trait, softmax_trait>, kernel_types::mul_mat, compute_t,
 			v_cache_read_view_trait, softmax_trait>;
 
-		using merge_permute_trait = kernel_traits<config, core_trait_dims<mt::rope_dimension_count, mt::attention_head_count, config.default_max_sequence_length, 1, 0>,
+		using merge_permute_trait = kernel_traits<config, core_trait_dims<mt::rope_dimension_count, mt::attention_head_count, config.default_max_sequence_length, 1, 2>,
 			kernel_types::permute, compute_t, kqv_mul_mat_trait>;
 
 		using cont_trait =
-			kernel_traits<config, core_trait_dims<mt::embedding_length, config.default_max_sequence_length, 1, 1, 0>, kernel_types::cont, compute_t, merge_permute_trait>;
+			kernel_traits<config, core_trait_dims<mt::embedding_length, config.default_max_sequence_length, 1, 1, 1>, kernel_types::cont, compute_t, merge_permute_trait>;
 
 		using attn_out_mul_mat_trait =
 			kernel_traits<config, get_new_dims_new_2_t<kernel_types::mul_mat, attn_output_w_type, cont_trait>, kernel_types::mul_mat, compute_t, attn_output_w_type, cont_trait>;
@@ -378,20 +382,23 @@ namespace nihilus {
 
 		using mega_attention_composite_traits = composite_kernel_traits<config, composite_kernel_types::mega_attention_apply, compute_t, k_cache_read_view_trait,
 			v_cache_read_view_trait, kq_mul_mat_trait, softmax_trait, kqv_mul_mat_trait, merge_permute_trait, cont_trait, attn_out_mul_mat_trait, residual_add_trait>;
-		using ffn_inp_type					  = op_traits<config, mega_attention_apply_types::ffn_inp, composite_kernel_types::mega_attention_apply, data_strategy_types::per_block,
+		using ffn_inp_type					  = op_traits<config, core_types::mega_attention_apply, mega_attention_apply_types::ffn_inp, composite_kernel_types::mega_attention_apply, data_strategy_types::global,
 							   allocation_strategy_types::alloc, mega_attention_composite_traits>;
 
-		using list_of_traits = tuple<ffn_inp_type>;
+		using list_of_traits = core_base_t<config, enum_type, ffn_inp_type>;
 		list_of_traits values{};
-		array<atomic_flag_wrapper, mt::block_count> current_chunk{};
-		array<op_latch, mt::block_count> latch{};
+		array<atomic_flag_wrapper<int64_t>, mt::block_count> current_chunk_prompt_eval{};
+		array<atomic_flag_wrapper<int64_t>, mt::block_count> current_chunk_eval{};
+		array<atomic_flag_wrapper<int64_t>, mt::block_count> latch_prompt_eval{};
+		array<atomic_flag_wrapper<int64_t>, mt::block_count> latch_eval{};
+
 		static constexpr uint64_t total_required_bytes{ ffn_inp_type::total_required_bytes };
 	};
 
 	template<model_config config> struct core_traits<config, core_types::mega_ffn>
 		: public core_traits_base<config, core_types::mega_ffn, core_traits<config, core_types::mega_ffn>> {
 		static constexpr core_types core_type{ core_types::mega_ffn };
-		static constexpr uint64_t depth{ 1 };
+		static constexpr uint64_t depth{ core_traits<config, static_cast<core_types>(static_cast<uint64_t>(core_types::mega_ffn) - 1)>::depth + 1 };
 		using enum_type = mega_ffn_types;
 		using mt		= model_traits_type<config>;
 		using prof		= kernel_type_profile_traits<config.kernel_profile>;
@@ -431,19 +438,22 @@ namespace nihilus {
 			ffn_gate_mul_mat_trait, ffn_up_mul_mat_trait, ffn_silu_trait, ffn_gate_par_trait, ffn_down_mul_mat_trait, ffn_residual_add_trait>;
 
 		using l_out_type =
-			op_traits<config, mega_ffn_types::l_out, composite_kernel_types::mega_ffn, data_strategy_types::per_block, allocation_strategy_types::alloc, mega_ffn_composite_traits>;
+			op_traits<config, core_types::mega_ffn, mega_ffn_types::l_out, composite_kernel_types::mega_ffn, data_strategy_types::global, allocation_strategy_types::alloc, mega_ffn_composite_traits>;
 
-		using list_of_traits = tuple<l_out_type>;
+		using list_of_traits = core_base_t<config, enum_type, l_out_type>;
 		list_of_traits values{};
-		array<atomic_flag_wrapper, mt::block_count> current_chunk{};
-		array<op_latch, mt::block_count> latch{};
+		array<atomic_flag_wrapper<int64_t>, mt::block_count> current_chunk_prompt_eval{};
+		array<atomic_flag_wrapper<int64_t>, mt::block_count> current_chunk_eval{};
+		array<atomic_flag_wrapper<int64_t>, mt::block_count> latch_prompt_eval{};
+		array<atomic_flag_wrapper<int64_t>, mt::block_count> latch_eval{};
+
 		static constexpr uint64_t total_required_bytes{ l_out_type::total_required_bytes };
 	};
 
 	template<model_config config> struct core_traits<config, core_types::final_norm_and_sampling>
 		: public core_traits_base<config, core_types::final_norm_and_sampling, core_traits<config, core_types::final_norm_and_sampling>> {
 		static constexpr core_types core_type{ core_types::final_norm_and_sampling };
-		static constexpr uint64_t depth{ 1 };
+		static constexpr uint64_t depth{ core_traits<config, static_cast<core_types>(static_cast<uint64_t>(core_types::final_norm_and_sampling) - 1)>::depth + 1 };
 		using enum_type = final_norm_and_sampling_types;
 		using mt		= model_traits_type<config>;
 		using prof		= kernel_type_profile_traits<config.kernel_profile>;
@@ -509,26 +519,16 @@ namespace nihilus {
 			final_norm_mul_trait, logits_mul_mat_trait, logits_bias_add_trait, rep_penalty_trait, presence_penalty_trait, frequency_penalty_trait, vocab_mask_trait,
 			temperature_scale_trait, top_k_filter_trait, top_p_filter_trait, sample_trait>;
 
-		using result_token_id_type = op_traits<config, final_norm_and_sampling_types::result_token_id, composite_kernel_types::final_norm_and_sampling,
-			data_strategy_types::per_block, allocation_strategy_types::alloc, mega_final_composite_traits>;
+		using result_token_id_type = op_traits<config, core_types::final_norm_and_sampling, final_norm_and_sampling_types::result_token_id, composite_kernel_types::final_norm_and_sampling, data_strategy_types::global,
+			allocation_strategy_types::alloc, mega_final_composite_traits>;
 
-		using list_of_traits = tuple<result_token_id_type>;
+		using list_of_traits = core_base_t<config, enum_type, result_token_id_type>;
 		list_of_traits values{};
-		atomic_flag_wrapper current_chunk{};
-		op_latch latch{};
+		atomic_flag_wrapper<int64_t> current_chunk_prompt_eval{};
+		atomic_flag_wrapper<int64_t> current_chunk_eval{};
+		atomic_flag_wrapper<int64_t> latch_prompt_eval{};
+		atomic_flag_wrapper<int64_t> latch_eval{};
+
 		static constexpr uint64_t total_required_bytes{ result_token_id_type::total_required_bytes };
-	};
-
-	template<model_config config> struct model;
-
-	template<model_config config_new, auto kernel_type> struct get_adjacent_value;
-
-	template<model_config config_new, auto kernel_type> struct get_adjacent_value {
-		using model_traits_type	   = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
-		using derived_derived_type = model<config_new>;
-		using thread_pool_type	   = typename derived_derived_type::thread_pool_type;
-		template<typename derived_type> NIHILUS_INLINE static auto& impl(derived_type& parse_core) {
-			return *static_cast<typename derived_derived_type::thread_pool_type*>(&parse_core);
-		}
 	};
 }

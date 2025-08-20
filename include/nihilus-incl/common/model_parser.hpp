@@ -415,7 +415,7 @@ namespace nihilus {
 				if constexpr (!std::is_const_v<std::remove_reference_t<decltype(ref)>>) {
 					ref = value_reader<config, member_type_t<index>>::gather_value(stream);
 				} else {
-					member_type_t<index> value_new{ value_reader<config, std::remove_const_t<member_type_t<index>>>::gather_value(stream) };
+					member_type_t<index> value_new{ value_reader<config, detail::remove_const_t<member_type_t<index>>>::gather_value(stream) };
 					if (!compare_equal(value_new, ref)) {
 						static constexpr string_literal sl_new{ "Sorry, but member of name: " + string_lit + " was not equal!" };
 						static constexpr auto location = std::source_location::current();

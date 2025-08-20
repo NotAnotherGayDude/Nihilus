@@ -121,15 +121,15 @@ namespace nihilus {
 		return sl;
 	}
 
-	template<typename sl_type, std::remove_cvref_t<sl_type> string_new> struct string_literal_comparitor;
+	template<typename sl_type, detail::remove_cvref_t<sl_type> string_new> struct string_literal_comparitor;
 
-	template<equals_0 sl_type, std::remove_cvref_t<sl_type> string_new> struct string_literal_comparitor<sl_type, string_new> {
+	template<equals_0 sl_type, detail::remove_cvref_t<sl_type> string_new> struct string_literal_comparitor<sl_type, string_new> {
 		NIHILUS_INLINE static bool impl(const char*) noexcept {
 			return true;
 		}
 	};
 
-	template<gt_0_lt_16 sl_type, std::remove_cvref_t<sl_type> string_new> struct string_literal_comparitor<sl_type, string_new> {
+	template<gt_0_lt_16 sl_type, detail::remove_cvref_t<sl_type> string_new> struct string_literal_comparitor<sl_type, string_new> {
 		inline static constexpr auto string_lit{ string_new };
 		inline static constexpr auto newCount{ string_lit.size() };
 		NIHILUS_INLINE static bool impl(const char* str) noexcept {
@@ -182,9 +182,9 @@ namespace nihilus {
 		}
 	};
 
-	template<eq_16 sl_type, std::remove_cvref_t<sl_type> string_new> struct string_literal_comparitor<sl_type, string_new> {
+	template<eq_16 sl_type, detail::remove_cvref_t<sl_type> string_new> struct string_literal_comparitor<sl_type, string_new> {
 		inline static constexpr auto new_literal{ string_new };
-		alignas(16) inline static constexpr auto values_new { pack_values<new_literal>() };
+		alignas(16) inline static constexpr auto values_new{ pack_values<new_literal>() };
 		NIHILUS_INLINE static bool impl(const char* str) noexcept {
 			alignas(16) char values_to_load[16];
 			std::memcpy(values_to_load, str, 16);
@@ -196,9 +196,9 @@ namespace nihilus {
 
 #if NIHILUS_AVX2 || NIHILUS_AVX512 || NIHILUS_SVE2
 
-	template<eq_32 sl_type, std::remove_cvref_t<sl_type> string_new> struct string_literal_comparitor<sl_type, string_new> {
+	template<eq_32 sl_type, detail::remove_cvref_t<sl_type> string_new> struct string_literal_comparitor<sl_type, string_new> {
 		inline static constexpr auto new_literal{ string_new };
-		alignas(32) inline static constexpr auto values_new { pack_values<new_literal>() };
+		alignas(32) inline static constexpr auto values_new{ pack_values<new_literal>() };
 		NIHILUS_INLINE static bool impl(const char* str) noexcept {
 			alignas(32) char values_to_load[32];
 			std::memcpy(values_to_load, str, 32);
@@ -213,7 +213,7 @@ namespace nihilus {
 #if NIHILUS_AVX512 || NIHILUS_SVE2
 	template<eq_64 sl_type, sl_type string_new> struct string_literal_comparitor<sl_type, string_new> {
 		inline static constexpr auto new_literal{ string_new };
-		alignas(64) inline static constexpr auto values_new { pack_values<new_literal>() };
+		alignas(64) inline static constexpr auto values_new{ pack_values<new_literal>() };
 		NIHILUS_INLINE static bool impl(const char* str) noexcept {
 			alignas(64) char values_to_load[64];
 			std::memcpy(values_to_load, str, 64);
@@ -234,7 +234,7 @@ namespace nihilus {
 		}
 	}
 
-	template<gt_16 sl_type, std::remove_cvref_t<sl_type> string_new> struct string_literal_comparitor<sl_type, string_new> {
+	template<gt_16 sl_type, detail::remove_cvref_t<sl_type> string_new> struct string_literal_comparitor<sl_type, string_new> {
 		inline static constexpr auto string{ offset_into_literal<string_new, get_offset_into_literal_size(string_new.size())>() };
 		inline static constexpr auto string_size = string.size();
 		inline static constexpr auto string_newer{ offset_new_literal<string_new, string_size>() };

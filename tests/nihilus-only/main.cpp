@@ -403,14 +403,21 @@ template<uint64_t seq_length> std::vector<tensor_op> create_mega_pipeline_layer_
 	return ops;
 }
 
-
 int32_t main(int32_t argc, char** argv) {
-	auto result = get_read_writes(create_original_llama_cpp_layer_tensor_ops_with_seqlen<1024>());
+	auto result = get_read_writes(create_original_llama_cpp_layer_tensor_ops_with_seqlen<32>());
+	std::cout << "Bandwidth used per Inference Run - For Length: " << std::to_string(32) << std::endl;
+	std::cout << "---------------------------------" << std::endl;
+	std::cout << "Read bytes (llama.cpp): " << result.read_bytes << std::endl;
+	std::cout << "Written bytes (llama.cpp): " << result.written_bytes << std::endl;
+	auto result02 = get_read_writes(create_mega_pipeline_layer_tensor_ops_with_seqlen<32>());
+	std::cout << "Read bytes (Nihilus): " << result02.read_bytes << std::endl;
+	std::cout << "Written bytes (Nihilus): " << result02.written_bytes << std::endl;
+	result = get_read_writes(create_original_llama_cpp_layer_tensor_ops_with_seqlen<1024>());
 	std::cout << "Bandwidth used per Inference Run - For Length: " << std::to_string(1024) << std::endl;
 	std::cout << "---------------------------------" << std::endl;
 	std::cout << "Read bytes (llama.cpp): " << result.read_bytes << std::endl;
 	std::cout << "Written bytes (llama.cpp): " << result.written_bytes << std::endl;
-	auto result02 = get_read_writes(create_mega_pipeline_layer_tensor_ops_with_seqlen<1024>());
+	result02 = get_read_writes(create_mega_pipeline_layer_tensor_ops_with_seqlen<1024>());
 	std::cout << "Read bytes (Nihilus): " << result02.read_bytes << std::endl;
 	std::cout << "Written bytes (Nihilus): " << result02.written_bytes << std::endl;
 	result = get_read_writes(create_original_llama_cpp_layer_tensor_ops_with_seqlen<2048>());
@@ -430,18 +437,22 @@ int32_t main(int32_t argc, char** argv) {
 	std::cout << "Read bytes (Nihilus): " << result02.read_bytes << std::endl;
 	std::cout << "Written bytes (Nihilus): " << result02.written_bytes << std::endl;
 
-	constexpr auto model_config = generate_model_config(model_generations::v3_1, model_sizes::llm_8B, kernel_type_profiles::q8_gqa, model_arches::llama);
-	cli_params cli_args			= harbinger<model_config>::parse_cli_arguments(argc, argv);
-	auto model_new{ harbinger<model_config>::parse_model_graph_data(cli_args) };
+	constexpr auto model_config_01 =
+		generate_model_config(model_generations::v3_1, model_sizes::llm_8B, kernel_type_profiles::q8_gqa, model_arches::llama, false, nullptr, 32);
+	cli_params cli_args			   = harbinger<model_config_01>::parse_cli_arguments(argc, argv);
+	auto model_new_01{ harbinger<model_config_01>::parse_model_graph_data(cli_args) };
 
-	constexpr auto model_config_02 =
-		generate_model_config(model_generations::v3_1, model_sizes::llm_8B, kernel_type_profiles::q8_gqa, model_arches::llama, false, nullptr, 32, 1, 2048);
+	constexpr auto model_config_02 = generate_model_config(model_generations::v3_1, model_sizes::llm_8B, kernel_type_profiles::q8_gqa, model_arches::llama);
+	cli_args			= harbinger<model_config_02>::parse_cli_arguments(argc, argv);
 	auto model_new_02{ harbinger<model_config_02>::parse_model_graph_data(cli_args) };
 
-	constexpr auto model_config_03 = generate_model_config(model_generations::v3_1, model_sizes::llm_8B, kernel_type_profiles::q8_gqa, model_arches::llama, false, nullptr, 32, 1,
-		model_traits_type<model_config_02>::context_length);
+	constexpr auto model_config_03 = generate_model_config(model_generations::v3_1, model_sizes::llm_8B, kernel_type_profiles::q8_gqa, model_arches::llama, false, nullptr, 2048);
 	auto model_new_03{ harbinger<model_config_03>::parse_model_graph_data(cli_args) };
-	while (model_new->process_input(cli_args.prompt)) {
+
+	constexpr auto model_config_04 = generate_model_config(model_generations::v3_1, model_sizes::llm_8B, kernel_type_profiles::q8_gqa, model_arches::llama, false, nullptr,
+		model_traits_type<model_config_03>::context_length);
+	auto model_new_04{ harbinger<model_config_04>::parse_model_graph_data(cli_args) };
+	while (model_new_04->process_input(cli_args.prompt)) {
 	}
 	return 0;
 };

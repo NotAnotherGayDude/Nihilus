@@ -56,8 +56,8 @@ namespace nihilus {
 			const float id = (maxAbs != 0.0f) ? 127.0f / maxAbs : 0.0f;
 
 			for (uint64_t j = 0; j < 32; j++) {
-				float scaled	  = x[j] * id;
-				float rounded	  = roundf(scaled);
+				float scaled	   = x[j] * id;
+				float rounded	   = roundf(scaled);
 				uint32_t quantized = static_cast<uint32_t>(rounded);
 				if (quantized > 127)
 					quantized = 127;
@@ -71,48 +71,78 @@ namespace nihilus {
 		}
 	}
 
-	template<> struct kernel_dispatcher_impl<1,core_types::token_embeddings,processing_phase::eval_time> {
-		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count) {};
+	template<> struct kernel_dispatcher_impl<1, core_types::token_embeddings, processing_phases::eval_time> {
+		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count) {
+			params.latch_eval.fetch_sub(1);
+			params.latch_eval.wait();
+		};
 	};
 
-	template<> struct kernel_dispatcher_impl<1, core_types::token_embeddings, processing_phase::prompt_eval_time> {
-		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count) {};
+	template<> struct kernel_dispatcher_impl<1, core_types::token_embeddings, processing_phases::prompt_eval_time> {
+		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count) {
+			params.latch_prompt_eval.fetch_sub(1);
+			params.latch_prompt_eval.wait();
+		};
 	};
 
-	template<> struct kernel_dispatcher_impl<1, core_types::mega_qkv_prep_and_cache_publish, processing_phase::eval_time> {
-		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {};
+	template<> struct kernel_dispatcher_impl<1, core_types::mega_qkv_prep_and_cache_publish, processing_phases::eval_time> {
+		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {
+			params.latch_eval[current_block].fetch_sub(1);
+			params.latch_eval[current_block].wait();
+		};
 	};
 
-	template<> struct kernel_dispatcher_impl<1, core_types::mega_qkv_prep_and_cache_publish, processing_phase::prompt_eval_time> {
-		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {};
+	template<> struct kernel_dispatcher_impl<1, core_types::mega_qkv_prep_and_cache_publish, processing_phases::prompt_eval_time> {
+		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {
+			params.latch_prompt_eval[current_block].fetch_sub(1);
+			params.latch_prompt_eval[current_block].wait();
+		};
 	};
 
-	template<> struct kernel_dispatcher_impl<1, core_types::mega_attention_apply, processing_phase::eval_time> {
-		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {};
+	template<> struct kernel_dispatcher_impl<1, core_types::mega_attention_apply, processing_phases::eval_time> {
+		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {
+			params.latch_eval[current_block].fetch_sub(1);
+			params.latch_eval[current_block].wait();
+		};
 	};
 
-	template<> struct kernel_dispatcher_impl<1, core_types::mega_attention_apply, processing_phase::prompt_eval_time> {
-		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {};
+	template<> struct kernel_dispatcher_impl<1, core_types::mega_attention_apply, processing_phases::prompt_eval_time> {
+		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {
+			params.latch_prompt_eval[current_block].fetch_sub(1);
+			params.latch_prompt_eval[current_block].wait();
+		};
 	};
 
-	template<> struct kernel_dispatcher_impl<1, core_types::mega_ffn, processing_phase::eval_time> {
-		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {};
+	template<> struct kernel_dispatcher_impl<1, core_types::mega_ffn, processing_phases::eval_time> {
+		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {
+			params.latch_eval[current_block].fetch_sub(1);
+			params.latch_eval[current_block].wait();
+		};
 	};
 
-	template<> struct kernel_dispatcher_impl<1, core_types::mega_ffn, processing_phase::prompt_eval_time> {
-		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {};
+	template<> struct kernel_dispatcher_impl<1, core_types::mega_ffn, processing_phases::prompt_eval_time> {
+		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {
+			params.latch_prompt_eval[current_block].fetch_sub(1);
+			params.latch_prompt_eval[current_block].wait();
+		};
 	};
 
-	template<> struct kernel_dispatcher_impl<1, core_types::final_norm_and_sampling, processing_phase::eval_time> {
-		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count) {};
+	template<> struct kernel_dispatcher_impl<1, core_types::final_norm_and_sampling, processing_phases::eval_time> {
+		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count) {
+			params.latch_eval.fetch_sub(1);
+			params.latch_eval.wait();
+		};
 	};
 
-	template<> struct kernel_dispatcher_impl<1, core_types::final_norm_and_sampling, processing_phase::prompt_eval_time> {
-		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count) {};
+	template<> struct kernel_dispatcher_impl<1, core_types::final_norm_and_sampling, processing_phases::prompt_eval_time> {
+		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count) {
+			params.latch_prompt_eval.fetch_sub(1);
+			params.latch_prompt_eval.wait();
+		};
 	};
 
 	/*
-	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::none, processing_phase::prompt_eval_time, core_type, float, float, block_q8_0<half>>
+	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::none, processing_phases::prompt_eval_time, core_type, float, float, block_q8_0<half>>
 		: public kernel_base<kernel_types::none, core_type, float, float, block_q8_0<half>> {
 		using input_type01			   = typename core_type::input_01_type;
 		using input_type02			   = typename core_type::input_02_type;
@@ -183,7 +213,7 @@ namespace nihilus {
 		}
 	};
 
-	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::none, processing_phase::eval_time, core_type, float, float, block_q8_0<half>>
+	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::none, processing_phases::eval_time, core_type, float, float, block_q8_0<half>>
 		: public kernel_base<kernel_types::none, core_type, float, float, block_q8_0<half>> {
 		using input_type01			   = typename core_type::input_01_type;
 		using input_type02			   = typename core_type::input_02_type;
@@ -250,7 +280,7 @@ namespace nihilus {
 		}
 	};
 
-	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::none, processing_phase::prompt_eval_time, core_type, float, float, float>
+	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::none, processing_phases::prompt_eval_time, core_type, float, float, float>
 		: public kernel_base<kernel_types::none, core_type, float, float, float> {
 		using input_type01			   = typename core_type::input_01_type;
 		using input_type02			   = typename core_type::input_02_type;
@@ -306,18 +336,18 @@ namespace nihilus {
 			const uint64_t ne11 = input02[1];
 			const uint64_t ne1	= output[1];
 
-			uint64_t sync_ith = output.current_chunk[current_block].fetch_add(1);
+			uint64_t sync_ith = output.current_chunk_prompt_eval[current_block].fetch_sub(1);
 
 			const uint64_t chunk_count = detail::max((type_traits<typename core_type::output_type>::total_byte_size(output) / (l1_cache_size) * 4) / 3, 1);
 			const uint64_t block_byte_size{};
 			const uint64_t element_byte_size{};
 			if (block_byte_size > element_byte_size) {
-				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk_prompt_eval[current_block].fetch_sub(1)) {
 					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
 					produce_single_block<false>(thread_index, thread_count, current_block, output, input01, input02);
 				}
 			} else {
-				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk_prompt_eval[current_block].fetch_sub(1)) {
 					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
 					produce_single_element<true>(thread_index, thread_count, current_block, output, input01, input02);
 				}
@@ -325,7 +355,7 @@ namespace nihilus {
 		}
 	};
 
-	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::none, processing_phase::eval_time, core_type, float, float, float>
+	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::none, processing_phases::eval_time, core_type, float, float, float>
 		: public kernel_base<kernel_types::none, core_type, float, float, float> {
 		using input_type01			   = typename core_type::input_01_type;
 		using input_type02			   = typename core_type::input_02_type;
@@ -381,18 +411,18 @@ namespace nihilus {
 			const uint64_t ne11 = input02[1];
 			const uint64_t ne1	= output[1];
 
-			uint64_t sync_ith = output.current_chunk[current_block].fetch_add(1);
+			uint64_t sync_ith = output.current_chunk_prompt_eval[current_block].fetch_sub(1);
 
 			const uint64_t chunk_count = detail::max((type_traits<typename core_type::output_type>::total_byte_size(output) / (l1_cache_size) * 4) / 3, 1);
 			const uint64_t block_byte_size{};
 			const uint64_t element_byte_size{};
 			if (block_byte_size > element_byte_size) {
-				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk_prompt_eval[current_block].fetch_sub(1)) {
 					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
 					produce_single_block<false>(thread_index, thread_count, current_block, output, input01, input02);
 				}
 			} else {
-				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk_prompt_eval[current_block].fetch_sub(1)) {
 					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
 					produce_single_element<true>(thread_index, thread_count, current_block, output, input01, input02);
 				}
@@ -401,7 +431,7 @@ namespace nihilus {
 	};
 
 	template<typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::none, processing_phase::prompt_eval_time, core_type, block_q8_0<half>, float, float, float>
+	struct kernel_dispatcher_impl<1, kernel_types::none, processing_phases::prompt_eval_time, core_type, block_q8_0<half>, float, float, float>
 		: public kernel_base<kernel_types::none, core_type, block_q8_0<half>, float, float, float> {
 		using input_type01			   = typename core_type::input_01_type;
 		using input_type02			   = typename core_type::input_02_type;
@@ -477,7 +507,7 @@ namespace nihilus {
 		}
 	};
 
-	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::none, processing_phase::eval_time, core_type, block_q8_0<half>, float, float, float>
+	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::none, processing_phases::eval_time, core_type, block_q8_0<half>, float, float, float>
 		: public kernel_base<kernel_types::none, core_type, block_q8_0<half>, float, float, float> {
 		using input_type01			   = typename core_type::input_01_type;
 		using input_type02			   = typename core_type::input_02_type;
@@ -689,7 +719,7 @@ namespace nihilus {
 		}
 	};
 
-	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::none, processing_phase::prompt_eval_time, core_type, block_q8_0<half>, float, float>
+	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::none, processing_phases::prompt_eval_time, core_type, block_q8_0<half>, float, float>
 		: public kernel_base<kernel_types::none, core_type, block_q8_0<half>, float, float> {
 		using input_type01			   = typename core_type::input_01_type;
 		using input_type02			   = typename core_type::input_02_type;
@@ -760,7 +790,7 @@ namespace nihilus {
 		}
 	};
 
-	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::none, processing_phase::eval_time, core_type, block_q8_0<half>, float, float>
+	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::none, processing_phases::eval_time, core_type, block_q8_0<half>, float, float>
 		: public kernel_base<kernel_types::none, core_type, block_q8_0<half>, float, float> {
 		using input_type01			   = typename core_type::input_01_type;
 		using input_type02			   = typename core_type::input_02_type;
@@ -831,7 +861,7 @@ namespace nihilus {
 		}
 	};
 
-	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::mul, processing_phase::prompt_eval_time, core_type, float, float, float>
+	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::mul, processing_phases::prompt_eval_time, core_type, float, float, float>
 		: public kernel_base<kernel_types::mul, core_type, float, float, float> {
 		using input_type01			   = typename core_type::input_01_type;
 		using input_type02			   = typename core_type::input_02_type;
@@ -887,18 +917,18 @@ namespace nihilus {
 			const uint64_t ne11 = input02[1];
 			const uint64_t ne1	= output[1];
 
-			uint64_t sync_ith = output.current_chunk[current_block].fetch_add(1);
+			uint64_t sync_ith = output.current_chunk_prompt_eval[current_block].fetch_sub(1);
 
 			const uint64_t chunk_count = detail::max((type_traits<typename core_type::output_type>::total_byte_size(output) / (l1_cache_size) * 4) / 3, 1);
 			const uint64_t block_byte_size{};
 			const uint64_t element_byte_size{};
 			if (block_byte_size > element_byte_size) {
-				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk_prompt_eval[current_block].fetch_sub(1)) {
 					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
 					produce_single_block<false>(thread_index, thread_count, current_block, output, input01, input02);
 				}
 			} else {
-				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk_prompt_eval[current_block].fetch_sub(1)) {
 					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
 					produce_single_element<true>(thread_index, thread_count, current_block, output, input01, input02);
 				}
@@ -906,7 +936,7 @@ namespace nihilus {
 		}
 	};
 
-	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::mul, processing_phase::eval_time, core_type, float, float, float>
+	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::mul, processing_phases::eval_time, core_type, float, float, float>
 		: public kernel_base<kernel_types::mul, core_type, float, float, float> {
 		using input_type01			   = typename core_type::input_01_type;
 		using input_type02			   = typename core_type::input_02_type;
@@ -962,18 +992,18 @@ namespace nihilus {
 			const uint64_t ne11 = input02[1];
 			const uint64_t ne1	= output[1];
 
-			uint64_t sync_ith = output.current_chunk[current_block].fetch_add(1);
+			uint64_t sync_ith = output.current_chunk_prompt_eval[current_block].fetch_sub(1);
 
 			const uint64_t chunk_count = detail::max((type_traits<typename core_type::output_type>::total_byte_size(output) / (l1_cache_size) * 4) / 3, 1);
 			const uint64_t block_byte_size{};
 			const uint64_t element_byte_size{};
 			if (block_byte_size > element_byte_size) {
-				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk_prompt_eval[current_block].fetch_sub(1)) {
 					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
 					produce_single_block<false>(thread_index, thread_count, current_block, output, input01, input02);
 				}
 			} else {
-				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk_prompt_eval[current_block].fetch_sub(1)) {
 					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
 					produce_single_element<true>(thread_index, thread_count, current_block, output, input01, input02);
 				}
@@ -981,7 +1011,7 @@ namespace nihilus {
 		}
 	};
 
-	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::mul, processing_phase::prompt_eval_time, core_type, block_q8_0<half>, float, float>
+	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::mul, processing_phases::prompt_eval_time, core_type, block_q8_0<half>, float, float>
 		: public kernel_base<kernel_types::mul, core_type, block_q8_0<half>, float, float> {
 		using input_type01			   = typename core_type::input_01_type;
 		using input_type02			   = typename core_type::input_02_type;
@@ -1052,7 +1082,7 @@ namespace nihilus {
 		}
 	};
 
-	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::mul, processing_phase::eval_time, core_type, block_q8_0<half>, float, float>
+	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::mul, processing_phases::eval_time, core_type, block_q8_0<half>, float, float>
 		: public kernel_base<kernel_types::mul, core_type, block_q8_0<half>, float, float> {
 		using input_type01			   = typename core_type::input_01_type;
 		using input_type02			   = typename core_type::input_02_type;
@@ -1123,7 +1153,7 @@ namespace nihilus {
 		}
 	};
 
-	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::get_rows, processing_phase::prompt_eval_time, core_type, float, block_q8_0<half>, int32_t>
+	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::get_rows, processing_phases::prompt_eval_time, core_type, float, block_q8_0<half>, int32_t>
 		: public kernel_base<kernel_types::get_rows, core_type, float, block_q8_0<half>, int32_t> {
 		using input_type01			   = typename core_type::input_01_type;
 		static constexpr uint64_t ne00 = input_type01::get_array()[0];
@@ -1154,7 +1184,7 @@ namespace nihilus {
 		}
 	};
 
-	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::get_rows, processing_phase::eval_time, core_type, float, block_q8_0<half>, int32_t>
+	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::get_rows, processing_phases::eval_time, core_type, float, block_q8_0<half>, int32_t>
 		: public kernel_base<kernel_types::get_rows, core_type, float, block_q8_0<half>, int32_t> {
 		using input_type01			   = typename core_type::input_01_type;
 		static constexpr uint64_t ne00 = input_type01::get_array()[0];
@@ -1178,7 +1208,7 @@ namespace nihilus {
 		}
 	};
 
-	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::mul_mat, processing_phase::prompt_eval_time, core_type, float, block_q8_0<half>, block_q8_0<half>>
+	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::mul_mat, processing_phases::prompt_eval_time, core_type, float, block_q8_0<half>, block_q8_0<half>>
 		: public kernel_base<kernel_types::mul_mat, core_type, float, block_q8_0<half>, block_q8_0<half>> {
 		using input_type01			   = typename core_type::input_01_type;
 		using input_type02			   = typename core_type::input_02_type;
@@ -1234,18 +1264,18 @@ namespace nihilus {
 			const uint64_t ne11 = input02[1];
 			const uint64_t ne1	= output[1];
 
-			uint64_t sync_ith = output.current_chunk[current_block].fetch_add(1);
+			uint64_t sync_ith = output.current_chunk_prompt_eval[current_block].fetch_sub(1);
 
 			const uint64_t chunk_count = detail::max((type_traits<typename core_type::output_type>::total_byte_size(output) / (l1_cache_size) * 4) / 3, 1);
 			const uint64_t block_byte_size{};
 			const uint64_t element_byte_size{};
 			if (block_byte_size > element_byte_size) {
-				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk_prompt_eval[current_block].fetch_sub(1)) {
 					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
 					produce_single_block<false>(thread_index, thread_count, current_block, output, input01, input02);
 				}
 			} else {
-				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk_prompt_eval[current_block].fetch_sub(1)) {
 					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
 					produce_single_element<true>(thread_index, thread_count, current_block, output, input01, input02);
 				}
@@ -1253,7 +1283,7 @@ namespace nihilus {
 		}
 	};
 
-	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::mul_mat, processing_phase::eval_time, core_type, float, block_q8_0<half>, block_q8_0<half>>
+	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::mul_mat, processing_phases::eval_time, core_type, float, block_q8_0<half>, block_q8_0<half>>
 		: public kernel_base<kernel_types::mul_mat, core_type, float, block_q8_0<half>, block_q8_0<half>> {
 		using input_type01			   = typename core_type::input_01_type;
 		using input_type02			   = typename core_type::input_02_type;
@@ -1309,18 +1339,18 @@ namespace nihilus {
 			const uint64_t ne11 = input02[1];
 			const uint64_t ne1	= output[1];
 
-			uint64_t sync_ith = output.current_chunk[current_block].fetch_add(1);
+			uint64_t sync_ith = output.current_chunk_prompt_eval[current_block].fetch_sub(1);
 
 			const uint64_t chunk_count = detail::max((type_traits<typename core_type::output_type>::total_byte_size(output) / (l1_cache_size) * 4) / 3, 1);
 			const uint64_t block_byte_size{};
 			const uint64_t element_byte_size{};
 			if (block_byte_size > element_byte_size) {
-				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk_prompt_eval[current_block].fetch_sub(1)) {
 					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
 					produce_single_block<false>(thread_index, thread_count, current_block, output, input01, input02);
 				}
 			} else {
-				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk_prompt_eval[current_block].fetch_sub(1)) {
 					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
 					produce_single_element<true>(thread_index, thread_count, current_block, output, input01, input02);
 				}
@@ -1328,7 +1358,7 @@ namespace nihilus {
 		}
 	};
 
-	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::mul_mat, processing_phase::prompt_eval_time, core_type, block_q8_0<half>, half, float>
+	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::mul_mat, processing_phases::prompt_eval_time, core_type, block_q8_0<half>, half, float>
 		: public kernel_base<kernel_types::mul_mat, core_type, block_q8_0<half>, half, float> {
 		using input_type01			   = typename core_type::input_01_type;
 		using input_type02			   = typename core_type::input_02_type;
@@ -1384,18 +1414,18 @@ namespace nihilus {
 			const uint64_t ne11 = input02[1];
 			const uint64_t ne1	= output[1];
 
-			uint64_t sync_ith = output.current_chunk[current_block].fetch_add(1);
+			uint64_t sync_ith = output.current_chunk_prompt_eval[current_block].fetch_sub(1);
 
 			const uint64_t chunk_count = detail::max((type_traits<typename core_type::output_type>::total_byte_size(output) / (l1_cache_size) * 4) / 3, 1);
 			const uint64_t block_byte_size{};
 			const uint64_t element_byte_size{};
 			if (block_byte_size > element_byte_size) {
-				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk_prompt_eval[current_block].fetch_sub(1)) {
 					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
 					produce_single_block<false>(thread_index, thread_count, current_block, output, input01, input02);
 				}
 			} else {
-				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk_prompt_eval[current_block].fetch_sub(1)) {
 					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
 					produce_single_element<true>(thread_index, thread_count, current_block, output, input01, input02);
 				}
@@ -1403,7 +1433,7 @@ namespace nihilus {
 		}
 	};
 
-	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::mul_mat, processing_phase::eval_time, core_type, block_q8_0<half>, half, float>
+	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::mul_mat, processing_phases::eval_time, core_type, block_q8_0<half>, half, float>
 		: public kernel_base<kernel_types::mul_mat, core_type, block_q8_0<half>, half, float> {
 		using input_type01			   = typename core_type::input_01_type;
 		using input_type02			   = typename core_type::input_02_type;
@@ -1459,18 +1489,18 @@ namespace nihilus {
 			const uint64_t ne11 = input02[1];
 			const uint64_t ne1	= output[1];
 
-			uint64_t sync_ith = output.current_chunk[current_block].fetch_add(1);
+			uint64_t sync_ith = output.current_chunk_prompt_eval[current_block].fetch_sub(1);
 
 			const uint64_t chunk_count = detail::max((type_traits<typename core_type::output_type>::total_byte_size(output) / (l1_cache_size) * 4) / 3, 1);
 			const uint64_t block_byte_size{};
 			const uint64_t element_byte_size{};
 			if (block_byte_size > element_byte_size) {
-				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk_prompt_eval[current_block].fetch_sub(1)) {
 					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
 					produce_single_block<false>(thread_index, thread_count, current_block, output, input01, input02);
 				}
 			} else {
-				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk_prompt_eval[current_block].fetch_sub(1)) {
 					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
 					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
 					produce_single_element<true>(thread_index, thread_count, current_block, output, input01, input02);
@@ -1479,7 +1509,7 @@ namespace nihilus {
 		}
 	};
 
-	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::softmax, processing_phase::prompt_eval_time, core_type, float, block_q8_0<half>, float>
+	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::softmax, processing_phases::prompt_eval_time, core_type, float, block_q8_0<half>, float>
 		: public kernel_base<kernel_types::softmax, core_type, float, block_q8_0<half>, float> {
 		using input_type01			   = typename core_type::input_01_type;
 		using input_type02			   = typename core_type::input_02_type;
@@ -1550,7 +1580,7 @@ namespace nihilus {
 		}
 	};
 
-	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::softmax, processing_phase::eval_time, core_type, float, block_q8_0<half>, float>
+	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::softmax, processing_phases::eval_time, core_type, float, block_q8_0<half>, float>
 		: public kernel_base<kernel_types::softmax, core_type, float, block_q8_0<half>, float> {
 		using input_type01			   = typename core_type::input_01_type;
 		using input_type02			   = typename core_type::input_02_type;
@@ -1621,7 +1651,7 @@ namespace nihilus {
 		}
 	};
 
-	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::rope, processing_phase::prompt_eval_time, core_type, float, float, int32_t, float>
+	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::rope, processing_phases::prompt_eval_time, core_type, float, float, int32_t, float>
 		: public kernel_base<kernel_types::rope, core_type, float, float, int32_t, float> {
 		using input_type01			   = typename core_type::input_01_type;
 		using input_type02			   = typename core_type::input_02_type;
@@ -1682,18 +1712,18 @@ namespace nihilus {
 			const uint64_t ne21 = input03[1];
 			const uint64_t ne1	= output[1];
 
-			uint64_t sync_ith = output.current_chunk[current_block].fetch_add(1);
+			uint64_t sync_ith = output.current_chunk_prompt_eval[current_block].fetch_sub(1);
 
 			const uint64_t chunk_count = detail::max((type_traits<typename core_type::output_type>::total_byte_size(output) / (l1_cache_size) * 4) / 3, 1);
 			const uint64_t block_byte_size{};
 			const uint64_t element_byte_size{};
 			if (block_byte_size > element_byte_size) {
-				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk_prompt_eval[current_block].fetch_sub(1)) {
 					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
 					produce_single_block<false>(thread_index, thread_count, current_block, output, input01, input02, input03);
 				}
 			} else {
-				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk_prompt_eval[current_block].fetch_sub(1)) {
 					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
 					produce_single_element<true>(thread_index, thread_count, current_block, output, input01, input02, input03);
 				}
@@ -1701,7 +1731,7 @@ namespace nihilus {
 		}
 	};
 
-	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::rope, processing_phase::eval_time, core_type, float, float, int32_t, float>
+	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::rope, processing_phases::eval_time, core_type, float, float, int32_t, float>
 		: public kernel_base<kernel_types::rope, core_type, float, float, int32_t, float> {
 		using input_type01			   = typename core_type::input_01_type;
 		using input_type02			   = typename core_type::input_02_type;
@@ -1762,18 +1792,18 @@ namespace nihilus {
 			const uint64_t ne21 = input03[1];
 			const uint64_t ne1	= output[1];
 
-			uint64_t sync_ith = output.current_chunk[current_block].fetch_add(1);
+			uint64_t sync_ith = output.current_chunk_prompt_eval[current_block].fetch_sub(1);
 
 			const uint64_t chunk_count = detail::max((type_traits<typename core_type::output_type>::total_byte_size(output) / (l1_cache_size) * 4) / 3, 1);
 			const uint64_t block_byte_size{};
 			const uint64_t element_byte_size{};
 			if (block_byte_size > element_byte_size) {
-				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk_prompt_eval[current_block].fetch_sub(1)) {
 					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
 					produce_single_block<false>(thread_index, thread_count, current_block, output, input01, input02, input03);
 				}
 			} else {
-				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk_prompt_eval[current_block].fetch_sub(1)) {
 					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
 					produce_single_element<true>(thread_index, thread_count, current_block, output, input01, input02, input03);
 				}
@@ -1781,7 +1811,7 @@ namespace nihilus {
 		}
 	};
 
-	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::get_rows, processing_phase::prompt_eval_time, core_type, float, float, int32_t>
+	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::get_rows, processing_phases::prompt_eval_time, core_type, float, float, int32_t>
 		: public kernel_base<kernel_types::get_rows, core_type, float, float, int32_t> {
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
 			const typename core_type::input_02_type& input02) {
@@ -1808,7 +1838,7 @@ namespace nihilus {
 		}
 	};
 
-	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::get_rows, processing_phase::eval_time, core_type, float, float, int32_t>
+	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::get_rows, processing_phases::eval_time, core_type, float, float, int32_t>
 		: public kernel_base<kernel_types::get_rows, core_type, float, float, int32_t> {
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
 			const typename core_type::input_02_type& input02) {
@@ -1828,7 +1858,7 @@ namespace nihilus {
 		}
 	};
 
-	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::silu, processing_phase::prompt_eval_time, core_type, float, float>
+	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::silu, processing_phases::prompt_eval_time, core_type, float, float>
 		: public kernel_base<kernel_types::silu, core_type, float, float> {
 		using input_type01			   = typename core_type::input_01_type;
 		static constexpr uint64_t ne00 = input_type01::get_array()[0];
@@ -1893,7 +1923,7 @@ namespace nihilus {
 		}
 	};
 
-	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::silu, processing_phase::eval_time, core_type, float, float>
+	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::silu, processing_phases::eval_time, core_type, float, float>
 		: public kernel_base<kernel_types::silu, core_type, float, float> {
 		using input_type01			   = typename core_type::input_01_type;
 		static constexpr uint64_t ne00 = input_type01::get_array()[0];
@@ -1959,7 +1989,7 @@ namespace nihilus {
 	};
 
 	template<typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::none, processing_phase::prompt_eval_time, core_type, float, block_q8_0<half>, block_q8_0<half>>
+	struct kernel_dispatcher_impl<1, kernel_types::none, processing_phases::prompt_eval_time, core_type, float, block_q8_0<half>, block_q8_0<half>>
 		: public kernel_base<kernel_types::none, core_type, float, block_q8_0<half>, block_q8_0<half>> {
 		using input_type01			   = typename core_type::input_01_type;
 		using input_type02			   = typename core_type::input_02_type;
@@ -2015,18 +2045,18 @@ namespace nihilus {
 			const uint64_t ne11 = input02[1];
 			const uint64_t ne1	= output[1];
 
-			uint64_t sync_ith = output.current_chunk[current_block].fetch_add(1);
+			uint64_t sync_ith = output.current_chunk_prompt_eval[current_block].fetch_sub(1);
 
 			const uint64_t chunk_count = detail::max((type_traits<typename core_type::output_type>::total_byte_size(output) / (l1_cache_size) * 4) / 3, 1);
 			const uint64_t block_byte_size{};
 			const uint64_t element_byte_size{};
 			if (block_byte_size > element_byte_size) {
-				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk_prompt_eval[current_block].fetch_sub(1)) {
 					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
 					produce_single_block<false>(thread_index, thread_count, current_block, output, input01, input02);
 				}
 			} else {
-				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk_prompt_eval[current_block].fetch_sub(1)) {
 					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
 					produce_single_element<true>(thread_index, thread_count, current_block, output, input01, input02);
 				}
@@ -2034,7 +2064,7 @@ namespace nihilus {
 		}
 	};
 
-	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::none, processing_phase::eval_time, core_type, float, block_q8_0<half>, block_q8_0<half>>
+	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::none, processing_phases::eval_time, core_type, float, block_q8_0<half>, block_q8_0<half>>
 		: public kernel_base<kernel_types::none, core_type, float, block_q8_0<half>, block_q8_0<half>> {
 		using input_type01			   = typename core_type::input_01_type;
 		using input_type02			   = typename core_type::input_02_type;
@@ -2090,18 +2120,18 @@ namespace nihilus {
 			const uint64_t ne11 = input02[1];
 			const uint64_t ne1	= output[1];
 
-			uint64_t sync_ith = output.current_chunk[current_block].fetch_add(1);
+			uint64_t sync_ith = output.current_chunk_prompt_eval[current_block].fetch_sub(1);
 
 			const uint64_t chunk_count = detail::max((type_traits<typename core_type::output_type>::total_byte_size(output) / (l1_cache_size) * 4) / 3, 1);
 			const uint64_t block_byte_size{};
 			const uint64_t element_byte_size{};
 			if (block_byte_size > element_byte_size) {
-				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk_prompt_eval[current_block].fetch_sub(1)) {
 					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
 					produce_single_block<false>(thread_index, thread_count, current_block, output, input01, input02);
 				}
 			} else {
-				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk_prompt_eval[current_block].fetch_sub(1)) {
 					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
 					produce_single_element<true>(thread_index, thread_count, current_block, output, input01, input02);
 				}
@@ -2109,7 +2139,7 @@ namespace nihilus {
 		}
 	};
 
-	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::none, processing_phase::prompt_eval_time, core_type, float, float, int32_t, float>
+	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::none, processing_phases::prompt_eval_time, core_type, float, float, int32_t, float>
 		: public kernel_base<kernel_types::none, core_type, float, float, int32_t, float> {
 		using input_type01			   = typename core_type::input_01_type;
 		using input_type02			   = typename core_type::input_02_type;
@@ -2170,18 +2200,18 @@ namespace nihilus {
 			const uint64_t ne21 = input03[1];
 			const uint64_t ne1	= output[1];
 
-			uint64_t sync_ith = output.current_chunk[current_block].fetch_add(1);
+			uint64_t sync_ith = output.current_chunk_prompt_eval[current_block].fetch_sub(1);
 
 			const uint64_t chunk_count = detail::max((type_traits<typename core_type::output_type>::total_byte_size(output) / (l1_cache_size) * 4) / 3, 1);
 			const uint64_t block_byte_size{};
 			const uint64_t element_byte_size{};
 			if (block_byte_size > element_byte_size) {
-				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk_prompt_eval[current_block].fetch_sub(1)) {
 					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
 					produce_single_block<false>(thread_index, thread_count, current_block, output, input01, input02, input03);
 				}
 			} else {
-				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk_prompt_eval[current_block].fetch_sub(1)) {
 					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
 					produce_single_element<true>(thread_index, thread_count, current_block, output, input01, input02, input03);
 				}
@@ -2189,7 +2219,7 @@ namespace nihilus {
 		}
 	};
 
-	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::none, processing_phase::eval_time, core_type, float, float, int32_t, float>
+	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::none, processing_phases::eval_time, core_type, float, float, int32_t, float>
 		: public kernel_base<kernel_types::none, core_type, float, float, int32_t, float> {
 		using input_type01			   = typename core_type::input_01_type;
 		using input_type02			   = typename core_type::input_02_type;
@@ -2250,18 +2280,18 @@ namespace nihilus {
 			const uint64_t ne21 = input03[1];
 			const uint64_t ne1	= output[1];
 
-			uint64_t sync_ith = output.current_chunk[current_block].fetch_add(1);
+			uint64_t sync_ith = output.current_chunk_prompt_eval[current_block].fetch_sub(1);
 
 			const uint64_t chunk_count = detail::max((type_traits<typename core_type::output_type>::total_byte_size(output) / (l1_cache_size) * 4) / 3, 1);
 			const uint64_t block_byte_size{};
 			const uint64_t element_byte_size{};
 			if (block_byte_size > element_byte_size) {
-				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk_prompt_eval[current_block].fetch_sub(1)) {
 					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
 					produce_single_block<false>(thread_index, thread_count, current_block, output, input01, input02, input03);
 				}
 			} else {
-				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk_prompt_eval[current_block].fetch_sub(1)) {
 					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
 					produce_single_element<true>(thread_index, thread_count, current_block, output, input01, input02, input03);
 				}
@@ -2269,7 +2299,7 @@ namespace nihilus {
 		}
 	};
 
-	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::rope_copy, processing_phase::prompt_eval_time, core_type, float, float, int32_t, float, int16_t>
+	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::rope_copy, processing_phases::prompt_eval_time, core_type, float, float, int32_t, float, int16_t>
 		: public kernel_base<kernel_types::rope_copy, core_type, float, float, int32_t, float, int16_t> {
 		using input_type01			   = typename core_type::input_01_type;
 		using input_type02			   = typename core_type::input_02_type;
@@ -2337,18 +2367,18 @@ namespace nihilus {
 			const uint64_t ne31 = input04[1];
 			const uint64_t ne1	= output[1];
 
-			uint64_t sync_ith = output.current_chunk[current_block].fetch_add(1);
+			uint64_t sync_ith = output.current_chunk_prompt_eval[current_block].fetch_sub(1);
 
 			const uint64_t chunk_count = detail::max((type_traits<typename core_type::output_type>::total_byte_size(output) / (l1_cache_size) * 4) / 3, 1);
 			const uint64_t block_byte_size{};
 			const uint64_t element_byte_size{};
 			if (block_byte_size > element_byte_size) {
-				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk_prompt_eval[current_block].fetch_sub(1)) {
 					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
 					produce_single_block<false>(thread_index, thread_count, current_block, output, input01, input02, input03, input04);
 				}
 			} else {
-				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk_prompt_eval[current_block].fetch_sub(1)) {
 					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
 					produce_single_element<true>(thread_index, thread_count, current_block, output, input01, input02, input03, input04);
 				}
@@ -2356,7 +2386,7 @@ namespace nihilus {
 		}
 	};
 
-	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::rope_copy, processing_phase::eval_time, core_type, float, float, int32_t, float, int16_t>
+	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::rope_copy, processing_phases::eval_time, core_type, float, float, int32_t, float, int16_t>
 		: public kernel_base<kernel_types::rope_copy, core_type, float, float, int32_t, float, int16_t> {
 		using input_type01			   = typename core_type::input_01_type;
 		using input_type02			   = typename core_type::input_02_type;
@@ -2424,18 +2454,18 @@ namespace nihilus {
 			const uint64_t ne31 = input04[1];
 			const uint64_t ne1	= output[1];
 
-			uint64_t sync_ith = output.current_chunk[current_block].fetch_add(1);
+			uint64_t sync_ith = output.current_chunk_prompt_eval[current_block].fetch_sub(1);
 
 			const uint64_t chunk_count = detail::max((type_traits<typename core_type::output_type>::total_byte_size(output) / (l1_cache_size) * 4) / 3, 1);
 			const uint64_t block_byte_size{};
 			const uint64_t element_byte_size{};
 			if (block_byte_size > element_byte_size) {
-				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk_prompt_eval[current_block].fetch_sub(1)) {
 					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
 					produce_single_block<false>(thread_index, thread_count, current_block, output, input01, input02, input03, input04);
 				}
 			} else {
-				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk_prompt_eval[current_block].fetch_sub(1)) {
 					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
 					produce_single_element<true>(thread_index, thread_count, current_block, output, input01, input02, input03, input04);
 				}
@@ -2443,7 +2473,7 @@ namespace nihilus {
 		}
 	};
 
-	template<typename core_type> struct kernel_dispatcher_impl<1, nihilus::kernel_types::none, nihilus::processing_phase::prompt_eval_time, core_type, float,
+	template<typename core_type> struct kernel_dispatcher_impl<1, nihilus::kernel_types::none, nihilus::processing_phases::prompt_eval_time, core_type, float,
 		nihilus::block_q8_0<nihilus::half>, nihilus::block_q8_0<nihilus::half>, short> {
 		using input_type01			   = typename core_type::input_01_type;
 		using input_type02			   = typename core_type::input_02_type;
@@ -2504,18 +2534,18 @@ namespace nihilus {
 			const uint64_t ne21 = input03[1];
 			const uint64_t ne1	= output[1];
 
-			uint64_t sync_ith = output.current_chunk[current_block].fetch_add(1);
+			uint64_t sync_ith = output.current_chunk_prompt_eval[current_block].fetch_sub(1);
 
 			const uint64_t chunk_count = detail::max((type_traits<typename core_type::output_type>::total_byte_size(output) / (l1_cache_size) * 4) / 3, 1);
 			const uint64_t block_byte_size{};
 			const uint64_t element_byte_size{};
 			if (block_byte_size > element_byte_size) {
-				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk_prompt_eval[current_block].fetch_sub(1)) {
 					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
 					produce_single_block<false>(thread_index, thread_count, current_block, output, input01, input02, input03);
 				}
 			} else {
-				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk_prompt_eval[current_block].fetch_sub(1)) {
 					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
 					produce_single_element<true>(thread_index, thread_count, current_block, output, input01, input02, input03);
 				}
@@ -2523,7 +2553,7 @@ namespace nihilus {
 		}
 	};
 
-	template<typename core_type> struct kernel_dispatcher_impl<1, nihilus::kernel_types::none, nihilus::processing_phase::eval_time, core_type, float,
+	template<typename core_type> struct kernel_dispatcher_impl<1, nihilus::kernel_types::none, nihilus::processing_phases::eval_time, core_type, float,
 		nihilus::block_q8_0<nihilus::half>, nihilus::block_q8_0<nihilus::half>, short> {
 		using input_type01			   = typename core_type::input_01_type;
 		using input_type02			   = typename core_type::input_02_type;
@@ -2584,18 +2614,18 @@ namespace nihilus {
 			const uint64_t ne21 = input03[1];
 			const uint64_t ne1	= output[1];
 
-			uint64_t sync_ith = output.current_chunk[current_block].fetch_add(1);
+			uint64_t sync_ith = output.current_chunk_prompt_eval[current_block].fetch_sub(1);
 
 			const uint64_t chunk_count = detail::max((type_traits<typename core_type::output_type>::total_byte_size(output) / (l1_cache_size) * 4) / 3, 1);
 			const uint64_t block_byte_size{};
 			const uint64_t element_byte_size{};
 			if (block_byte_size > element_byte_size) {
-				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk_prompt_eval[current_block].fetch_sub(1)) {
 					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
 					produce_single_block<false>(thread_index, thread_count, current_block, output, input01, input02, input03);
 				}
 			} else {
-				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk[current_block].fetch_add(1)) {
+				for (uint64_t index = sync_ith; index < chunk_count; index = output.current_chunk_prompt_eval[current_block].fetch_sub(1)) {
 					//std::cout<< "CURRENT INDEX: " << index << "CHUNK COUNT: " << chunk_count << std::endl;
 					produce_single_element<true>(thread_index, thread_count, current_block, output, input01, input02, input03);
 				}
@@ -2865,7 +2895,7 @@ namespace nihilus {
 	}
 
 	template<typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::none, processing_phase::prompt_eval_time, core_type, float, float, float>
+	struct kernel_dispatcher_impl<1, kernel_types::none, processing_phases::prompt_eval_time, core_type, float, float, float>
 		: public kernel_base<kernel_types::none, core_type, float, float, float> {
 		using input_type01 = typename core_type::input_01_type;
 		using input_type02 = typename core_type::input_02_type;
@@ -3299,7 +3329,7 @@ namespace nihilus {
 	}
 
 	template<typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::none, processing_phase::prompt_eval_time, core_type, float, float, float, block_q8_0<half>>
+	struct kernel_dispatcher_impl<1, kernel_types::none, processing_phases::prompt_eval_time, core_type, float, float, float, block_q8_0<half>>
 		: public kernel_base<kernel_types::none, core_type, float, float, float, block_q8_0<half>> {
 		using input_type01 = typename core_type::input_01_type;
 		using input_type02 = typename core_type::input_02_type;
@@ -3737,7 +3767,7 @@ namespace nihilus {
 	};
 
 	template<typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::rms_norm_mul_transpose, processing_phase::prompt_eval_time, core_type, float, float, float>
+	struct kernel_dispatcher_impl<1, kernel_types::rms_norm_mul_transpose, processing_phases::prompt_eval_time, core_type, float, float, float>
 		: public kernel_base<kernel_types::rms_norm_mul_transpose, core_type, float, float, float> {
 		using input_type01 = typename core_type::input_01_type;
 		using input_type02 = typename core_type::input_02_type;
@@ -4048,7 +4078,7 @@ namespace nihilus {
 	};
 
 	template<typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::mul, processing_phase::prompt_eval_time, core_type, float, float, float>
+	struct kernel_dispatcher_impl<1, kernel_types::mul, processing_phases::prompt_eval_time, core_type, float, float, float>
 		: public kernel_base<kernel_types::mul, core_type, float, float, float> {
 		using input_type01 = typename core_type::input_01_type;
 		using input_type02 = typename core_type::input_02_type;
@@ -4189,7 +4219,7 @@ namespace nihilus {
 	}
 
 	template<typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::get_rows, processing_phase::prompt_eval_time, core_type, float, block_q8_0<half>, int32_t>
+	struct kernel_dispatcher_impl<1, kernel_types::get_rows, processing_phases::prompt_eval_time, core_type, float, block_q8_0<half>, int32_t>
 		: public kernel_base<kernel_types::get_rows, core_type, float, block_q8_0<half>, int32_t> {
 		using input_type01 = core_type::input_01_type;
 		using input_type02 = core_type::input_02_type;
@@ -4260,7 +4290,7 @@ namespace nihilus {
 	}
 
 	template<typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::get_rows, processing_phase::prompt_eval_time, core_type, float, float, int32_t>
+	struct kernel_dispatcher_impl<1, kernel_types::get_rows, processing_phases::prompt_eval_time, core_type, float, float, int32_t>
 		: public kernel_base<kernel_types::get_rows, core_type, float, float, int32_t> {
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
 			const typename core_type::input_02_type& input02) {
@@ -4739,7 +4769,7 @@ namespace nihilus {
 	};
 
 	template<typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::mul_mat, processing_phase::prompt_eval_time, core_type, float, block_q8_0<half>, float>
+	struct kernel_dispatcher_impl<1, kernel_types::mul_mat, processing_phases::prompt_eval_time, core_type, float, block_q8_0<half>, float>
 		: public kernel_base<kernel_types::mul_mat, core_type, float, block_q8_0<half>, float> {
 		using input_type01						 = typename core_type::input_01_type;
 		using input_type02						 = typename core_type::input_02_type;
@@ -4856,14 +4886,14 @@ namespace nihilus {
 			typename core_type::input_02_type& input02) {
 			int64_t current_chunk = thread_index;
 
-			while (current_chunk < chunk_count) {
-				current_chunk = output.current_chunk.fetch_add(chunks_completed);
+			while (current_chunk < chunk_count ) {
+				current_chunk = output.current_chunk_prompt_eval.fetch_sub(chunks_completed);
 			}
 		}
 	};
 
 	template<typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::mul_mat, processing_phase::eval_time, core_type, float, block_q8_0<half>, float>
+	struct kernel_dispatcher_impl<1, kernel_types::mul_mat, processing_phases::eval_time, core_type, float, block_q8_0<half>, float>
 		: public kernel_base<kernel_types::mul_mat, core_type, float, block_q8_0<half>, float> {
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
 			const typename core_type::input_02_type& input02) {
@@ -4891,7 +4921,7 @@ namespace nihilus {
 	};	
 
 	template<typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::mul_mat, processing_phase::prompt_eval_time, core_type, float, half, float>
+	struct kernel_dispatcher_impl<1, kernel_types::mul_mat, processing_phases::prompt_eval_time, core_type, float, half, float>
 		: public kernel_base<kernel_types::mul_mat, core_type, float, half, float> {
 		using input_type01 = typename core_type::input_01_type;
 		using input_type02 = typename core_type::input_02_type;
@@ -4940,7 +4970,7 @@ namespace nihilus {
 	};
 
 	template<typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::softmax, processing_phase::prompt_eval_time, core_type, float, float, float>
+	struct kernel_dispatcher_impl<1, kernel_types::softmax, processing_phases::prompt_eval_time, core_type, float, float, float>
 		: public kernel_base<kernel_types::softmax, core_type, float, float, float> {
 		using input_type01 = typename core_type::input_01_type;
 		using input_type02 = typename core_type::input_02_type;
@@ -5003,7 +5033,7 @@ namespace nihilus {
 	};
 
 	template<typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::copy, processing_phase::prompt_eval_time, core_type, half, half, float>
+	struct kernel_dispatcher_impl<1, kernel_types::copy, processing_phases::prompt_eval_time, core_type, half, half, float>
 		: public kernel_base<kernel_types::copy, core_type, half, half, float> {
 		using input_type01 = typename core_type::input_01_type;
 		using input_type02 = typename core_type::input_02_type;
@@ -5028,7 +5058,7 @@ namespace nihilus {
 	};
 
 	template<typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::rope, processing_phase::prompt_eval_time, core_type, float, float, int32_t, float>
+	struct kernel_dispatcher_impl<1, kernel_types::rope, processing_phases::prompt_eval_time, core_type, float, float, int32_t, float>
 		: public kernel_base<kernel_types::rope, core_type, float, float, int32_t, float> {
 		using input_type01 = typename core_type::input_01_type;
 		using input_type02 = typename core_type::input_02_type;
@@ -5148,7 +5178,7 @@ namespace nihilus {
 	};
 
 	template<typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::copy, processing_phase::prompt_eval_time, core_type, float, float>
+	struct kernel_dispatcher_impl<1, kernel_types::copy, processing_phases::prompt_eval_time, core_type, float, float>
 		: public kernel_base<kernel_types::copy, core_type, float, float> {
 		using input_type01 = typename core_type::input_01_type;
 
@@ -5171,7 +5201,7 @@ namespace nihilus {
 	};
 
 	template<typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::cont, processing_phase::prompt_eval_time, core_type, float, float>
+	struct kernel_dispatcher_impl<1, kernel_types::cont, processing_phases::prompt_eval_time, core_type, float, float>
 		: public kernel_base<kernel_types::cont, core_type, float, float> {
 		using input_type01 = typename core_type::input_01_type;
 
@@ -5210,14 +5240,14 @@ namespace nihilus {
 	};
 
 	template<typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::silu, processing_phase::prompt_eval_time, core_type, float, float>
+	struct kernel_dispatcher_impl<1, kernel_types::silu, processing_phases::prompt_eval_time, core_type, float, float>
 		: public kernel_base<kernel_types::silu, core_type, float, float> {
 		NIHILUS_INLINE static void impl(int64_t, int64_t, int64_t, core_type&, const typename core_type::input_01_type&) {
 		}
 	};
 
 	template<typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::none, processing_phase::eval_time, core_type, float, float, float>
+	struct kernel_dispatcher_impl<1, kernel_types::none, processing_phases::eval_time, core_type, float, float, float>
 		: public kernel_base<kernel_types::none, core_type, float, float, float> {
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
 			const typename core_type::input_02_type& input02) {
@@ -5255,7 +5285,7 @@ namespace nihilus {
 	};
 
 	template<typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::none, processing_phase::eval_time, core_type, float, float, float, block_q8_0<half>>
+	struct kernel_dispatcher_impl<1, kernel_types::none, processing_phases::eval_time, core_type, float, float, float, block_q8_0<half>>
 		: public kernel_base<kernel_types::none, core_type, float, float, float, block_q8_0<half>> {
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
 			const typename core_type::input_02_type& input02, const typename core_type::input_03_type& input03) {
@@ -5311,7 +5341,7 @@ namespace nihilus {
 	};
 
 	template<typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::rms_norm_mul_transpose, processing_phase::eval_time, core_type, float, float, float>
+	struct kernel_dispatcher_impl<1, kernel_types::rms_norm_mul_transpose, processing_phases::eval_time, core_type, float, float, float>
 		: public kernel_base<kernel_types::rms_norm_mul_transpose, core_type, float, float, float> {
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
 			const typename core_type::input_02_type& input02) {
@@ -5345,7 +5375,7 @@ namespace nihilus {
 	};
 
 	template<typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::mul, processing_phase::eval_time, core_type, float, float, float>
+	struct kernel_dispatcher_impl<1, kernel_types::mul, processing_phases::eval_time, core_type, float, float, float>
 		: public kernel_base<kernel_types::mul, core_type, float, float, float> {
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t, core_type& output, const typename core_type::input_01_type& input01,
 			const typename core_type::input_02_type& input02) {
@@ -5374,7 +5404,7 @@ namespace nihilus {
 	};
 
 	template<typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::get_rows, processing_phase::eval_time, core_type, float, block_q8_0<half>, int32_t>
+	struct kernel_dispatcher_impl<1, kernel_types::get_rows, processing_phases::eval_time, core_type, float, block_q8_0<half>, int32_t>
 		: public kernel_base<kernel_types::get_rows, core_type, float, block_q8_0<half>, int32_t> {
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
 			const typename core_type::input_02_type& input02) {
@@ -5388,7 +5418,7 @@ namespace nihilus {
 	};
 
 	template<typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::get_rows, processing_phase::eval_time, core_type, float, float, int32_t>
+	struct kernel_dispatcher_impl<1, kernel_types::get_rows, processing_phases::eval_time, core_type, float, float, int32_t>
 		: public kernel_base<kernel_types::get_rows, core_type, float, float, int32_t> {
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
 			const typename core_type::input_02_type& input02) {
@@ -5401,7 +5431,7 @@ namespace nihilus {
 	};
 
 	template<typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::mul_mat, processing_phase::eval_time, core_type, float, half, float>
+	struct kernel_dispatcher_impl<1, kernel_types::mul_mat, processing_phases::eval_time, core_type, float, half, float>
 		: public kernel_base<kernel_types::mul_mat, core_type, float, half, float> {
 		using input_type01 = typename core_type::input_01_type;
 		using input_type02 = typename core_type::input_02_type;
@@ -5412,7 +5442,7 @@ namespace nihilus {
 	};
 
 	template<typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::softmax, processing_phase::eval_time, core_type, float, float, float>
+	struct kernel_dispatcher_impl<1, kernel_types::softmax, processing_phases::eval_time, core_type, float, float, float>
 		: public kernel_base<kernel_types::softmax, core_type, float, float, float> {
 		using input_type01 = typename core_type::input_01_type;
 		using input_type02 = typename core_type::input_02_type;
@@ -5423,7 +5453,7 @@ namespace nihilus {
 	};
 
 	template<typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::copy, processing_phase::eval_time, core_type, half, half, float>
+	struct kernel_dispatcher_impl<1, kernel_types::copy, processing_phases::eval_time, core_type, half, half, float>
 		: public kernel_base<kernel_types::copy, core_type, half, half, float> {
 		using input_type01 = typename core_type::input_01_type;
 		using input_type02 = typename core_type::input_02_type;
@@ -5434,7 +5464,7 @@ namespace nihilus {
 	};
 
 	template<typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::rope, processing_phase::eval_time, core_type, float, float, int32_t, float>
+	struct kernel_dispatcher_impl<1, kernel_types::rope, processing_phases::eval_time, core_type, float, float, int32_t, float>
 		: public kernel_base<kernel_types::rope, core_type, float, float, int32_t, float> {
 		using input_type01 = typename core_type::input_01_type;
 		using input_type02 = typename core_type::input_02_type;
@@ -5553,7 +5583,7 @@ namespace nihilus {
 		}
 	};
 
-	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::copy, processing_phase::eval_time, core_type, float, float>
+	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::copy, processing_phases::eval_time, core_type, float, float>
 		: public kernel_base<kernel_types::copy, core_type, float, float> {
 		using input_type01 = typename core_type::input_01_type;
 
@@ -5561,7 +5591,7 @@ namespace nihilus {
 		}
 	};
 
-	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::cont, processing_phase::eval_time, core_type, float, float>
+	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::cont, processing_phases::eval_time, core_type, float, float>
 		: public kernel_base<kernel_types::cont, core_type, float, float> {
 		using input_type01 = typename core_type::input_01_type;
 
@@ -5569,7 +5599,7 @@ namespace nihilus {
 		}
 	};
 
-	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::silu, processing_phase::eval_time, core_type, float, float>
+	template<typename core_type> struct kernel_dispatcher_impl<1, kernel_types::silu, processing_phases::eval_time, core_type, float, float>
 		: public kernel_base<kernel_types::silu, core_type, float, float> {
 		NIHILUS_INLINE static void impl(int64_t, int64_t, int64_t, core_type&, const typename core_type::input_01_type&) {
 		}

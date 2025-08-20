@@ -44,10 +44,10 @@ namespace nihilus {
 		: public thread_pool<config_new>,
 		  public model_base,
 		  public tokenizer<config_new, model_traits<config_new.arch, config_new.model_size, config_new.model_generation>::arch, config_new.tokenizer_type> {
-		using thread_pool_type = thread_pool<config_new>;
-		using core_bases_type  = get_core_bases_t<config_new, core_types>;
-		using core_bases_traits_type  = core_bases_traits<config_new, core_types>;
-		using tokenizer_type   = tokenizer<config_new, config_new.arch, config_new.tokenizer_type>;
+		using thread_pool_type		 = thread_pool<config_new>;
+		using core_bases_type		 = get_core_bases_t<config_new, core_types>;
+		using core_bases_traits_type = core_bases_traits<config_new, core_types>;
+		using tokenizer_type		 = tokenizer<config_new, config_new.arch, config_new.tokenizer_type>;
 
 		NIHILUS_INLINE model() noexcept {
 		}
@@ -55,7 +55,7 @@ namespace nihilus {
 		NIHILUS_INLINE model(cli_params params) : thread_pool<config_new>{ static_cast<int64_t>(params.thread_count) }, model_base{ config_new } {
 			exec_params.token_count = params.n_tokens;
 			init(params);
-		}		
+		}
 
 		model& operator=(const model&) = delete;
 		model(const model&)			   = delete;
@@ -70,7 +70,7 @@ namespace nihilus {
 		}
 
 		NIHILUS_INLINE void init(cli_params params) {
-			std::cout << "Total Bytes Required for Intermediate Tensors at Context Length Of: " << config.default_max_sequence_length << ": "
+			std::cout << "(Nihilus) Total Bytes Required for Intermediate Tensors at Context Length Of: " << config.default_max_sequence_length << ": "
 					  << core_bases_traits_type ::total_required_bytes.peak_allocated_bytes << std::endl;
 			memory.init(core_bases_traits_type ::total_required_bytes.peak_allocated_bytes);
 			array<array<void*, model_traits_type<config_new>::block_count>, weight_types::count> data{};
@@ -80,7 +80,7 @@ namespace nihilus {
 			if constexpr (config_new.benchmark || config_new.dev) {
 				perf_base<config_new>::perf_stats.load_start = clock_type::now();
 			}
-			weight_memory = memory_mapped_file{ params.model_file };
+			weight_memory									  = memory_mapped_file{ params.model_file };
 			gguf_metadata<config_new> model_construction_data = model_parser<config_new>::parse_model(data, &weight_memory, *static_cast<tokenizer_type*>(this));
 
 			if constexpr (config_new.benchmark || config_new.dev) {
@@ -94,19 +94,20 @@ namespace nihilus {
 		}
 
 		NIHILUS_INLINE void execute_model(std::string_view input) {
-			static_cast<thread_pool<config_new>*>(this)->template execute_tasks<processing_phase::prompt_eval_time>(2);
+			static_cast<thread_pool<config_new>*>(this)->template execute_tasks<processing_phases::prompt_eval_time>(2);
 
 			if constexpr (config_new.dev) {
 				++perf_base<config_new>::perf_stats.current_iteration;
 			}
 
-			exec_params.sequence_length = tokenizer_type::tokenize(input, get<global_input_types::inp_tokens>(this->template get_core<core_types, core_types::global_inputs>().values).data);
+			exec_params.sequence_length =
+				tokenizer_type::tokenize(input, get<global_input_types::inp_tokens>(this->template get_core<core_types, core_types::global_inputs>().values).data);
 
 			for (uint64_t x = 0; x < exec_params.sequence_length; ++x) {
-				using core_type							  = std::remove_cvref_t<decltype(get<global_input_types::inp_pos>(this->template get_core<core_types, core_types::global_inputs>().values))>;
+				using core_type = detail::remove_cvref_t<decltype(get<global_input_types::inp_pos>(this->template get_core<core_types, core_types::global_inputs>().values))>;
 				get<global_input_types::inp_pos>(this->template get_core<core_types, core_types::global_inputs>().values).data[x] = static_cast<core_type::output_type>(x);
 			}
-			using core_type								  = std::remove_cvref_t<decltype(get<global_input_types::inp_out_ids>(this->template get_core<core_types, core_types::global_inputs>().values))>;
+			using core_type = detail::remove_cvref_t<decltype(get<global_input_types::inp_out_ids>(this->template get_core<core_types, core_types::global_inputs>().values))>;
 			get<global_input_types::inp_out_ids>(this->template get_core<core_types, core_types::global_inputs>().values).data[0] =
 				static_cast<core_type::output_type>(exec_params.sequence_length - 1);
 
@@ -121,7 +122,7 @@ namespace nihilus {
 				perf_base<config_new>::perf_stats.prompt_start = clock_type::now();
 			}
 
-			static_cast<thread_pool<config_new>*>(this)->template execute_tasks<processing_phase::prompt_eval_time>(exec_params.sequence_length);
+			static_cast<thread_pool<config_new>*>(this)->template execute_tasks<processing_phases::prompt_eval_time>(exec_params.sequence_length);
 
 			if constexpr (config_new.dev) {
 				++perf_base<config_new>::perf_stats.current_iteration;
@@ -141,7 +142,7 @@ namespace nihilus {
 				if constexpr (config_new.benchmark || config_new.dev) {
 					perf_base<config_new>::perf_stats.token_start = clock_type::now();
 				}
-				static_cast<thread_pool<config_new>*>(this)->template execute_tasks<processing_phase::eval_time>(1);
+				static_cast<thread_pool<config_new>*>(this)->template execute_tasks<processing_phases::eval_time>(1);
 
 				if constexpr (config_new.benchmark || config_new.dev) {
 					++perf_base<config_new>::perf_stats.current_iteration;
@@ -166,6 +167,10 @@ namespace nihilus {
 			if constexpr (config_new.benchmark || config_new.dev) {
 				print_performance_stats();
 			}
+		}
+		
+		NIHILUS_INLINE ~model() {
+			deinit();
 		}
 
 	  protected:

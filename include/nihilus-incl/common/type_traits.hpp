@@ -31,7 +31,6 @@ namespace nihilus {
 	}
 
 	template<typename derived_type> struct type_traits_base {
-
 		NIHILUS_INLINE static constexpr uint64_t row_size(uint64_t ne) {
 			return derived_type::type_size * ne / derived_type::block_size;
 		}
@@ -119,8 +118,7 @@ namespace nihilus {
 		}
 	};
 
-	template<> struct type_traits<int8_t>
-		: public type_traits_base<type_traits<int8_t>>, public get_dynamic_type_traits<type_traits<int8_t>> {
+	template<> struct type_traits<int8_t> : public type_traits_base<type_traits<int8_t>>, public get_dynamic_type_traits<type_traits<int8_t>> {
 		using value_type = int8_t;
 		using quant_type = int8_t;
 		inline static constexpr data_types type{ data_types::i8 };
@@ -130,8 +128,7 @@ namespace nihilus {
 		inline static constexpr uint64_t n_rows{ 1 };
 	};
 
-	template<> struct type_traits<int32_t>
-		: public type_traits_base<type_traits<int32_t>>, public get_dynamic_type_traits<type_traits<int32_t>> {
+	template<> struct type_traits<int32_t> : public type_traits_base<type_traits<int32_t>>, public get_dynamic_type_traits<type_traits<int32_t>> {
 		using value_type = int32_t;
 		using quant_type = int32_t;
 		inline static constexpr data_types type{ data_types::i32 };
@@ -141,8 +138,7 @@ namespace nihilus {
 		inline static constexpr uint64_t n_rows{ 1 };
 	};
 
-	template<> struct type_traits<int64_t>
-		: public type_traits_base<type_traits<int64_t>>, public get_dynamic_type_traits<type_traits<int64_t>> {
+	template<> struct type_traits<int64_t> : public type_traits_base<type_traits<int64_t>>, public get_dynamic_type_traits<type_traits<int64_t>> {
 		using value_type = int64_t;
 		using quant_type = int64_t;
 		inline static constexpr data_types type{ data_types::i64 };
@@ -152,7 +148,7 @@ namespace nihilus {
 		inline static constexpr uint64_t n_rows{ 1 };
 	};
 
-		template<> struct type_traits<uint8_t> : public type_traits_base<type_traits<uint8_t>>, public get_dynamic_type_traits<type_traits<uint8_t>> {
+	template<> struct type_traits<uint8_t> : public type_traits_base<type_traits<uint8_t>>, public get_dynamic_type_traits<type_traits<uint8_t>> {
 		using value_type = uint8_t;
 		using quant_type = uint8_t;
 		inline static constexpr data_types type{ data_types::i8 };
@@ -192,8 +188,7 @@ namespace nihilus {
 		inline static constexpr uint64_t n_rows{ 1 };
 	};
 
-	template<> struct type_traits<double>
-		: public type_traits_base<type_traits<double>>, public get_dynamic_type_traits<type_traits<double>> {
+	template<> struct type_traits<double> : public type_traits_base<type_traits<double>>, public get_dynamic_type_traits<type_traits<double>> {
 		using value_type = double;
 		using quant_type = double;
 		inline static constexpr data_types type{ data_types::f64 };
@@ -203,8 +198,7 @@ namespace nihilus {
 		inline static constexpr uint64_t n_rows{ 1 };
 	};
 
-	template<> struct type_traits<int16_t>
-		: public type_traits_base<type_traits<int16_t>>, public get_dynamic_type_traits<type_traits<int16_t>> {
+	template<> struct type_traits<int16_t> : public type_traits_base<type_traits<int16_t>>, public get_dynamic_type_traits<type_traits<int16_t>> {
 		using value_type = fp16_t;
 		using quant_type = fp16_t;
 		inline static constexpr data_types type{ data_types::f16 };
@@ -214,8 +208,7 @@ namespace nihilus {
 		inline static constexpr uint64_t n_rows{ 1 };
 	};
 
-	template<> struct type_traits<block_q8_0<half>>
-		: public type_traits_base<type_traits<block_q8_0<half>>>, public get_dynamic_type_traits<type_traits<block_q8_0<half>>> {
+	template<> struct type_traits<block_q8_0<half>> : public type_traits_base<type_traits<block_q8_0<half>>>, public get_dynamic_type_traits<type_traits<block_q8_0<half>>> {
 		using value_type = block_q8_0<half>;
 		using quant_type = block_q8_0<half>;
 		inline static constexpr data_types type{ data_types::q8_0 };

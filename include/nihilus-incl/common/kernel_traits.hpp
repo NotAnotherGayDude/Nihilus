@@ -109,10 +109,10 @@ namespace nihilus {
 		sample_output_must_be_single_token,
 	};
 
-	enum class processing_phase {
+	enum class processing_phases {
 		prompt_eval_time,
 		eval_time,
-	};	
+	};
 
 	template<model_config config_new> using model_traits_type = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
 
@@ -199,7 +199,7 @@ namespace nihilus {
 
 		NIHILUS_INLINE operator array<uint64_t, 4>() const {
 			return { { dim00, dim01, dim02, dim03 } };
-		}		
+		}
 
 		NIHILUS_INLINE uint64_t& get_mutable_dim() const {
 			return dim00;
@@ -275,11 +275,11 @@ namespace nihilus {
 	};
 
 	template<typename value_type>
-	concept runtime_dims_t = requires() { std::remove_cvref_t<value_type>::dimension; };
+	concept runtime_dims_t = requires() { detail::remove_cvref_t<value_type>::dimension; };
 
 	enum class get_new_dims_errors { unknown_kernel_type };
 
-	template<uint64_t, core_types core_type, processing_phase phase> struct kernel_dispatcher_impl;
+	template<uint64_t, core_types core_type, processing_phases processing_phase> struct kernel_dispatcher_impl;
 
 	template<model_config config, typename dims_type, kernel_types kernel_type, typename output_type_new, typename... operand_types> struct kernel_traits;
 
@@ -804,9 +804,11 @@ namespace nihilus {
 
 	template<kernel_types kernel_type, typename dims_01_type> using get_new_dims_new_1_t = typename get_new_dims_new_1<kernel_type, dims_01_type>::type;
 
-	template<kernel_types kernel_type, typename dims_01_type, typename dims_02_type> using get_new_dims_new_2_t = typename get_new_dims_new_2<kernel_type, dims_01_type, dims_02_type>::type;
+	template<kernel_types kernel_type, typename dims_01_type, typename dims_02_type> using get_new_dims_new_2_t =
+		typename get_new_dims_new_2<kernel_type, dims_01_type, dims_02_type>::type;
 
-	template<kernel_types kernel_type, typename dims_01_type, typename dims_02_type, typename dims_03_type> using get_new_dims_new_3_t = typename get_new_dims_new_3<kernel_type, dims_01_type, dims_02_type, dims_03_type>::type;
+	template<kernel_types kernel_type, typename dims_01_type, typename dims_02_type, typename dims_03_type> using get_new_dims_new_3_t =
+		typename get_new_dims_new_3<kernel_type, dims_01_type, dims_02_type, dims_03_type>::type;
 
 	template<model_config config, core_types core_type> struct core_traits {};
 
@@ -814,9 +816,7 @@ namespace nihilus {
 		using output_type									= output_type_new;
 		static constexpr composite_kernel_types kernel_type = kernel_type_new;
 
-		using dims_type = std::conditional_t<sizeof...(input_kernel_traits_types) >= 2,
-			typename std::tuple_element_t<sizeof...(input_kernel_traits_types) - 2, std::tuple<input_kernel_traits_types...>>::dims_type,
-			typename std::tuple_element_t<sizeof...(input_kernel_traits_types) - 1, std::tuple<input_kernel_traits_types...>>::dims_type>;
+		using dims_type = typename std::tuple_element_t<sizeof...(input_kernel_traits_types) - 1, std::tuple<input_kernel_traits_types...>>::dims_type;
 
 		using input_types_tuple = std::tuple<input_kernel_traits_types...>;
 

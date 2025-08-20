@@ -232,11 +232,11 @@ namespace nihilus {
 	inline const uint64_t l1_cache_size{ get_cache_size(cache_level::one) };
 
 	template<typename value_type>
-	concept nihilus_simd_512_types = std::same_as<nihilus_simd_int_512_t, std::remove_cvref_t<value_type>>;
+	concept nihilus_simd_512_types = std::same_as<nihilus_simd_int_512_t, detail::remove_cvref_t<value_type>>;
 	template<typename value_type>
-	concept nihilus_simd_256_types = std::same_as<nihilus_simd_int_256_t, std::remove_cvref_t<value_type>>;
+	concept nihilus_simd_256_types = std::same_as<nihilus_simd_int_256_t, detail::remove_cvref_t<value_type>>;
 	template<typename value_type>
-	concept nihilus_simd_128_types = std::same_as<nihilus_simd_int_128_t, std::remove_cvref_t<value_type>>;
+	concept nihilus_simd_128_types = std::same_as<nihilus_simd_int_128_t, detail::remove_cvref_t<value_type>>;
 
 	template<uint_types value_type> NIHILUS_INLINE static constexpr value_type tzcnt_constexpr(value_type value) noexcept {
 		if (value == 0) {
@@ -466,7 +466,7 @@ namespace nihilus {
 		}
 
 		template<typename simd_int_t01, typename simd_int_t02> NIHILUS_INLINE bool mm128TestzSi128(simd_int_t01 & valOneNew, simd_int_t02 & valTwo) noexcept {
-			std::remove_const_t<simd_int_t01> valOne{ valOneNew };
+			detail::remove_const_t<simd_int_t01> valOne{ valOneNew };
 			valOne.m128x_uint64[0] &= valTwo.m128x_uint64[0];
 			valOne.m128x_uint64[1] &= valTwo.m128x_uint64[1];
 			return valOne.m128x_uint64[0] == 0 && valOne.m128x_uint64[1] == 0;

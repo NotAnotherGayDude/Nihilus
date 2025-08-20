@@ -44,8 +44,6 @@ namespace nihilus {
 			if (this != &other) {
 				std::swap(data_val, other.data_val);
 				std::swap(size_val, other.size_val);
-				std::swap(head, other.head);
-				std::swap(tail, other.tail);
 			}
 			return *this;
 		}
@@ -96,8 +94,6 @@ namespace nihilus {
 	  protected:
 		value_type* data_val{};
 		size_type size_val{};
-		size_type tail{};
-		size_type head{};
 
 		NIHILUS_INLINE void clear() noexcept {
 			if (data_val) {

@@ -195,8 +195,8 @@ namespace nihilus {
 		return static_cast<uint8_t>(c - '0') < 10;
 	}
 
-	struct alignas(64) atomic_flag_wrapper {
-		static constexpr static_aligned_const<64, uint64_t> spin_cycles{ 5000 };
+	template<integral_or_enum_types value_type_new> struct alignas(64) atomic_flag_wrapper {
+		static constexpr static_aligned_const<64, uint64_t> spin_cycles{ 500000 };
 		using value_type										= typename std::atomic_signed_lock_free::value_type;
 		NIHILUS_INLINE constexpr atomic_flag_wrapper() noexcept = default;
 		NIHILUS_INLINE constexpr atomic_flag_wrapper& operator=(const atomic_flag_wrapper&) noexcept {
@@ -206,12 +206,12 @@ namespace nihilus {
 		NIHILUS_INLINE constexpr atomic_flag_wrapper(const atomic_flag_wrapper&) noexcept {
 		}
 
-		NIHILUS_INLINE void store(value_type value_new) {
-			flag.store(value_new, std::memory_order_release);
+		NIHILUS_INLINE void store(value_type_new value_new) {
+			flag.store(static_cast<value_type>(value_new), std::memory_order_release);
 		}
 
-		NIHILUS_INLINE value_type load() {
-			return flag.load(std::memory_order_acquire);
+		NIHILUS_INLINE value_type_new load() {
+			return static_cast<value_type_new>(flag.load(std::memory_order_acquire));
 		}
 
 		NIHILUS_INLINE void clear() {
@@ -230,12 +230,12 @@ namespace nihilus {
 			flag.notify_all();
 		}
 
-		NIHILUS_INLINE value_type fetch_add(value_type value) {
-			return flag.fetch_add(value, std::memory_order_seq_cst);
+		NIHILUS_INLINE value_type_new fetch_add(value_type value) {
+			return static_cast<value_type_new>(flag.fetch_add(static_cast<value_type>(value), std::memory_order_seq_cst));
 		}
 
-		NIHILUS_INLINE value_type fetch_sub(value_type value) {
-			return flag.fetch_sub(value, std::memory_order_seq_cst);
+		NIHILUS_INLINE value_type_new fetch_sub(value_type value) {
+			return static_cast<value_type_new>(flag.fetch_sub(static_cast<value_type>(value), std::memory_order_seq_cst));
 		}
 
 		NIHILUS_INLINE bool test() {
@@ -249,9 +249,22 @@ namespace nihilus {
 					return;
 				}
 			}
-			while (flag.load(std::memory_order_acquire) != expected_value) {
+			{
+				value_type current_value_01{ flag.load(std::memory_order_acquire) };
+				value_type current_value_02{ flag.load(std::memory_order_acquire) };
+				while (current_value_02 != expected_value) {
+					current_value_02 = flag.load(std::memory_order_acquire);
+					nihilus_pause();
+					flag.wait(current_value_01, std::memory_order_acquire);
+				}
+			}
+		}
+
+		NIHILUS_INLINE void wait() {
+			value_type current_value_01{ flag.load(std::memory_order_acquire) };
+			while (current_value_01 != 0) {
+				current_value_01 = flag.load(std::memory_order_acquire);
 				nihilus_pause();
-				flag.wait(expected_value + 1, std::memory_order_acquire);
 			}
 		}
 
@@ -259,37 +272,13 @@ namespace nihilus {
 		alignas(64) std::atomic_signed_lock_free flag{};
 	};
 
-	struct alignas(64) op_latch {
-		NIHILUS_INLINE op_latch() = default;
-		atomic_flag_wrapper global_flag{};
-		alignas(64) int64_t thread_count{};
-
-		NIHILUS_INLINE void init(int64_t thread_count_new) {
-			thread_count = thread_count_new;
-			global_flag.store(0);
-		}
-
-		NIHILUS_INLINE void arrive_and_wait() {
-			auto thread_index = global_flag.fetch_add(1);
-			bool wait{ (thread_index < thread_count - 1) };
-
-			if (wait) {
-				global_flag.hybrid_wait(0);
-			} else {
-				global_flag.store(0);
-				global_flag.notify_all();
-			}
-			return;
-		}
-	};
-
 	struct alignas(64) main_gate_latch {
 		NIHILUS_INLINE main_gate_latch()								  = default;
 		NIHILUS_INLINE main_gate_latch& operator=(const main_gate_latch&) = delete;
 		NIHILUS_INLINE main_gate_latch(const main_gate_latch&)			  = delete;
-		vector<atomic_flag_wrapper> finish_flags{};
-		vector<atomic_flag_wrapper> start_flags{};
-		atomic_flag_wrapper global_counter{};
+		vector<atomic_flag_wrapper<int64_t>> finish_flags{};
+		vector<atomic_flag_wrapper<int64_t>> start_flags{};
+		atomic_flag_wrapper<int64_t> global_counter{};
 		alignas(64) int64_t thread_count{};
 
 		NIHILUS_INLINE void init(int64_t thread_count_new) {
@@ -377,16 +366,16 @@ namespace nihilus {
 	}
 
 	enum class data_types : uint64_t {
-		f32		= 0,
-		f16		= 1,
-		q8_0	= 8,
-		i8		= 24,
-		i16		= 25,
-		i32		= 26,
-		i64		= 27,
-		f64		= 28,
-		bf16	= 30,
-		count	= 39,
+		f32	  = 0,
+		f16	  = 1,
+		q8_0  = 8,
+		i8	  = 24,
+		i16	  = 25,
+		i32	  = 26,
+		i64	  = 27,
+		f64	  = 28,
+		bf16  = 30,
+		count = 39,
 	};
 
 	enum class op_types : uint16_t {
@@ -869,9 +858,8 @@ namespace nihilus {
 		model_arches arch{};
 		bool exceptions{};
 		std::istream* input_stream{};
-		uint64_t max_thread_count{};
-		uint64_t cpu_arch_index{};
 		uint64_t default_max_sequence_length{};
+		uint64_t default_batch_size{};
 		kv_cache_strategies cache_strategy{};
 		bool use_gradient_checkpointing{};
 		rope_scaling_types rope_scaling{};

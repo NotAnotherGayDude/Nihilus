@@ -28,49 +28,49 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-	template<> struct kernel_dispatcher_impl<1, core_types::token_embeddings, processing_phase::eval_time> {
+	template<> struct kernel_dispatcher_impl<1, core_types::token_embeddings, processing_phases::eval_time> {
 		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count) {};
 	};
 
-	template<> struct kernel_dispatcher_impl<1, core_types::token_embeddings, processing_phase::prompt_eval_time> {
+	template<> struct kernel_dispatcher_impl<1, core_types::token_embeddings, processing_phases::prompt_eval_time> {
 		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count) {};
 	};
 
-	template<> struct kernel_dispatcher_impl<1, core_types::mega_qkv_prep_and_cache_publish, processing_phase::eval_time> {
+	template<> struct kernel_dispatcher_impl<1, core_types::mega_qkv_prep_and_cache_publish, processing_phases::eval_time> {
 		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {};
 	};
 
-	template<> struct kernel_dispatcher_impl<1, core_types::mega_qkv_prep_and_cache_publish, processing_phase::prompt_eval_time> {
+	template<> struct kernel_dispatcher_impl<1, core_types::mega_qkv_prep_and_cache_publish, processing_phases::prompt_eval_time> {
 		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {};
 	};
 
-	template<> struct kernel_dispatcher_impl<1, core_types::mega_attention_apply, processing_phase::eval_time> {
+	template<> struct kernel_dispatcher_impl<1, core_types::mega_attention_apply, processing_phases::eval_time> {
 		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {};
 	};
 
-	template<> struct kernel_dispatcher_impl<1, core_types::mega_attention_apply, processing_phase::prompt_eval_time> {
+	template<> struct kernel_dispatcher_impl<1, core_types::mega_attention_apply, processing_phases::prompt_eval_time> {
 		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {};
 	};
 
-	template<> struct kernel_dispatcher_impl<1, core_types::mega_ffn, processing_phase::eval_time> {
+	template<> struct kernel_dispatcher_impl<1, core_types::mega_ffn, processing_phases::eval_time> {
 		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {};
 	};
 
-	template<> struct kernel_dispatcher_impl<1, core_types::mega_ffn, processing_phase::prompt_eval_time> {
+	template<> struct kernel_dispatcher_impl<1, core_types::mega_ffn, processing_phases::prompt_eval_time> {
 		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {};
 	};
 
-	template<> struct kernel_dispatcher_impl<1, core_types::final_norm_and_sampling, processing_phase::eval_time> {
+	template<> struct kernel_dispatcher_impl<1, core_types::final_norm_and_sampling, processing_phases::eval_time> {
 		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count) {};
 	};
 
-	template<> struct kernel_dispatcher_impl<1, core_types::final_norm_and_sampling, processing_phase::prompt_eval_time> {
+	template<> struct kernel_dispatcher_impl<1, core_types::final_norm_and_sampling, processing_phases::prompt_eval_time> {
 		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count) {};
 	};
 
 	/*
 	template<typename transform_type, typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::none, processing_phase::prompt_eval_time, transform_type, core_type, float, float, float>
+	struct kernel_dispatcher_impl<1, kernel_types::none, processing_phases::prompt_eval_time, transform_type, core_type, float, float, float>
 		: public kernel_base<kernel_types::none, core_type, float, float, float> {
 		using input_type01 = typename core_type::input_01_type;
 		using input_type02 = typename core_type::input_02_type;
@@ -85,7 +85,7 @@ namespace nihilus {
 	};
 
 	template<typename transform_type, typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::none, processing_phase::prompt_eval_time, transform_type, core_type, float, float, float, float>
+	struct kernel_dispatcher_impl<1, kernel_types::none, processing_phases::prompt_eval_time, transform_type, core_type, float, float, float, float>
 		: public kernel_base<kernel_types::none, core_type, float, float, float, float> {
 		using input_type01 = typename core_type::input_01_type;
 		using input_type02 = typename core_type::input_02_type;
@@ -101,7 +101,7 @@ namespace nihilus {
 	};
 
 	template<typename transform_type, typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::none, processing_phase::prompt_eval_time, transform_type, core_type, float, float, float>
+	struct kernel_dispatcher_impl<1, kernel_types::none, processing_phases::prompt_eval_time, transform_type, core_type, float, float, float>
 		: public kernel_base<kernel_types::none, core_type, float, float, float> {
 		using input_type01 = typename core_type::input_01_type;
 		using input_type02 = typename core_type::input_02_type;
@@ -138,7 +138,7 @@ namespace nihilus {
 	};
 
 	template<typename transform_type, typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::mul, processing_phase::prompt_eval_time, transform_type, core_type, float, float, float>
+	struct kernel_dispatcher_impl<1, kernel_types::mul, processing_phases::prompt_eval_time, transform_type, core_type, float, float, float>
 		: public kernel_base<kernel_types::mul, core_type, float, float, float> {
 		using input_type01 = typename core_type::input_01_type;
 		using input_type02 = typename core_type::input_02_type;
@@ -153,7 +153,7 @@ namespace nihilus {
 	};
 
 	template<typename transform_type, typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::get_rows, processing_phase::prompt_eval_time, transform_type, core_type, float, block_q8_0<half>, int32_t>
+	struct kernel_dispatcher_impl<1, kernel_types::get_rows, processing_phases::prompt_eval_time, transform_type, core_type, float, block_q8_0<half>, int32_t>
 		: public kernel_base<kernel_types::get_rows, core_type, float, block_q8_0<half>, int32_t> {
 		using input_type01 = core_type::input_01_type;
 		using input_type02 = core_type::input_02_type;
@@ -209,7 +209,7 @@ namespace nihilus {
 	};
 
 	template<typename transform_type, typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::get_rows, processing_phase::eval_time, transform_type, core_type, float, block_q8_0<half>, int32_t>
+	struct kernel_dispatcher_impl<1, kernel_types::get_rows, processing_phases::eval_time, transform_type, core_type, float, block_q8_0<half>, int32_t>
 		: public kernel_base<kernel_types::get_rows, core_type, float, block_q8_0<half>, int32_t> {
 		using input_type01 = core_type::input_01_type;
 		using input_type02 = core_type::input_02_type;
@@ -296,7 +296,7 @@ namespace nihilus {
 	}
 
 	template<typename transform_type, typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::mul_mat, processing_phase::prompt_eval_time, transform_type, core_type, float, block_q8_0<half>, float>
+	struct kernel_dispatcher_impl<1, kernel_types::mul_mat, processing_phases::prompt_eval_time, transform_type, core_type, float, block_q8_0<half>, float>
 		: public kernel_base<kernel_types::mul_mat, core_type, float, block_q8_0<half>, float> {
 		using input_type01			   = typename core_type::input_01_type;
 		using input_type02			   = typename core_type::input_02_type;
@@ -372,7 +372,7 @@ namespace nihilus {
 	};
 
 	template<typename transform_type, typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::mul_mat, processing_phase::prompt_eval_time, transform_type, core_type, float, half, float>
+	struct kernel_dispatcher_impl<1, kernel_types::mul_mat, processing_phases::prompt_eval_time, transform_type, core_type, float, half, float>
 		: public kernel_base<kernel_types::mul_mat, core_type, float, half, float> {
 		using input_type01 = typename core_type::input_01_type;
 		using input_type02 = typename core_type::input_02_type;
@@ -383,7 +383,7 @@ namespace nihilus {
 	};
 
 	template<typename transform_type, typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::softmax, processing_phase::prompt_eval_time, transform_type, core_type, float, float, float>
+	struct kernel_dispatcher_impl<1, kernel_types::softmax, processing_phases::prompt_eval_time, transform_type, core_type, float, float, float>
 		: public kernel_base<kernel_types::softmax, core_type, float, float, float> {
 		using input_type01 = typename core_type::input_01_type;
 		using input_type02 = typename core_type::input_02_type;
@@ -394,7 +394,7 @@ namespace nihilus {
 	};
 
 	template<typename transform_type, typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::copy, processing_phase::prompt_eval_time, transform_type, core_type, half, half, float>
+	struct kernel_dispatcher_impl<1, kernel_types::copy, processing_phases::prompt_eval_time, transform_type, core_type, half, half, float>
 		: public kernel_base<kernel_types::copy, core_type, half, half, float> {
 		using input_type01 = typename core_type::input_01_type;
 		using input_type02 = typename core_type::input_02_type;
@@ -405,7 +405,7 @@ namespace nihilus {
 	};
 
 	template<typename transform_type, typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::rope, processing_phase::prompt_eval_time, transform_type, core_type, float, float, int32_t, float>
+	struct kernel_dispatcher_impl<1, kernel_types::rope, processing_phases::prompt_eval_time, transform_type, core_type, float, float, int32_t, float>
 		: public kernel_base<kernel_types::rope, core_type, float, float, int32_t, float> {
 		using input_type01 = typename core_type::input_01_type;
 		using input_type02 = typename core_type::input_02_type;
@@ -421,7 +421,7 @@ namespace nihilus {
 	};
 
 	template<typename transform_type, typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::copy, processing_phase::prompt_eval_time, transform_type, core_type, float, float>
+	struct kernel_dispatcher_impl<1, kernel_types::copy, processing_phases::prompt_eval_time, transform_type, core_type, float, float>
 		: public kernel_base<kernel_types::copy, core_type, float, float> {
 		using input_type01 = typename core_type::input_01_type;
 
@@ -430,7 +430,7 @@ namespace nihilus {
 	};
 
 	template<typename transform_type, typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::cont, processing_phase::prompt_eval_time, transform_type, core_type, float, float>
+	struct kernel_dispatcher_impl<1, kernel_types::cont, processing_phases::prompt_eval_time, transform_type, core_type, float, float>
 		: public kernel_base<kernel_types::cont, core_type, float, float> {
 		using input_type01 = typename core_type::input_01_type;
 
@@ -439,14 +439,14 @@ namespace nihilus {
 	};
 
 	template<typename transform_type, typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::silu, processing_phase::prompt_eval_time, transform_type, core_type, float, float>
+	struct kernel_dispatcher_impl<1, kernel_types::silu, processing_phases::prompt_eval_time, transform_type, core_type, float, float>
 		: public kernel_base<kernel_types::silu, core_type, float, float> {
 		NIHILUS_INLINE static void impl(int64_t, int64_t, int64_t, core_type&, const typename core_type::input_01_type&) {
 		}
 	};
 
 	template<typename transform_type, typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::none, processing_phase::eval_time, transform_type, core_type, float, float, float>
+	struct kernel_dispatcher_impl<1, kernel_types::none, processing_phases::eval_time, transform_type, core_type, float, float, float>
 		: public kernel_base<kernel_types::none, core_type, float, float, float> {
 		using input_type01 = typename core_type::input_01_type;
 		using input_type02 = typename core_type::input_02_type;
@@ -461,7 +461,7 @@ namespace nihilus {
 	};
 
 	template<typename transform_type, typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::none, processing_phase::eval_time, transform_type, core_type, float, float, float, float>
+	struct kernel_dispatcher_impl<1, kernel_types::none, processing_phases::eval_time, transform_type, core_type, float, float, float, float>
 		: public kernel_base<kernel_types::none, core_type, float, float, float, float> {
 		using input_type01 = typename core_type::input_01_type;
 		using input_type02 = typename core_type::input_02_type;
@@ -477,7 +477,7 @@ namespace nihilus {
 	};
 
 	template<typename transform_type, typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::none, processing_phase::eval_time, transform_type, core_type, float, float, float>
+	struct kernel_dispatcher_impl<1, kernel_types::none, processing_phases::eval_time, transform_type, core_type, float, float, float>
 		: public kernel_base<kernel_types::none, core_type, float, float, float> {
 		using input_type01 = typename core_type::input_01_type;
 		using input_type02 = typename core_type::input_02_type;
@@ -492,7 +492,7 @@ namespace nihilus {
 	};
 
 	template<typename transform_type, typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::mul, processing_phase::eval_time, transform_type, core_type, float, float, float>
+	struct kernel_dispatcher_impl<1, kernel_types::mul, processing_phases::eval_time, transform_type, core_type, float, float, float>
 		: public kernel_base<kernel_types::mul, core_type, float, float, float> {
 		using input_type01 = typename core_type::input_01_type;
 		using input_type02 = typename core_type::input_02_type;
@@ -507,7 +507,7 @@ namespace nihilus {
 	};
 
 	template<typename transform_type, typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::get_rows, processing_phase::prompt_eval_time, transform_type, core_type, float, float, int32_t>
+	struct kernel_dispatcher_impl<1, kernel_types::get_rows, processing_phases::prompt_eval_time, transform_type, core_type, float, float, int32_t>
 		: public kernel_base<kernel_types::get_rows, core_type, float, float, int32_t> {
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
 			const typename core_type::input_02_type& input02) {
@@ -515,7 +515,7 @@ namespace nihilus {
 	};
 
 	template<typename transform_type, typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::get_rows, processing_phase::eval_time, transform_type, core_type, float, float, int32_t>
+	struct kernel_dispatcher_impl<1, kernel_types::get_rows, processing_phases::eval_time, transform_type, core_type, float, float, int32_t>
 		: public kernel_base<kernel_types::get_rows, core_type, float, float, int32_t> {
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
 			const typename core_type::input_02_type& input02) {
@@ -523,7 +523,7 @@ namespace nihilus {
 	};
 
 	template<typename transform_type, typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::mul_mat, processing_phase::eval_time, transform_type, core_type, float, block_q8_0<half>, float>
+	struct kernel_dispatcher_impl<1, kernel_types::mul_mat, processing_phases::eval_time, transform_type, core_type, float, block_q8_0<half>, float>
 		: public kernel_base<kernel_types::mul_mat, core_type, float, block_q8_0<half>, float> {
 		using input_type01 = typename core_type::input_01_type;
 		using input_type02 = typename core_type::input_02_type;
@@ -539,7 +539,7 @@ namespace nihilus {
 	};
 
 	template<typename transform_type, typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::mul_mat, processing_phase::eval_time, transform_type, core_type, float, half, float>
+	struct kernel_dispatcher_impl<1, kernel_types::mul_mat, processing_phases::eval_time, transform_type, core_type, float, half, float>
 		: public kernel_base<kernel_types::mul_mat, core_type, float, half, float> {
 		using input_type01 = typename core_type::input_01_type;
 		using input_type02 = typename core_type::input_02_type;
@@ -550,7 +550,7 @@ namespace nihilus {
 	};
 
 	template<typename transform_type, typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::softmax, processing_phase::eval_time, transform_type, core_type, float, float, float>
+	struct kernel_dispatcher_impl<1, kernel_types::softmax, processing_phases::eval_time, transform_type, core_type, float, float, float>
 		: public kernel_base<kernel_types::softmax, core_type, float, float, float> {
 		using input_type01 = typename core_type::input_01_type;
 		using input_type02 = typename core_type::input_02_type;
@@ -561,7 +561,7 @@ namespace nihilus {
 	};
 
 	template<typename transform_type, typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::copy, processing_phase::eval_time, transform_type, core_type, half, half, float>
+	struct kernel_dispatcher_impl<1, kernel_types::copy, processing_phases::eval_time, transform_type, core_type, half, half, float>
 		: public kernel_base<kernel_types::copy, core_type, half, half, float> {
 		using input_type01 = typename core_type::input_01_type;
 		using input_type02 = typename core_type::input_02_type;
@@ -572,7 +572,7 @@ namespace nihilus {
 	};
 
 	template<typename transform_type, typename core_type>
-	struct kernel_dispatcher_impl<1, kernel_types::rope, processing_phase::eval_time, transform_type, core_type, float, float, int32_t, float>
+	struct kernel_dispatcher_impl<1, kernel_types::rope, processing_phases::eval_time, transform_type, core_type, float, float, int32_t, float>
 		: public kernel_base<kernel_types::rope, core_type, float, float, int32_t, float> {
 		using input_type01 = typename core_type::input_01_type;
 		using input_type02 = typename core_type::input_02_type;
@@ -692,7 +692,7 @@ namespace nihilus {
 		}
 	};
 
-	template<typename transform_type, typename core_type> struct kernel_dispatcher_impl<1, kernel_types::copy, processing_phase::eval_time, transform_type, core_type, float, float>
+	template<typename transform_type, typename core_type> struct kernel_dispatcher_impl<1, kernel_types::copy, processing_phases::eval_time, transform_type, core_type, float, float>
 		: public kernel_base<kernel_types::copy, core_type, float, float> {
 		using input_type01 = typename core_type::input_01_type;
 
@@ -700,7 +700,7 @@ namespace nihilus {
 		}
 	};
 
-	template<typename transform_type, typename core_type> struct kernel_dispatcher_impl<1, kernel_types::cont, processing_phase::eval_time, transform_type, core_type, float, float>
+	template<typename transform_type, typename core_type> struct kernel_dispatcher_impl<1, kernel_types::cont, processing_phases::eval_time, transform_type, core_type, float, float>
 		: public kernel_base<kernel_types::cont, core_type, float, float> {
 		using input_type01 = typename core_type::input_01_type;
 
@@ -708,7 +708,7 @@ namespace nihilus {
 		}
 	};
 
-	template<typename transform_type, typename core_type> struct kernel_dispatcher_impl<1, kernel_types::silu, processing_phase::eval_time, transform_type, core_type, float, float>
+	template<typename transform_type, typename core_type> struct kernel_dispatcher_impl<1, kernel_types::silu, processing_phases::eval_time, transform_type, core_type, float, float>
 		: public kernel_base<kernel_types::silu, core_type, float, float> {
 		NIHILUS_INLINE static void impl(int64_t, int64_t, int64_t, core_type&, const typename core_type::input_01_type&) {
 		}

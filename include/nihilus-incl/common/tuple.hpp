@@ -137,14 +137,14 @@ namespace nihilus {
 		using element_list				= type_list<>;
 	};
 
-	template<typename... types> tuple(types&&...) -> tuple<std::remove_cvref_t<types>...>;
+	template<typename... types> tuple(types&&...) -> tuple<detail::remove_cvref_t<types>...>;
 
 	template<integral_or_enum_types auto index, indexable tup> static constexpr decltype(auto) get(tup&& tupleVal) {
 		return static_cast<tup&&>(tupleVal)[tag<index>()];
 	}
 
 	template<typename... types> static constexpr auto make_tuple(types&&... args) {
-		return tuple<std::remove_cvref_t<types>...>{ { { static_cast<types&&>(args) }... } };
+		return tuple<detail::remove_cvref_t<types>...>{ { { static_cast<types&&>(args) }... } };
 	}
 
 	template<typename value_type, typename... Q> static constexpr auto repeat_type(type_list<Q...>) {
@@ -192,7 +192,7 @@ namespace nihilus {
 	template<uint64_t index, typename... value_type> struct tuple_element;
 
 	template<uint64_t index, typename... value_type> struct tuple_element<index, tuple<value_type...>> {
-		using type = decltype(tuple<std::remove_cvref_t<value_type>...>::decl_elem(tag<index>()));
+		using type = decltype(tuple<detail::remove_cvref_t<value_type>...>::decl_elem(tag<index>()));
 	};
 
 	template<uint64_t index, typename tuple_type> using tuple_element_t = typename tuple_element<index, tuple_type>::type;
@@ -201,5 +201,5 @@ namespace nihilus {
 
 	template<typename... value_type> struct tuple_size<std::tuple<value_type...>> : std::integral_constant<uint64_t, sizeof...(value_type)> {};
 
-	template<typename... value_type> static constexpr auto tuple_size_v = tuple_size<std::remove_cvref_t<value_type>...>::value;
+	template<typename... value_type> static constexpr auto tuple_size_v = tuple_size<detail::remove_cvref_t<value_type>...>::value;
 }

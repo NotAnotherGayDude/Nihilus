@@ -82,7 +82,7 @@ namespace nihilus {
 			}
 		}
 
-	  private:
+	  protected:
 		NIHILUS_INLINE void bubble_up(size_t index) {
 			while (index > 0) {
 				size_t parent = (index - 1) / 2;
@@ -121,7 +121,7 @@ namespace nihilus {
 			}
 		};
 
-		using queue			= priority_queue<nihilus_bigram_bpe, comparator>;
+		using queue = priority_queue<nihilus_bigram_bpe, comparator>;
 
 		std::string text{};
 		uint64_t size{};

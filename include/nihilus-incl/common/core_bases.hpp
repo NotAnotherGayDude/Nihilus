@@ -45,9 +45,9 @@ namespace nihilus {
 			(impl_internal_filtered<mixin_type, bases>(args...), ...);
 		}
 
-		template<template<model_config, typename, processing_phase> typename mixin_type, processing_phase phase, typename... arg_types>
+		template<template<model_config, typename, processing_phases> typename mixin_type, processing_phases processing_phase, typename... arg_types>
 		NIHILUS_INLINE constexpr void impl_thread(arg_types&&... args) {
-			(impl_internal_filtered_thread<mixin_type, phase, bases>(args...), ...);
+			(impl_internal_filtered_thread<mixin_type, processing_phase, bases>(args...), ...);
 		}
 
 		template<enum_types enum_type, enum_type enum_value> constexpr decltype(auto) get_core() const {
@@ -80,10 +80,10 @@ namespace nihilus {
 			}
 		}
 
-		template<template<model_config, typename, processing_phase> typename mixin_type, processing_phase phase, typename base_type, typename... arg_types>
+		template<template<model_config, typename, processing_phases> typename mixin_type, processing_phases processing_phase, typename base_type, typename... arg_types>
 		NIHILUS_INLINE constexpr void impl_internal_filtered_thread([[maybe_unused]] arg_types&&... args) {
-			if constexpr (mixin_type<config, base_type, phase>::filter()) {
-				mixin_type<config, base_type, phase>::impl(*static_cast<base_type*>(this), detail::forward<arg_types>(args)...);
+			if constexpr (mixin_type<config, base_type, processing_phase>::filter()) {
+				mixin_type<config, base_type, processing_phase>::impl(*static_cast<base_type*>(this), detail::forward<arg_types>(args)...);
 			}
 		}
 	};
@@ -97,11 +97,38 @@ namespace nihilus {
 	template<model_config config, typename enum_type> using get_core_bases_t =
 		typename get_core_bases<config, enum_type, std::make_index_sequence<static_cast<uint64_t>(enum_type::count)>>::type;
 
+	template<uint64_t index, typename value_type> struct core_elem {
+		static value_type decl_elem(tag<index>);
+		using type = value_type;
+
+		NIHILUS_TUPLET_NO_UNIQUE_ADDRESS value_type value;
+
+		NIHILUS_INLINE constexpr decltype(auto) operator[](tag<index>) & {
+			return (value);
+		}
+
+		NIHILUS_INLINE constexpr decltype(auto) operator[](tag<index>) const& {
+			return (value);
+		}
+
+		NIHILUS_INLINE constexpr decltype(auto) operator[](tag<index>) && {
+			return (move(*this).value);
+		}
+	};
+
+	template<model_config config, typename enum_type, typename index_sequence, typename... value_type> struct get_core_base;
+
+	template<model_config config, typename enum_type, size_t... index, typename... value_type>
+	struct get_core_base<config, enum_type, std::index_sequence<index...>, value_type...> {
+		using type = core_bases<config, core_elem<index, value_type>...>;
+	};
+
+	template<model_config config, typename enum_type, typename... value_type> using core_base_t =
+		typename get_core_base<config, enum_type, std::make_index_sequence<static_cast<uint64_t>(enum_type::count)>, value_type...>::type;
+
 	template<model_config config, typename enum_type> struct core_bases_traits {
-		static constexpr memory_plan total_required_bytes{ []() {
-			memory_plan<config> return_value{};
-			get_core_bases_t<config, enum_type>::template impl_static<total_bytes_collector>(return_value);
-			return return_value;
+		static constexpr memory_plan_new total_required_bytes{ []() {
+			return get_memory_plan<config>();
 		}() };
 	};
 }

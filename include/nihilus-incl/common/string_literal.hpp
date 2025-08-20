@@ -116,7 +116,7 @@ namespace nihilus {
 			return return_values;
 		}
 
-		alignas(cpu_alignment_holder::cpu_alignment) value_type values[size_val] {};
+		alignas(cpu_alignment_holder::cpu_alignment) value_type values[size_val]{};
 	};
 
 	template<uint64_t size> string_literal(char (&)[size]) -> string_literal<size>;

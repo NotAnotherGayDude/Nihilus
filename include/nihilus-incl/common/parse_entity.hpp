@@ -40,7 +40,7 @@ namespace nihilus {
 	template<typename value_type> using remove_member_pointer_t = typename decompose_types<value_type>::class_type;
 
 	template<typename value_type_new, auto element> NIHILUS_INLINE decltype(auto) get_member(value_type_new& value) {
-		using value_type = std::remove_cvref_t<decltype(element)>;
+		using value_type = detail::remove_cvref_t<decltype(element)>;
 		if constexpr (std::is_member_object_pointer_v<value_type>) {
 			return value.*element;
 		} else if constexpr (std::is_member_function_pointer_v<value_type>) {
@@ -71,10 +71,10 @@ namespace nihilus {
 
 	template<typename value_type>
 	concept parse_entity_types = requires {
-		std::remove_cvref_t<value_type>::name;
-		std::remove_cvref_t<value_type>::member_ptr;
-		typename std::remove_cvref_t<value_type>::member_type;
-	} && std::is_member_pointer_v<decltype(std::remove_cvref_t<value_type>::member_ptr)>;
+		detail::remove_cvref_t<value_type>::name;
+		detail::remove_cvref_t<value_type>::member_ptr;
+		typename detail::remove_cvref_t<value_type>::member_type;
+	} && std::is_member_pointer_v<decltype(detail::remove_cvref_t<value_type>::member_ptr)>;
 
 	template<auto... values, size_t... indices> inline static constexpr auto create_value_impl(std::index_sequence<indices...>) {
 		static_assert((parse_entity_types<decltype(values)> + ...), "Sorry, but they must all be parse_entities passed to this function!");
@@ -89,7 +89,7 @@ namespace nihilus {
 		return create_value_impl<values...>(std::make_index_sequence<sizeof...(values)>{});
 	}
 
-	template<typename value_type> using core_tuple_type				 = decltype(parse_core<std::remove_cvref_t<value_type>>::parse_value);
+	template<typename value_type> using core_tuple_type				 = decltype(parse_core<detail::remove_cvref_t<value_type>>::parse_value);
 	template<typename value_type> constexpr uint64_t core_tuple_size = tuple_size_v<core_tuple_type<value_type>>;
 
 	template<typename value_type, uint64_t current_index = 0> NIHILUS_INLINE static constexpr uint64_t find_matching_element(const char* start, uint64_t length) noexcept {

@@ -55,13 +55,13 @@ RealTimeChris (Chris M.)
 #if defined(NDEBUG)
 	#if defined(NIHILUS_COMPILER_MSVC)
 		#define NIHILUS_INLINE [[msvc::forceinline]] inline
-		#define NIHILUS_NON_MSVC_INLINE 
+		#define NIHILUS_NON_MSVC_INLINE
 	#elif defined(NIHILUS_COMPILER_CLANG)
 		#define NIHILUS_INLINE inline __attribute__((always_inline))
 		#define NIHILUS_NON_MSVC_INLINE inline __attribute__((always_inline))
 	#elif defined(NIHILUS_COMPILER_GNUCXX)
 		#define NIHILUS_INLINE inline __attribute__((always_inline))
-#define NIHILUS_NON_MSVC_INLINE inline __attribute__((always_inline))
+		#define NIHILUS_NON_MSVC_INLINE inline __attribute__((always_inline))
 	#endif
 #else
 	#if defined(NIHILUS_COMPILER_MSVC)
