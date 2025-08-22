@@ -109,20 +109,20 @@ namespace nihilus {
 
 	struct benchmark_stats {
 		array<array<benchmarking::internal::event_collector, core_types::count>, max_thread_count_holder::max_thread_count> collector{};
-		clock_type::time_point sampling_start = {};
-		clock_type::time_point prompt_start	  = {};
-		clock_type::time_point token_start	  = {};
-		clock_type::time_point eval_start	  = {};
-		clock_type::time_point load_start	  = {};
-		double total_prompt_eval_time_ns	  = {};
-		double total_sampling_time_ns		  = {};
-		double total_eval_time_ns			  = {};
-		double total_load_time_ns			  = {};
-		int32_t generated_token_count		  = {};
-		int32_t prompt_token_count			  = {};
-		int32_t total_sampling_runs			  = {};
-		uint64_t current_iteration			  = {};
-		vector<uint64_t> runtime_dimensions	  = {};
+		clock_type::time_point sampling_start		= {};
+		clock_type::time_point prompt_start			= {};
+		clock_type::time_point token_start			= {};
+		clock_type::time_point eval_start			= {};
+		clock_type::time_point load_start			= {};
+		double total_prompt_eval_time_ns			= {};
+		double total_sampling_time_ns				= {};
+		double total_eval_time_ns					= {};
+		double total_load_time_ns					= {};
+		int32_t generated_token_count				= {};
+		int32_t prompt_token_count					= {};
+		int32_t total_sampling_runs					= {};
+		uint64_t current_iteration					= {};
+		aligned_vector<uint64_t> runtime_dimensions = {};
 	};
 
 	template<model_config config> struct perf_base {};
@@ -134,21 +134,10 @@ namespace nihilus {
 	};
 
 	template<model_config config> struct thread_pool : public get_core_bases_t<config, core_types>, public perf_base<config> {
-		using core_base_type											   = get_core_bases_t<config, core_types>;
-		NIHILUS_INLINE thread_pool() noexcept							   = default;
-		NIHILUS_INLINE thread_pool& operator=(const thread_pool&) noexcept = delete;
-		NIHILUS_INLINE thread_pool(const thread_pool&) noexcept			   = delete;
-
-		using thread_function_ptr = void (thread_pool::*)();
-
-		template<uint64_t index = 0> static constexpr array<thread_function_ptr, max_thread_count_holder::max_thread_count> generate_function_ptrs(
-			array<thread_function_ptr, max_thread_count_holder::max_thread_count> values = {}) {
-			if constexpr (index < max_thread_count_holder::max_thread_count) {
-				values[index] = &thread_pool::thread_function<index>;
-				return generate_function_ptrs<index + 1>(values);
-			}
-			return values;
-		}
+		using get_core_base_type											   = get_core_bases_t<config, core_types>;
+		NIHILUS_INLINE thread_pool() noexcept								   = default;
+		NIHILUS_INLINE thread_pool& operator=(const thread_pool&) noexcept	   = delete;
+		NIHILUS_INLINE thread_pool(const thread_pool&) noexcept				   = delete;
 
 		NIHILUS_INLINE thread_pool(int64_t thread_count_new) {
 			thread_count = static_cast<uint64_t>(thread_count_new);
@@ -157,50 +146,54 @@ namespace nihilus {
 			if constexpr (config.benchmark) {
 				perf_base<config>::perf_stats.runtime_dimensions.resize(static_cast<uint64_t>(thread_count));
 			}
-			static constexpr auto function_ptrs = generate_function_ptrs();
 
 			for (uint64_t x = 0; x < static_cast<uint64_t>(thread_count); ++x) {
-				threads[x] = std::thread{ function_ptrs[x], this };
+				threads[x] = std::thread{ &thread_pool::thread_function, this, x };
 			}
 		}
 
 		template<processing_phases processing_phase, uint64_t current_index = 0> inline void execute_blocks(uint64_t thread_index) {
 			if constexpr (current_index < model_traits_type<config>::block_count) {
-				core_base_type::template impl_thread<per_block_thread_function, processing_phase>(current_index, thread_index, thread_count);
+				get_core_base_type::template impl_thread<per_block_thread_function, device_types::cpu, cpu_arch_index_holder::cpu_arch_index, processing_phase>(current_index,
+					thread_index, thread_count);
 				if constexpr (config.dev && current_index == 0) {
 					if (thread_index == 0) {
-						//core_base_type::template impl<tensor_debugger_impl>(current_index, perf_base<config>::perf_stats.current_iteration);
+						//get_core_base_type::template impl<tensor_debugger_impl>(current_index, perf_base<config>::perf_stats.current_iteration);
 					}
 				}
 				execute_blocks<processing_phase, current_index + 1>(thread_index);
 			}
 		}
 
-		template<uint64_t thread_index> NIHILUS_INLINE void thread_function() {
-			if constexpr (thread_index % 4 == 0 && (thread_index < max_thread_count_holder::max_thread_count / 3)) {
+		NIHILUS_INLINE void thread_function(uint64_t thread_index) {
+			if (thread_index % 4 == 0 && (thread_index < max_thread_count_holder::max_thread_count / 3)) {
 				//raise_current_thread_priority();
 			}
 			while (!stop.load()) {
 				thread_latch.worker_wait(thread_index);
 				if (!stop.load()) {
 					if (processing_phase.load() == processing_phases::prompt_eval_time) {
-						core_base_type::template impl_thread<global_input_thread_function, processing_phases::prompt_eval_time>(thread_index, thread_count);
+						get_core_base_type::template impl_thread<global_input_thread_function, device_types::cpu, cpu_arch_index_holder::cpu_arch_index,
+							processing_phases::prompt_eval_time>(thread_index, thread_count);
 						execute_blocks<processing_phases::prompt_eval_time, 0>(thread_index);
-						core_base_type::template impl_thread<global_output_thread_function, processing_phases::prompt_eval_time>(thread_index, thread_count);
+						get_core_base_type::template impl_thread<global_output_thread_function, device_types::cpu, cpu_arch_index_holder::cpu_arch_index,
+							processing_phases::prompt_eval_time>(thread_index, thread_count);
 					} else {
-						core_base_type::template impl_thread<global_input_thread_function, processing_phases::eval_time>(thread_index, thread_count);
+						get_core_base_type::template impl_thread<global_input_thread_function, device_types::cpu, cpu_arch_index_holder::cpu_arch_index, processing_phases::eval_time>(
+							thread_index, thread_count);
 						execute_blocks<processing_phases::eval_time, 0>(thread_index);
-						core_base_type::template impl_thread<global_output_thread_function, processing_phases::eval_time>(thread_index, thread_count);
+						get_core_base_type::template impl_thread<global_output_thread_function, device_types::cpu, cpu_arch_index_holder::cpu_arch_index, processing_phases::eval_time>(
+							thread_index, thread_count);
 					}
-					thread_latch.arrive_and_wait(thread_index);
+					thread_latch.arrive(thread_index);
 				}
 			}
 		}
 
 		template<processing_phases phase_new> NIHILUS_INLINE void execute_tasks(uint64_t runtime_dimensions_new) {
 			processing_phase.store(phase_new);
-			core_base_type::template impl<sync_resetter>(thread_count);
-			core_base_type::template impl<dim_updater>(runtime_dimensions_new);
+			get_core_base_type::template impl<sync_resetter>(thread_count);
+			get_core_base_type::template impl<dim_updater>(runtime_dimensions_new);
 			if constexpr (config.benchmark) {
 				for (uint64_t x = 0; x < threads.size(); ++x) {
 					perf_base<config>::perf_stats.runtime_dimensions[x] = runtime_dimensions_new;
@@ -212,9 +205,9 @@ namespace nihilus {
 
 	  protected:
 		atomic_flag_wrapper<processing_phases> processing_phase{};
+		aligned_vector<std::thread> threads{};
 		atomic_flag_wrapper<bool> stop{};
 		main_gate_latch thread_latch{};
-		vector<std::thread> threads{};
 		uint64_t thread_count{};
 
 		NIHILUS_INLINE ~thread_pool() {

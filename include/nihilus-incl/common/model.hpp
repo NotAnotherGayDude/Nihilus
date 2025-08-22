@@ -61,9 +61,10 @@ namespace nihilus {
 		model(const model&)			   = delete;
 
 		NIHILUS_INLINE bool process_input(const std::string_view input) override {
-			tokenizer_type::tokenize_init(get<global_input_types::inp_tokens>(this->template get_core<core_types, core_types::global_inputs>().values).data);
-			get<global_input_types::inp_pos>(this->template get_core<core_types, core_types::global_inputs>().values).data[1]	  = 1;
-			get<global_input_types::inp_out_ids>(this->template get_core<core_types, core_types::global_inputs>().values).data[0] = 1;
+			tokenizer_type::tokenize_init(
+				this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::inp_tokens>().data);
+			this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::inp_pos>().data[1]	 = 1;
+			this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::inp_out_ids>().data[0] = 1;
 			generate_causal_mask();
 			execute_model(input);
 			return false;
@@ -100,16 +101,17 @@ namespace nihilus {
 				++perf_base<config_new>::perf_stats.current_iteration;
 			}
 
-			exec_params.sequence_length =
-				tokenizer_type::tokenize(input, get<global_input_types::inp_tokens>(this->template get_core<core_types, core_types::global_inputs>().values).data);
+			exec_params.sequence_length = tokenizer_type::tokenize(input,
+				this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::inp_tokens>().data);
 
 			for (uint64_t x = 0; x < exec_params.sequence_length; ++x) {
-				using core_type = detail::remove_cvref_t<decltype(get<global_input_types::inp_pos>(this->template get_core<core_types, core_types::global_inputs>().values))>;
-				get<global_input_types::inp_pos>(this->template get_core<core_types, core_types::global_inputs>().values).data[x] = static_cast<core_type::output_type>(x);
+				using core_type = detail::remove_cvref_t<decltype(this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::inp_pos>())>;
+				this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::inp_pos>().data[x] =
+					static_cast<typename core_type::output_type>(x);
 			}
-			using core_type = detail::remove_cvref_t<decltype(get<global_input_types::inp_out_ids>(this->template get_core<core_types, core_types::global_inputs>().values))>;
-			get<global_input_types::inp_out_ids>(this->template get_core<core_types, core_types::global_inputs>().values).data[0] =
-				static_cast<core_type::output_type>(exec_params.sequence_length - 1);
+			using core_type = detail::remove_cvref_t<decltype(this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::inp_out_ids>())>;
+			this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::inp_out_ids>().data[0] =
+				static_cast<typename core_type::output_type>(exec_params.sequence_length - 1);
 
 			if constexpr (config_new.benchmark || config_new.dev) {
 				perf_base<config_new>::perf_stats.prompt_token_count	= exec_params.sequence_length;

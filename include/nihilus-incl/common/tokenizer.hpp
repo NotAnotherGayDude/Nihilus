@@ -32,8 +32,8 @@ namespace nihilus {
 
 	template<> struct tokenizer_parameters<model_arches::llama> {
 		std::unordered_map<std::string_view, token> tokens{};
-		vector<std::string_view> merges{};
-		vector<int32_t> token_types{};
+		aligned_vector<std::string_view> merges{};
+		aligned_vector<int32_t> token_types{};
 		std::string_view chat_template{};
 		std::string_view pre{};
 	};
@@ -152,19 +152,19 @@ namespace nihilus {
 		}
 
 		NIHILUS_INLINE uint64_t tokenize(char input_text, int32_t* output_tokens) {
-			vector<int32_t> temp_tokens;
+			aligned_vector<int32_t> temp_tokens;
 			if constexpr (tokenizer_traits_type::add_bos && tokenizer_traits_type::special_bos_id > 0) {
-				temp_tokens.push_back(static_cast<int32_t>(tokenizer_traits_type::special_bos_id));
+				temp_tokens.emplace_back(static_cast<int32_t>(tokenizer_traits_type::special_bos_id));
 			}
 
-			vector<std::string> word_collection = gpt2_style_split(input_text);
+			aligned_vector<std::string> word_collection = gpt2_style_split(input_text);
 
 			for (const auto& word: word_collection) {
 				tokenize_word(word, temp_tokens);
 			}
 
 			if constexpr (tokenizer_traits_type::add_eos && tokenizer_traits_type::special_eos_id > 0) {
-				temp_tokens.push_back(static_cast<int32_t>(tokenizer_traits_type::special_eos_id));
+				temp_tokens.emplace_back(static_cast<int32_t>(tokenizer_traits_type::special_eos_id));
 			}
 
 			for (uint64_t i = 0; i < temp_tokens.size(); ++i) {
@@ -179,19 +179,19 @@ namespace nihilus {
 		}
 
 		NIHILUS_INLINE uint64_t tokenize(std::string_view input_text, int32_t* output_tokens) {
-			vector<int32_t> temp_tokens;
+			aligned_vector<int32_t> temp_tokens;
 			if constexpr (tokenizer_traits_type::add_bos && tokenizer_traits_type::special_bos_id > 0) {
-				temp_tokens.push_back(static_cast<int32_t>(tokenizer_traits_type::special_bos_id));
+				temp_tokens.emplace_back(static_cast<int32_t>(tokenizer_traits_type::special_bos_id));
 			}
 
-			vector<std::string> word_collection = gpt2_style_split(input_text);
+			aligned_vector<std::string> word_collection = gpt2_style_split(input_text);
 
 			for (const auto& word: word_collection) {
 				tokenize_word(word, temp_tokens);
 			}
 
 			if constexpr (tokenizer_traits_type::add_eos && tokenizer_traits_type::special_eos_id > 0) {
-				temp_tokens.push_back(static_cast<int32_t>(tokenizer_traits_type::special_eos_id));
+				temp_tokens.emplace_back(static_cast<int32_t>(tokenizer_traits_type::special_eos_id));
 			}
 
 			for (uint64_t i = 0; i < temp_tokens.size(); ++i) {
@@ -245,8 +245,8 @@ namespace nihilus {
 			}
 		};
 
-		mutable vector<token_prob> candidate_tokens{};
-		mutable vector<float> cumulative_probs{};
+		mutable aligned_vector<token_prob> candidate_tokens{};
+		mutable aligned_vector<float> cumulative_probs{};
 		mutable float mirostat_mu{};
 		mutable nihilus_rng rng{};
 
@@ -295,7 +295,7 @@ namespace nihilus {
 			}
 		}
 
-		NIHILUS_INLINE void apply_top_k(vector<token_prob>& candidates, int32_t k) const {
+		NIHILUS_INLINE void apply_top_k(aligned_vector<token_prob>& candidates, int32_t k) const {
 			if (k <= 0 || k >= static_cast<int32_t>(candidates.size()))
 				return;
 
@@ -306,7 +306,7 @@ namespace nihilus {
 			candidates.resize(k);
 		}
 
-		NIHILUS_INLINE void apply_top_p(vector<token_prob>& candidates, float p) const {
+		NIHILUS_INLINE void apply_top_p(aligned_vector<token_prob>& candidates, float p) const {
 			if (p >= 1.0f)
 				return;
 
@@ -328,7 +328,7 @@ namespace nihilus {
 			candidates.resize(cutoff);
 		}
 
-		NIHILUS_INLINE void apply_min_p(vector<token_prob>& candidates, float min_p) const {
+		NIHILUS_INLINE void apply_min_p(aligned_vector<token_prob>& candidates, float min_p) const {
 			if (min_p <= 0.0f)
 				return;
 
@@ -339,7 +339,7 @@ namespace nihilus {
 				candidates.end());
 		}
 
-		NIHILUS_INLINE int32_t sample_from_candidates(const vector<token_prob>& candidates) const {
+		NIHILUS_INLINE int32_t sample_from_candidates(const aligned_vector<token_prob>& candidates) const {
 			if (candidates.empty())
 				return 0;
 			if (candidates.size() == 1)
@@ -351,7 +351,7 @@ namespace nihilus {
 			float cumulative = 0.0f;
 			for (const auto& candidate: candidates) {
 				cumulative += candidate.probability;
-				cumulative_probs.push_back(cumulative);
+				cumulative_probs.emplace_back(cumulative);
 			}
 
 			const float random_val = rng.next_float() * cumulative;
@@ -378,7 +378,7 @@ namespace nihilus {
 
 			for (uint64_t i = 0; i < vocab_size; ++i) {
 				if (logits[i] > 0.0f) {
-					candidate_tokens.push_back({ static_cast<int32_t>(i), logits[i] });
+					candidate_tokens.emplace_back({ static_cast<int32_t>(i), logits[i] });
 				}
 			}
 
@@ -410,7 +410,7 @@ namespace nihilus {
 			return sample_next_token(logits, vocab_size, nullptr, 0, default_params);
 		}
 
-		NIHILUS_INLINE int32_t sample_next_token(float* logits, uint64_t vocab_size, const vector<int32_t>& context, const sampling_params& params = sampling_params{}) {
+		NIHILUS_INLINE int32_t sample_next_token(float* logits, uint64_t vocab_size, const aligned_vector<int32_t>& context, const sampling_params& params = sampling_params{}) {
 			return sample_next_token(logits, vocab_size, context.empty() ? nullptr : context.data(), context.size(), params);
 		}
 
@@ -425,10 +425,10 @@ namespace nihilus {
 		}() };
 		std::unordered_map<std::pair<std::string_view, std::string_view>, int32_t, pair_hash> bpe_ranks{};
 		nihilus_bigram_bpe::queue work_queue{};
-		vector<nihilus_symbol> symbols{};
+		aligned_vector<nihilus_symbol> symbols{};
 
-		NIHILUS_INLINE vector<std::string> gpt2_style_split(std::string_view text) {
-			vector<std::string> result;
+		NIHILUS_INLINE aligned_vector<std::string> gpt2_style_split(std::string_view text) {
+			aligned_vector<std::string> result;
 			uint64_t start = text.find_first_not_of(" \t\n\r");
 			if (start == std::string::npos)
 				return result;
@@ -487,7 +487,7 @@ namespace nihilus {
 				}
 
 				if (!token_new.empty()) {
-					result.push_back(token_new);
+					result.emplace_back(token_new);
 				}
 			}
 
@@ -501,13 +501,13 @@ namespace nihilus {
 			return {};
 		}
 
-		NIHILUS_INLINE void tokenize_word(const std::string_view word, vector<int32_t>& output) {
+		NIHILUS_INLINE void tokenize_word(const std::string_view word, aligned_vector<int32_t>& output) {
 			if (word.empty())
 				return;
 
 			auto direct_match = tokens.find(word);
 			if (direct_match != tokens.end()) {
-				output.push_back(direct_match->second);
+				output.emplace_back(direct_match->second);
 				return;
 			}
 
@@ -572,13 +572,13 @@ namespace nihilus {
 				auto it = tokens.find(str);
 
 				if (it != tokens.end()) {
-					output.push_back(it->second);
+					output.emplace_back(it->second);
 				} else {
 					for (char c: str) {
 						std::string byte_str(1, c);
 						auto byte_it = tokens.find(byte_str);
 						if (byte_it != tokens.end()) {
-							output.push_back(byte_it->second);
+							output.emplace_back(byte_it->second);
 						}
 					}
 				}
@@ -619,7 +619,7 @@ namespace nihilus {
 			return 1;
 		}
 
-		NIHILUS_INLINE void print_tokenization_debug(std::string_view input_text, const vector<int32_t>& tokens_new) {
+		NIHILUS_INLINE void print_tokenization_debug(std::string_view input_text, const aligned_vector<int32_t>& tokens_new) {
 			std::cout << "=== NIHILUS BPE TOKENIZATION DEBUG ===" << std::endl;
 			std::cout << "system_info: n_threads = " << std::thread::hardware_concurrency() << " | NIHILUS ENGINE | BPE VOCAB | 432% FASTER |" << std::endl;
 			//std::cout << "tokenizer_traits_type: " << static_cast<int32_t>(tokenizer_traits_type) << " (BPE)" << std::endl;

@@ -115,35 +115,85 @@ NIHILUS_INLINE void nihilus_pause() noexcept {
 	#define NIHILUS_ASSERT(x)
 #endif
 
-template<auto enum_error, typename... types> struct error_printer_impl;
-
-template<bool value, auto enum_error, typename... value_to_test> struct static_assert_printer {
-	static constexpr bool impl{ [] {
-		if constexpr (!value) {
-			error_printer_impl<enum_error, value_to_test...>::failure_value;
-			return false;
-		} else {
-			return true;
-		}
-	}() };
-};
-
-template<auto enum_error, auto... values> struct error_printer_impl_val;
-
-template<bool value, auto enum_error, auto... values> struct static_assert_printer_val {
-	static constexpr bool impl{ [] {
-		if constexpr (!value) {
-			error_printer_impl_val<enum_error, values...>::failure_value;
-			return false;
-		} else {
-			return true;
-		}
-	}() };
-};
-
-
 inline std::atomic_uint64_t current_count{};
 
 using clock_type = std::conditional_t<std::chrono::high_resolution_clock::is_steady, std::chrono::high_resolution_clock, std::chrono::steady_clock>;
+
+namespace nihilus {
+
+	template<auto enum_error, typename... types> struct error_printer_impl;
+
+	template<bool value, auto enum_error, typename... value_to_test> struct static_assert_printer {
+		static constexpr bool impl{ [] {
+			if constexpr (!value) {
+				error_printer_impl<enum_error, value_to_test...>::failure_value;
+				return false;
+			} else {
+				return true;
+			}
+		}() };
+	};
+
+	template<auto enum_error, auto... values> struct error_printer_impl_val;
+
+	template<bool value, auto enum_error, auto... values> struct static_assert_printer_val {
+		static constexpr bool impl{ [] {
+			if constexpr (!value) {
+				error_printer_impl_val<enum_error, values...>::failure_value;
+				return false;
+			} else {
+				return true;
+			}
+		}() };
+	};
+
+	template<typename value_type> struct alignas(64) static_aligned_const {
+		alignas(64) value_type value{};
+
+		NIHILUS_INLINE constexpr operator const value_type&() const {
+			return value;
+		}
+
+		NIHILUS_INLINE operator value_type&() & {
+			return value;
+		}
+
+		NIHILUS_INLINE operator value_type&&() && {
+			return std::move(value);
+		}
+
+		NIHILUS_INLINE constexpr const value_type& operator*() const {
+			return value;
+		}
+
+		NIHILUS_INLINE value_type& operator*() {
+			return value;
+		}
+
+		NIHILUS_INLINE constexpr bool operator==(const static_aligned_const& other) const {
+			return value == other.value;
+		}
+
+		NIHILUS_INLINE constexpr bool operator!=(const static_aligned_const& other) const {
+			return value != other.value;
+		}
+
+		NIHILUS_INLINE constexpr bool operator<(const static_aligned_const& other) const {
+			return value < other.value;
+		}
+
+		NIHILUS_INLINE constexpr bool operator>(const static_aligned_const& other) const {
+			return value > other.value;
+		}
+	};
+
+	template<typename value_type> static_aligned_const(value_type) -> static_aligned_const<value_type>;
+
+	struct cpu_arch_index_holder {
+		static constexpr static_aligned_const cpu_arch_index_raw{ arch_indices[NIHILUS_CPU_INSTRUCTION_INDEX] };
+		static constexpr const uint64_t& cpu_arch_index{ *cpu_arch_index_raw };
+	};
+
+}
 
 #include <nihilus-incl/benchmarking/event_counter.hpp>

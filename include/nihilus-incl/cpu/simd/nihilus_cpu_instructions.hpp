@@ -33,23 +33,9 @@ RealTimeChris (Chris M.)
 	#define NIHILUS_CHECK_CPU_INSTRUCTIONS(x, y) (x == y)
 #endif
 
-static constexpr uint64_t arch_alignments[]{ 8, 32, 64, 16, 64 };
-
 static constexpr uint64_t arch_indices[]{ 0, 1, 2, 1, 2 };
 
 #define NIHILUS_AVX2 (NIHILUS_CHECK_CPU_INSTRUCTIONS(NIHILUS_CPU_INSTRUCTION_INDEX, NIHILUS_AVX2_BIT) && NIHILUS_ARCH_X64)
 #define NIHILUS_AVX512 (NIHILUS_CHECK_CPU_INSTRUCTIONS(NIHILUS_CPU_INSTRUCTION_INDEX, NIHILUS_AVX512_BIT) && NIHILUS_ARCH_X64)
 #define NIHILUS_NEON (NIHILUS_CHECK_CPU_INSTRUCTIONS(NIHILUS_CPU_INSTRUCTION_INDEX, NIHILUS_NEON_BIT) && NIHILUS_ARCH_ARM64)
 #define NIHILUS_SVE2 (NIHILUS_CHECK_CPU_INSTRUCTIONS(NIHILUS_CPU_INSTRUCTION_INDEX, NIHILUS_SVE2_BIT) && NIHILUS_ARCH_ARM64)
-
-namespace nihilus {
-
-	struct cpu_arch_index_holder {
-		static constexpr uint64_t cpu_arch_index{ arch_indices[NIHILUS_CPU_INSTRUCTION_INDEX] };
-	};
-
-	struct cpu_alignment_holder {
-		static constexpr uint64_t cpu_alignment{ arch_alignments[NIHILUS_CPU_INSTRUCTION_INDEX] };
-	};
-
-}

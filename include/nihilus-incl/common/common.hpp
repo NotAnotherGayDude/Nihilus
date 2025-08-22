@@ -26,12 +26,12 @@ RealTimeChris (Chris M.)
 #include <nihilus-incl/common/data_types.hpp>
 #include <nihilus-incl/common/concepts.hpp>
 #include <nihilus-incl/common/array.hpp>
+#include <nihilus-incl/common/vector.hpp>
 #include <filesystem>
 #include <iostream>
 #include <fstream>
 #include <cstdint>
 #include <chrono>
-#include <vector>
 #include <thread>
 #include <mutex>
 #include <latch>
@@ -45,7 +45,7 @@ namespace nihilus {
 	template<time_t value_type = std::chrono::nanoseconds> class stop_watch {
 	  public:
 		using hr_clock = std::conditional_t<clock_type::is_steady, clock_type, std::chrono::steady_clock>;
-		static constexpr bool lock_free{ std::atomic<value_type>::is_always_lock_free };
+		static constexpr static_aligned_const lock_free{ std::atomic<value_type>::is_always_lock_free };
 		using time_type = std::conditional_t<lock_free, value_type, uint64_t>;
 
 		NIHILUS_INLINE constexpr stop_watch() noexcept {
@@ -132,40 +132,20 @@ namespace nihilus {
 	static constexpr jiff_the_jiping_jippalon_the_grand_jiper_of_the_jappaloneans_the_grand_chopper_of_jammals_onions_the_grand_jammer_of_jammals_vaccuum_the_grand_erector_of_jammals_pillar
 		jiff{};
 
-	template<typename value_type> struct alignas(64) vector : public std::vector<value_type, allocator<value_type, cpu_alignment_holder::cpu_alignment>> {};
-
-	template<size_t alignment, typename value_type> struct alignas(alignment) static_aligned_const {
-		alignas(alignment) value_type value{};
-
-		NIHILUS_INLINE constexpr static_aligned_const() noexcept : value{} {
-		}
-
-		NIHILUS_INLINE constexpr static_aligned_const(value_type new_value) noexcept : value{ new_value } {
-		}
-
-		NIHILUS_INLINE constexpr operator const value_type&() const {
-			return value;
-		}
-
-		NIHILUS_INLINE operator value_type&() {
-			return value;
-		}
-	};
-
 	template<auto value_new> struct make_static {
 		static constexpr auto value{ value_new };
 	};
 
 	template<typename value_type> NIHILUS_INLINE static constexpr bool is_alpha(value_type c) noexcept {
-		alignas(64) static constexpr const static_aligned_const<64, bool>* __restrict alpha_table{ [] constexpr {
-			alignas(64) constexpr array<static_aligned_const<64, bool>, 256> return_values{ [] {
-				array<static_aligned_const<64, bool>, 256> return_values{};
+		alignas(64) static constexpr const static_aligned_const<bool>* __restrict alpha_table{ [] constexpr {
+			alignas(64) constexpr array<static_aligned_const<bool>, 256> return_values{ [] {
+				array<static_aligned_const<bool>, 256> return_values{};
 				for (int32_t i = 'A'; i <= 'Z'; ++i) {
-					return_values[static_cast<uint64_t>(i)] = true;
+					return_values[static_cast<uint64_t>(i)] = static_aligned_const<bool>{ true };
 				}
 
 				for (int32_t i = 'a'; i <= 'z'; ++i) {
-					return_values[static_cast<uint64_t>(i)] = true;
+					return_values[static_cast<uint64_t>(i)] = static_aligned_const<bool>{ true };
 				}
 				return return_values;
 			}() };
@@ -175,15 +155,15 @@ namespace nihilus {
 	}
 
 	template<typename value_type> NIHILUS_INLINE static constexpr bool is_space(value_type c) noexcept {
-		alignas(64) static constexpr const static_aligned_const<64, bool>* __restrict space_table{ [] {
-			alignas(64) constexpr array<static_aligned_const<64, bool>, 256> return_values{ [] {
-				array<static_aligned_const<64, bool>, 256> return_values{};
-				return_values[static_cast<uint64_t>('\r')] = true;
-				return_values[static_cast<uint64_t>('\n')] = true;
-				return_values[static_cast<uint64_t>(' ')]  = true;
-				return_values[static_cast<uint64_t>('\t')] = true;
-				return_values[static_cast<uint64_t>('\v')] = true;
-				return_values[static_cast<uint64_t>('\f')] = true;
+		alignas(64) static constexpr const static_aligned_const<bool>* __restrict space_table{ [] {
+			alignas(64) constexpr array<static_aligned_const<bool>, 256> return_values{ [] {
+				array<static_aligned_const<bool>, 256> return_values{};
+				return_values[static_cast<uint64_t>('\r')] = static_aligned_const<bool>{ true };
+				return_values[static_cast<uint64_t>('\n')] = static_aligned_const<bool>{ true };
+				return_values[static_cast<uint64_t>(' ')]  = static_aligned_const<bool>{ true };
+				return_values[static_cast<uint64_t>('\t')] = static_aligned_const<bool>{ true };
+				return_values[static_cast<uint64_t>('\v')] = static_aligned_const<bool>{ true };
+				return_values[static_cast<uint64_t>('\f')] = static_aligned_const<bool>{ true };
 				return return_values;
 			}() };
 			return make_static<return_values>::value.data();
@@ -196,7 +176,7 @@ namespace nihilus {
 	}
 
 	template<integral_or_enum_types value_type_new> struct alignas(64) atomic_flag_wrapper {
-		static constexpr static_aligned_const<64, uint64_t> spin_cycles{ 500000 };
+		static constexpr static_aligned_const spin_cycles{ 500000ull };
 		using value_type										= typename std::atomic_signed_lock_free::value_type;
 		NIHILUS_INLINE constexpr atomic_flag_wrapper() noexcept = default;
 		NIHILUS_INLINE constexpr atomic_flag_wrapper& operator=(const atomic_flag_wrapper&) noexcept {
@@ -231,32 +211,26 @@ namespace nihilus {
 		}
 
 		NIHILUS_INLINE value_type_new fetch_add(value_type value) {
-			return static_cast<value_type_new>(flag.fetch_add(static_cast<value_type>(value), std::memory_order_seq_cst));
+			return static_cast<value_type_new>(flag.fetch_add(value, std::memory_order_seq_cst));
 		}
 
 		NIHILUS_INLINE value_type_new fetch_sub(value_type value) {
-			return static_cast<value_type_new>(flag.fetch_sub(static_cast<value_type>(value), std::memory_order_seq_cst));
+			return static_cast<value_type_new>(flag.fetch_sub(value, std::memory_order_seq_cst));
 		}
 
 		NIHILUS_INLINE bool test() {
 			return flag.load(std::memory_order_acquire) == 1;
 		}
 
-		NIHILUS_INLINE void hybrid_wait(value_type expected_value) {
+		NIHILUS_INLINE void hybrid_wait(value_type expected) {
 			for (uint32_t i = 0; i < spin_cycles; ++i) {
-				nihilus_pause();
-				if (flag.load(std::memory_order_acquire) == expected_value) {
+				if (flag.load(std::memory_order_acquire) == expected) {
 					return;
 				}
+				nihilus_pause();
 			}
-			{
-				value_type current_value_01{ flag.load(std::memory_order_acquire) };
-				value_type current_value_02{ flag.load(std::memory_order_acquire) };
-				while (current_value_02 != expected_value) {
-					current_value_02 = flag.load(std::memory_order_acquire);
-					nihilus_pause();
-					flag.wait(current_value_01, std::memory_order_acquire);
-				}
+			for (value_type v = flag.load(std::memory_order_acquire); v != expected; v = flag.load(std::memory_order_acquire)) {
+				flag.wait(v, std::memory_order_acquire);
 			}
 		}
 
@@ -276,54 +250,44 @@ namespace nihilus {
 		NIHILUS_INLINE main_gate_latch()								  = default;
 		NIHILUS_INLINE main_gate_latch& operator=(const main_gate_latch&) = delete;
 		NIHILUS_INLINE main_gate_latch(const main_gate_latch&)			  = delete;
-		vector<atomic_flag_wrapper<int64_t>> finish_flags{};
-		vector<atomic_flag_wrapper<int64_t>> start_flags{};
+		aligned_vector<atomic_flag_wrapper<int64_t>> flags{};
 		atomic_flag_wrapper<int64_t> global_counter{};
-		alignas(64) int64_t thread_count{};
+		using value_type = std::atomic_signed_lock_free::value_type;
+		alignas(64) value_type thread_count{};
 
-		NIHILUS_INLINE void init(int64_t thread_count_new) {
+		NIHILUS_INLINE void init(value_type thread_count_new) {
 			thread_count = thread_count_new;
-			start_flags.resize(static_cast<uint64_t>(thread_count));
-			finish_flags.resize(static_cast<uint64_t>(thread_count));
+			flags.resize(thread_count);
 			global_counter.store(thread_count);
 		}
 
 		NIHILUS_INLINE void worker_wait(uint64_t thread_index) {
-			start_flags[thread_index].hybrid_wait(1);
-			start_flags[thread_index].clear();
+			flags[thread_index].hybrid_wait(1);
+			flags[thread_index].clear();
 		}
 
-		NIHILUS_INLINE void arrive_and_wait(uint64_t thread_index) {
+		NIHILUS_INLINE void arrive(uint64_t thread_index) {
 			global_counter.fetch_sub(1);
-			global_counter.notify_one();
-
-			finish_flags[thread_index].hybrid_wait(1);
-			finish_flags[thread_index].clear();
 		}
 
 		NIHILUS_INLINE void count_down() {
-			for (int64_t x = 0; x < thread_count; ++x) {
-				start_flags[static_cast<uint64_t>(x)].test_and_set();
-				start_flags[static_cast<uint64_t>(x)].notify_one();
+			for (uint64_t x = 0; x < static_cast<uint64_t>(thread_count); ++x) {
+				flags[x].test_and_set();
+				flags[x].notify_one();
 			}
 		}
 
 		NIHILUS_INLINE void main_wait() {
-			global_counter.hybrid_wait(0);
-
-			global_counter.store(static_cast<int64_t>(thread_count));
-			for (int64_t x = 0; x < thread_count; ++x) {
-				finish_flags[static_cast<uint64_t>(x)].test_and_set();
-				finish_flags[static_cast<uint64_t>(x)].notify_one();
-			}
+			global_counter.wait();
+			global_counter.store(thread_count);
 		}
 	};
 
 	template<printable_enum_types auto current_index> consteval std::string_view get_enum_name() {
 #if defined(NIHILUS_COMPILER_MSVC)
-		constexpr auto pretty_function_tail = ">(void)";
+		alignas(64) constexpr char pretty_function_tail[]{ ">(void)" };
 #else
-		constexpr auto pretty_function_tail = "]";
+		alignas(64) constexpr char pretty_function_tail[]{ "]" };
 #endif
 		std::string_view str = std::source_location::current().function_name();
 #if defined(NIHILUS_COMPILER_GNUCXX)
@@ -376,56 +340,6 @@ namespace nihilus {
 		f64	  = 28,
 		bf16  = 30,
 		count = 39,
-	};
-
-	enum class op_types : uint16_t {
-		token_embd_weight,
-		rope_freqs_weight,
-		output_weight,
-		output_norm_weight,
-		attn_q_weight,
-		attn_k_weight,
-		attn_v_weight,
-		attn_output_weight,
-		attn_norm_weight,
-		ffn_gate_weight,
-		ffn_up_weight,
-		ffn_down_weight,
-		ffn_norm_weight,
-		inp_tokens,
-		inp_pos,
-		inp_out_ids,
-		inp_embd,
-		cache_k,
-		cache_v,
-		kq_mask,
-		norm_attn_norm,
-		qcur_mul_mat_reshape,
-		qcur_rope_permute,
-		kcur_mul_mat_reshape,
-		kcur_rope_copy,
-		vcur_mul_mat_transposed_copy,
-		k_cache_view,
-		v_cache_view,
-		v,
-		k,
-		kq,
-		kq_soft_max,
-		kqv_permute_cont,
-		kqv_out,
-		l_out_prev,
-		ffn_inp_norm_out_ffn_norm,
-		ffn_gate,
-		ffn_silu,
-		ffn_up,
-		ffn_gate_par,
-		ffn_out,
-		l_out_final_norm,
-		attn_residual,
-		prev_residual,
-		result_norm,
-		result_output,
-		count
 	};
 
 	enum class core_types : uint8_t {
@@ -908,7 +822,7 @@ namespace nihilus {
 	};
 
 	template<model_config config_new> struct config_holder {
-		static constexpr model_config config{ config_new };
+		static constexpr static_aligned_const config{ config_new };
 	};
 
 	template<model_config config> class file_loader;

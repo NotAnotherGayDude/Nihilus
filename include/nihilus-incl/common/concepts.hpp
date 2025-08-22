@@ -81,7 +81,7 @@ namespace nihilus {
 
 	template<typename value_type>
 	concept vector_subscriptable_types = requires(detail::remove_cvref_t<value_type> value) {
-		{ value[std::declval<typename detail::remove_cvref_t<value_type>::uint64_types>()] } -> std::same_as<typename detail::remove_cvref_t<value_type>::reference>;
+		{ value[std::declval<typename detail::remove_cvref_t<value_type>::size_type>()] } -> std::same_as<typename detail::remove_cvref_t<value_type>::reference>;
 	};
 
 	template<typename value_type>

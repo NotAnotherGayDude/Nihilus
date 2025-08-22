@@ -29,86 +29,85 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-	enum class array_static_assert_errors {
+	enum struct array_static_assert_errors {
 		invalid_index_type,
 	};
 
-	template<auto index> using tag = std::integral_constant<uint64_t, static_cast<uint64_t>(index)>;
+	template<integral_or_enum_types auto index> using tag = std::integral_constant<uint64_t, static_cast<uint64_t>(index)>;
 
-	template<typename value_type_new, auto size_new> struct array {
+	template<typename value_type_new, auto size_new> struct alignas(64) array {
 	  public:
 		static_assert(integral_or_enum_types<decltype(size_new)>, "Sorry, but the size val passed to array must be integral or enum!");
-		static constexpr uint64_t size_val{ static_cast<uint64_t>(size_new) };
+		static constexpr static_aligned_const<uint64_t> size_val{ static_cast<uint64_t>(size_new) };
 		using value_type			 = value_type_new;
-		using uint64_types			 = decltype(size_new);
 		using size_type				 = uint64_t;
 		using difference_type		 = ptrdiff_t;
 		using pointer				 = value_type*;
 		using const_pointer			 = const value_type*;
 		using reference				 = value_type&;
 		using const_reference		 = const value_type&;
-		using iterator				 = array_iterator<value_type, static_cast<uint64_t>(size_new)>;
-		using const_iterator		 = array_iterator<const value_type, static_cast<uint64_t>(size_new)>;
+		using iterator				 = array_iterator<value_type, static_cast<size_type>(size_new)>;
+		using const_iterator		 = array_iterator<const value_type, static_cast<size_type>(size_new)>;
 		using reverse_iterator		 = std::reverse_iterator<iterator>;
 		using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
 		NIHILUS_INLINE constexpr array() = default;
 
-		NIHILUS_INLINE constexpr array(std::initializer_list<value_type> values) {
-			for (uint64_t x = 0; x < values.size(); ++x) {
-				data_val[x] = values.begin()[x];
-			}
-		}
-
-		NIHILUS_INLINE constexpr array(const array& other)
-			requires(std::is_copy_constructible_v<value_type>)
-		{
-			for (uint64_t i = 0; i < size_val; ++i) {
-				data_val[i] = other.data_val[i];
-			}
-		}
-
-		NIHILUS_INLINE array(const array& other)
-			requires(!std::is_copy_constructible_v<value_type>)
-		= delete;
-
-		NIHILUS_INLINE constexpr array& operator=(const array& other)
-			requires(std::is_copy_assignable_v<value_type>)
-		{
-			if (this != &other) {
-				for (uint64_t i = 0; i < size_val; ++i) {
-					data_val[i] = other.data_val[i];
-				}
-			}
-			return *this;
-		}
-
-		NIHILUS_INLINE array& operator=(const array& other)
-			requires(!std::is_copy_assignable_v<value_type>)
-		= delete;
-
-		NIHILUS_INLINE constexpr array(array&& other) noexcept
-			requires(std::is_move_constructible_v<value_type>)
-		{
-			for (uint64_t i = 0; i < size_val; ++i) {
-				data_val[i] = detail::move(other.data_val[i]);
-			}
-		}
-
 		NIHILUS_INLINE constexpr array& operator=(array&& other) noexcept
 			requires(std::is_move_assignable_v<value_type>)
 		{
 			if (this != &other) {
-				for (uint64_t i = 0; i < size_val; ++i) {
+				for (size_type i = 0; i < size_val; ++i) {
 					data_val[i] = detail::move(other.data_val[i]);
 				}
 			}
 			return *this;
 		}
 
-		template<typename... Args> NIHILUS_INLINE constexpr array(Args&&... args)
-			requires(sizeof...(Args) == size_val && (std::is_constructible_v<value_type, Args> && ...) && std::is_copy_constructible_v<value_type>)
-			: data_val{ static_cast<value_type>(forward<Args>(args))... } {
+		NIHILUS_INLINE constexpr array(array&& other) noexcept
+			requires(std::is_move_assignable_v<value_type>)
+		{
+			for (size_type i = 0; i < size_val; ++i) {
+				data_val[i] = detail::move(other.data_val[i]);
+			}
+		}
+
+		NIHILUS_INLINE constexpr array& operator=(const array& other)
+			requires(std::is_copy_assignable_v<value_type>)
+		{
+			if (this != &other) {
+				for (size_type i = 0; i < size_val; ++i) {
+					data_val[i] = other.data_val[i];
+				}
+			}
+			return *this;
+		}
+
+		NIHILUS_INLINE constexpr array(const array& other)
+			requires(std::is_copy_assignable_v<value_type>)
+		{
+			for (size_type i = 0; i < size_val; ++i) {
+				data_val[i] = other.data_val[i];
+			}
+		}
+
+		NIHILUS_INLINE constexpr array& operator=(const array& other)
+			requires(!std::is_copy_assignable_v<value_type>)
+		= delete;
+
+		NIHILUS_INLINE constexpr array(const array& other)
+			requires(!std::is_copy_assignable_v<value_type>)
+		= delete;
+
+		NIHILUS_INLINE constexpr array(std::initializer_list<value_type> values) {
+			for (size_type x = 0; x < values.size(); ++x) {
+				data_val[x] = values.begin()[x];
+			}
+		}
+
+		template<typename... arg_types> NIHILUS_INLINE constexpr array(arg_types&&... args)
+			requires(sizeof...(arg_types) == size_val && (std::is_constructible_v<value_type, arg_types> && ...) && std::is_copy_constructible_v<value_type>)
+			: data_val{ static_cast<value_type>(forward<arg_types>(args))... } {
 		}
 
 		NIHILUS_INLINE constexpr void fill(const value_type& value) {
@@ -163,11 +162,11 @@ namespace nihilus {
 			return rend();
 		}
 
-		NIHILUS_INLINE constexpr uint64_t size() const noexcept {
+		NIHILUS_INLINE constexpr size_type size() const noexcept {
 			return size_val;
 		}
 
-		NIHILUS_INLINE constexpr uint64_t max_size() const noexcept {
+		NIHILUS_INLINE constexpr size_type max_size() const noexcept {
 			return size_val;
 		}
 
@@ -182,7 +181,7 @@ namespace nihilus {
 				throw std::runtime_error{ "invalid array<value_type, N> subscript" };
 			}
 
-			return data_val[static_cast<uint64_t>(position)];
+			return data_val[static_cast<size_type>(position)];
 		}
 
 		template<integral_or_enum_types index_type> NIHILUS_INLINE constexpr const_reference at(index_type position) const {
@@ -192,26 +191,26 @@ namespace nihilus {
 				throw std::runtime_error{ "invalid array<value_type, N> subscript" };
 			}
 
-			return data_val[static_cast<uint64_t>(position)];
+			return data_val[static_cast<size_type>(position)];
 		}
 
 		template<integral_or_enum_types index_type> NIHILUS_INLINE constexpr reference operator[](index_type position) noexcept {
 			static_assert(static_assert_printer<is_indexable<index_type, decltype(size_new)>, array_static_assert_errors::invalid_index_type, index_type>::impl,
 				"Sorry, but please index into this array using the correct enum type!");
-			return data_val[static_cast<uint64_t>(position)];
+			return data_val[static_cast<size_type>(position)];
 		}
 
 		template<integral_or_enum_types index_type> NIHILUS_INLINE constexpr const_reference operator[](index_type position) const noexcept {
 			static_assert(static_assert_printer<is_indexable<index_type, decltype(size_new)>, array_static_assert_errors::invalid_index_type, index_type>::impl,
 				"Sorry, but please index into this array using the correct enum type!");
-			return data_val[static_cast<uint64_t>(position)];
+			return data_val[static_cast<size_type>(position)];
 		}
 
-		template<uint64_t index> NIHILUS_INLINE constexpr uint64_t& operator[](tag<index> index_new) {
+		template<size_type index> NIHILUS_INLINE constexpr reference operator[](tag<index> index_new) {
 			return data_val[index_new];
 		}
 
-		template<uint64_t index> NIHILUS_INLINE constexpr uint64_t operator[](tag<index> index_new) const {
+		template<size_type index> NIHILUS_INLINE constexpr const_reference operator[](tag<index> index_new) const {
 			return data_val[index_new];
 		}
 
@@ -240,7 +239,7 @@ namespace nihilus {
 		}
 
 		NIHILUS_INLINE constexpr friend bool operator==(const array& lhs, const array& rhs) {
-			for (uint64_t x = 0; x < size_val; ++x) {
+			for (size_type x = 0; x < size_val; ++x) {
 				if (lhs[x] != rhs[x]) {
 					return false;
 				}
@@ -248,17 +247,21 @@ namespace nihilus {
 			return true;
 		}
 
-		value_type data_val[size_val]{};
+		NIHILUS_INLINE constexpr friend bool operator!=(const array& lhs, const array& rhs) {
+			return !(lhs == rhs);
+		}
+
+		alignas(64) value_type data_val[size_val]{};
 	};
 
 	template<typename value_type, typename... U> array(value_type, U...) -> array<value_type, 1 + sizeof...(U)>;
 
 	struct empty_array_element {};
 
-	template<class value_type_new> class array<value_type_new, 0> {
+	template<typename value_type_new> struct alignas(64) array<value_type_new, 0> {
 	  public:
 		using value_type			 = value_type_new;
-		using uint64_types			 = uint64_t;
+		using size_type				 = uint64_t;
 		using difference_type		 = ptrdiff_t;
 		using pointer				 = value_type*;
 		using const_pointer			 = const value_type*;
@@ -323,11 +326,11 @@ namespace nihilus {
 			return rend();
 		}
 
-		NIHILUS_INLINE constexpr uint64_types size() const noexcept {
+		NIHILUS_INLINE constexpr size_type size() const noexcept {
 			return 0;
 		}
 
-		NIHILUS_INLINE constexpr uint64_types max_size() const noexcept {
+		NIHILUS_INLINE constexpr size_type max_size() const noexcept {
 			return 0;
 		}
 
@@ -335,36 +338,12 @@ namespace nihilus {
 			return true;
 		}
 
-		NIHILUS_INLINE constexpr reference at(uint64_types) {
+		NIHILUS_INLINE constexpr reference at(size_type) {
 			throw std::runtime_error{ "invalid array<value_type, N> subscript" };
 		}
 
-		NIHILUS_INLINE constexpr const_reference at(uint64_types) const {
+		NIHILUS_INLINE constexpr const_reference at(size_type) const {
 			throw std::runtime_error{ "invalid array<value_type, N> subscript" };
-		}
-
-		NIHILUS_INLINE constexpr reference operator[](uint64_types) noexcept {
-			return *data();
-		}
-
-		NIHILUS_INLINE constexpr const_reference operator[](uint64_types) const noexcept {
-			return *data();
-		}
-
-		NIHILUS_INLINE constexpr reference front() noexcept {
-			return *data();
-		}
-
-		NIHILUS_INLINE constexpr const_reference front() const noexcept {
-			return *data();
-		}
-
-		NIHILUS_INLINE constexpr reference back() noexcept {
-			return *data();
-		}
-
-		NIHILUS_INLINE constexpr const_reference back() const noexcept {
-			return *data();
 		}
 
 		NIHILUS_INLINE constexpr value_type* data() noexcept {
@@ -382,6 +361,7 @@ namespace nihilus {
 		}
 
 	  protected:
-		std::conditional_t<std::disjunction_v<std::is_default_constructible<value_type>, std::is_default_constructible<value_type>>, value_type, empty_array_element> data_val[1]{};
+		alignas(64) std::conditional_t<std::disjunction_v<std::is_default_constructible<value_type>, std::is_default_constructible<value_type>>, value_type,
+			empty_array_element> data_val[1]{};
 	};
 }

@@ -252,7 +252,7 @@ namespace nihilus {
 		stream << "]\n";
 	}
 
-	void print_typed_data(std::ostream& stream, const vector<uint8_t>& data, data_types type, int64_t offending_index = 0) {
+	void print_typed_data(std::ostream& stream, const aligned_vector<uint8_t>& data, data_types type, int64_t offending_index = 0) {
 		if (data.empty()) {
 			stream << "[empty]\n";
 			return;
@@ -290,7 +290,7 @@ namespace nihilus {
 				for (size_t i = offending_index; i < offending_index + count; ++i) {
 					if (i > offending_index)// Only print comma after the first element of this range
 						stream << ", ";
-					stream << static_cast<int>(values[i]);
+					stream << static_cast<int32_t>(values[i]);
 				}
 				break;
 			}
@@ -301,7 +301,7 @@ namespace nihilus {
 				for (size_t i = offending_index; i < offending_index + count; ++i) {
 					if (i > offending_index)// Only print comma after the first element of this range
 						stream << ", ";
-					stream << static_cast<int>(values[i]);
+					stream << static_cast<int32_t>(values[i]);
 				}
 				break;
 			}
@@ -383,13 +383,13 @@ namespace nihilus {
 
 	struct intermediary_ggml_tensor {
 		array<uint64_t, 4> dims{};
-		vector<std::string> dims_string{ [] {
-			vector<std::string> return_values{};
+		aligned_vector<std::string> dims_string{ [] {
+			aligned_vector<std::string> return_values{};
 			return_values.resize(4);
 			return return_values;
 		}() };
 		std::string name{};
-		vector<uint8_t> data{};
+		aligned_vector<uint8_t> data{};
 		data_types type{};
 		ggml_op op{};
 	};
@@ -444,7 +444,7 @@ namespace nihilus {
 
 	template<typename value_type>
 		requires(std::is_same_v<std::string, detail::remove_cvref_t<value_type>>)
-	std::ostream& operator<<(std::ostream& os, const vector<value_type>& tensor) {
+	std::ostream& operator<<(std::ostream& os, const aligned_vector<value_type>& tensor) {
 		os << "[";
 		for (uint64_t x = 0; x < tensor.size(); ++x) {
 			os << tensor[x];
@@ -456,7 +456,7 @@ namespace nihilus {
 		return os;
 	}
 
-	template<typename value_type> std::ostream& operator<<(std::ostream& os, const vector<value_type>& tensor) {
+	template<typename value_type> std::ostream& operator<<(std::ostream& os, const aligned_vector<value_type>& tensor) {
 		os << "[";
 		for (uint64_t x = 0; x < tensor.size(); ++x) {
 			os << +tensor[x];
@@ -533,9 +533,9 @@ namespace nihilus {
 			op	 = convert_ggml_op_to_nihilus_kernel(other.op);
 		}
 		std::string name{};
-		vector<uint8_t> data{};
+		aligned_vector<uint8_t> data{};
 		source_types source_type{ source_types::ggml };
-		vector<std::string> inputs{};
+		aligned_vector<std::string> inputs{};
 		data_types type{};
 		kernel_types op{};
 	};
@@ -734,8 +734,8 @@ namespace nihilus {
 							has_differences = true;
 							if (differences_found < max_differences) {
 								stream << "Incorrect Data:, For Tensor: " << name << std::endl;
-								stream << "Byte difference at index " << i << ": " << static_cast<int>(static_cast<uint8_t*>(data1.data)[i]) << " vs "
-									   << static_cast<int>(data2.data[i]) << std::endl;
+								stream << "Byte difference at index " << i << ": " << static_cast<int32_t>(static_cast<uint8_t*>(data1.data)[i]) << " vs "
+									   << static_cast<int32_t>(data2.data[i]) << std::endl;
 								differences_found++;
 								stream << "LHS Data: " << std::endl;
 								print_typed_data(stream, static_cast<uint8_t*>(data1.data), data1.byte_size, type, i);
@@ -824,149 +824,11 @@ namespace jsonifier {
 
 namespace nihilus {
 
-	NIHILUS_INLINE std::string convert_op_to_string(op_types type, uint64_t current_block) {
+	NIHILUS_INLINE std::string convert_op_to_string(core_types type, uint64_t current_block) {
 		std::string block{ std::to_string(current_block) };
 		switch (type) {
-			case op_types::norm_attn_norm: {
+			case core_types::token_embeddings: {
 				return "attn_norm-" + block;
-			}
-			case op_types::l_out_prev: {
-				return "inp_embd";
-			}
-			case op_types::inp_embd: {
-				return "inp_embd";
-			}
-			case op_types::qcur_rope_permute: {
-				return "q-" + block;
-			}
-			case op_types::kcur_rope_copy: {
-				return "Kcur-" + block + "-02";
-			}
-			case op_types::k_cache_view: {
-				return "k_cache_view-" + block;
-			}
-			case op_types::kq_mask: {
-				return "KQ_mask";
-			}
-			case op_types::inp_pos: {
-				return "inp_pos";
-			}
-			case op_types::inp_tokens: {
-				return "inp_tokens";
-			}
-			case op_types::inp_out_ids: {
-				return "inp_out_ids";
-			}
-			case op_types::attn_k_weight: {
-				return "blk." + block + ".attn_k.weight";
-			}
-			case op_types::attn_q_weight: {
-				return "blk." + block + ".attn_q.weight";
-			}
-			case op_types::attn_v_weight: {
-				return "blk." + block + ".attn_v.weight";
-			}
-			case op_types::attn_norm_weight: {
-				return "blk." + block + ".attn_norm.weight";
-			}
-			case op_types::attn_output_weight: {
-				return "blk." + block + ".attn_output.weight";
-			}
-			case op_types::ffn_down_weight: {
-				return "blk." + block + ".ffn_down.weight";
-			}
-			case op_types::ffn_gate_weight: {
-				return "blk." + block + ".ffn_gate.weight";
-			}
-			case op_types::ffn_norm_weight: {
-				return "blk." + block + ".ffn_norm.weight";
-			}
-			case op_types::ffn_up_weight: {
-				return "blk." + block + ".ffn_up.weight";
-			}
-			case op_types::output_norm_weight: {
-				return "output_norm.weight";
-			}
-			case op_types::output_weight: {
-				return "output.weight";
-			}
-			case op_types::rope_freqs_weight: {
-				return "rope_freqs.weight";
-			}
-			case op_types::token_embd_weight: {
-				return "token_embd.weight";
-			}
-			case op_types::cache_k: {
-				return "cache_k_l" + block;
-			}
-			case op_types::cache_v: {
-				return "cache_v_l" + block;
-			}
-			case op_types::qcur_mul_mat_reshape: {
-				return "Qcur-" + block + " (reshaped)-02";
-			}
-			case op_types::kcur_mul_mat_reshape: {
-				return "Kcur-" + block + " (reshaped)-02";
-			}
-			case op_types::vcur_mul_mat_transposed_copy: {
-				return "Vcur-" + block;
-			}
-			case op_types::v_cache_view: {
-				return "v_cache_view-" + block;
-			}
-			case op_types::v: {
-				return "v-" + block;
-			}
-			case op_types::k: {
-				return "k-" + block;
-			}
-			case op_types::kq: {
-				return "kq-" + block;
-			}
-			case op_types::kq_soft_max: {
-				return "kq_soft_max_ext-" + block;
-			}
-			case op_types::kqv_permute_cont: {
-				return "kqv_permute_cont-" + block;
-			}
-			case op_types::kqv_out: {
-				return "kqv_out-" + block;
-			}
-			case op_types::ffn_inp_norm_out_ffn_norm: {
-				return "ffn_norm-" + block;
-			}
-			case op_types::ffn_gate: {
-				return "ffn_gate-" + block;
-			}
-			case op_types::ffn_silu: {
-				return "ffn_silu-" + block;
-			}
-			case op_types::ffn_up: {
-				return "ffn_up-" + block;
-			}
-			case op_types::ffn_gate_par: {
-				return "ffn_gate_par-" + block;
-			}
-			case op_types::ffn_out: {
-				return "ffn_out-" + block;
-			}
-			case op_types::l_out_final_norm: {
-				return "norm";
-			}
-			case op_types::result_norm: {
-				return "result_norm";
-			}
-			case op_types::attn_residual: {
-				return "node_1016";
-			}
-			case op_types::prev_residual: {
-				return "node_1017";
-			}
-			case op_types::result_output: {
-				return "result_output";
-			}
-			case op_types::count: {
-				return "count";
 			}
 			default: {
 				return {};

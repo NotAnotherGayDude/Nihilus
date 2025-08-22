@@ -28,9 +28,9 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-	template<model_config config> struct memory_buffer : public allocator<uint8_t, cpu_alignment_holder::cpu_alignment> {
+	template<model_config config> struct memory_buffer : public allocator<uint8_t> {
 		using value_type   = uint8_t;
-		using alloc		   = allocator<value_type, cpu_alignment_holder::cpu_alignment>;
+		using alloc		   = allocator<value_type>;
 		using pointer	   = value_type*;
 		using uint64_types = uint64_t;
 		using size_type	   = uint64_t;
@@ -57,7 +57,6 @@ namespace nihilus {
 				clear();
 			}
 			data_val = alloc::allocate(size);
-			std::fill_n(data_val, size, value_type{});
 			if (!data_val) {
 				static constexpr auto location = std::source_location::current();
 				nihilus_exception<config, "memory_buffer - failed to allocate memory", location>::impl();
@@ -78,7 +77,7 @@ namespace nihilus {
 		}
 
 		NIHILUS_INLINE void* claim_memory(uint64_t offset_to_claim) noexcept {
-			uint64_t aligned_amount = round_up_to_multiple<cpu_alignment_holder::cpu_alignment>(offset_to_claim);
+			uint64_t aligned_amount = round_up_to_multiple<64>(offset_to_claim);
 			if (aligned_amount > size_val) {
 				static constexpr auto location = std::source_location::current();
 				nihilus_exception<config, "memory_buffer - not enough memory allocated!", location>::impl();

@@ -39,7 +39,7 @@ namespace nihilus {
 		using pointer		  = value_type*;
 		using size_type		  = uint64_t;
 
-		inline static constexpr size_type length{ size_val > 0 ? size_val - 1 : 0 };
+		inline static constexpr static_aligned_const length{ size_val > 0 ? size_val - 1 : 0 };
 
 		NIHILUS_INLINE constexpr string_literal() noexcept = default;
 
@@ -112,11 +112,11 @@ namespace nihilus {
 		}
 
 		template<typename string_types> NIHILUS_INLINE constexpr operator string_types() const noexcept {
-			alignas(cpu_alignment_holder::cpu_alignment) string_types return_values{ values, length };
+			alignas(64) string_types return_values{ values, length };
 			return return_values;
 		}
 
-		alignas(cpu_alignment_holder::cpu_alignment) value_type values[size_val]{};
+		alignas(64) value_type values[size_val]{};
 	};
 
 	template<uint64_t size> string_literal(char (&)[size]) -> string_literal<size>;

@@ -97,8 +97,8 @@ namespace nihilus {
 
 	struct nihilus_model_file {
 		nihilus_metadata metadata{};
-		std::vector<nihilus_scalar_metadata<void*>> scalar_metadata{};
-		std::vector<nihilus_tensor_metadata> tensor_metadata{};
+		aligned_vector<nihilus_scalar_metadata<void*>> scalar_metadata{};
+		aligned_vector<nihilus_tensor_metadata> tensor_metadata{};
 	};
 
 	struct stream_iterator {
@@ -296,7 +296,7 @@ namespace nihilus {
 	};
 
 	template<model_config config, typename value_type>
-		requires(is_specialization_v<value_type, vector>)
+		requires(is_specialization_v<value_type, aligned_vector>)
 	struct value_reader<config, value_type> {
 		NIHILUS_INLINE static value_type gather_value(stream_iterator& input) {
 			value_reader<config, gguf_metadata_value_type>::gather_value(input);
@@ -336,8 +336,8 @@ namespace nihilus {
 		int32_t quantize_imatrix_entries_count;
 		std::string_view quantize_imatrix_file;
 		int32_t quantize_imatrix_chunks_count;
-		vector<std::string_view> languages;
-		vector<std::string_view> tags;
+		aligned_vector<std::string_view> languages;
+		aligned_vector<std::string_view> tags;
 		uint32_t quantization_version;
 		std::string_view architecture;
 		std::string_view size_label;
@@ -353,8 +353,8 @@ namespace nihilus {
 
 	template<> struct tokenizer_base<tokenizer_types::bpe> {
 		std::unordered_map<std::string_view, int32_t> ggml_tokens;
-		vector<std::string_view> ggml_merges;
-		vector<int32_t> ggml_token_type;
+		aligned_vector<std::string_view> ggml_merges;
+		aligned_vector<int32_t> ggml_token_type;
 		std::string_view chat_template;
 		std::string_view ggml_model;
 	};
@@ -763,7 +763,7 @@ namespace nihilus {
 		return lhs.layer_number < rhs.layer_number;
 	}
 
-	NIHILUS_INLINE void sort_tensor_infos(vector<core_base_creation_data>& tensor_infos) noexcept {
+	NIHILUS_INLINE void sort_tensor_infos(aligned_vector<core_base_creation_data>& tensor_infos) noexcept {
 		std::sort(tensor_infos.begin(), tensor_infos.end(), std::less<core_base_creation_data>{});
 	}
 
@@ -787,7 +787,7 @@ namespace nihilus {
 			tokenizer.merges		= detail::move(gguf_file.ggml_merges);
 			tokenizer.token_types	= detail::move(gguf_file.ggml_token_type);
 			tokenizer.chat_template = detail::move(gguf_file.chat_template);
-			vector<core_base_creation_data> tensor_infos{};
+			aligned_vector<core_base_creation_data> tensor_infos{};
 			tensor_infos.reserve(gguf_file.tensor_count);
 			for (uint64_t x = 0; x < gguf_file.tensor_count; ++x) {
 				auto new_tensor{ value_reader<config, core_base_creation_data>::gather_value(ptr) };

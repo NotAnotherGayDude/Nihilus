@@ -157,14 +157,14 @@ namespace nihilus {
 		}
 
 		NIHILUS_INLINE static cli_params parse_cli_arguments(int32_t argc, char** argv) {
-			vector<std::string> cli_args{};
+			aligned_vector<std::string> cli_args{};
 			for (int64_t x = 0; x < argc; ++x) {
 				cli_args.emplace_back(argv[static_cast<uint64_t>(x)]);
 			}
 			return parse_cli_arguments(cli_args);
 		}
 
-		inline static cli_params parse_cli_arguments(const vector<std::string>& command_line) {
+		inline static cli_params parse_cli_arguments(const aligned_vector<std::string>& command_line) {
 			cli_params result{};
 			std::string current_flag{};
 			bool expect_value = false;

@@ -120,9 +120,3 @@ configure_file(
     "${CMAKE_CURRENT_SOURCE_DIR}/include/nihilus-incl/cpu/simd/nihilus_cpu_instructions.hpp"
     @ONLY
 )
-
-
-
-   
-
-

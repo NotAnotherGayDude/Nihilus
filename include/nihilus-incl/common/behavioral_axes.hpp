@@ -87,7 +87,7 @@ namespace nihilus {
 			values.currently_allocated_bytes = 0;
 			values.peak_allocated_bytes		 = 0;
 		}
-		if constexpr (current_index < (max_index - 1)) {
+		if constexpr (current_index < max_index) {
 			values.footprints[current_index].offset				  = values.currently_allocated_bytes;
 			values.footprints[current_index].core_type			  = static_cast<core_types>(current_index);
 			values.footprints[current_index].depth				  = core_traits<config, static_cast<core_types>(current_index)>::depth;
@@ -120,15 +120,15 @@ namespace nihilus {
 		NIHILUS_INLINE memory_mapper_impl& operator=(memory_mapper_impl&&) noexcept		 = delete;
 		NIHILUS_INLINE memory_mapper_impl(memory_mapper_impl&&) noexcept				 = delete;
 		using base_type																	 = base_type_new;
+		using base_derived_type = typename base_type::value_type;
 		NIHILUS_INLINE static constexpr bool filter() {
-			return has_total_required_bytes_types<typename base_type::type>;
+			return has_total_required_bytes_types<typename base_type::value_type>;
 		}
-		NIHILUS_INLINE static void impl(base_type_new& core_traits, const memory_plan_new& plan, memory_buffer<config>& memory_buffer, uint64_t& internal_offset) {
-			auto& ref		= core_traits.value;
-			using data_type = detail::remove_cvref_t<decltype(ref.data)>;
-			data_type ptr	= static_cast<data_type>(memory_buffer.claim_memory(plan.footprints[base_type::type::core_type].offset + internal_offset));
-			internal_offset += ref.total_required_bytes;
-			ref.data = ptr;
+		NIHILUS_INLINE static void impl(base_derived_type& core_traits, const memory_plan_new& plan, memory_buffer<config>& memory_buffer, uint64_t& internal_offset) {
+			using data_type = detail::remove_cvref_t<decltype(core_traits.data)>;
+			data_type ptr	= static_cast<data_type>(memory_buffer.claim_memory(plan.footprints[base_type::value_type::core_type].offset + internal_offset));
+			internal_offset += core_traits.total_required_bytes;
+			core_traits.data = ptr;
 		}
 	};
 
@@ -176,6 +176,22 @@ namespace nihilus {
 		}
 	};
 
+	template<model_config config, typename base_type_new> struct dim_updater_impl {
+		NIHILUS_INLINE dim_updater_impl() noexcept										 = default;
+		NIHILUS_INLINE dim_updater_impl& operator=(const dim_updater_impl&) noexcept	 = delete;
+		NIHILUS_INLINE dim_updater_impl(const dim_updater_impl&) noexcept				 = delete;
+		NIHILUS_INLINE dim_updater_impl& operator=(dim_updater_impl&&) noexcept			 = delete;
+		NIHILUS_INLINE dim_updater_impl(dim_updater_impl&&) noexcept					 = delete;
+		using base_type																	 = base_type_new;
+		NIHILUS_INLINE static constexpr bool filter() {
+			return runtime_dims_t<base_type>;
+		}
+
+		NIHILUS_INLINE static void impl(base_type& parse_core, uint64_t runtime_dimension) {
+			parse_core.get_mutable_dim() = runtime_dimension;
+		};
+	};
+
 	template<model_config config, typename base_type_new> struct dim_updater {
 		NIHILUS_INLINE dim_updater() noexcept							   = default;
 		NIHILUS_INLINE dim_updater& operator=(const dim_updater&) noexcept = delete;
@@ -186,19 +202,10 @@ namespace nihilus {
 		NIHILUS_INLINE static constexpr bool filter() {
 			return has_total_required_bytes_types<base_type>;
 		}
-		template<uint64_t current_index = 0> NIHILUS_INLINE static void dim_updater_impl(base_type& parse_core, uint64_t runtime_dimension) {
-			static constexpr uint64_t max_index{ static_cast<uint64_t>(base_type::enum_type::count) };
-			if constexpr (current_index < max_index) {
-				auto& ref = get<current_index>(parse_core.values);
-				if constexpr (runtime_dims_t<detail::remove_cvref_t<decltype(ref)>>) {
-					ref.get_mutable_dim() = runtime_dimension;
-				}
-				dim_updater_impl<current_index + 1>(parse_core, runtime_dimension);
-			}
-		};
+
 		NIHILUS_INLINE static void impl(base_type& parse_core, uint64_t runtime_dimension) {
 			parse_core.runtime_dimension = runtime_dimension;
-			dim_updater_impl(parse_core, runtime_dimension);
+			parse_core.values.template impl<dim_updater_impl>(runtime_dimension);
 		}
 	};
 
@@ -209,17 +216,18 @@ namespace nihilus {
 		NIHILUS_INLINE weight_mapper_impl& operator=(weight_mapper_impl&&) noexcept		 = delete;
 		NIHILUS_INLINE weight_mapper_impl(weight_mapper_impl&&) noexcept				 = delete;
 		using base_type																	 = base_type_new;
+		using base_derived_type = typename base_type::value_type;
 		NIHILUS_INLINE static constexpr bool filter() {
-			return std::is_same_v<typename base_type::type::enum_type, weight_types>;
+			return std::is_same_v<typename base_type::value_type::enum_type, weight_types>;
 		}
 
-		NIHILUS_INLINE static void impl(base_type_new& core_traits, array<array<void*, model_traits_type<config>::block_count>, weight_types::count>& data) {
-			if constexpr (array_types<decltype(core_traits.value.data)>) {
+		NIHILUS_INLINE static void impl(base_derived_type& core_traits, array<array<void*, model_traits_type<config>::block_count>, weight_types::count>& data) {
+			if constexpr (array_types<decltype(core_traits.data)>) {
 				for (uint64_t x = 0; x < model_traits_type<config>::block_count; ++x) {
-					data[base_type::type::enum_value][x] = static_cast<void*>(&core_traits.value.data[x]);
+					data[base_type::value_type::enum_value][x] = static_cast<void*>(&core_traits.data[x]);
 				}
 			} else {
-				data[base_type::type::enum_value][0] = static_cast<void*>(&core_traits.value.data);
+				data[base_type::value_type::enum_value][0] = static_cast<void*>(&core_traits.data);
 			}
 		};
 	};
@@ -230,7 +238,7 @@ namespace nihilus {
 		};
 	};
 
-	template<model_config config, typename base_type_new, processing_phases processing_phase> struct global_input_thread_function {
+	template<model_config config, typename base_type_new, device_types device_type, uint64_t arch_index, processing_phases processing_phase> struct global_input_thread_function {
 		NIHILUS_INLINE global_input_thread_function() noexcept												 = default;
 		NIHILUS_INLINE global_input_thread_function& operator=(const global_input_thread_function&) noexcept = delete;
 		NIHILUS_INLINE global_input_thread_function(const global_input_thread_function&) noexcept			 = delete;
@@ -249,8 +257,8 @@ namespace nihilus {
 					   << " expected threads, for Op: " << base_type::core_type << std::endl;
 				log<log_levels::status>(stream.str());
 			}
-			//parse_core.latch.arrive_and_wait();
-			kernel_dispatcher<config, processing_phase, device_types::cpu, base_type>::impl(parse_core, thread_index_new, thread_count);
+
+			kernel_dispatcher<device_type, arch_index, processing_phase, device_types::cpu, base_type>::impl(parse_core, thread_index_new, thread_count);
 
 			if constexpr (config.dev) {
 				std::stringstream stream{};
@@ -261,7 +269,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename base_type_new, processing_phases processing_phase> struct per_block_thread_function {
+	template<model_config config, typename base_type_new, device_types device_type, uint64_t arch_index, processing_phases processing_phase> struct per_block_thread_function {
 		NIHILUS_INLINE per_block_thread_function() noexcept											   = default;
 		NIHILUS_INLINE per_block_thread_function& operator=(const per_block_thread_function&) noexcept = delete;
 		NIHILUS_INLINE per_block_thread_function(const per_block_thread_function&) noexcept			   = delete;
@@ -281,8 +289,7 @@ namespace nihilus {
 					   << " expected threads, for Op: " << base_type::core_type << ", for [BLOCK]: " << current_block << std::endl;
 				log<log_levels::status>(stream.str());
 			}
-			//parse_core.latch[current_block].arrive_and_wait();
-			kernel_dispatcher<config, processing_phase, device_types::cpu, base_type>::impl(parse_core, thread_index_new, thread_count, current_block);
+			kernel_dispatcher<device_type, arch_index, processing_phase, device_types::cpu, base_type>::impl(parse_core, thread_index_new, thread_count, current_block);
 
 			if constexpr (config.dev) {
 				std::stringstream stream{};
@@ -293,7 +300,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename base_type_new, processing_phases processing_phase> struct global_output_thread_function {
+	template<model_config config, typename base_type_new, device_types device_type, uint64_t arch_index, processing_phases processing_phase> struct global_output_thread_function {
 		NIHILUS_INLINE global_output_thread_function() noexcept												   = default;
 		NIHILUS_INLINE global_output_thread_function& operator=(const global_output_thread_function&) noexcept = delete;
 		NIHILUS_INLINE global_output_thread_function(const global_output_thread_function&) noexcept			   = delete;
@@ -312,9 +319,7 @@ namespace nihilus {
 					   << " expected threads, for Op: " << base_type::core_type << std::endl;
 				log<log_levels::status>(stream.str());
 			}
-			//parse_core.latch.arrive_and_wait();
-
-			kernel_dispatcher<config, processing_phase, device_types::cpu, base_type>::impl(parse_core, thread_index_new, thread_count);
+			kernel_dispatcher<device_type, arch_index, processing_phase, device_types::cpu, base_type>::impl(parse_core, thread_index_new, thread_count);
 			if constexpr (config.dev) {
 				std::stringstream stream{};
 				stream << "[DEBUG] Thread (ID: " << std::this_thread::get_id() << ") " << thread_index_new << " [FINISHED] a barrier with " << thread_count
