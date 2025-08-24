@@ -51,7 +51,7 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 else()
     set(NIHILUS_AVX2_FLAGS "-mfma;-mavx2;-mavx;-mlzcnt;-mpopcnt;-mbmi;-mbmi2;-msse4.2;-mf16c")
     set(NIHILUS_AVX512_FLAGS "-mavx512f;-mfma;-mavx2;-mavx;-mlzcnt;-mpopcnt;-mbmi;-mbmi2;-msse4.2;-mf16c")
-    set(NIHILUS_NEON_FLAGS "-mfpu=neon")
+    set(NIHILUS_NEON_FLAGS "-march=armv8-a")
     set(NIHILUS_SVE2_FLAGS "-march=armv8-a+sve;-msve-vector-bits=scalable;-march=armv8-a+sve+sve2")
 endif()
 

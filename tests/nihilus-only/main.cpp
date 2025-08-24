@@ -441,14 +441,14 @@ int32_t main(int32_t argc, char** argv) {
 	constexpr auto model_config_01 =
 		generate_model_config(model_generations::v3_1, model_sizes::llm_8B, kernel_type_profiles::q8_gqa, model_arches::llama, false, nullptr, 32);
 	cli_params cli_args			   = harbinger<model_config_01>::parse_cli_arguments(argc, argv);
-	auto model_new_01{ harbinger<model_config_01>::parse_model_graph_data(cli_args) };
+	//auto model_new_01{ harbinger<model_config_01>::parse_model_graph_data(cli_args) };
 
 	constexpr auto model_config_02 = generate_model_config(model_generations::v3_1, model_sizes::llm_8B, kernel_type_profiles::q8_gqa, model_arches::llama);
 	cli_args			= harbinger<model_config_02>::parse_cli_arguments(argc, argv);
-	auto model_new_02{ harbinger<model_config_02>::parse_model_graph_data(cli_args) };
+	//auto model_new_02{ harbinger<model_config_02>::parse_model_graph_data(cli_args) };
 
 	constexpr auto model_config_03 = generate_model_config(model_generations::v3_1, model_sizes::llm_8B, kernel_type_profiles::q8_gqa, model_arches::llama, false, nullptr, 2048);
-	auto model_new_03{ harbinger<model_config_03>::parse_model_graph_data(cli_args) };
+	//auto model_new_03{ harbinger<model_config_03>::parse_model_graph_data(cli_args) };
 
 	constexpr auto model_config_04 = generate_model_config(model_generations::v3_1, model_sizes::llm_8B, kernel_type_profiles::q8_gqa, model_arches::llama, false, nullptr,
 		model_traits_type<model_config_03>::context_length);

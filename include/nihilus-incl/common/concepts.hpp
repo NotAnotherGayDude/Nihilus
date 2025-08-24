@@ -157,6 +157,10 @@ namespace nihilus {
 
 	template<template<typename...> typename value_type, typename... arg_types> constexpr bool is_specialization_v<value_type<arg_types...>, value_type> = true;
 
+	template<typename, template<auto...> typename> constexpr bool is_specialization_val_v = false;
+
+	template<template<auto> typename value_type, auto... arg_types> constexpr bool is_specialization_val_v<value_type<arg_types...>, value_type> = true;
+
 	enum class input_types : uint8_t {
 		none  = 1 << 0,
 		one	  = 1 << 1,
@@ -177,8 +181,8 @@ namespace nihilus {
 	concept triple_input_types = detail::remove_cvref_t<value_type>::input_type == input_types::three && !double_input_types<value_type> && !single_input_types<value_type>;
 
 	template<typename value_type>
-	concept quadruple_input_types =
-		detail::remove_cvref_t<value_type>::input_type == input_types::four && !triple_input_types<value_type> && !double_input_types<value_type> && !single_input_types<value_type>;
+	concept quadruple_input_types = detail::remove_cvref_t<value_type>::input_type == input_types::four && !triple_input_types<value_type> && !double_input_types<value_type> &&
+		!single_input_types<value_type>;
 
 	template<typename value_type>
 	concept quintuple_input_types = detail::remove_cvref_t<value_type>::input_type == input_types::five && !quadruple_input_types<value_type> && !triple_input_types<value_type> &&

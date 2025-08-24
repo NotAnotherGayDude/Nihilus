@@ -46,7 +46,7 @@ namespace nihilus {
 		  public tokenizer<config_new, model_traits<config_new.arch, config_new.model_size, config_new.model_generation>::arch, config_new.tokenizer_type> {
 		using thread_pool_type		 = thread_pool<config_new>;
 		using core_bases_type		 = get_core_bases_t<config_new, core_types>;
-		using core_bases_traits_type = core_bases_traits<config_new, core_types>;
+		using core_bases_traits_type = core_bases_traits<config_new>;
 		using tokenizer_type		 = tokenizer<config_new, config_new.arch, config_new.tokenizer_type>;
 
 		NIHILUS_INLINE model() noexcept {
@@ -72,11 +72,11 @@ namespace nihilus {
 
 		NIHILUS_INLINE void init(cli_params params) {
 			std::cout << "(Nihilus) Total Bytes Required for Intermediate Tensors at Context Length Of: " << config.default_max_sequence_length << ": "
-					  << core_bases_traits_type ::total_required_bytes.peak_allocated_bytes << std::endl;
-			memory.init(core_bases_traits_type ::total_required_bytes.peak_allocated_bytes);
+					  << core_bases_traits_type::total_required_bytes.peak_allocated_bytes << std::endl;
+			memory.init(core_bases_traits_type::total_required_bytes.peak_allocated_bytes);
 			array<array<void*, model_traits_type<config_new>::block_count>, weight_types::count> data{};
 			weight_mapper<config_new, core_traits<config_new, core_types::weights>>::impl(*static_cast<core_traits<config_new, core_types::weights>*>(this), data);
-			this->template impl<memory_mapper>(core_bases_traits_type ::total_required_bytes, memory);
+			this->template impl<memory_mapper>(core_bases_traits_type::total_required_bytes, memory);
 
 			if constexpr (config_new.benchmark || config_new.dev) {
 				perf_base<config_new>::perf_stats.load_start = clock_type::now();
@@ -105,14 +105,15 @@ namespace nihilus {
 				this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::inp_tokens>().data);
 
 			for (uint64_t x = 0; x < exec_params.sequence_length; ++x) {
-				using core_type = detail::remove_cvref_t<decltype(this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::inp_pos>())>;
+				using core_type = detail::remove_cvref_t<
+					decltype(this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::inp_pos>())>;
 				this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::inp_pos>().data[x] =
 					static_cast<typename core_type::output_type>(x);
 			}
 			using core_type = detail::remove_cvref_t<decltype(this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::inp_out_ids>())>;
 			this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::inp_out_ids>().data[0] =
 				static_cast<typename core_type::output_type>(exec_params.sequence_length - 1);
-
+				
 			if constexpr (config_new.benchmark || config_new.dev) {
 				perf_base<config_new>::perf_stats.prompt_token_count	= exec_params.sequence_length;
 				perf_base<config_new>::perf_stats.generated_token_count = exec_params.token_count - 1;
@@ -170,7 +171,7 @@ namespace nihilus {
 				print_performance_stats();
 			}
 		}
-		
+
 		NIHILUS_INLINE ~model() {
 			deinit();
 		}
@@ -184,18 +185,18 @@ namespace nihilus {
 		}
 
 		NIHILUS_INLINE void generate_causal_mask() {
-			//static constexpr auto dims = op_traits<config_new, core_types::kq_mask>::core_traits_dims_type::get_array();
-			//auto& kq_mask			   = get_core<op_type_type::kq_mask>();
-			//float* mask_data		   = static_cast<float*>(kq_mask.data);
-
-			//const uint64_t total_dims = dims[0] * dims[1] * dims[2] * dims[3];
-			//for (uint64_t x = 0; x < total_dims; ++x) {
-			//				if (x == 0 || x == 32 || x == 33) {
-			//mask_data[x] = 0.0f;
-			//				} else {
-			//mask_data[x] = -std::numeric_limits<float>::infinity();
-			//				}
-			//}
+			using core_type = detail::remove_cvref_t<
+				decltype(this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::kq_mask>())>;
+			float* mask_data = this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::kq_mask>().data;
+			static constexpr auto dims = core_type::get_array();
+			const uint64_t total_dims  = dims[0] * dims[1] * dims[2] * dims[3];
+			for (uint64_t x = 0; x < total_dims; ++x) {
+				if (x == 0 || x == 32 || x == 33) {
+					mask_data[x] = 0.0f;
+				} else {
+					mask_data[x] = -std::numeric_limits<float>::infinity();
+				}
+			}
 		}
 
 		NIHILUS_INLINE void print_performance_stats() {

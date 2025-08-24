@@ -43,7 +43,7 @@ namespace nihilus {
 		unset	= 13,
 	};
 
-	enum class nihilus_metadata_value_type : uint32_t {
+	enum class void_metadata_value_type : uint32_t {
 		uint8	= 0,
 		int8	= 1,
 		uint16	= 2,
@@ -60,7 +60,7 @@ namespace nihilus {
 		unset	= 13,
 	};
 
-	struct nihilus_metadata {
+	struct void_metadata {
 		uint32_t magic{};
 		uint64_t version{};
 		uint64_t thread_count{};
@@ -75,30 +75,30 @@ namespace nihilus {
 		uint64_t tensor_length{};
 	};
 
-	template<typename value_type> struct nihilus_scalar_metadata {
+	template<typename value_type> struct void_scalar_metadata {
 		std::string_view name{};
 		uint64_t offset_into_metadata_data{};
-		nihilus_metadata_value_type type{};
+		void_metadata_value_type type{};
 		value_type value{};
 		uint64_t length{};
 	};
 
-	enum class nihilus_device_types { cpu = 0, gpu = 1 };
+	enum class void_device_types { cpu = 0, gpu = 1 };
 
-	struct nihilus_tensor_metadata {
+	struct void_tensor_metadata {
 		std::string_view name{};
 		uint64_t offset_into_tensor_data{};
-		nihilus_device_types device_type{};
+		void_device_types device_type{};
 		uint64_t offset_per_thread{};
 		array<uint64_t, 4> dims{};
 		int64_t layer_number{};// -1 for "Per-Model" tensors.
 		data_types type{};
 	};
 
-	struct nihilus_model_file {
-		nihilus_metadata metadata{};
-		aligned_vector<nihilus_scalar_metadata<void*>> scalar_metadata{};
-		aligned_vector<nihilus_tensor_metadata> tensor_metadata{};
+	struct void_model_file {
+		void_metadata metadata{};
+		aligned_vector<void_scalar_metadata<void*>> scalar_metadata{};
+		aligned_vector<void_tensor_metadata> tensor_metadata{};
 	};
 
 	struct stream_iterator {
@@ -410,7 +410,7 @@ namespace nihilus {
 			static constexpr auto string_lit = tupleElem.name;
 			static constexpr auto ptrNew	 = tupleElem.member_ptr;
 			static constexpr auto keySize	 = string_lit.size();
-			if NIHILUS_LIKELY ((string.size() <= keySize) && string_literal_comparitor<decltype(string_lit), string_lit>::impl(string.data())) {
+			if NIHILUS_LIKELY ((string.size() <= keySize) && string_literal_comparison<string_lit>(string.data())) {
 				auto& ref = get_member<value_type, ptrNew>(value);
 				if constexpr (!std::is_const_v<std::remove_reference_t<decltype(ref)>>) {
 					ref = value_reader<config, member_type_t<index>>::gather_value(stream);

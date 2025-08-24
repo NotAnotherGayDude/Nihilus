@@ -194,6 +194,11 @@ namespace nihilus {
 		static constexpr const uint64_t& cpu_arch_index{ *cpu_arch_index_raw };
 	};
 
+	struct cpu_alignment_holder {
+		static constexpr static_aligned_const cpu_alignment_raw{ cpu_alignments[NIHILUS_CPU_INSTRUCTION_INDEX] };
+		static constexpr const uint64_t& cpu_alignment{ *cpu_alignment_raw };
+	};
+
 }
 
 #include <nihilus-incl/benchmarking/event_counter.hpp>

@@ -28,6 +28,9 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
+	template<typename value_type>
+	concept sl_types = is_specialization_val_v<std::remove_cvref_t<value_type>, string_literal>;
+
 	template<uint64_t length> struct convert_length_to_int {
 		static_assert(length <= 8, "Sorry, but that string is too long!");
 		using type = std::conditional_t<length == 1, uint8_t,
@@ -36,13 +39,13 @@ namespace nihilus {
 
 	template<uint64_t length> using convert_length_to_int_t = typename convert_length_to_int<length>::type;
 
-	template<string_literal string>
+	template<sl_types auto string>
 		requires(string.size() == 0)
 	static constexpr auto pack_values() {
 		return uint8_t{};
 	}
 
-	template<string_literal string>
+	template<sl_types auto string>
 		requires(string.size() > 0 && string.size() <= 8)
 	static constexpr auto pack_values() {
 		convert_length_to_int_t<string.size()> return_values{};
@@ -62,44 +65,35 @@ namespace nihilus {
 		}
 	}
 
-	template<string_literal string>
-		requires(string.size() != 0 && string.size() > 8)
+	template<sl_types auto string>
+		requires(string.size() > 8)
 	static constexpr auto pack_values() {
-		alignas(64) array<uint64_t, round_up_to_multiple<16>(get_packing_size<string.size()>())> return_values{};
-		for (uint64_t x = 0; x < string.size(); ++x) {
-			if (x / 8 < (string.size() / 8) + 1) {
-				return_values[x / 8] |= (static_cast<uint64_t>(string[x]) << ((x % 8) * 8));
-			}
+		alignas(64) array<uint64_t, get_packing_size<string.size()>() / sizeof(uint64_t)> out{};
+		for (uint64_t i = 0; i < string.size() && i < get_packing_size<string.size()>(); ++i) {
+			out[i / 8] |= (static_cast<uint64_t>(static_cast<unsigned char>(string[i])) << ((i % 8) * 8));
 		}
-		return return_values;
+		return out;
 	}
 
 	template<typename value_type>
-	concept equals_0 = value_type::size() == 0;
+	concept equals_0 = std::remove_cvref_t<value_type>::size() == 0;
 
 	template<typename value_type>
-	concept gt_0_lt_16 = value_type::size() > 0 && value_type::size() < 16;
+	concept gt_0_lt_16 = std::remove_cvref_t<value_type>::size() > 0 && std::remove_cvref_t<value_type>::size() < 16;
 
 	template<typename value_type>
-	concept eq_16 = value_type::size() == 16;
+	concept eq_16 = std::remove_cvref_t<value_type>::size() == 16;
 
 	template<typename value_type>
-	concept eq_32 = value_type::size() == 32;
+	concept eq_32 = std::remove_cvref_t<value_type>::size() == 32;
 
 	template<typename value_type>
-	concept eq_64 = value_type::size() == 64;
+	concept eq_64 = std::remove_cvref_t<value_type>::size() == 64;
 
 	template<typename value_type>
-	concept gt_16 = value_type::size() > 16 && !eq_16<value_type> && !eq_32<value_type> && !eq_64<value_type>;
+	concept gt_16 = std::remove_cvref_t<value_type>::size() > 16 && !eq_16<value_type> && !eq_32<value_type> && !eq_64<value_type>;
 
-	template<uint64_t index, typename string_types> static constexpr auto string_literal_from_view(string_types str) noexcept {
-		string_literal<index + 1> sl{};
-		std::copy_n(str.data(), str.size(), sl.values);
-		sl[index] = '\0';
-		return sl;
-	}
-
-	template<string_literal string, uint64_t offset> static constexpr auto offset_new_literal() noexcept {
+	template<sl_types auto string, uint64_t offset> static constexpr auto offset_into_literal() noexcept {
 		constexpr uint64_t originalSize = string.size();
 		constexpr uint64_t newSize		= (offset >= originalSize) ? 0 : originalSize - offset;
 		string_literal<newSize + 1> sl{};
@@ -110,7 +104,7 @@ namespace nihilus {
 		return sl;
 	}
 
-	template<string_literal string, uint64_t offset> static constexpr auto offset_into_literal() noexcept {
+	template<sl_types auto string, uint64_t offset> static constexpr auto offset_new_literal() noexcept {
 		constexpr uint64_t originalSize = string.size();
 		constexpr uint64_t newSize		= (offset >= originalSize) ? originalSize : offset;
 		string_literal<newSize + 1> sl{};
@@ -121,60 +115,54 @@ namespace nihilus {
 		return sl;
 	}
 
-	template<typename sl_type, detail::remove_cvref_t<sl_type> string_new> struct string_literal_comparitor;
+	template<auto string> struct string_literal_comparitor;
 
-	template<equals_0 sl_type, detail::remove_cvref_t<sl_type> string_new> struct string_literal_comparitor<sl_type, string_new> {
-		NIHILUS_INLINE static bool impl(const char*) noexcept {
-			return true;
-		}
-	};
-
-	template<gt_0_lt_16 sl_type, detail::remove_cvref_t<sl_type> string_new> struct string_literal_comparitor<sl_type, string_new> {
-		inline static constexpr auto string_lit{ string_new };
-		inline static constexpr auto newCount{ string_lit.size() };
-		NIHILUS_INLINE static bool impl(const char* str) noexcept {
-			if constexpr (newCount > 8) {
+	template<gt_0_lt_16 auto string> struct string_literal_comparitor<string> {
+		inline static constexpr auto string_lit{ string };
+		inline static constexpr auto new_size{ string_lit.size() };
+		NIHILUS_INLINE static bool impl(const char*& str) noexcept {
+			if constexpr (new_size > 8) {
 				alignas(64) static constexpr auto values_new{ pack_values<string_lit>() };
 				nihilus_simd_int_128 data1{};
-				std::memcpy(&data1, str, newCount);
+				std::memcpy(&data1, str, new_size);
 				const nihilus_simd_int_128 data2{ gather_values<nihilus_simd_int_128_t>(values_new.data()) };
 				return !opTest<nihilus_simd_int_128_t>(opXor<nihilus_simd_int_128_t, nihilus_simd_int_128_t>(data1, data2));
-			} else if constexpr (newCount == 8) {
+			} else if constexpr (new_size == 8) {
 				static constexpr static_aligned_const values_new{ pack_values<string_lit>() };
 				static_aligned_const<uint64_t> l;
 				std::memcpy(&l, str, 8);
 				return !(l ^ values_new);
-			} else if constexpr (newCount == 7) {
+			} else if constexpr (new_size == 7) {
 				static constexpr static_aligned_const values_new{ pack_values<string_lit>() };
 				static_aligned_const<uint64_t> l{};
 				std::memcpy(&l, str, 7);
 				return !(l ^ values_new);
-			} else if constexpr (newCount == 6) {
+			} else if constexpr (new_size == 6) {
 				static constexpr static_aligned_const values_new{ pack_values<string_lit>() };
 				static_aligned_const<uint64_t> l{};
 				std::memcpy(&l, str, 6);
 				return !(l ^ values_new);
-			} else if constexpr (newCount == 5) {
+			} else if constexpr (new_size == 5) {
 				static constexpr static_aligned_const values_new{ static_cast<uint32_t>(pack_values<string_lit>()) };
 				static_aligned_const<uint32_t> l;
 				std::memcpy(&l, str, 4);
 				return !(l ^ values_new) && (str[4] == string_lit[4]);
-			} else if constexpr (newCount == 4) {
+			} else if constexpr (new_size == 4) {
 				static constexpr static_aligned_const values_new{ static_cast<uint32_t>(pack_values<string_lit>()) };
 				static_aligned_const<uint32_t> l;
 				std::memcpy(&l, str, 4);
 				return !(l ^ values_new);
-			} else if constexpr (newCount == 3) {
+			} else if constexpr (new_size == 3) {
 				static constexpr static_aligned_const values_new{ static_cast<uint16_t>(pack_values<string_lit>()) };
 				static_aligned_const<uint16_t> l;
 				std::memcpy(&l, str, 2);
 				return !(l ^ values_new) && (str[2] == string_lit[2]);
-			} else if constexpr (newCount == 2) {
+			} else if constexpr (new_size == 2) {
 				static constexpr static_aligned_const values_new{ static_cast<uint16_t>(pack_values<string_lit>()) };
 				static_aligned_const<uint16_t> l;
 				std::memcpy(&l, str, 2);
 				return !(l ^ values_new);
-			} else if constexpr (newCount == 1) {
+			} else if constexpr (new_size == 1) {
 				return *str == string_lit[0];
 			} else {
 				return true;
@@ -182,10 +170,10 @@ namespace nihilus {
 		}
 	};
 
-	template<eq_16 sl_type, detail::remove_cvref_t<sl_type> string_new> struct string_literal_comparitor<sl_type, string_new> {
-		inline static constexpr auto new_literal{ string_new };
+	template<eq_16 auto string> struct string_literal_comparitor<string> {
+		inline static constexpr auto new_literal{ string };
 		alignas(64) inline static constexpr auto values_new{ pack_values<new_literal>() };
-		NIHILUS_INLINE static bool impl(const char* str) noexcept {
+		NIHILUS_INLINE static bool impl(const char*& str) noexcept {
 			alignas(64) char values_to_load[16];
 			std::memcpy(values_to_load, str, 16);
 			const nihilus_simd_int_128 data1{ gather_values<nihilus_simd_int_128_t>(values_to_load) };
@@ -196,10 +184,10 @@ namespace nihilus {
 
 #if NIHILUS_AVX2 || NIHILUS_AVX512 || NIHILUS_SVE2
 
-	template<eq_32 sl_type, detail::remove_cvref_t<sl_type> string_new> struct string_literal_comparitor<sl_type, string_new> {
-		inline static constexpr auto new_literal{ string_new };
+	template<eq_32 auto string> struct string_literal_comparitor<string> {
+		inline static constexpr auto new_literal{ string };
 		alignas(64) inline static constexpr auto values_new{ pack_values<new_literal>() };
-		NIHILUS_INLINE static bool impl(const char* str) noexcept {
+		NIHILUS_INLINE static bool impl(const char*& str) noexcept {
 			alignas(64) char values_to_load[32];
 			std::memcpy(values_to_load, str, 32);
 			const nihilus_simd_int_256 data1{ gather_values<nihilus_simd_int_256_t>(values_to_load) };
@@ -211,10 +199,10 @@ namespace nihilus {
 #endif
 
 #if NIHILUS_AVX512 || NIHILUS_SVE2
-	template<eq_64 sl_type, sl_type string_new> struct string_literal_comparitor<sl_type, string_new> {
-		inline static constexpr auto new_literal{ string_new };
+	template<eq_64 auto string> struct string_literal_comparitor<string> {
+		inline static constexpr auto new_literal{ string };
 		alignas(64) inline static constexpr auto values_new{ pack_values<new_literal>() };
-		NIHILUS_INLINE static bool impl(const char* str) noexcept {
+		NIHILUS_INLINE static bool impl(const char*& str) noexcept {
 			alignas(64) char values_to_load[64];
 			std::memcpy(values_to_load, str, 64);
 			const nihilus_simd_int_512 data1{ gather_values<nihilus_simd_int_512_t>(values_to_load) };
@@ -225,32 +213,32 @@ namespace nihilus {
 #endif
 
 	static constexpr auto get_offset_into_literal_size(uint64_t inputSize) noexcept {
-		if (inputSize >= 64 && (NIHILUS_AVX512 || NIHILUS_SVE2)) {
+		if (inputSize >= 64 && (NIHILUS_AVX512 | NIHILUS_SVE2)) {
 			return 64;
-		} else if (inputSize >= 32 && (NIHILUS_AVX2 || NIHILUS_AVX512 || NIHILUS_SVE2)) {
+		} else if (inputSize >= 32 && (NIHILUS_AVX2 | NIHILUS_AVX512 | NIHILUS_SVE2)) {
 			return 32;
 		} else {
 			return 16;
 		}
 	}
 
-	template<gt_16 sl_type, detail::remove_cvref_t<sl_type> string_new> struct string_literal_comparitor<sl_type, string_new> {
-		inline static constexpr auto string{ offset_into_literal<string_new, get_offset_into_literal_size(string_new.size())>() };
-		inline static constexpr auto string_size = string.size();
-		inline static constexpr auto string_newer{ offset_new_literal<string_new, string_size>() };
-		NIHILUS_INLINE static bool impl(const char* str) noexcept {
-			if (!string_literal_comparitor<decltype(string), string>::impl(str)) {
+	template<gt_16 auto string> struct string_literal_comparitor<string> {
+		inline static constexpr auto string_new{ offset_new_literal<string, get_offset_into_literal_size(string.size())>() };
+		inline static constexpr auto string_size = string_new.size();
+		inline static constexpr auto string_newer{ offset_into_literal<string, string_size>() };
+		NIHILUS_INLINE static bool impl(const char*& str) noexcept {
+			if (!string_literal_comparitor<string_new>::impl(str)) {
 				return false;
 			} else {
 				str += string_size;
-				return string_literal_comparitor<decltype(string_newer), string_newer>::impl(str);
+				return string_literal_comparitor<string_newer>::impl(str);
 			}
 		}
 	};
 
 	template<string_literal string_literal> NIHILUS_INLINE bool string_literal_comparison(const char* string) {
 		using sl_type = decltype(string_literal);
-		return string_literal_comparitor<sl_type, string_literal>::impl(string);
+		return string_literal_comparitor<string_literal>::impl(string);
 	}
 
 }

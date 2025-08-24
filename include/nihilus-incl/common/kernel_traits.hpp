@@ -136,16 +136,16 @@ namespace nihilus {
 			return { { dim00, dim01, dim02, dim03 } };
 		}
 
+		NIHILUS_INLINE array<uint64_t, 4> get_array_rt() {
+			return { { *dims[0], *dims[1], *dims[2], *dims[3] } };
+		}
+
 		NIHILUS_INLINE static constexpr uint64_t get_total_elements() {
 			return dim00_new * dim01_new * dim02_new * dim03_new;
 		}
 
 		NIHILUS_INLINE operator array<uint64_t, 4>() const {
 			return { { dim00, dim01, dim02, dim03 } };
-		}
-
-		NIHILUS_INLINE uint64_t operator[](uint64_t index) const {
-			return *dims[index];
 		}
 	};
 
@@ -175,8 +175,8 @@ namespace nihilus {
 			return { { dim00, dim01, dim02, dim03 } };
 		}
 
-		NIHILUS_INLINE uint64_t operator[](uint64_t index) const {
-			return *dims[index];
+		NIHILUS_INLINE array<uint64_t, 4> get_array_rt() {
+			return { { *dims[0], *dims[1], *dims[2], *dims[3] } };
 		}
 	};
 
@@ -205,8 +205,8 @@ namespace nihilus {
 			return dim00;
 		}
 
-		NIHILUS_INLINE uint64_t operator[](uint64_t index) const {
-			return *dims[index];
+		NIHILUS_INLINE array<uint64_t, 4> get_array_rt() {
+			return { { *dims[0], *dims[1], *dims[2], *dims[3] } };
 		}
 	};
 
@@ -235,8 +235,8 @@ namespace nihilus {
 			return dim01;
 		}
 
-		NIHILUS_INLINE uint64_t operator[](uint64_t index) const {
-			return *dims[index];
+		NIHILUS_INLINE array<uint64_t, 4> get_array_rt() {
+			return { { *dims[0], *dims[1], *dims[2], *dims[3] } };
 		}
 	};
 

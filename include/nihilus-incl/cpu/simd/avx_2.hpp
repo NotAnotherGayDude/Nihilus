@@ -1114,7 +1114,7 @@ namespace nihilus {
 		: public kernel_base<kernel_types::get_rows, core_type, float, block_q8_0<half>, int32_t> {
 		using input_type01			   = typename core_type::input_01_type;
 		static constexpr uint64_t ne00 = input_type01::get_array()[0];
-		static constexpr uint64_t ne0  = core_type ::get_array()[0];
+		static constexpr uint64_t ne0  = core_type::get_array()[0];
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
 			const typename core_type::input_02_type& input02) {
 			static constexpr uint64_t blocks_per_row = ne00 / Q_SIZE;
@@ -1145,7 +1145,7 @@ namespace nihilus {
 		: public kernel_base<kernel_types::get_rows, core_type, float, block_q8_0<half>, int32_t> {
 		using input_type01			   = typename core_type::input_01_type;
 		static constexpr uint64_t ne00 = input_type01::get_array()[0];
-		static constexpr uint64_t ne0  = core_type ::get_array()[0];
+		static constexpr uint64_t ne0  = core_type::get_array()[0];
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01,
 			const typename core_type::input_02_type& input02) {
 			static constexpr uint64_t blocks_per_row = ne00 / Q_SIZE;

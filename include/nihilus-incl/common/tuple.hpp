@@ -98,20 +98,18 @@ namespace nihilus {
 		using bases::decl_elem...;
 	};
 
-	template<uint64_t index, typename value_type> struct tuple_elem {
+	template<uint64_t index, typename value_type> struct tuple_elem : public value_type {
 		static value_type decl_elem(tag<index>);
 		using type = value_type;
 
-		NIHILUS_TUPLET_NO_UNIQUE_ADDRESS value_type value;
-
 		constexpr decltype(auto) operator[](tag<index>) & {
-			return (value);
+			return *static_cast<type*>(this);
 		}
 		constexpr decltype(auto) operator[](tag<index>) const& {
-			return (value);
+			return *static_cast<const type*>(this);
 		}
 		constexpr decltype(auto) operator[](tag<index>) && {
-			return (move(*this).value);
+			return *static_cast<type*>(this);
 		}
 	};
 

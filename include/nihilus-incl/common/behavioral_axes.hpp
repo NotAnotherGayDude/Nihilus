@@ -120,14 +120,14 @@ namespace nihilus {
 		NIHILUS_INLINE memory_mapper_impl& operator=(memory_mapper_impl&&) noexcept		 = delete;
 		NIHILUS_INLINE memory_mapper_impl(memory_mapper_impl&&) noexcept				 = delete;
 		using base_type																	 = base_type_new;
-		using base_derived_type = typename base_type::value_type;
+		using base_derived_type															 = typename base_type::derived_type;
 		NIHILUS_INLINE static constexpr bool filter() {
-			return has_total_required_bytes_types<typename base_type::value_type>;
+			return has_total_required_bytes_types<base_derived_type>;
 		}
 		NIHILUS_INLINE static void impl(base_derived_type& core_traits, const memory_plan_new& plan, memory_buffer<config>& memory_buffer, uint64_t& internal_offset) {
 			using data_type = detail::remove_cvref_t<decltype(core_traits.data)>;
-			data_type ptr	= static_cast<data_type>(memory_buffer.claim_memory(plan.footprints[base_type::value_type::core_type].offset + internal_offset));
-			internal_offset += core_traits.total_required_bytes;
+			data_type ptr	 = static_cast<data_type>(memory_buffer.claim_memory(plan.footprints[base_type::derived_type::core_type].offset + internal_offset));
+			internal_offset	 = core_traits.total_required_bytes;
 			core_traits.data = ptr;
 		}
 	};
@@ -177,12 +177,12 @@ namespace nihilus {
 	};
 
 	template<model_config config, typename base_type_new> struct dim_updater_impl {
-		NIHILUS_INLINE dim_updater_impl() noexcept										 = default;
-		NIHILUS_INLINE dim_updater_impl& operator=(const dim_updater_impl&) noexcept	 = delete;
-		NIHILUS_INLINE dim_updater_impl(const dim_updater_impl&) noexcept				 = delete;
-		NIHILUS_INLINE dim_updater_impl& operator=(dim_updater_impl&&) noexcept			 = delete;
-		NIHILUS_INLINE dim_updater_impl(dim_updater_impl&&) noexcept					 = delete;
-		using base_type																	 = base_type_new;
+		NIHILUS_INLINE dim_updater_impl() noexcept									 = default;
+		NIHILUS_INLINE dim_updater_impl& operator=(const dim_updater_impl&) noexcept = delete;
+		NIHILUS_INLINE dim_updater_impl(const dim_updater_impl&) noexcept			 = delete;
+		NIHILUS_INLINE dim_updater_impl& operator=(dim_updater_impl&&) noexcept		 = delete;
+		NIHILUS_INLINE dim_updater_impl(dim_updater_impl&&) noexcept				 = delete;
+		using base_type																 = base_type_new;
 		NIHILUS_INLINE static constexpr bool filter() {
 			return runtime_dims_t<base_type>;
 		}
@@ -216,18 +216,17 @@ namespace nihilus {
 		NIHILUS_INLINE weight_mapper_impl& operator=(weight_mapper_impl&&) noexcept		 = delete;
 		NIHILUS_INLINE weight_mapper_impl(weight_mapper_impl&&) noexcept				 = delete;
 		using base_type																	 = base_type_new;
-		using base_derived_type = typename base_type::value_type;
 		NIHILUS_INLINE static constexpr bool filter() {
-			return std::is_same_v<typename base_type::value_type::enum_type, weight_types>;
+			return std::is_same_v<typename base_type::enum_type, weight_types>;
 		}
 
-		NIHILUS_INLINE static void impl(base_derived_type& core_traits, array<array<void*, model_traits_type<config>::block_count>, weight_types::count>& data) {
+		NIHILUS_INLINE static void impl(base_type& core_traits, array<array<void*, model_traits_type<config>::block_count>, weight_types::count>& data) {
 			if constexpr (array_types<decltype(core_traits.data)>) {
 				for (uint64_t x = 0; x < model_traits_type<config>::block_count; ++x) {
-					data[base_type::value_type::enum_value][x] = static_cast<void*>(&core_traits.data[x]);
+					data[base_type::enum_value][x] = static_cast<void*>(&core_traits.data[x]);
 				}
 			} else {
-				data[base_type::value_type::enum_value][0] = static_cast<void*>(&core_traits.data);
+				data[base_type::enum_value][0] = static_cast<void*>(&core_traits.data);
 			}
 		};
 	};

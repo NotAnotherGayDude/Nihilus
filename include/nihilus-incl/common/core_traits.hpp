@@ -41,11 +41,28 @@ namespace nihilus {
 		array<output_type*, model_traits_type<config>::block_count> data{};
 	};
 
+	template<integral_or_enum_types auto index, typename derived_type_new> struct core_elem_base {
+		using derived_type = derived_type_new;
+		uint64_t runtime_dimension{};
+
+		NIHILUS_INLINE constexpr decltype(auto) operator[](tag<index>) & noexcept {
+			return *static_cast<derived_type*>(this);
+		}
+
+		NIHILUS_INLINE constexpr decltype(auto) operator[](tag<index>) const& noexcept {
+			return *static_cast<const derived_type*>(this);
+		}
+
+		NIHILUS_INLINE constexpr decltype(auto) operator[](tag<index>) && noexcept {
+			return detail::move(*static_cast<derived_type*>(this));
+		}
+	};
+
 	template<model_config config, core_types core_type_new, enum_types auto enum_value_new, composite_kernel_types kernel_type, data_strategy_types data_strategy_type,
 		allocation_strategy_types allocation_strategy_type, typename composite_kernel_type_new, typename... input_composite_kernel_types_new>
 	struct op_traits : public data_mixin<config, data_strategy_type, typename composite_kernel_type_new::output_type>,
 					   public composite_kernel_type_new,
-					   public core_elem<enum_value_new,
+					   public core_elem_base<enum_value_new,
 						   op_traits<config, core_type_new, enum_value_new, kernel_type, data_strategy_type, allocation_strategy_type, composite_kernel_type_new,
 							   input_composite_kernel_types_new...>> {
 		using output_type = composite_kernel_type_new::output_type;
@@ -56,7 +73,7 @@ namespace nihilus {
 		static constexpr core_types core_type{ core_type_new };
 	};
 
-	template<model_config config> struct core_traits<config, core_types::weights> : public core_elem<core_types::weights, core_traits<config, core_types::weights>> {
+	template<model_config config> struct core_traits<config, core_types::weights> : public core_elem_base<core_types::weights, core_traits<config, core_types::weights>> {
 		static constexpr core_types core_type{ core_types::weights };
 		static constexpr uint64_t depth{ 0 };
 		using attn_q_weight_kernel_traits = kernel_traits<config, core_trait_dims<model_traits_type<config>::embedding_length, model_traits_type<config>::embedding_length, 1, 1>,
@@ -130,13 +147,13 @@ namespace nihilus {
 				 allocation_strategy_types::mmap, output_weight_kernel_traits>;
 
 		using list_of_traits =
-			get_core_base_t<config, weight_types, attn_q_weight_type, attn_k_weight_type, attn_v_weight_type, attn_output_weight_type, attn_norm_weight_type, ffn_gate_weight_type,
+			get_core_base_t<config, attn_q_weight_type, attn_k_weight_type, attn_v_weight_type, attn_output_weight_type, attn_norm_weight_type, ffn_gate_weight_type,
 				ffn_up_weight_type, ffn_down_weight_type, ffn_norm_weight_type, token_embd_weight_type, rope_freqs_weight_type, output_norm_weight_type, output_weight_type>;
 		list_of_traits values{};
 	};
 
 	template<model_config config> struct core_traits<config, core_types::global_inputs>
-		: public core_elem<core_types::global_inputs, core_traits<config, core_types::global_inputs>> {
+		: public core_elem_base<core_types::global_inputs, core_traits<config, core_types::global_inputs>> {
 		static constexpr core_types core_type{ core_types::global_inputs };
 		static constexpr uint64_t depth{ 0 };
 		using enum_type = global_input_types;
@@ -204,7 +221,7 @@ namespace nihilus {
 		using allowed_vocab_mask_type = op_traits<config, core_types::global_inputs, global_input_types::allowed_vocab_mask, composite_kernel_types::none,
 			data_strategy_types::global, allocation_strategy_types::alloc, allowed_vocab_mask_kernel_traits>;
 
-		using list_of_traits = get_core_base_t<config, enum_type, inp_tokens_type, inp_pos_type, cache_k_type, cache_v_type, kq_mask_type, inp_out_ids_type, temperature_type,
+		using list_of_traits = get_core_base_t<config, inp_tokens_type, inp_pos_type, cache_k_type, cache_v_type, kq_mask_type, inp_out_ids_type, temperature_type,
 			top_k_type, top_p_type, repetition_penalty_type, presence_penalty_type, frequency_penalty_type, rep_window_type, token_history_type, rng_state_type, logits_bias_type,
 			allowed_vocab_mask_type>;
 
@@ -218,7 +235,7 @@ namespace nihilus {
 	};
 
 	template<model_config config> struct core_traits<config, core_types::token_embeddings>
-		: public core_elem<core_types::token_embeddings, core_traits<config, core_types::token_embeddings>> {
+		: public core_elem_base<core_types::token_embeddings, core_traits<config, core_types::token_embeddings>> {
 		static constexpr core_types core_type{ core_types::token_embeddings };
 		static constexpr uint64_t depth{ core_traits<config, static_cast<core_types>(static_cast<uint64_t>(core_types::token_embeddings) - 1)>::depth + 1 };
 		using enum_type = token_embedding_types;
@@ -232,7 +249,7 @@ namespace nihilus {
 		using token_embeddings_type = op_traits<config, core_types::token_embeddings, token_embedding_types::get_rows, composite_kernel_types::get_rows,
 			data_strategy_types::global, allocation_strategy_types::alloc, input_embedding_kernel_traits>;
 
-		using list_of_traits = get_core_base_t<config, enum_type, token_embeddings_type>;
+		using list_of_traits = get_core_base_t<config, token_embeddings_type>;
 
 		list_of_traits values{};
 
@@ -245,7 +262,7 @@ namespace nihilus {
 	};
 
 	template<model_config config> struct core_traits<config, core_types::mega_qkv_prep_and_cache_publish>
-		: public core_elem<core_types::mega_qkv_prep_and_cache_publish, core_traits<config, core_types::mega_qkv_prep_and_cache_publish>> {
+		: public core_elem_base<core_types::mega_qkv_prep_and_cache_publish, core_traits<config, core_types::mega_qkv_prep_and_cache_publish>> {
 		static constexpr core_types core_type{ core_types::mega_qkv_prep_and_cache_publish };
 		static constexpr uint64_t depth{ core_traits<config, static_cast<core_types>(static_cast<uint64_t>(core_types::mega_qkv_prep_and_cache_publish) - 1)>::depth + 1 };
 		using enum_type	 = mega_qkv_prep_and_cache_publish_types;
@@ -317,7 +334,7 @@ namespace nihilus {
 		using q_out_type = op_traits<config, core_types::mega_qkv_prep_and_cache_publish, mega_qkv_prep_and_cache_publish_types::q_out,
 			composite_kernel_types::mega_qkv_prep_and_cache, data_strategy_types::global, allocation_strategy_types::alloc, mega_qkv_composite_traits>;
 
-		using list_of_traits = get_core_base_t<config, enum_type, q_out_type>;
+		using list_of_traits = get_core_base_t<config, q_out_type>;
 
 		list_of_traits values{};
 		array<atomic_flag_wrapper<int64_t>, mt::block_count> current_chunk_prompt_eval{};
@@ -329,7 +346,7 @@ namespace nihilus {
 	};
 
 	template<model_config config> struct core_traits<config, core_types::mega_attention_apply>
-		: public core_elem<core_types::mega_attention_apply, core_traits<config, core_types::mega_attention_apply>> {
+		: public core_elem_base<core_types::mega_attention_apply, core_traits<config, core_types::mega_attention_apply>> {
 		static constexpr core_types core_type{ core_types::mega_attention_apply };
 		static constexpr uint64_t depth{ core_traits<config, static_cast<core_types>(static_cast<uint64_t>(core_types::mega_attention_apply) - 1)>::depth + 1 };
 		using enum_type	 = mega_attention_apply_types;
@@ -378,7 +395,7 @@ namespace nihilus {
 		using ffn_inp_type = op_traits<config, core_types::mega_attention_apply, mega_attention_apply_types::ffn_inp, composite_kernel_types::mega_attention_apply,
 			data_strategy_types::global, allocation_strategy_types::alloc, mega_attention_composite_traits>;
 
-		using list_of_traits = get_core_base_t<config, enum_type, ffn_inp_type>;
+		using list_of_traits = get_core_base_t<config, ffn_inp_type>;
 		list_of_traits values{};
 		array<atomic_flag_wrapper<int64_t>, mt::block_count> current_chunk_prompt_eval{};
 		array<atomic_flag_wrapper<int64_t>, mt::block_count> current_chunk_eval{};
@@ -389,7 +406,7 @@ namespace nihilus {
 	};
 
 	template<model_config config> struct core_traits<config, core_types::mega_ffn>
-		: public core_elem<core_types::mega_ffn, core_traits<config, core_types::mega_ffn>> {
+		: public core_elem_base<core_types::mega_ffn, core_traits<config, core_types::mega_ffn>> {
 		static constexpr core_types core_type{ core_types::mega_ffn };
 		static constexpr uint64_t depth{ core_traits<config, static_cast<core_types>(static_cast<uint64_t>(core_types::mega_ffn) - 1)>::depth + 1 };
 		using enum_type = mega_ffn_types;
@@ -433,7 +450,7 @@ namespace nihilus {
 		using l_out_type = op_traits<config, core_types::mega_ffn, mega_ffn_types::l_out, composite_kernel_types::mega_ffn, data_strategy_types::global,
 			allocation_strategy_types::alloc, mega_ffn_composite_traits>;
 
-		using list_of_traits = get_core_base_t<config, enum_type, l_out_type>;
+		using list_of_traits = get_core_base_t<config, l_out_type>;
 		list_of_traits values{};
 		array<atomic_flag_wrapper<int64_t>, mt::block_count> current_chunk_prompt_eval{};
 		array<atomic_flag_wrapper<int64_t>, mt::block_count> current_chunk_eval{};
@@ -444,7 +461,7 @@ namespace nihilus {
 	};
 
 	template<model_config config> struct core_traits<config, core_types::final_norm_and_sampling>
-		: public core_elem<core_types::final_norm_and_sampling, core_traits<config, core_types::final_norm_and_sampling>> {
+		: public core_elem_base<core_types::final_norm_and_sampling, core_traits<config, core_types::final_norm_and_sampling>> {
 		static constexpr core_types core_type{ core_types::final_norm_and_sampling };
 		static constexpr uint64_t depth{ core_traits<config, static_cast<core_types>(static_cast<uint64_t>(core_types::final_norm_and_sampling) - 1)>::depth + 1 };
 		using enum_type = final_norm_and_sampling_types;
@@ -515,7 +532,7 @@ namespace nihilus {
 		using result_token_id_type = op_traits<config, core_types::final_norm_and_sampling, final_norm_and_sampling_types::result_token_id,
 			composite_kernel_types::final_norm_and_sampling, data_strategy_types::global, allocation_strategy_types::alloc, mega_final_composite_traits>;
 
-		using list_of_traits = get_core_base_t<config, enum_type, result_token_id_type>;
+		using list_of_traits = get_core_base_t<config, result_token_id_type>;
 		list_of_traits values{};
 		atomic_flag_wrapper<int64_t> current_chunk_prompt_eval{};
 		atomic_flag_wrapper<int64_t> current_chunk_eval{};

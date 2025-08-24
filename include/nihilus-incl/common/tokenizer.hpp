@@ -621,7 +621,6 @@ namespace nihilus {
 
 		NIHILUS_INLINE void print_tokenization_debug(std::string_view input_text, const aligned_vector<int32_t>& tokens_new) {
 			std::cout << "=== NIHILUS BPE TOKENIZATION DEBUG ===" << std::endl;
-			std::cout << "system_info: n_threads = " << std::thread::hardware_concurrency() << " | NIHILUS ENGINE | BPE VOCAB | 432% FASTER |" << std::endl;
 			//std::cout << "tokenizer_traits_type: " << static_cast<int32_t>(tokenizer_traits_type) << " (BPE)" << std::endl;
 			std::cout << "pre_type: " << pre << std::endl;
 			std::cout << "Input text: \"" << input_text << "\"" << std::endl;
