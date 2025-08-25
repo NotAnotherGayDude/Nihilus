@@ -20,6 +20,7 @@ RealTimeChris (Chris M.)
 
 #pragma once
 
+#include <nihilus-incl/common/utility.hpp>
 #include <type_traits>
 #include <concepts>
 
@@ -91,7 +92,7 @@ namespace nihilus {
 	concept array_types = vector_subscriptable_types<value_type> && has_data_types<value_type> && has_size_types<value_type>;
 
 	template<typename value_type>
-	concept core_traits_types = requires(detail::remove_cvref_t<value_type>) {
+	concept core_traits_types = requires() {
 		typename detail::remove_cvref_t<value_type>::output_type;
 		detail::remove_cvref_t<value_type>::data;
 	};

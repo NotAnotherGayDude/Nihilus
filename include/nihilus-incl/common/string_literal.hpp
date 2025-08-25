@@ -23,7 +23,7 @@
 /// Sep 1, 2024
 #pragma once
 
-#include <nihilus-incl/cpu/simd/nihilus_cpu_instructions.hpp>
+#include <nihilus-incl/cpu/nihilus_cpu_instructions.hpp>
 #include <nihilus-incl/common/config.hpp>
 #include <type_traits>
 #include <algorithm>
@@ -121,7 +121,7 @@ namespace nihilus {
 
 	template<uint64_t size> string_literal(char (&)[size]) -> string_literal<size>;
 
-	template<uint64_t size> std::ostream& operator<<(std::ostream& os, const string_literal<size>& input) noexcept {
+	template<uint64_t size> static std::ostream& operator<<(std::ostream& os, const string_literal<size>& input) noexcept {
 		os << input.operator std::string_view();
 		return os;
 	}
@@ -157,24 +157,12 @@ namespace nihilus {
 		return string_literal<numDigits + 1>{ buffer };
 	}
 
-	constexpr char to_lower(char input) noexcept {
-		return (input >= 'A' && input <= 'Z') ? (input + 32) : input;
-	}
-
-	constexpr uint64_t strlen(const char* input) noexcept {
+	constexpr uint64_t str_len(const char* input) noexcept {
 		uint64_t return_val{};
 		while (input[return_val] != '\0') {
 			++return_val;
 		}
 		return return_val;
-	}
-
-	template<uint64_t size, typename value_type> inline static constexpr auto to_lower(string_literal<size> input) noexcept {
-		string_literal<size> output{};
-		for (uint64_t x = 0; x < size; ++x) {
-			output[x] = to_lower(input[x]);
-		}
-		return output;
 	}
 
 }

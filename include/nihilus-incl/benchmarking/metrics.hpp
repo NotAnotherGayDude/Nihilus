@@ -53,7 +53,7 @@ namespace nihilus::benchmarking {
 
 namespace nihilus::benchmarking::internal {
 
-	NIHILUS_INLINE double calculate_throughput_mbps(double nanoseconds, double bytesProcessed) {
+	NIHILUS_INLINE static double calculate_throughput_mbps(double nanoseconds, double bytesProcessed) {
 		constexpr double bytesPerMB		= 1024.0 * 1024.0;
 		constexpr double nanosPerSecond = 1e9;
 		double megabytes = bytesProcessed / bytesPerMB;
@@ -64,7 +64,7 @@ namespace nihilus::benchmarking::internal {
 		return megabytes / seconds;
 	}
 
-	NIHILUS_INLINE double calculate_unitsps(double nanoseconds, double bytesProcessed) {
+	NIHILUS_INLINE static double calculate_unitsps(double nanoseconds, double bytesProcessed) {
 		return (bytesProcessed * 1000000000.0) / nanoseconds;
 	}
 
@@ -199,13 +199,13 @@ namespace nihilus::benchmarking::internal {
 		stream << "Metrics for: " << kernel_name << ", For Thread #" << std::to_string(thread) << std::endl;
 		stream << std::fixed << std::setprecision(2);
 
-		static constexpr auto printMetric = []<typename metrics_type>(const std::string_view& label, const metrics_type& metricsNew, std::stringstream& stream) {
+		static constexpr auto printMetric = []<typename metrics_type>(const std::string_view& label, const metrics_type& metrics_new, std::stringstream& stream_new) {
 			if constexpr (optional_t<metrics_type>) {
-				if (metricsNew.has_value()) {
-					stream << std::left << std::setw(60ull) << label << ": " << metricsNew.value() << std::endl;
+				if (metrics_new.has_value()) {
+					stream_new << std::left << std::setw(60ull) << label << ": " << metrics_new.value() << std::endl;
 				}
 			} else {
-				stream << std::left << std::setw(60ull) << label << ": " << metricsNew << std::endl;
+				stream_new << std::left << std::setw(60ull) << label << ": " << metrics_new << std::endl;
 			}
 		};
 		std::string instructionCount{};

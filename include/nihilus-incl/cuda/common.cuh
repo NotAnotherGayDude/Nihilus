@@ -17,8 +17,20 @@ Signed,
 RealTimeChris (Chris M.)
 2025
 */
-/// index.hpp
+
 #pragma once
 
-#include <nihilus-incl/cuda/common.cuh>
-#include <nihilus-incl/common/harbinger.hpp>
+#if NIHILUS_CUDA_ENABLED
+
+	#include <nihilus-incl/common/array.hpp>
+	#include <nihilus-incl/common/kernel_traits.hpp>
+	#include <nihilus-incl/common/core_bases.hpp>
+	#include <nihilus-incl/common/config.hpp>
+	#include <nihilus-incl/cuda/cuda_12.cuh>
+
+namespace nihilus {
+
+	void print_cuda_arch();
+
+}
+#endif

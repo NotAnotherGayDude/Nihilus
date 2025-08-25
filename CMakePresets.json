@@ -11,6 +11,10 @@
         "CMAKE_C_COMPILER": "cl.exe",
         "CMAKE_CXX_COMPILER": "cl.exe"
       },
+      "architecture": {
+        "value": "x64",
+        "strategy": "external"
+      },
       "condition": {
         "type": "equals",
         "lhs": "${hostSystemName}",
@@ -18,115 +22,93 @@
       }
     },
     {
-      "name": "x64-debug",
-      "displayName": "x64 Debug",
+      "name": "x64-debug-base",
+      "hidden": true,
       "inherits": "windows-base",
-      "architecture": {
-        "value": "x64",
-        "strategy": "external"
-      },
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug"
       }
     },
     {
       "name": "x64-release",
-      "displayName": "x64 Release",
-      "inherits": "x64-debug",
+      "hidden": true,
+      "inherits": "x64-debug-base",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release"
       }
     },
     {
       "name": "x64-debug-dev",
-      "displayName": "x64 Debug",
       "inherits": "windows-base",
-      "architecture": {
-        "value": "x64",
-        "strategy": "external"
-      },
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
         "LLAMA_CURL": "Off",
         "NIHILUS_DEV": true
       }
     },
     {
       "name": "x64-release-dev",
-      "displayName": "x64 Release",
-      "inherits": "x64-debug",
+      "inherits": "x64-debug-base",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release",
         "LLAMA_CURL": "Off",
         "NIHILUS_DEV": true
       }
     },
     {
       "name": "x64-debug-nh",
-      "displayName": "x64 Debug",
       "inherits": "windows-base",
-      "architecture": {
-        "value": "x64",
-        "strategy": "external"
-      },
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
         "NIHILUS_NH_ONLY": true
       }
     },
     {
       "name": "x64-release-nh",
-      "displayName": "x64 Release",
-      "inherits": "x64-debug",
+      "inherits": "x64-debug-base",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release",
         "NIHILUS_NH_ONLY": true
       }
     },
     {
-      "name": "x64-debug-benchmark",
-      "displayName": "x64 Debug",
+      "name": "x64-debug-cuda",
       "inherits": "windows-base",
-      "architecture": {
-        "value": "x64",
-        "strategy": "external"
-      },
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
+        "NIHILUS_CUDA": true
+      }
+    },
+    {
+      "name": "x64-release-cuda",
+      "inherits": "x64-debug-base",
+      "cacheVariables": {
+        "NIHILUS_CUDA": true
+      }
+    },
+    {
+      "name": "x64-debug-benchmark",
+      "inherits": "windows-base",
+      "cacheVariables": {
         "LLAMA_CURL": "Off",
         "NIHILUS_BENCHMARK": true
       }
     },
     {
       "name": "x64-release-benchmark",
-      "displayName": "x64 Release",
-      "inherits": "x64-debug",
+      "inherits": "x64-debug-base",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release",
         "LLAMA_CURL": "Off",
         "NIHILUS_BENCHMARK": true
       }
     },
     {
       "name": "x64-debug-clean",
-      "displayName": "x64 Debug",
       "inherits": "windows-base",
-      "architecture": {
-        "value": "x64",
-        "strategy": "external"
-      },
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
         "LLAMA_CURL": "Off",
         "NIHILUS_CLEAN": true
       }
     },
     {
       "name": "x64-release-clean",
-      "displayName": "x64 Release",
-      "inherits": "x64-debug",
+      "inherits": "x64-debug-base",
       "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release",
         "LLAMA_CURL": "Off",
         "NIHILUS_CLEAN": true
       }

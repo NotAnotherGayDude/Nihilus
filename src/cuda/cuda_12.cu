@@ -17,8 +17,16 @@ Signed,
 RealTimeChris (Chris M.)
 2025
 */
-/// index.hpp
-#pragma once
 
 #include <nihilus-incl/cuda/common.cuh>
-#include <nihilus-incl/common/harbinger.hpp>
+#include <cuda_runtime.h>
+
+namespace nihilus {
+
+	void print_cuda_arch() {
+		cudaDeviceProp deviceProp;
+		cudaGetDeviceProperties(&deviceProp, 0);
+		printf("Compute capability: %d.%d\n", deviceProp.major, deviceProp.minor);
+	}
+
+}

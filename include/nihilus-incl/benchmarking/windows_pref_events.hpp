@@ -21,7 +21,7 @@ RealTimeChris (Chris M.)
 
 #include <nihilus-incl/benchmarking/metrics.hpp>
 
-#if defined(NIHILUS_PLATFORM_WINDOWS)
+#if NIHILUS_PLATFORM_WINDOWS
 
 	#include <intrin.h>
 	#include <vector>
@@ -65,9 +65,9 @@ namespace nihilus::benchmarking::internal {
 			if (std::vector<event_count>::size() < current_index + 1) {
 				std::vector<event_count>::emplace_back();
 			}
-			std::vector<event_count>::operator[](current_index).cyclesVal.emplace(cycleEnd - cycle_start);
+			std::vector<event_count>::operator[](current_index).cycles_val.emplace(cycleEnd - cycle_start);
 			std::vector<event_count>::operator[](current_index).elapsed = endClock - clock_start;
-			std::vector<event_count>::operator[](current_index).bytesProcessedVal.emplace(bytes_processed);
+			std::vector<event_count>::operator[](current_index).bytes_processed_val.emplace(bytes_processed);
 			++current_index;
 			return;
 		}

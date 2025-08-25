@@ -118,12 +118,6 @@ namespace nihilus {
 			return dst;
 		}
 
-		NIHILUS_INLINE bool read_bytes_to_pointer(void* dst, const uint64_t size) {
-			std::memcpy(dst, static_cast<uint8_t*>(file->data()) + current_index, size);
-			current_index += size;
-			return true;
-		}
-
 		NIHILUS_INLINE bool map_pointer(void* dst, const uint64_t offset) {
 			*static_cast<void**>(dst) = static_cast<uint8_t*>(file->data()) + offset;
 			return true;
@@ -154,7 +148,7 @@ namespace nihilus {
 
 	template<> struct string_to_enum<tokenizer_types> {
 		NIHILUS_INLINE static tokenizer_types impl(std::string_view value) {
-			if (string_literal_comparison<"gpt2">(value.data())) {
+			if (string_literal_comparitor<"gpt2">::impl(value.data())) {
 				return tokenizer_types::bpe;
 			}
 
@@ -164,94 +158,94 @@ namespace nihilus {
 
 	template<> struct string_to_enum<tokenizer_pre_types> {
 		NIHILUS_INLINE static tokenizer_pre_types impl(std::string_view value) {
-			if (string_literal_comparison<"default">(value.data())) {
+			if (string_literal_comparitor<"default">::impl(value.data())) {
 				return tokenizer_pre_types::default_pre;
 			}
-			if (string_literal_comparison<"llama3">(value.data()) || string_literal_comparison<"llama-v3">(value.data()) || string_literal_comparison<"llama-bpe">(value.data()) ||
-				string_literal_comparison<"falcon3">(value.data())) {
+			if (string_literal_comparitor<"llama3">::impl(value.data()) || string_literal_comparitor<"llama-v3">::impl(value.data()) ||
+				string_literal_comparitor<"llama-bpe">::impl(value.data()) || string_literal_comparitor<"falcon3">::impl(value.data())) {
 				return tokenizer_pre_types::llama3;
 			}
-			if (string_literal_comparison<"deepseek-llm">(value.data())) {
+			if (string_literal_comparitor<"deepseek-llm">::impl(value.data())) {
 				return tokenizer_pre_types::deepseek_llm;
 			}
-			if (string_literal_comparison<"deepseek-coder">(value.data())) {
+			if (string_literal_comparitor<"deepseek-coder">::impl(value.data())) {
 				return tokenizer_pre_types::deepseek_coder;
 			}
-			if (string_literal_comparison<"deepseek-v3">(value.data())) {
+			if (string_literal_comparitor<"deepseek-v3">::impl(value.data())) {
 				return tokenizer_pre_types::deepseek3_llm;
 			}
-			if (string_literal_comparison<"falcon">(value.data())) {
+			if (string_literal_comparitor<"falcon">::impl(value.data())) {
 				return tokenizer_pre_types::falcon;
 			}
-			if (string_literal_comparison<"mpt">(value.data())) {
+			if (string_literal_comparitor<"mpt">::impl(value.data())) {
 				return tokenizer_pre_types::mpt;
 			}
-			if (string_literal_comparison<"starcoder">(value.data())) {
+			if (string_literal_comparitor<"starcoder">::impl(value.data())) {
 				return tokenizer_pre_types::starcoder;
 			}
-			if (string_literal_comparison<"gpt-2">(value.data()) || string_literal_comparison<"phi-2">(value.data()) || string_literal_comparison<"jina-es">(value.data()) ||
-				string_literal_comparison<"jina-de">(value.data()) || string_literal_comparison<"gigachat">(value.data()) ||
-				string_literal_comparison<"jina-v1-en">(value.data()) || string_literal_comparison<"jina-v2-es">(value.data()) ||
-				string_literal_comparison<"jina-v2-de">(value.data()) || string_literal_comparison<"jina-v2-code">(value.data()) ||
-				string_literal_comparison<"roberta-bpe">(value.data())) {
+			if (string_literal_comparitor<"gpt-2">::impl(value.data()) || string_literal_comparitor<"phi-2">::impl(value.data()) ||
+				string_literal_comparitor<"jina-es">::impl(value.data()) || string_literal_comparitor<"jina-de">::impl(value.data()) ||
+				string_literal_comparitor<"gigachat">::impl(value.data()) || string_literal_comparitor<"jina-v1-en">::impl(value.data()) ||
+				string_literal_comparitor<"jina-v2-es">::impl(value.data()) || string_literal_comparitor<"jina-v2-de">::impl(value.data()) ||
+				string_literal_comparitor<"jina-v2-code">::impl(value.data()) || string_literal_comparitor<"roberta-bpe">::impl(value.data())) {
 				return tokenizer_pre_types::gpt2;
 			}
-			if (string_literal_comparison<"refact">(value.data())) {
+			if (string_literal_comparitor<"refact">::impl(value.data())) {
 				return tokenizer_pre_types::refact;
 			}
-			if (string_literal_comparison<"command-r">(value.data())) {
+			if (string_literal_comparitor<"command-r">::impl(value.data())) {
 				return tokenizer_pre_types::command_r;
 			}
-			if (string_literal_comparison<"stablelm2">(value.data())) {
+			if (string_literal_comparitor<"stablelm2">::impl(value.data())) {
 				return tokenizer_pre_types::stablelm2;
 			}
-			if (string_literal_comparison<"qwen2">(value.data()) || string_literal_comparison<"deepseek-r1-qwen">(value.data()) ||
-				string_literal_comparison<"megrez">(value.data())) {
+			if (string_literal_comparitor<"qwen2">::impl(value.data()) || string_literal_comparitor<"deepseek-r1-qwen">::impl(value.data()) ||
+				string_literal_comparitor<"megrez">::impl(value.data())) {
 				return tokenizer_pre_types::qwen2;
 			}
-			if (string_literal_comparison<"olmo">(value.data())) {
+			if (string_literal_comparitor<"olmo">::impl(value.data())) {
 				return tokenizer_pre_types::olmo;
 			}
-			if (string_literal_comparison<"dbrx">(value.data())) {
+			if (string_literal_comparitor<"dbrx">::impl(value.data())) {
 				return tokenizer_pre_types::dbrx;
 			}
-			if (string_literal_comparison<"smaug-bpe">(value.data())) {
+			if (string_literal_comparitor<"smaug-bpe">::impl(value.data())) {
 				return tokenizer_pre_types::smaug;
 			}
-			if (string_literal_comparison<"poro-chat">(value.data())) {
+			if (string_literal_comparitor<"poro-chat">::impl(value.data())) {
 				return tokenizer_pre_types::poro;
 			}
-			if (string_literal_comparison<"chatglm-bpe">(value.data())) {
+			if (string_literal_comparitor<"chatglm-bpe">::impl(value.data())) {
 				return tokenizer_pre_types::chatglm4;
 			}
-			if (string_literal_comparison<"viking">(value.data())) {
+			if (string_literal_comparitor<"viking">::impl(value.data())) {
 				return tokenizer_pre_types::viking;
 			}
-			if (string_literal_comparison<"jais">(value.data())) {
+			if (string_literal_comparitor<"jais">::impl(value.data())) {
 				return tokenizer_pre_types::jais;
 			}
-			if (string_literal_comparison<"tekken">(value.data())) {
+			if (string_literal_comparitor<"tekken">::impl(value.data())) {
 				return tokenizer_pre_types::tekken;
 			}
-			if (string_literal_comparison<"smollm">(value.data())) {
+			if (string_literal_comparitor<"smollm">::impl(value.data())) {
 				return tokenizer_pre_types::smollm;
 			}
-			if (string_literal_comparison<"codeshell">(value.data())) {
+			if (string_literal_comparitor<"codeshell">::impl(value.data())) {
 				return tokenizer_pre_types::codeshell;
 			}
-			if (string_literal_comparison<"bloom">(value.data())) {
+			if (string_literal_comparitor<"bloom">::impl(value.data())) {
 				return tokenizer_pre_types::bloom;
 			}
-			if (string_literal_comparison<"gpt3-finnish">(value.data())) {
+			if (string_literal_comparitor<"gpt3-finnish">::impl(value.data())) {
 				return tokenizer_pre_types::gpt3_finnish;
 			}
-			if (string_literal_comparison<"exaone">(value.data())) {
+			if (string_literal_comparitor<"exaone">::impl(value.data())) {
 				return tokenizer_pre_types::exaone;
 			}
-			if (string_literal_comparison<"chameleon">(value.data())) {
+			if (string_literal_comparitor<"chameleon">::impl(value.data())) {
 				return tokenizer_pre_types::chameleon;
 			}
-			if (string_literal_comparison<"minerva-7b">(value.data())) {
+			if (string_literal_comparitor<"minerva-7b">::impl(value.data())) {
 				return tokenizer_pre_types::minerva;
 			}
 
@@ -289,7 +283,7 @@ namespace nihilus {
 			value_type value{};
 			value.reserve(length);
 			for (uint64_t x = 0; x < length; ++x) {
-				value[value_reader<config, typename value_type::key_type>::gather_value(input)] = static_cast<typename value_type::mapped_type>(x);
+				value.emplace(value_reader<config, typename value_type::key_type>::gather_value(input), static_cast<typename value_type::mapped_type>(x));
 			}
 			return value;
 		}
@@ -332,12 +326,12 @@ namespace nihilus {
 	};
 
 	struct metadata_base {
+		aligned_vector<std::string_view> languages;
 		std::string_view quantize_imatrix_dataset;
 		int32_t quantize_imatrix_entries_count;
 		std::string_view quantize_imatrix_file;
-		int32_t quantize_imatrix_chunks_count;
-		aligned_vector<std::string_view> languages;
 		aligned_vector<std::string_view> tags;
+		int32_t quantize_imatrix_chunks_count;
 		uint32_t quantization_version;
 		std::string_view architecture;
 		std::string_view size_label;
@@ -403,15 +397,15 @@ namespace nihilus {
 		inline static constexpr auto memberCount = core_tuple_size<value_type>;
 
 		template<uint64_t index> using member_type_t =
-			std::remove_reference_t<decltype(get_member<value_type, get<index>(parse_core<value_type>::parse_value).member_ptr>(std::declval<value_type&>()))>;
+			std::remove_reference_t<decltype(get_member<get<index>(parse_core<value_type>::parse_value).member_ptr>(std::declval<value_type&>()))>;
 
 		template<uint64_t index> NIHILUS_INLINE static void process_index(value_type& value, std::string_view string, stream_iterator& stream) {
 			static constexpr auto tupleElem	 = get<index>(parse_core<value_type>::parse_value);
 			static constexpr auto string_lit = tupleElem.name;
 			static constexpr auto ptrNew	 = tupleElem.member_ptr;
 			static constexpr auto keySize	 = string_lit.size();
-			if NIHILUS_LIKELY ((string.size() <= keySize) && string_literal_comparison<string_lit>(string.data())) {
-				auto& ref = get_member<value_type, ptrNew>(value);
+			if NIHILUS_LIKELY ((string.size() <= keySize) && string_literal_comparitor<string_lit>::impl(string.data())) {
+				auto& ref = get_member<ptrNew>(value);
 				if constexpr (!std::is_const_v<std::remove_reference_t<decltype(ref)>>) {
 					ref = value_reader<config, member_type_t<index>>::gather_value(stream);
 				} else {
@@ -558,56 +552,56 @@ namespace nihilus {
 
 	template<> struct string_to_op_type<model_arches::llama> {
 		NIHILUS_INLINE static weight_types impl(std::string_view input) noexcept {
-			if (string_literal_comparison<"token_embd.weight">(input.data())) {
+			if (string_literal_comparitor<"token_embd.weight">::impl(input.data())) {
 				return weight_types::token_embd;
 			}
-			if (string_literal_comparison<"rope_freqs.weight">(input.data())) {
+			if (string_literal_comparitor<"rope_freqs.weight">::impl(input.data())) {
 				return weight_types::rope_freqs;
 			}
-			if (string_literal_comparison<"output_norm.weight">(input.data())) {
+			if (string_literal_comparitor<"output_norm.weight">::impl(input.data())) {
 				return weight_types::output_norm;
 			}
-			if (string_literal_comparison<"output.weight">(input.data())) {
+			if (string_literal_comparitor<"output.weight">::impl(input.data())) {
 				return weight_types::output;
 			}
 
-			if (string_literal_comparison<".attn_q.weight">(input.data() + input.find(".attn_q.weight"))) {
+			if (string_literal_comparitor<".attn_q.weight">::impl(input.data() + input.find(".attn_q.weight"))) {
 				return weight_types::attn_q;
 			}
-			if (string_literal_comparison<".attn_norm.weight">(input.data() + input.find(".attn_norm.weight"))) {
+			if (string_literal_comparitor<".attn_norm.weight">::impl(input.data() + input.find(".attn_norm.weight"))) {
 				return weight_types::attn_norm;
 			}
 
-			if (string_literal_comparison<"blk.">(input.data()) && string_literal_comparison<".weight">(input.data() + input.size() - 7)) {
+			if (string_literal_comparitor<"blk.">::impl(input.data()) && string_literal_comparitor<".weight">::impl(input.data() + input.size() - 7)) {
 				auto second_dot = input.find('.', 4);
 				if (second_dot != std::string_view::npos) {
 					auto suffix = input.substr(second_dot + 1);
 
-					if (string_literal_comparison<"attn_q.weight">(suffix.data())) {
+					if (string_literal_comparitor<"attn_q.weight">::impl(suffix.data())) {
 						return weight_types::attn_q;
 					}
-					if (string_literal_comparison<"attn_norm.weight">(suffix.data())) {
+					if (string_literal_comparitor<"attn_norm.weight">::impl(suffix.data())) {
 						return weight_types::attn_norm;
 					}
-					if (string_literal_comparison<"attn_k.weight">(suffix.data())) {
+					if (string_literal_comparitor<"attn_k.weight">::impl(suffix.data())) {
 						return weight_types::attn_k;
 					}
-					if (string_literal_comparison<"attn_v.weight">(suffix.data())) {
+					if (string_literal_comparitor<"attn_v.weight">::impl(suffix.data())) {
 						return weight_types::attn_v;
 					}
-					if (string_literal_comparison<"attn_output.weight">(suffix.data())) {
+					if (string_literal_comparitor<"attn_output.weight">::impl(suffix.data())) {
 						return weight_types::attn_output;
 					}
-					if (string_literal_comparison<"ffn_down.weight">(suffix.data())) {
+					if (string_literal_comparitor<"ffn_down.weight">::impl(suffix.data())) {
 						return weight_types::ffn_down;
 					}
-					if (string_literal_comparison<"ffn_gate.weight">(suffix.data())) {
+					if (string_literal_comparitor<"ffn_gate.weight">::impl(suffix.data())) {
 						return weight_types::ffn_gate;
 					}
-					if (string_literal_comparison<"ffn_up.weight">(suffix.data())) {
+					if (string_literal_comparitor<"ffn_up.weight">::impl(suffix.data())) {
 						return weight_types::ffn_up;
 					}
-					if (string_literal_comparison<"ffn_norm.weight">(suffix.data())) {
+					if (string_literal_comparitor<"ffn_norm.weight">::impl(suffix.data())) {
 						return weight_types::ffn_norm;
 					}
 				}

@@ -26,7 +26,7 @@ add_executable(
 
 target_link_libraries(
 	"nihilus_performance" PUBLIC 
-	nihilus::nihilus
+	nihilus::nihilus nihilus::nihilus-cuda
 )
 
 install(

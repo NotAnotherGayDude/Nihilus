@@ -20,9 +20,12 @@ RealTimeChris (Chris M.)
 
 #pragma once
 
+#include <nihilus-incl/benchmarking/event_counter.hpp>
+#include <nihilus-incl/cuda/common.cuh>
 #include <nihilus-incl/common/allocator.hpp>
+#include <nihilus-incl/common/config.hpp>
 #include <nihilus-incl/common/exception.hpp>
-#include <nihilus-incl/cpu/simd/nihilus_cpu_instructions.hpp>
+#include <nihilus-incl/cpu/nihilus_cpu_instructions.hpp>
 #include <nihilus-incl/common/data_types.hpp>
 #include <nihilus-incl/common/concepts.hpp>
 #include <nihilus-incl/common/array.hpp>
@@ -38,6 +41,16 @@ RealTimeChris (Chris M.)
 #include <cmath>
 
 namespace nihilus {
+
+	NIHILUS_INLINE static void nihilus_pause() noexcept {
+#if NIHILUS_ARCH_X64
+		_mm_pause();
+#elif NIHILUS_ARCH_ARM64
+		__asm__ __volatile__("yield" ::: "memory");
+#else
+		__asm__ __volatile__("" ::: "memory");
+#endif
+	}
 
 	template<typename value_type>
 	concept time_t = is_specialization_v<value_type, std::chrono::duration>;
@@ -136,35 +149,35 @@ namespace nihilus {
 		static constexpr auto value{ value_new };
 	};
 
-	template<typename value_type> NIHILUS_INLINE static constexpr bool is_alpha(value_type c) noexcept {
-		alignas(64) static constexpr const static_aligned_const<bool>* __restrict alpha_table{ [] constexpr {
+	template<typename value_type> NIHILUS_INLINE static bool is_alpha(value_type c) noexcept {
+		alignas(64) static constexpr const static_aligned_const<bool>* __restrict alpha_table{ [] {
 			alignas(64) constexpr array<static_aligned_const<bool>, 256> return_values{ [] {
-				array<static_aligned_const<bool>, 256> return_values{};
+				array<static_aligned_const<bool>, 256> return_values_new{};
 				for (int32_t i = 'A'; i <= 'Z'; ++i) {
-					return_values[static_cast<uint64_t>(i)] = static_aligned_const<bool>{ true };
+					return_values_new[static_cast<uint64_t>(i)] = static_aligned_const<bool>{ true };
 				}
 
 				for (int32_t i = 'a'; i <= 'z'; ++i) {
-					return_values[static_cast<uint64_t>(i)] = static_aligned_const<bool>{ true };
+					return_values_new[static_cast<uint64_t>(i)] = static_aligned_const<bool>{ true };
 				}
-				return return_values;
+				return return_values_new;
 			}() };
 			return make_static<return_values>::value.data();
 		}() };
 		return alpha_table[static_cast<uint8_t>(c)];
 	}
 
-	template<typename value_type> NIHILUS_INLINE static constexpr bool is_space(value_type c) noexcept {
+	template<typename value_type> NIHILUS_INLINE static bool is_space(value_type c) noexcept {
 		alignas(64) static constexpr const static_aligned_const<bool>* __restrict space_table{ [] {
 			alignas(64) constexpr array<static_aligned_const<bool>, 256> return_values{ [] {
-				array<static_aligned_const<bool>, 256> return_values{};
-				return_values[static_cast<uint64_t>('\r')] = static_aligned_const<bool>{ true };
-				return_values[static_cast<uint64_t>('\n')] = static_aligned_const<bool>{ true };
-				return_values[static_cast<uint64_t>(' ')]  = static_aligned_const<bool>{ true };
-				return_values[static_cast<uint64_t>('\t')] = static_aligned_const<bool>{ true };
-				return_values[static_cast<uint64_t>('\v')] = static_aligned_const<bool>{ true };
-				return_values[static_cast<uint64_t>('\f')] = static_aligned_const<bool>{ true };
-				return return_values;
+				array<static_aligned_const<bool>, 256> return_values_new{};
+				return_values_new[static_cast<uint64_t>('\r')] = static_aligned_const<bool>{ true };
+				return_values_new[static_cast<uint64_t>('\n')] = static_aligned_const<bool>{ true };
+				return_values_new[static_cast<uint64_t>(' ')]  = static_aligned_const<bool>{ true };
+				return_values_new[static_cast<uint64_t>('\t')] = static_aligned_const<bool>{ true };
+				return_values_new[static_cast<uint64_t>('\v')] = static_aligned_const<bool>{ true };
+				return_values_new[static_cast<uint64_t>('\f')] = static_aligned_const<bool>{ true };
+				return return_values_new;
 			}() };
 			return make_static<return_values>::value.data();
 		}() };
@@ -257,7 +270,7 @@ namespace nihilus {
 
 		NIHILUS_INLINE void init(value_type thread_count_new) {
 			thread_count = thread_count_new;
-			flags.resize(thread_count);
+			flags.resize(static_cast<value_type>(thread_count));
 			global_counter.store(thread_count);
 		}
 
@@ -266,7 +279,7 @@ namespace nihilus {
 			flags[thread_index].clear();
 		}
 
-		NIHILUS_INLINE void arrive(uint64_t thread_index) {
+		NIHILUS_INLINE void arrive() {
 			global_counter.fetch_sub(1);
 		}
 
@@ -284,13 +297,13 @@ namespace nihilus {
 	};
 
 	template<printable_enum_types auto current_index> consteval std::string_view get_enum_name() {
-#if defined(NIHILUS_COMPILER_MSVC)
-		alignas(64) constexpr char pretty_function_tail[]{ ">(void)" };
+#if NIHILUS_COMPILER_MSVC
+		alignas(64) constexpr static_aligned_const<const char*> pretty_function_tail[]{ ">(void)" };
 #else
-		alignas(64) constexpr char pretty_function_tail[]{ "]" };
+		alignas(64) constexpr static_aligned_const<const char*> pretty_function_tail[]{ "]" };
 #endif
 		std::string_view str = std::source_location::current().function_name();
-#if defined(NIHILUS_COMPILER_GNUCXX)
+#if NIHILUS_COMPILER_GNUCXX
 		str			   = str.substr(str.find("=") + 2);
 		uint64_t end   = str.find(';');
 		str			   = str.substr(0, end);
@@ -299,7 +312,7 @@ namespace nihilus {
 #else
 		str			   = str.substr(str.find("=") + 2);
 		uint64_t start = str.find_last_of(':') + 1;
-		uint64_t end   = str.find(pretty_function_tail);
+		uint64_t end   = str.find(pretty_function_tail->value);
 		return str.substr(start, end - start);
 #endif
 	}
@@ -324,7 +337,7 @@ namespace nihilus {
 		}
 	}
 
-	template<printable_enum_types enum_type> NIHILUS_INLINE std::ostream& operator<<(std::ostream& os, enum_type type) {
+	template<printable_enum_types enum_type> NIHILUS_INLINE static std::ostream& operator<<(std::ostream& os, enum_type type) {
 		os << get_name(type);
 		return os;
 	}
@@ -783,6 +796,7 @@ namespace nihilus {
 		bool use_flash_attention{};
 		norm_types rms_norm_type{};
 		tokenizer_types tokenizer_type{};
+		device_types device_type{};
 		model_format format{};
 		float norm_epsilon{};
 		bool benchmark{};

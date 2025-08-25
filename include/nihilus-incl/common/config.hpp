@@ -20,8 +20,8 @@ RealTimeChris (Chris M.)
 
 #pragma once
 
-#include <nihilus-incl/cpu/simd/nihilus_thread_count.hpp>
-#include <nihilus-incl/cpu/simd/nihilus_cpu_instructions.hpp>
+#include <nihilus-incl/cpu/nihilus_thread_count.hpp>
+#include <nihilus-incl/cpu/nihilus_cpu_instructions.hpp>
 #include <source_location>
 #include <cstring>
 #include <cstdint>
@@ -31,46 +31,64 @@ RealTimeChris (Chris M.)
 
 #if defined(WIN32) || defined(_WIN32) || defined(_WIN64)
 	#define NIHILUS_PLATFORM_WINDOWS 1
+	#define NIHILUS_PLATFORM_MAC 0
+	#define NIHILUS_PLATFORM_ANDROID 0
+	#define NIHILUS_PLATFORM_LINUX 0
 #elif defined(macintosh) || defined(Macintosh) || (defined(__APPLE__) && defined(__MACH__)) || defined(TARGET_OS_MAC)
 	#include <mach/mach.h>
+	#define NIHILUS_PLATFORM_WINDOWS 0
 	#define NIHILUS_PLATFORM_MAC 1
+	#define NIHILUS_PLATFORM_ANDROID 0
+	#define NIHILUS_PLATFORM_LINUX 0
 #elif defined(__ANDROID__)
+	#define NIHILUS_PLATFORM_WINDOWS 0
+	#define NIHILUS_PLATFORM_MAC 0
 	#define NIHILUS_PLATFORM_ANDROID 1
+	#define NIHILUS_PLATFORM_LINUX 0
 #elif defined(linux) || defined(__linux) || defined(__linux__) || defined(__gnu_linux__)
+	#define NIHILUS_PLATFORM_WINDOWS 0
+	#define NIHILUS_PLATFORM_MAC 0
+	#define NIHILUS_PLATFORM_ANDROID 0
 	#define NIHILUS_PLATFORM_LINUX 1
 #else
 	#error "Unsupported platform"
 #endif
 
 #if defined(_MSC_VER)
-	#define NIHILUS_COMPILER_MSVC 1
+	#define NIHILUS_COMPILER_MSVC 1 
+	#define NIHILUS_COMPILER_CLANG 0
+	#define NIHILUS_COMPILER_GNUCXX 0
 #elif defined(__clang__) || defined(__llvm__)
+	#define NIHILUS_COMPILER_MSVC 0
 	#define NIHILUS_COMPILER_CLANG 1
+	#define NIHILUS_COMPILER_GNUCXX 0
 #elif defined(__GNUC__) && !defined(__clang__)
+	#define NIHILUS_COMPILER_MSVC 0
+	#define NIHILUS_COMPILER_CLANG 0
 	#define NIHILUS_COMPILER_GNUCXX 1
 #else
 	#error "Unsupported compiler"
 #endif
 
 #if defined(NDEBUG)
-	#if defined(NIHILUS_COMPILER_MSVC)
+	#if NIHILUS_COMPILER_MSVC
 		#define NIHILUS_INLINE [[msvc::forceinline]] inline
 		#define NIHILUS_NON_MSVC_INLINE
-	#elif defined(NIHILUS_COMPILER_CLANG)
+	#elif NIHILUS_COMPILER_CLANG
 		#define NIHILUS_INLINE inline __attribute__((always_inline))
 		#define NIHILUS_NON_MSVC_INLINE inline __attribute__((always_inline))
-	#elif defined(NIHILUS_COMPILER_GNUCXX)
+	#elif NIHILUS_COMPILER_GNUCXX
 		#define NIHILUS_INLINE inline __attribute__((always_inline))
 		#define NIHILUS_NON_MSVC_INLINE inline __attribute__((always_inline))
 	#endif
 #else
-	#if defined(NIHILUS_COMPILER_MSVC)
+	#if NIHILUS_COMPILER_MSVC
 		#define NIHILUS_INLINE [[msvc::noinline]]
 		#define NIHILUS_NON_MSVC_INLINE [[msvc::noinline]]
-	#elif defined(NIHILUS_COMPILER_CLANG)
+	#elif NIHILUS_COMPILER_CLANG
 		#define NIHILUS_INLINE noinline
 		#define NIHILUS_NON_MSVC_INLINE noinline
-	#elif defined(NIHILUS_COMPILER_GNUCXX)
+	#elif NIHILUS_COMPILER_GNUCXX
 		#define NIHILUS_INLINE noinline
 		#define NIHILUS_NON_MSVC_INLINE noinline
 	#endif
@@ -97,29 +115,9 @@ RealTimeChris (Chris M.)
 	#error "Unsupported architecture"
 #endif
 
-NIHILUS_INLINE void nihilus_pause() noexcept {
-#if NIHILUS_ARCH_X64
-	_mm_pause();
-#elif NIHILUS_ARCH_ARM64
-	__asm__ __volatile__("yield" ::: "memory");
-#else
-	__asm__ __volatile__("" ::: "memory");
-#endif
-}
-
-#ifndef NDEBUG
-	#define NIHILUS_ASSERT(x) \
-		if (!(x)) \
-		internal_abort(#x, std::source_location::current())
-#else
-	#define NIHILUS_ASSERT(x)
-#endif
-
-inline std::atomic_uint64_t current_count{};
-
-using clock_type = std::conditional_t<std::chrono::high_resolution_clock::is_steady, std::chrono::high_resolution_clock, std::chrono::steady_clock>;
-
 namespace nihilus {
+
+	using clock_type = std::conditional_t<std::chrono::high_resolution_clock::is_steady, std::chrono::high_resolution_clock, std::chrono::steady_clock>;
 
 	template<auto enum_error, typename... types> struct error_printer_impl;
 
@@ -150,7 +148,7 @@ namespace nihilus {
 	template<typename value_type> struct alignas(64) static_aligned_const {
 		alignas(64) value_type value{};
 
-		NIHILUS_INLINE constexpr operator const value_type&() const {
+		NIHILUS_INLINE constexpr operator const value_type&() const& {
 			return value;
 		}
 
@@ -200,5 +198,3 @@ namespace nihilus {
 	};
 
 }
-
-#include <nihilus-incl/benchmarking/event_counter.hpp>

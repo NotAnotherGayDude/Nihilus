@@ -1,5 +1,5 @@
 // Sampled mostly from Simdjson: https://github.com/simdjson/simdjson
-#if defined(NIHILUS_DETECT_ARCH)
+#if defined(NIHILUS_DETECT_CPU_ARCH)
 	#include <cstring>
 	#include <cstdint>
 	#include <cstdlib>
@@ -125,6 +125,8 @@ int32_t main() {
 	const auto supported_isa = detect_supported_architectures();
 	return supported_isa;
 }
+#elif defined(NIHILUS_DETECT_GPU_ARCH)
+
 #else
 	#include <thread>
 int32_t main() {

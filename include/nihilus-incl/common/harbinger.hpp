@@ -31,11 +31,11 @@ namespace nihilus {
 		bool exceptions = false, std::istream* input_stream = nullptr, uint64_t default_max_sequence_length = 1024, uint64_t default_batch_size = 512,
 		kv_cache_strategies cache_strategy = kv_cache_strategies::paged, bool use_gradient_checkpointing = false, rope_scaling_types rope_scaling = rope_scaling_types::linear,
 		tokenizer_pre_types tokenizer_pre_type = tokenizer_pre_types::llama3, uint64_t kv_cache_block_size = 16, bool use_rotary_embeddings = true, bool use_flash_attention = true,
-		norm_types rms_norm_type = norm_types::rms_standard, tokenizer_types tokenizer_type = tokenizer_types::bpe, model_format format = model_format::gguf,
-		float norm_epsilon = 1e-6f, bool benchmark = false, bool dev = false) {
-		model_config config{ model_generation, model_size, kernel_profile, arch, exceptions, input_stream, default_max_sequence_length,
-			default_batch_size, cache_strategy, use_gradient_checkpointing, rope_scaling, tokenizer_pre_type, kv_cache_block_size, use_rotary_embeddings, use_flash_attention,
-			rms_norm_type, tokenizer_type, format, norm_epsilon, benchmark, dev };
+		norm_types rms_norm_type = norm_types::rms_standard, tokenizer_types tokenizer_type = tokenizer_types::bpe, device_types device_type_new = device_types::cpu,
+		model_format format = model_format::gguf, float norm_epsilon = 1e-6f, bool benchmark = false, bool dev = false) {
+		model_config config{ model_generation, model_size, kernel_profile, arch, exceptions, input_stream, default_max_sequence_length, default_batch_size, cache_strategy,
+			use_gradient_checkpointing, rope_scaling, tokenizer_pre_type, kv_cache_block_size, use_rotary_embeddings, use_flash_attention, rms_norm_type, tokenizer_type,
+			device_type_new, format, norm_epsilon, benchmark, dev };
 		return config;
 	}
 
@@ -131,6 +131,11 @@ namespace nihilus {
 
 	NIHILUS_INLINE static consteval auto update_model_config_dev(model_config config, bool dev) {
 		config.dev = dev;
+		return config;
+	}
+
+	NIHILUS_INLINE static consteval auto update_model_device_type(model_config config, device_types dev) {
+		config.device_type = dev;
 		return config;
 	}
 

@@ -37,8 +37,8 @@ namespace nihilus::benchmarking::internal {
 		}
 
 		NIHILUS_INLINE bool bytesProcessed(uint64_t& bytesProcessedNew) const noexcept {
-			if (bytesProcessedVal.has_value()) {
-				bytesProcessedNew = bytesProcessedVal.value();
+			if (bytes_processed_val.has_value()) {
+				bytesProcessedNew = bytes_processed_val.value();
 				return true;
 			} else {
 				return false;
@@ -46,8 +46,8 @@ namespace nihilus::benchmarking::internal {
 		}
 
 		NIHILUS_INLINE bool cycles(double& cyclesNew) const {
-			if (cyclesVal.has_value()) {
-				cyclesNew = static_cast<double>(cyclesVal.value());
+			if (cycles_val.has_value()) {
+				cyclesNew = static_cast<double>(cycles_val.value());
 				return true;
 			} else {
 				return false;
@@ -55,8 +55,8 @@ namespace nihilus::benchmarking::internal {
 		}
 
 		NIHILUS_INLINE bool instructions(double& instructionsNew) const noexcept {
-			if (instructionsVal.has_value()) {
-				instructionsNew = static_cast<double>(instructionsVal.value());
+			if (instructions_val.has_value()) {
+				instructionsNew = static_cast<double>(instructions_val.value());
 				return true;
 			} else {
 				return false;
@@ -64,8 +64,8 @@ namespace nihilus::benchmarking::internal {
 		}
 
 		NIHILUS_INLINE bool branches(double& branchesNew) const noexcept {
-			if (branchesVal.has_value()) {
-				branchesNew = static_cast<double>(branchesVal.value());
+			if (branches_val.has_value()) {
+				branchesNew = static_cast<double>(branches_val.value());
 				return true;
 			} else {
 				return false;
@@ -73,8 +73,8 @@ namespace nihilus::benchmarking::internal {
 		}
 
 		NIHILUS_INLINE bool branch_misses(double& branch_missesNew) const noexcept {
-			if (branch_missesVal.has_value()) {
-				branch_missesNew = static_cast<double>(branch_missesVal.value());
+			if (branch_misses_val.has_value()) {
+				branch_missesNew = static_cast<double>(branch_misses_val.value());
 				return true;
 			} else {
 				return false;
@@ -82,8 +82,8 @@ namespace nihilus::benchmarking::internal {
 		}
 
 		NIHILUS_INLINE bool cache_misses(double& cache_missesNew) const noexcept {
-			if (cache_missesVal.has_value()) {
-				cache_missesNew = static_cast<double>(cache_missesVal.value());
+			if (cache_misses_val.has_value()) {
+				cache_missesNew = static_cast<double>(cache_misses_val.value());
 				return true;
 			} else {
 				return false;
@@ -91,8 +91,8 @@ namespace nihilus::benchmarking::internal {
 		}
 
 		NIHILUS_INLINE bool cache_references(double& cache_referencesNew) const noexcept {
-			if (cache_referencesVal.has_value()) {
-				cache_referencesNew = static_cast<double>(cache_referencesVal.value());
+			if (cache_references_val.has_value()) {
+				cache_referencesNew = static_cast<double>(cache_references_val.value());
 				return true;
 			} else {
 				return false;
@@ -100,14 +100,14 @@ namespace nihilus::benchmarking::internal {
 		}
 
 	  protected:
-		std::optional<uint64_t> cache_referencesVal{};
-		std::optional<uint64_t> bytesProcessedVal{};
-		std::optional<uint64_t> branch_missesVal{};
-		std::optional<uint64_t> instructionsVal{};
-		std::optional<uint64_t> cache_missesVal{};
+		std::optional<uint64_t> cache_references_val{};
+		std::optional<uint64_t> bytes_processed_val{};
+		std::optional<uint64_t> branch_misses_val{};
+		std::optional<uint64_t> instructions_val{};
+		std::optional<uint64_t> cache_misses_val{};
 		std::chrono::duration<double> elapsed{};
-		std::optional<uint64_t> branchesVal{};
-		std::optional<uint64_t> cyclesVal{};
+		std::optional<uint64_t> branches_val{};
+		std::optional<uint64_t> cycles_val{};
 	};
 
 }

@@ -35,7 +35,7 @@ namespace nihilus {
 			m128x_uint64[1] = 0;
 		}
 
-#if defined(NIHILUS_PLATFORM_WINDOWS)
+#if NIHILUS_PLATFORM_WINDOWS
 		int8_t m128x_int8[16]{};
 		int16_t m128x_int16[8];
 		int32_t m128x_int32[4];
@@ -141,7 +141,7 @@ namespace nihilus {
 	};
 
 	NIHILUS_INLINE size_t get_cache_size(cache_level level) {
-#if defined(NIHILUS_PLATFORM_WINDOWS)
+#if NIHILUS_PLATFORM_WINDOWS
 		DWORD bufferSize = 0;
 		cache_level cacheLevel{ level };
 		PROCESSOR_CACHE_TYPE cacheType{ level == cache_level::one ? PROCESSOR_CACHE_TYPE::CacheInstruction : PROCESSOR_CACHE_TYPE::CacheUnified };
@@ -171,7 +171,7 @@ namespace nihilus {
 			cacheSize += collectSize(cacheLevel, PROCESSOR_CACHE_TYPE::CacheData);
 		}
 		return cacheSize + collectSize(cacheLevel, cacheType);
-#elif defined(NIHILUS_PLATFORM_LINUX) || defined(NIHILUS_PLATFORM_ANDROID)
+#elif NIHILUS_PLATFORM_LINUX || NIHILUS_PLATFORM_ANDROID
 		size_t cacheSize = 0;
 
 		auto get_cache_sizeFromFile = [](const std::string& cacheType) {
@@ -206,7 +206,7 @@ namespace nihilus {
 		}
 
 		return cacheSize;
-#elif defined(NIHILUS_PLATFORM_MAC)
+#elif NIHILUS_PLATFORM_MAC
 		auto get_cache_size = [](const std::string& cacheType) {
 			size_t cacheSizeNew = 0;
 			size_t size			= sizeof(cacheSizeNew);
@@ -277,7 +277,7 @@ namespace nihilus {
 	}
 
 	template<uint16_types value_type> NIHILUS_INLINE static value_type tzcnt(const value_type value) noexcept {
-	#if defined(NIHILUS_LINUX)
+	#if NIHILUS_PLATFORM_LINUX
 		return __tzcnt_u16(value);
 	#else
 		return _tzcnt_u16(value);

@@ -1,7 +1,0 @@
-cmake_minimum_required(VERSION 3.10)
-project(FeatureDetection)
-set(CMAKE_CXX_STANDARD 17)
-add_executable(feature_detector main.cpp)
-if(NIHILUS_DETECT_ARCH)
-	target_compile_definitions(feature_detector PUBLIC NIHILUS_DETECT_ARCH)
-endif()

@@ -21,9 +21,9 @@ RealTimeChris (Chris M.)
 #pragma once
 
 #include <nihilus-incl/common/string_literal.hpp>
+#include <nihilus-incl/common/concepts.hpp>
 #include <nihilus-incl/common/iterator.hpp>
 #include <nihilus-incl/common/config.hpp>
-#include <nihilus-incl/common/utility.hpp>
 #include <algorithm>
 #include <stdexcept>
 
@@ -111,7 +111,7 @@ namespace nihilus {
 		}
 
 		NIHILUS_INLINE constexpr void fill(const value_type& value) {
-			std::fill_n(data_val, static_cast<int64_t>(size_new), value);
+			std::fill_n(data_val, static_cast<uint64_t>(size_new), value);
 		}
 
 		NIHILUS_INLINE constexpr iterator begin() noexcept {
@@ -359,9 +359,5 @@ namespace nihilus {
 			( void )rhs;
 			return true;
 		}
-
-	  protected:
-		alignas(64) std::conditional_t<std::disjunction_v<std::is_default_constructible<value_type>, std::is_default_constructible<value_type>>, value_type,
-			empty_array_element> data_val[1]{};
 	};
 }

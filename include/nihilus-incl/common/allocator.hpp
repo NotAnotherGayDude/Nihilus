@@ -61,7 +61,7 @@ namespace nihilus {
 			if NIHILUS_UNLIKELY (count_new == 0) {
 				return nullptr;
 			}
-#if defined(NIHILUS_PLATFORM_WINDOWS) || defined(NIHILUS_PLATFORM_LINUX)
+#if NIHILUS_PLATFORM_WINDOWS || NIHILUS_PLATFORM_LINUX
 			return static_cast<value_type*>(_mm_malloc(round_up_to_multiple<64>(count_new * sizeof(value_type)), 64));
 #else
 			return static_cast<value_type*>(aligned_alloc(64, round_up_to_multiple<64>(count_new * sizeof(value_type))));
@@ -70,7 +70,7 @@ namespace nihilus {
 
 		NIHILUS_INLINE static void deallocate(pointer ptr, uint64_t = 0) noexcept {
 			if NIHILUS_LIKELY (ptr) {
-#if defined(NIHILUS_PLATFORM_WINDOWS) || defined(NIHILUS_PLATFORM_LINUX)
+#if NIHILUS_PLATFORM_WINDOWS || NIHILUS_PLATFORM_LINUX
 				_mm_free(ptr);
 #else
 				free(ptr);

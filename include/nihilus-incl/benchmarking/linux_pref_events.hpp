@@ -22,7 +22,7 @@ RealTimeChris (Chris M.)
 
 #include <nihilus-incl/benchmarking/metrics.hpp>
 
-#if defined(NIHILUS_PLATFORM_LINUX)
+#if NIHILUS_PLATFORM_LINUX
 
 	#include <linux/perf_event.h>
 	#include <asm/unistd.h>
@@ -34,17 +34,9 @@ RealTimeChris (Chris M.)
 namespace nihilus::benchmarking::internal {
 
 	NIHILUS_INLINE size_t rdtsc() {
-	#if defined(__x86_64__)
 		uint32_t a, d;
 		__asm__ volatile("rdtsc" : "=a"(a), "=d"(d));
 		return static_cast<unsigned long>(a) | (static_cast<unsigned long>(d) << 32);
-	#elif defined(__i386__)
-		size_t x;
-		__asm__ volatile("rdtsc" : "=A"(x));
-		return x;
-	#else
-		return 0;
-	#endif
 	}
 
 	class linux_events {
@@ -188,20 +180,20 @@ namespace nihilus::benchmarking::internal {
 			const auto endClock		   = clock_type::now();
 
 			std::vector<event_count>::emplace_back();
-			std::vector<event_count>::operator[](current_index).cyclesVal.emplace(cycleEnd - cycle_start);
+			std::vector<event_count>::operator[](current_index).cycles_val.emplace(cycleEnd - cycle_start);
 			std::vector<event_count>::operator[](current_index).elapsed = endClock - clock_start;
-			std::vector<event_count>::operator[](current_index).bytesProcessedVal.emplace(bytes_processed);
+			std::vector<event_count>::operator[](current_index).bytes_processed_val.emplace(bytes_processed);
 
 			if (hasEvents()) {
 				if (results.size() != linux_events::temp_result_vec.size()) {
 					results.resize(linux_events::temp_result_vec.size());
 				}
 				linux_events::end(results);
-				std::vector<event_count>::operator[](current_index).instructionsVal.emplace(results[1]);
-				std::vector<event_count>::operator[](current_index).branchesVal.emplace(results[2]);
-				std::vector<event_count>::operator[](current_index).branch_missesVal.emplace(results[3]);
-				std::vector<event_count>::operator[](current_index).cache_referencesVal.emplace(results[4]);
-				std::vector<event_count>::operator[](current_index).cache_missesVal.emplace(results[5]);
+				std::vector<event_count>::operator[](current_index).instructions_val.emplace(results[1]);
+				std::vector<event_count>::operator[](current_index).branches_val.emplace(results[2]);
+				std::vector<event_count>::operator[](current_index).branch_misses_val.emplace(results[3]);
+				std::vector<event_count>::operator[](current_index).cache_references_val.emplace(results[4]);
+				std::vector<event_count>::operator[](current_index).cache_misses_val.emplace(results[5]);
 			}
 			++current_index;
 		}

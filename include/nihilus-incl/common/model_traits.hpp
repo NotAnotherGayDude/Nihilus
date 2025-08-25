@@ -40,7 +40,6 @@ namespace nihilus {
 		static constexpr uint32_t attention_head_count	  = 32;
 		static constexpr uint32_t attention_head_count_kv = 8;
 		static constexpr uint32_t rope_dimension_count	  = 128;
-		static constexpr uint64_t total_parameters		  = 8000000000;
 		static constexpr uint32_t context_length		  = 131072;
 		static constexpr uint64_t n_embd_kv_gqa			  = rope_dimension_count * attention_head_count_kv;
 	};

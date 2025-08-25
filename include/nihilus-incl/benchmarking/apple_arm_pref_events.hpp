@@ -36,7 +36,7 @@
 
 #include <nihilus-incl/benchmarking/metrics.hpp>
 
-#if defined(NIHILUS_PLATFORM_MAC)
+#if NIHILUS_PLATFORM_MAC
 
 	#include <mach/mach_time.h>
 	#include <sys/sysctl.h>
@@ -983,17 +983,17 @@ namespace nihilus::benchmarking::internal {
 
 			std::vector<event_count>::emplace_back();
 			std::vector<event_count>::operator[](current_index).elapsed = endClock - clock_start;
-			std::vector<event_count>::operator[](current_index).bytesProcessedVal.emplace(bytes_processed);
+			std::vector<event_count>::operator[](current_index).bytes_processed_val.emplace(bytes_processed);
 
 			if (hasEvents()) {
 				performance_counters end = get_counters();
 				diff					 = end - diff;
-				std::vector<event_count>::operator[](current_index).cyclesVal.emplace(diff.cycles);
-				std::vector<event_count>::operator[](current_index).instructionsVal.emplace(diff.instructions);
-				std::vector<event_count>::operator[](current_index).branchesVal.emplace(diff.branches);
-				std::vector<event_count>::operator[](current_index).branch_missesVal.emplace(diff.branch_misses);
+				std::vector<event_count>::operator[](current_index).cycles_val.emplace(diff.cycles);
+				std::vector<event_count>::operator[](current_index).instructions_val.emplace(diff.instructions);
+				std::vector<event_count>::operator[](current_index).branches_val.emplace(diff.branches);
+				std::vector<event_count>::operator[](current_index).branch_misses_val.emplace(diff.branch_misses);
 			} else {
-				std::vector<event_count>::operator[](current_index).cyclesVal.emplace(cycleEnd - cycle_start);
+				std::vector<event_count>::operator[](current_index).cycles_val.emplace(cycleEnd - cycle_start);
 			}
 			++current_index;
 		}

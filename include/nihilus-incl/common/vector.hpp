@@ -47,7 +47,7 @@ namespace nihilus {
 		NIHILUS_INLINE aligned_vector& operator=(aligned_vector&& other) noexcept
 			requires(std::is_move_assignable_v<value_type>)
 		{
-			if (this != &other) {
+			if NIHILUS_LIKELY (this != &other) {
 				std::swap(data_val, other.data_val);
 				std::swap(size_val, other.size_val);
 				std::swap(capacity_val, other.capacity_val);
@@ -66,7 +66,7 @@ namespace nihilus {
 		NIHILUS_INLINE constexpr aligned_vector& operator=(const aligned_vector& other)
 			requires(std::is_copy_assignable_v<value_type>)
 		{
-			if (this != &other) {
+			if NIHILUS_LIKELY (this != &other) {
 				reserve(other.capacity_val);
 				size_val = other.size_val;
 				std::uninitialized_copy_n(other.data(), other.size(), data_val);
@@ -95,7 +95,7 @@ namespace nihilus {
 		{
 			reserve(values.size());
 			size_val = values.size();
-			std::uninitialized_move_n(values.begin(), size_val, data_val);
+			std::uninitialized_copy_n(values.begin(), size_val, data_val);
 		}
 
 		NIHILUS_INLINE constexpr iterator begin() noexcept {
@@ -143,7 +143,7 @@ namespace nihilus {
 		}
 
 		template<typename... value_type_newer> NIHILUS_INLINE iterator emplace_back(value_type_newer&&... value_new) {
-			if (size_val + 1 > capacity_val) {
+			if NIHILUS_UNLIKELY (size_val + 1 > capacity_val) {
 				reserve(detail::max(size_val * 2, size_val + 1));
 			}
 			if constexpr (sizeof...(value_type_newer) > 0) {
@@ -172,11 +172,11 @@ namespace nihilus {
 		}
 
 		NIHILUS_INLINE void resize(size_type size_new) noexcept {
-			reserve(size_new);
-			if (size_new > size_val) {
+			if NIHILUS_LIKELY (size_new > size_val) {
+				reserve(size_new);
 				std::uninitialized_value_construct_n(data_val + size_val, size_new - size_val);
 				size_val = size_new;
-			} else if (size_new < size_val) {
+			} else if NIHILUS_UNLIKELY (size_new < size_val) {
 				std::destroy(data_val + size_new, data_val + size_val);
 				size_val = size_new;
 			}
@@ -184,7 +184,7 @@ namespace nihilus {
 		}
 
 		NIHILUS_INLINE void reserve(size_type size_new) noexcept {
-			if (size_new > capacity_val) {
+			if NIHILUS_UNLIKELY (size_new > capacity_val) {
 				size_type old_capacity = capacity_val;
 				pointer old_data	   = data_val;
 				data_val			   = allocator_traits::allocate(*this, size_new);
@@ -200,7 +200,7 @@ namespace nihilus {
 		}
 
 		template<integral_or_enum_types index_type> NIHILUS_INLINE constexpr reference at(index_type position) {
-			if (size_val <= position) {
+			if NIHILUS_UNLIKELY (size_val <= position) {
 				throw std::runtime_error{ "invalid aligned_vector<value_type> subscript" };
 			}
 
@@ -208,7 +208,7 @@ namespace nihilus {
 		}
 
 		template<integral_or_enum_types index_type> NIHILUS_INLINE constexpr const_reference at(index_type position) const {
-			if (size_val <= position) {
+			if NIHILUS_UNLIKELY (size_val <= position) {
 				throw std::runtime_error{ "invalid aligned_vector<value_type> subscript" };
 			}
 
@@ -223,11 +223,11 @@ namespace nihilus {
 			return data_val[static_cast<uint64_t>(position)];
 		}
 
-		template<uint64_t index> NIHILUS_INLINE constexpr uint64_t& operator[](tag<index> index_new) {
+		template<uint64_t index> NIHILUS_INLINE constexpr reference operator[](tag<index> index_new) {
 			return data_val[index_new];
 		}
 
-		template<uint64_t index> NIHILUS_INLINE constexpr uint64_t operator[](tag<index> index_new) const {
+		template<uint64_t index> NIHILUS_INLINE constexpr const_reference operator[](tag<index> index_new) const {
 			return data_val[index_new];
 		}
 
@@ -260,8 +260,9 @@ namespace nihilus {
 		}
 
 		NIHILUS_INLINE constexpr friend bool operator==(const aligned_vector& lhs, const aligned_vector& rhs) {
-			if (lhs.size_val != rhs.size_val)
+			if NIHILUS_UNLIKELY (lhs.size_val != rhs.size_val) {
 				return false;
+			}
 			for (uint64_t x = 0; x < lhs.size_val; ++x) {
 				if (lhs[x] != rhs[x]) {
 					return false;
@@ -272,7 +273,7 @@ namespace nihilus {
 
 		NIHILUS_INLINE ~aligned_vector() {
 			clear();
-			if (capacity_val && data_val) {
+			if NIHILUS_LIKELY (capacity_val && data_val) {
 				allocator_traits::deallocate(*this, data_val, capacity_val);
 			}
 		}

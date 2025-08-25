@@ -22,8 +22,7 @@ RealTimeChris (Chris M.)
 
 #include <nihilus-incl/common/kernel_traits.hpp>
 #include <nihilus-incl/common/common.hpp>
-#include <nihilus-incl/common/core_traits.hpp>
-#include <nihilus-incl/cpu/cpu_arch.hpp>
+//#include <nihilus-incl/cpu/cpu_arch.hpp>
 
 namespace nihilus {
 

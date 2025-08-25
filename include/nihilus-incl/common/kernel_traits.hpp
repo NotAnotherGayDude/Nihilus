@@ -114,6 +114,8 @@ namespace nihilus {
 		eval_time,
 	};
 
+	template<model_arches arch, auto model_size, auto model_generation> struct model_traits;
+
 	template<model_config config_new> using model_traits_type = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
 
 	template<size_t... indices> struct core_trait_dims;

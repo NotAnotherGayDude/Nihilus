@@ -20,82 +20,475 @@ RealTimeChris (Chris M.)
 #pragma once
 
 #include <nihilus-incl/common/kernel_traits.hpp>
-#include <nihilus-incl/cpu/simd/common.hpp>
+#include <nihilus-incl/common/core_traits.hpp>
+#include <nihilus-incl/cpu/common.hpp>
 
 #if NIHILUS_AVX2
 
 namespace nihilus {
 
-	template<> struct kernel_dispatcher_impl<device_types::cpu, 1, core_types::token_embeddings, processing_phases::eval_time> {
-		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count) {
-			using token_embeddings_type = typename core_type::token_embeddings_type;
-			static constexpr auto dim0101 = token_embeddings_type::get_array()[0];
-			params.latch_eval.fetch_sub(1);
-			params.latch_eval.wait();
-		};
-	};
+	NIHILUS_INLINE void dequantize_q8_0_to_f32(const auto* src, float* dst, uint64_t count) {
+		constexpr uint64_t block_size = 32;
+		for (uint64_t i = 0; i < count; i += block_size) {
+			const auto& block				 = src[(i / block_size)];
+			const float scale				 = static_cast<float>(block.d);
+			const auto* quantized			 = block.qs;
+			const uint64_t elements_in_block = detail::min(block_size, count - i);
+			for (uint64_t j = 0; j < elements_in_block; ++j) {
+				dst[i + j] = scale * static_cast<float>(quantized[j]);
+			}
+		}
+	}
+
+	template<typename core_type> NIHILUS_INLINE static int64_t calculate_chunk_count_and_size(core_type& params, uint64_t& chunk_size_out) {
+		constexpr uint64_t embedding_length			  = model_traits_type<core_type::config>::embedding_length;
+		const uint64_t sequence_length				  = params.runtime_dimension;
+		constexpr uint64_t output_bytes_per_embedding = embedding_length * sizeof(float);
+		constexpr uint64_t input_bytes_per_embedding  = (embedding_length + 31) / 32 * 34;
+		constexpr uint64_t total_bytes_per_embedding  = output_bytes_per_embedding + input_bytes_per_embedding;
+		const uint64_t target_cache_bytes			  = l1_cache_size * 2;
+		const uint64_t usable_cache					  = target_cache_bytes * 7 / 10;
+		const uint64_t optimal_chunk_size			  = detail::max(1ULL, usable_cache / total_bytes_per_embedding);
+		chunk_size_out								  = detail::min(optimal_chunk_size, sequence_length);
+
+		return (sequence_length + chunk_size_out - 1) / chunk_size_out;
+	}
 
 	template<> struct kernel_dispatcher_impl<device_types::cpu, 1, core_types::token_embeddings, processing_phases::prompt_eval_time> {
+		template<typename core_type> NIHILUS_INLINE static void process_chunk(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_chunk) {
+			auto& token_embd_op = params.values.template get_core<token_embedding_types, token_embedding_types::get_rows>();
+
+			auto& weights_core = get_adjacent_value<core_type::config, core_types::weights>::impl(params);
+			auto& inputs_core  = get_adjacent_value<core_type::config, core_types::global_inputs>::impl(params);
+
+			const auto* weight_data = weights_core.values.template get_core<weight_types, weight_types::token_embd>().data;
+			const auto* token_ids	= inputs_core.values.template get_core<global_input_types, global_input_types::inp_tokens>().data;
+
+			constexpr uint64_t embedding_length = model_traits_type<core_type::config>::embedding_length;
+			const uint64_t sequence_length		= params.runtime_dimension;
+
+			uint64_t chunk_size;
+			calculate_chunk_count_and_size(params, chunk_size);
+			const uint64_t start_token = current_chunk * chunk_size;
+			const uint64_t end_token   = detail::min(start_token + chunk_size, sequence_length);
+
+			auto* output_data = token_embd_op.data;
+
+			constexpr uint64_t blocks_per_embedding = (embedding_length) / 32;
+
+			for (uint64_t token_idx = start_token; token_idx < end_token; ++token_idx) {
+				const uint32_t token_id = token_ids[token_idx];
+				const auto* src_row		= weight_data + (token_id * blocks_per_embedding);
+				auto* dst_row			= output_data + (token_idx * embedding_length);
+
+				dequantize_q8_0_to_f32(src_row, dst_row, embedding_length);
+			}
+		}
+
 		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count) {
+			uint64_t chunk_size;
+			const int64_t chunk_count = calculate_chunk_count_and_size(params, chunk_size);
+
+			int64_t current_chunk = params.current_chunk_prompt_eval.fetch_add(1);
+			for (; current_chunk < chunk_count; current_chunk = params.current_chunk_prompt_eval.fetch_add(1)) {
+				process_chunk(params, thread_index, thread_count, current_chunk);
+			}
+
 			params.latch_prompt_eval.fetch_sub(1);
 			params.latch_prompt_eval.wait();
-		};
+		}
 	};
 
+	template<> struct kernel_dispatcher_impl<device_types::cpu, 1, core_types::token_embeddings, processing_phases::eval_time> {
+		template<typename core_type> NIHILUS_INLINE static void process_chunk(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_chunk) {
+			auto& token_embd_op = params.values.template get_core<token_embedding_types, token_embedding_types::get_rows>();
+
+			auto& weights_core = get_adjacent_value<core_type::config, core_types::weights>::impl(params);
+			auto& inputs_core  = get_adjacent_value<core_type::config, core_types::global_inputs>::impl(params);
+
+			const auto* weight_data = weights_core.values.template get_core<weight_types, weight_types::token_embd>().data;
+			const auto* token_ids	= inputs_core.values.template get_core<global_input_types, global_input_types::inp_tokens>().data;
+
+			constexpr uint64_t embedding_length = model_traits_type<core_type::config>::embedding_length;
+			const uint64_t sequence_length		= params.runtime_dimension;
+
+			uint64_t chunk_size;
+			calculate_chunk_count_and_size(params, chunk_size);
+			const uint64_t start_token = current_chunk * chunk_size;
+			const uint64_t end_token   = detail::min(start_token + chunk_size, sequence_length);
+
+			auto* output_data = token_embd_op.data;
+
+			constexpr uint64_t blocks_per_embedding = (embedding_length) / 32;
+
+			for (uint64_t token_idx = start_token; token_idx < end_token; ++token_idx) {
+				const uint32_t token_id = token_ids[token_idx];
+				const auto* src_row		= weight_data + (token_id * blocks_per_embedding);
+				auto* dst_row			= output_data + (token_idx * embedding_length);
+
+				dequantize_q8_0_to_f32(src_row, dst_row, embedding_length);
+			}
+		}
+
+		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count) {
+			const uint64_t sequence_length = params.values.template get_core<token_embedding_types, token_embedding_types::get_rows>().get_array_rt()[1];
+			const int64_t chunk_count	   = sequence_length;
+
+			int64_t current_chunk = params.current_chunk_eval.fetch_add(1);
+			for (; current_chunk < chunk_count; current_chunk = params.current_chunk_eval.fetch_add(1)) {
+				process_chunk(params, thread_index, thread_count, current_chunk);
+			}
+
+			params.latch_eval.fetch_sub(1);
+			params.latch_eval.wait();
+		}
+	};
+
+	NIHILUS_INLINE float hsum(__m128 x) {
+		x = _mm_add_ps(x, _mm_movehl_ps(x, x));
+		x = _mm_add_ss(x, _mm_movehdup_ps(x));
+		return _mm_cvtss_f32(x);
+	}
+
+	NIHILUS_INLINE float hsum(__m256 x) {
+		return hsum(_mm_add_ps(_mm256_extractf128_ps(x, 1), _mm256_castps256_ps128(x)));
+	}
+
+	NIHILUS_INLINE __m256 dequantize_q8_0_block(const block_q8_0<half>& block, uint64_t offset) {
+		__m256 scale_vec	  = _mm256_set1_ps(static_cast<float>(block.d));
+		__m128i quantized_i8  = _mm_loadl_epi64(reinterpret_cast<const __m128i*>(&block.qs[offset]));
+		__m256i quantized_i32 = _mm256_cvtepi8_epi32(quantized_i8);
+		__m256 quantized_f32  = _mm256_cvtepi32_ps(quantized_i32);
+		return _mm256_mul_ps(scale_vec, quantized_f32);
+	}
+
 	template<> struct kernel_dispatcher_impl<device_types::cpu, 1, core_types::mega_qkv_prep_and_cache_publish, processing_phases::eval_time> {
+		template<typename core_type>
+		NIHILUS_INLINE static void process_chunk(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_chunk, int64_t current_block) {
+			auto& qkv_op = params.values.template get_core<mega_qkv_prep_and_cache_publish_types, mega_qkv_prep_and_cache_publish_types::q_out>();
+
+			auto& token_embd_core	 = get_adjacent_value<core_type::config, core_types::token_embeddings>::impl(params);
+			auto& global_inputs_core = get_adjacent_value<core_type::config, core_types::global_inputs>::impl(params);
+			auto& weights_core		 = get_adjacent_value<core_type::config, core_types::weights>::impl(params);
+
+			const auto* input_embeddings  = token_embd_core.values.template get_core<token_embedding_types, token_embedding_types::get_rows>().data;
+			const auto* q_weights		  = weights_core.values.template get_core<weight_types, weight_types::attn_q>().data[current_block];
+			const auto* attn_norm_weights = weights_core.values.template get_core<weight_types, weight_types::attn_norm>().data[current_block];
+			const auto* inp_pos			  = global_inputs_core.values.template get_core<global_input_types, global_input_types::inp_pos>().data;
+			const auto* rope_freqs		  = weights_core.values.template get_core<weight_types, weight_types::rope_freqs>().data;
+			auto* q_output				  = qkv_op.data;
+
+			constexpr uint64_t embedding_length		 = model_traits_type<core_type::config>::embedding_length;
+			constexpr uint64_t rope_dimension_count	 = model_traits_type<core_type::config>::rope_dimension_count;
+			constexpr uint64_t attention_head_count	 = model_traits_type<core_type::config>::attention_head_count;
+			constexpr uint64_t weight_blocks_per_row = (embedding_length + 31) / 32;
+
+			const auto* input_col  = input_embeddings;
+			const int32_t position = inp_pos[0];
+
+			alignas(cpu_alignment_holder::cpu_alignment) float normalized_input[embedding_length];
+
+			__m256 norm_sum_vec = _mm256_setzero_ps();
+			for (uint64_t i = 0; i < embedding_length; i += 8) {
+				__m256 input_vec = _mm256_loadu_ps(&input_col[i]);
+				norm_sum_vec	 = _mm256_fmadd_ps(input_vec, input_vec, norm_sum_vec);
+			}
+
+			float norm_sum		= hsum(norm_sum_vec);
+			__m256 rms_norm_vec = _mm256_set1_ps(1.0f / sqrtf(norm_sum / embedding_length + 1e-6f));
+
+			for (uint64_t i = 0; i < embedding_length; i += 8) {
+				__m256 input_vec			 = _mm256_loadu_ps(&input_col[i]);
+				__m256 rms_normalized		 = _mm256_mul_ps(input_vec, rms_norm_vec);
+				__m256 attn_norm_weights_vec = _mm256_loadu_ps(&attn_norm_weights[i]);
+				__m256 fully_normalized		 = _mm256_mul_ps(rms_normalized, attn_norm_weights_vec);
+				_mm256_store_ps(&normalized_input[i], fully_normalized);
+			}
+			constexpr uint64_t rope_pairs_count = rope_dimension_count / 2;
+			const uint64_t pairs_per_chunk		= (rope_pairs_count + thread_count - 1) / thread_count;
+			const uint64_t start_pair			= current_chunk * pairs_per_chunk;
+			const uint64_t end_pair				= detail::min(start_pair + pairs_per_chunk, rope_pairs_count);
+
+			for (uint64_t head = 0; head < attention_head_count; ++head) {
+				for (uint64_t pair_idx = start_pair; pair_idx < end_pair; ++pair_idx) {
+					uint64_t rope_pair	  = pair_idx * 2;
+					uint64_t linear_idx_0 = head * rope_dimension_count + rope_pair;
+					uint64_t linear_idx_1 = head * rope_dimension_count + rope_pair + 1;
+
+					const auto* weight_row_0 = q_weights + (linear_idx_0 * weight_blocks_per_row);
+					const auto* weight_row_1 = q_weights + (linear_idx_1 * weight_blocks_per_row);
+
+					__m256 dot_product_vec_0 = _mm256_setzero_ps();
+					__m256 dot_product_vec_1 = _mm256_setzero_ps();
+
+					for (uint64_t k = 0; k < embedding_length; k += 32) {
+						const auto& weight_block_0 = weight_row_0[k / 32];
+						const auto& weight_block_1 = weight_row_1[k / 32];
+						__m256 scale_vec_0		   = _mm256_set1_ps(static_cast<float>(weight_block_0.d));
+						__m256 scale_vec_1		   = _mm256_set1_ps(static_cast<float>(weight_block_1.d));
+
+						for (uint64_t j = 0; j < 32; j += 8) {
+							__m128i quantized_i8_0	= _mm_loadl_epi64(reinterpret_cast<const __m128i*>(&weight_block_0.qs[j]));
+							__m128i quantized_i8_1	= _mm_loadl_epi64(reinterpret_cast<const __m128i*>(&weight_block_1.qs[j]));
+							__m256i quantized_i32_0 = _mm256_cvtepi8_epi32(quantized_i8_0);
+							__m256i quantized_i32_1 = _mm256_cvtepi8_epi32(quantized_i8_1);
+							__m256 quantized_f32_0	= _mm256_cvtepi32_ps(quantized_i32_0);
+							__m256 quantized_f32_1	= _mm256_cvtepi32_ps(quantized_i32_1);
+							__m256 weight_vec_0		= _mm256_mul_ps(scale_vec_0, quantized_f32_0);
+							__m256 weight_vec_1		= _mm256_mul_ps(scale_vec_1, quantized_f32_1);
+
+							__m256 input_vec  = _mm256_load_ps(&normalized_input[k + j]);
+							dot_product_vec_0 = _mm256_fmadd_ps(input_vec, weight_vec_0, dot_product_vec_0);
+							dot_product_vec_1 = _mm256_fmadd_ps(input_vec, weight_vec_1, dot_product_vec_1);
+						}
+					}
+
+					float x = hsum(dot_product_vec_0);
+					float y = hsum(dot_product_vec_1);
+
+					float freq		= rope_freqs[pair_idx];
+					float angle		= position * freq;
+					float cos_angle = cosf(angle);
+					float sin_angle = sinf(angle);
+
+					float x_rotated = x * cos_angle - y * sin_angle;
+					float y_rotated = x * sin_angle + y * cos_angle;
+
+					uint64_t output_idx_0 = rope_pair * attention_head_count + head;
+					uint64_t output_idx_1 = (rope_pair + 1) * attention_head_count + head;
+
+					q_output[output_idx_0] = x_rotated;
+					q_output[output_idx_1] = y_rotated;
+				}
+			}
+		}
+
 		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {
+			int64_t current_chunk = params.current_chunk_eval[current_block].fetch_add(1);
+			if (current_chunk < thread_count) {
+				process_chunk(params, thread_index, thread_count, current_chunk, current_block);
+			}
+
 			params.latch_eval[current_block].fetch_sub(1);
 			params.latch_eval[current_block].wait();
-		};
+		}
 	};
 
 	template<> struct kernel_dispatcher_impl<device_types::cpu, 1, core_types::mega_qkv_prep_and_cache_publish, processing_phases::prompt_eval_time> {
+		template<typename core_type>
+		NIHILUS_INLINE static void process_chunk(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_chunk, int64_t current_block) {
+			auto& qkv_op = params.values.template get_core<mega_qkv_prep_and_cache_publish_types, mega_qkv_prep_and_cache_publish_types::q_out>();
+
+			auto& token_embd_core	 = get_adjacent_value<core_type::config, core_types::token_embeddings>::impl(params);
+			auto& global_inputs_core = get_adjacent_value<core_type::config, core_types::global_inputs>::impl(params);
+			auto& weights_core		 = get_adjacent_value<core_type::config, core_types::weights>::impl(params);
+
+			const auto* input_embeddings  = token_embd_core.values.template get_core<token_embedding_types, token_embedding_types::get_rows>().data;
+			const auto* q_weights		  = weights_core.values.template get_core<weight_types, weight_types::attn_q>().data[current_block];
+			const auto* attn_norm_weights = weights_core.values.template get_core<weight_types, weight_types::attn_norm>().data[current_block];
+			const auto* inp_pos			  = global_inputs_core.values.template get_core<global_input_types, global_input_types::inp_pos>().data;
+			const auto* rope_freqs		  = weights_core.values.template get_core<weight_types, weight_types::rope_freqs>().data;
+			auto* q_output				  = qkv_op.data;
+
+			constexpr uint64_t embedding_length		= model_traits_type<core_type::config>::embedding_length;
+			constexpr uint64_t rope_dimension_count = model_traits_type<core_type::config>::rope_dimension_count;
+			constexpr uint64_t attention_head_count = model_traits_type<core_type::config>::attention_head_count;
+			const uint64_t sequence_length			= params.runtime_dimension;
+
+			constexpr uint64_t weight_blocks_per_row  = (embedding_length + 31) / 32;
+			const uint64_t cache_budget				  = l1_cache_size / 2;
+			constexpr uint64_t normalized_input_bytes = embedding_length * sizeof(float);
+			const uint64_t seq_positions_per_chunk	  = detail::max(1ULL, cache_budget / normalized_input_bytes);
+
+			const uint64_t start_seq = current_chunk * seq_positions_per_chunk;
+			const uint64_t end_seq	 = detail::min(start_seq + seq_positions_per_chunk, sequence_length);
+
+			for (uint64_t seq_pos = start_seq; seq_pos < end_seq; ++seq_pos) {
+				const auto* input_col  = input_embeddings + (seq_pos * embedding_length);
+				const int32_t position = inp_pos[seq_pos];
+
+				alignas(cpu_alignment_holder::cpu_alignment) float normalized_input[embedding_length];
+
+				__m256 norm_sum_vec = _mm256_setzero_ps();
+				for (uint64_t i = 0; i < embedding_length; i += 8) {
+					__m256 input_vec = _mm256_loadu_ps(&input_col[i]);
+					norm_sum_vec	 = _mm256_fmadd_ps(input_vec, input_vec, norm_sum_vec);
+				}
+
+				float norm_sum		= hsum(norm_sum_vec);
+				__m256 rms_norm_vec = _mm256_set1_ps(1.0f / sqrtf(norm_sum / embedding_length + 1e-6f));
+
+				for (uint64_t i = 0; i < embedding_length; i += 8) {
+					__m256 input_vec			 = _mm256_loadu_ps(&input_col[i]);
+					__m256 rms_normalized		 = _mm256_mul_ps(input_vec, rms_norm_vec);
+					__m256 attn_norm_weights_vec = _mm256_loadu_ps(&attn_norm_weights[i]);
+					__m256 fully_normalized		 = _mm256_mul_ps(rms_normalized, attn_norm_weights_vec);
+					_mm256_store_ps(&normalized_input[i], fully_normalized);
+				}
+
+				for (uint64_t head = 0; head < attention_head_count; ++head) {
+					for (uint64_t rope_pair = 0; rope_pair < rope_dimension_count; rope_pair += 2) {
+						uint64_t linear_idx_0 = head * rope_dimension_count + rope_pair;
+						uint64_t linear_idx_1 = head * rope_dimension_count + rope_pair + 1;
+
+						const auto* weight_row_0 = q_weights + (linear_idx_0 * weight_blocks_per_row);
+						const auto* weight_row_1 = q_weights + (linear_idx_1 * weight_blocks_per_row);
+
+						__m256 dot_product_vec_0 = _mm256_setzero_ps();
+						__m256 dot_product_vec_1 = _mm256_setzero_ps();
+
+						for (uint64_t k = 0; k < embedding_length; k += 32) {
+							const auto& weight_block_0 = weight_row_0[k / 32];
+							const auto& weight_block_1 = weight_row_1[k / 32];
+							__m256 scale_vec_0		   = _mm256_set1_ps(static_cast<float>(weight_block_0.d));
+							__m256 scale_vec_1		   = _mm256_set1_ps(static_cast<float>(weight_block_1.d));
+
+							for (uint64_t j = 0; j < 32; j += 8) {
+								__m128i quantized_i8_0	= _mm_loadl_epi64(reinterpret_cast<const __m128i*>(&weight_block_0.qs[j]));
+								__m128i quantized_i8_1	= _mm_loadl_epi64(reinterpret_cast<const __m128i*>(&weight_block_1.qs[j]));
+								__m256i quantized_i32_0 = _mm256_cvtepi8_epi32(quantized_i8_0);
+								__m256i quantized_i32_1 = _mm256_cvtepi8_epi32(quantized_i8_1);
+								__m256 quantized_f32_0	= _mm256_cvtepi32_ps(quantized_i32_0);
+								__m256 quantized_f32_1	= _mm256_cvtepi32_ps(quantized_i32_1);
+								__m256 weight_vec_0		= _mm256_mul_ps(scale_vec_0, quantized_f32_0);
+								__m256 weight_vec_1		= _mm256_mul_ps(scale_vec_1, quantized_f32_1);
+
+								__m256 input_vec  = _mm256_load_ps(&normalized_input[k + j]);
+								dot_product_vec_0 = _mm256_fmadd_ps(input_vec, weight_vec_0, dot_product_vec_0);
+								dot_product_vec_1 = _mm256_fmadd_ps(input_vec, weight_vec_1, dot_product_vec_1);
+							}
+						}
+
+						float x = hsum(dot_product_vec_0);
+						float y = hsum(dot_product_vec_1);
+
+						float freq		= rope_freqs[rope_pair / 2];
+						float angle		= position * freq;
+						float cos_angle = cosf(angle);
+						float sin_angle = sinf(angle);
+
+						float x_rotated = x * cos_angle - y * sin_angle;
+						float y_rotated = x * sin_angle + y * cos_angle;
+
+						uint64_t output_idx_0 = rope_pair * (attention_head_count * sequence_length) + head * sequence_length + seq_pos;
+						uint64_t output_idx_1 = (rope_pair + 1) * (attention_head_count * sequence_length) + head * sequence_length + seq_pos;
+
+						q_output[output_idx_0] = x_rotated;
+						q_output[output_idx_1] = y_rotated;
+					}
+				}
+			}
+		}
+
 		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {
+			constexpr uint64_t embedding_length			  = model_traits_type<core_type::config>::embedding_length;
+			const uint64_t cache_budget					  = l1_cache_size / 2;
+			constexpr uint64_t input_row_bytes			  = embedding_length * sizeof(float);
+			constexpr uint64_t weight_blocks_per_row	  = (embedding_length + 31) / 32;
+			constexpr uint64_t weight_row_bytes			  = weight_blocks_per_row * sizeof(block_q8_0<half>);
+			constexpr uint64_t total_bytes_per_output_row = input_row_bytes + weight_row_bytes;
+			const uint64_t rows_per_chunk				  = detail::max(1ULL, cache_budget / total_bytes_per_output_row);
+
+			const int64_t chunk_count = (embedding_length + rows_per_chunk - 1) / rows_per_chunk;
+
+			int64_t current_chunk = params.current_chunk_prompt_eval[current_block].fetch_add(1);
+			for (; current_chunk < chunk_count; current_chunk = params.current_chunk_prompt_eval[current_block].fetch_add(1)) {
+				process_chunk(params, thread_index, thread_count, current_chunk, current_block);
+			}
+
 			params.latch_prompt_eval[current_block].fetch_sub(1);
 			params.latch_prompt_eval[current_block].wait();
-		};
+		}
 	};
 
 	template<> struct kernel_dispatcher_impl<device_types::cpu, 1, core_types::mega_attention_apply, processing_phases::eval_time> {
+		template<typename core_type> NIHILUS_INLINE static void process_chunk(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_chunk) {
+			// PROCESS DATA.
+		}
 		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {
+			int64_t chunk_count{ /* GET CHUNK COUNT */ };
+			int64_t current_chunk{ params.current_chunk_eval[current_block].fetch_add(1) };
+			for (; current_chunk < chunk_count; current_chunk = params.current_chunk_prompt_eval[current_block].fetch_add(1)) {
+				process_chunk(params, thread_index, thread_count, current_chunk);
+			}
 			params.latch_eval[current_block].fetch_sub(1);
 			params.latch_eval[current_block].wait();
-		};
+		}
 	};
 
 	template<> struct kernel_dispatcher_impl<device_types::cpu, 1, core_types::mega_attention_apply, processing_phases::prompt_eval_time> {
+		template<typename core_type> NIHILUS_INLINE static void process_chunk(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_chunk) {
+			// PROCESS DATA.
+		}
 		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {
+			int64_t chunk_count{ /* GET CHUNK COUNT */ };
+			int64_t current_chunk{ params.current_chunk_prompt_eval[current_block].fetch_add(1) };
+			for (; current_chunk < chunk_count; current_chunk = params.current_chunk_prompt_eval[current_block].fetch_add(1)) {
+				process_chunk(params, thread_index, thread_count, current_chunk);
+			}
 			params.latch_prompt_eval[current_block].fetch_sub(1);
 			params.latch_prompt_eval[current_block].wait();
-		};
+		}
 	};
 
 	template<> struct kernel_dispatcher_impl<device_types::cpu, 1, core_types::mega_ffn, processing_phases::eval_time> {
+		template<typename core_type> NIHILUS_INLINE static void process_chunk(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_chunk) {
+			// PROCESS DATA.
+		}
 		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {
+			int64_t chunk_count{ /* GET CHUNK COUNT */ };
+			int64_t current_chunk{ params.current_chunk_eval[current_block].fetch_add(1) };
+			for (; current_chunk < chunk_count; current_chunk = params.current_chunk_prompt_eval[current_block].fetch_add(1)) {
+				process_chunk(params, thread_index, thread_count, current_chunk);
+			}
 			params.latch_eval[current_block].fetch_sub(1);
 			params.latch_eval[current_block].wait();
-		};
+		}
 	};
 
 	template<> struct kernel_dispatcher_impl<device_types::cpu, 1, core_types::mega_ffn, processing_phases::prompt_eval_time> {
+		template<typename core_type> NIHILUS_INLINE static void process_chunk(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_chunk) {
+			// PROCESS DATA.
+		}
 		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {
+			int64_t chunk_count{ /* GET CHUNK COUNT */ };
+			int64_t current_chunk{ params.current_chunk_prompt_eval[current_block].fetch_add(1) };
+			for (; current_chunk < chunk_count; current_chunk = params.current_chunk_prompt_eval[current_block].fetch_add(1)) {
+				process_chunk(params, thread_index, thread_count, current_chunk);
+			}
 			params.latch_prompt_eval[current_block].fetch_sub(1);
 			params.latch_prompt_eval[current_block].wait();
-		};
+		}
 	};
 
 	template<> struct kernel_dispatcher_impl<device_types::cpu, 1, core_types::final_norm_and_sampling, processing_phases::eval_time> {
+		template<typename core_type> NIHILUS_INLINE static void process_chunk(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_chunk) {
+			// PROCESS DATA.
+		}
 		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count) {
+			int64_t chunk_count{ /* GET CHUNK COUNT */ };
+			int64_t current_chunk{ params.current_chunk_eval.fetch_add(1) };
+			for (; current_chunk < chunk_count; current_chunk = params.current_chunk_prompt_eval.fetch_add(1)) {
+				process_chunk(params, thread_index, thread_count, current_chunk);
+			}
 			params.latch_eval.fetch_sub(1);
 			params.latch_eval.wait();
-		};
+		}
 	};
 
 	template<> struct kernel_dispatcher_impl<device_types::cpu, 1, core_types::final_norm_and_sampling, processing_phases::prompt_eval_time> {
+		template<typename core_type> NIHILUS_INLINE static void process_chunk(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_chunk) {
+			// PROCESS DATA.
+		}
 		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count) {
+			int64_t chunk_count{ /* GET CHUNK COUNT */ };
+			int64_t current_chunk{ params.current_chunk_prompt_eval.fetch_add(1) };
+			for (; current_chunk < chunk_count; current_chunk = params.current_chunk_prompt_eval.fetch_add(1)) {
+				process_chunk(params, thread_index, thread_count, current_chunk);
+			}
 			params.latch_prompt_eval.fetch_sub(1);
 			params.latch_prompt_eval.wait();
-		};
+		}
 	};
 
 	/*

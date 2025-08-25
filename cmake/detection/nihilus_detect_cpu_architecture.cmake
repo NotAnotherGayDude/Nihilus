@@ -18,29 +18,29 @@
 # */
 
 if (UNIX OR APPLE)
-    file(WRITE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/BuildFeatureTesterArch.sh" "#!/bin/bash
-\"${CMAKE_COMMAND}\" -S ./ -B ./Build-Arch -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DNIHILUS_DETECT_ARCH=TRUE
+    file(WRITE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/detection/BuildFeatureTesterArch.sh" "#!/bin/bash
+\"${CMAKE_COMMAND}\" -S ./ -B ./Build-Arch -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DNIHILUS_DETECT_CPU_ARCH=TRUE
 \"${CMAKE_COMMAND}\" --build ./Build-Arch --config=Release")
     execute_process(
-        COMMAND chmod +x "${CMAKE_CURRENT_SOURCE_DIR}/cmake/BuildFeatureTesterArch.sh"
+        COMMAND chmod +x "${CMAKE_CURRENT_SOURCE_DIR}/cmake/detection/BuildFeatureTesterArch.sh"
         RESULT_VARIABLE CHMOD_RESULT
     )
     if(NOT ${CHMOD_RESULT} EQUAL 0)
         message(FATAL_ERROR "Failed to set executable permissions for BuildFeatureTesterArch.sh")
     endif()
     execute_process(
-        COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/cmake/BuildFeatureTesterArch.sh"
-        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/cmake"
+        COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/cmake/detection/BuildFeatureTesterArch.sh"
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/cmake/detection"
     )
-    set(FEATURE_TESTER_FILE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Build-Arch/feature_detector")
+    set(FEATURE_TESTER_FILE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/detection/Build-Arch/feature_detector")
 elseif(WIN32)
-    file(WRITE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/BuildFeatureTesterArch.bat" "\"${CMAKE_COMMAND}\" -S ./ -B ./Build-Arch -DCMAKE_BUILD_TYPE=Release  -DNIHILUS_DETECT_ARCH=TRUE
+    file(WRITE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/detection/BuildFeatureTesterArch.bat" "\"${CMAKE_COMMAND}\" -S ./ -B ./Build-Arch -DCMAKE_BUILD_TYPE=Release  -DNIHILUS_DETECT_CPU_ARCH=TRUE
 \"${CMAKE_COMMAND}\" --build ./Build-Arch --config=Release")
     execute_process(
-        COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/cmake/BuildFeatureTesterArch.bat"
-        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/cmake"
+        COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/cmake/detection/BuildFeatureTesterArch.bat"
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/cmake/detection"
     )
-    set(FEATURE_TESTER_FILE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/Build-Arch/Release/feature_detector.exe")
+    set(FEATURE_TESTER_FILE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/detection/Build-Arch/Release/feature_detector.exe")
 endif()
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
@@ -62,7 +62,7 @@ if (NOT NIHILUS_CPU_INSTRUCTIONS)
         RESULT_VARIABLE NIHILUS_CPU_INSTRUCTIONS_NEW
     )
 
-    set(SIMD_FLAG "")
+    set(NIHILUS_SIMD_FLAGS "")
 
     math(EXPR NIHILUS_CPU_INSTRUCTIONS_NUMERIC "${NIHILUS_CPU_INSTRUCTIONS_NEW}")
     math(EXPR NIHILUS_CPU_INSTRUCTIONS 0)
@@ -74,49 +74,48 @@ if (NOT NIHILUS_CPU_INSTRUCTIONS)
     if(INSTRUCTION_PRESENT_SVE2)
         set(NIHILUS_CPU_INSTRUCTIONS 4)
         set(NIHILUS_CPU_ALIGNMENT 64)
-        set(SIMD_FLAG "${NIHILUS_SVE2_FLAGS}")
+        set(NIHILUS_SIMD_FLAGS "${NIHILUS_SVE2_FLAGS}")
     elseif(INSTRUCTION_PRESENT_AVX512)
         set(NIHILUS_CPU_INSTRUCTIONS 2)
         set(NIHILUS_CPU_ALIGNMENT 64)
-        set(SIMD_FLAG "${NIHILUS_AVX512_FLAGS}")
+        set(NIHILUS_SIMD_FLAGS "${NIHILUS_AVX512_FLAGS}")
     elseif(INSTRUCTION_PRESENT_NEON)
         set(NIHILUS_CPU_ALIGNMENT 16)
         set(NIHILUS_CPU_INSTRUCTIONS 3)
-        set(SIMD_FLAG "${NIHILUS_NEON_FLAGS}")
+        set(NIHILUS_SIMD_FLAGS "${NIHILUS_NEON_FLAGS}")
     elseif(INSTRUCTION_PRESENT_AVX2)
         set(NIHILUS_CPU_ALIGNMENT 32)
         set(NIHILUS_CPU_INSTRUCTIONS 1)
-        set(SIMD_FLAG "${NIHILUS_AVX2_FLAGS}")
+        set(NIHILUS_SIMD_FLAGS "${NIHILUS_AVX2_FLAGS}")
     else()
         set(NIHILUS_CPU_INSTRUCTIONS 0)
         set(NIHILUS_CPU_ALIGNMENT 8)
-    endif()    
-
+    endif()
 endif()
 
 if(NIHILUS_CPU_INSTRUCTIONS EQUAL 4)
-    set(SIMD_FLAG "${NIHILUS_SVE2_FLAGS}")
+    set(NIHILUS_SIMD_FLAGS "${NIHILUS_SVE2_FLAGS}")
     set(INSTRUCTION_SET_NAME "SVE2")
 elseif(NIHILUS_CPU_INSTRUCTIONS EQUAL 2)
-    set(SIMD_FLAG "${NIHILUS_AVX512_FLAGS}")
+    set(NIHILUS_SIMD_FLAGS "${NIHILUS_AVX512_FLAGS}")
     set(INSTRUCTION_SET_NAME "AVX512")
 elseif(NIHILUS_CPU_INSTRUCTIONS EQUAL 3)
-    set(SIMD_FLAG "${NIHILUS_NEON_FLAGS}")
+    set(NIHILUS_SIMD_FLAGS "${NIHILUS_NEON_FLAGS}")
     set(INSTRUCTION_SET_NAME "NEON")
 elseif(NIHILUS_CPU_INSTRUCTIONS EQUAL 1)
-    set(SIMD_FLAG "${NIHILUS_AVX2_FLAGS}")
+    set(NIHILUS_SIMD_FLAGS "${NIHILUS_AVX2_FLAGS}")
     set(INSTRUCTION_SET_NAME "AVX2")
 else()
     set(NIHILUS_CPU_INSTRUCTIONS 0)
     set(INSTRUCTION_SET_NAME "NONE")
 endif()
 
-    set(SIMD_FLAG "${SIMD_FLAG}" CACHE STRING "SIMD flags" FORCE)
-    set(NIHILUS_CPU_INSTRUCTIONS "${NIHILUS_CPU_INSTRUCTIONS}" CACHE STRING "CPU Instruction Sets" FORCE)
-    set(NIHILUS_CPU_ALIGNMENT "${NIHILUS_CPU_ALIGNMENT}" CACHE STRING "CPU Alignment" FORCE)    
+set(NIHILUS_SIMD_FLAGS "${NIHILUS_SIMD_FLAGS}" CACHE STRING "SIMD flags" FORCE)
+set(NIHILUS_CPU_INSTRUCTIONS "${NIHILUS_CPU_INSTRUCTIONS}" CACHE STRING "CPU Instruction Sets" FORCE)
+set(NIHILUS_CPU_ALIGNMENT "${NIHILUS_CPU_ALIGNMENT}" CACHE STRING "CPU Alignment" FORCE)
 
 configure_file(
-    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/nihilus_cpu_instructions.hpp.in"
-    "${CMAKE_CURRENT_SOURCE_DIR}/include/nihilus-incl/cpu/simd/nihilus_cpu_instructions.hpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/detection/nihilus_cpu_instructions.hpp.in"
+    "${CMAKE_CURRENT_SOURCE_DIR}/include/nihilus-incl/cpu/nihilus_cpu_instructions.hpp"
     @ONLY
 )

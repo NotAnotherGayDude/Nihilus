@@ -41,9 +41,15 @@ namespace nihilus {
 			(impl_internal_filtered_thread<mixin_type, bases, values...>(args...), ...);
 		}
 
-		template<enum_types enum_type, enum_type enum_value> constexpr decltype(auto) get_core() noexcept {
+		template<enum_types enum_type, enum_type enum_value> NIHILUS_INLINE decltype(auto) get_core() noexcept {
 			return (*this)[tag<enum_value>()];
 		}
+
+		template<enum_types enum_type, enum_type enum_value> NIHILUS_INLINE static decltype(auto) get_core_for_type() noexcept {
+			return core_bases{}.operator[](tag<enum_value>());
+		}
+
+		template<enum_types enum_type, enum_type enum_value> using get_core_type = decltype(get_core_for_type<enum_type, enum_value>());
 
 	  protected:
 

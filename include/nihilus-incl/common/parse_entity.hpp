@@ -39,12 +39,10 @@ namespace nihilus {
 
 	template<typename value_type> using remove_member_pointer_t = typename decompose_types<value_type>::class_type;
 
-	template<typename value_type_new, auto element> NIHILUS_INLINE decltype(auto) get_member(value_type_new& value) {
+	template<auto element, typename value_type_new> NIHILUS_INLINE decltype(auto) get_member(value_type_new& value) {
 		using value_type = detail::remove_cvref_t<decltype(element)>;
 		if constexpr (std::is_member_object_pointer_v<value_type>) {
 			return value.*element;
-		} else if constexpr (std::is_member_function_pointer_v<value_type>) {
-			return element;
 		} else if constexpr (std::is_pointer_v<value_type>) {
 			return *element;
 		} else {
@@ -52,7 +50,7 @@ namespace nihilus {
 		}
 	}
 
-	template<typename value_type> struct parse_core {};
+	template<typename value_type> struct parse_core;
 
 	template<auto member_ptr_new, string_literal name_new> struct parse_entity {
 		using member_type = remove_class_pointer_t<decltype(member_ptr_new)>;
@@ -98,11 +96,10 @@ namespace nihilus {
 		if constexpr (current_index >= tuple_size) {
 			return std::numeric_limits<uint64_t>::max();
 		} else {
-			constexpr auto element = get<current_index>(parse_core<value_type>::parse_value);
+			constexpr auto element_name = get<current_index>(parse_core<value_type>::parse_value).name;
 
-			constexpr auto element_name = element.name;
 			if (length == element_name.size()) {
-				if (string_literal_comparison<element_name>(start)) {
+				if (string_literal_comparitor<element_name>::impl(start)) {
 					return current_index;
 				}
 			}

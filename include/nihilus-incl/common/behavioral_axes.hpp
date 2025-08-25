@@ -30,30 +30,10 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-	enum class thread_strategy_types : uint8_t {
-		none,
-		global_input,
-		global_output,
-		per_block,
-	};
-
-	enum class allocation_strategy_types : uint8_t {
-		none,
-		mmap,
-		remap,
-		alloc,
-	};
-
-	enum class data_strategy_types : uint8_t {
-		none,
-		global,
-		per_block,
-	};
-
 	using namespace std::chrono_literals;
 
-	NIHILUS_INLINE void spinlock_nanoseconds(uint64_t nanoseconds) {
-#if defined(NIHILUS_PLATFORM_WINDOWS)
+	NIHILUS_INLINE static void spinlock_nanoseconds(uint64_t nanoseconds) {
+#if NIHILUS_PLATFORM_WINDOWS
 		auto start = clock_type::now();
 		auto end   = clock_type::now();
 		do {
@@ -244,7 +224,6 @@ namespace nihilus {
 		NIHILUS_INLINE global_input_thread_function& operator=(global_input_thread_function&&) noexcept		 = delete;
 		NIHILUS_INLINE global_input_thread_function(global_input_thread_function&&) noexcept				 = delete;
 		using base_type																						 = base_type_new;
-		using return_type																					 = bool;
 		NIHILUS_INLINE static constexpr bool filter() {
 			return base_type::core_type == core_types::token_embeddings;
 		}
@@ -275,7 +254,6 @@ namespace nihilus {
 		NIHILUS_INLINE per_block_thread_function& operator=(per_block_thread_function&&) noexcept	   = delete;
 		NIHILUS_INLINE per_block_thread_function(per_block_thread_function&&) noexcept				   = delete;
 		using base_type																				   = base_type_new;
-		using return_type																			   = bool;
 		NIHILUS_INLINE static constexpr bool filter() {
 			return base_type::core_type != core_types::weights && base_type::core_type != core_types::global_inputs &&
 				base_type::core_type != core_types::final_norm_and_sampling && base_type::core_type != core_types::token_embeddings;
@@ -306,7 +284,6 @@ namespace nihilus {
 		NIHILUS_INLINE global_output_thread_function& operator=(global_output_thread_function&&) noexcept	   = delete;
 		NIHILUS_INLINE global_output_thread_function(global_output_thread_function&&) noexcept				   = delete;
 		using base_type																						   = base_type_new;
-		using return_type																					   = bool;
 		NIHILUS_INLINE static constexpr bool filter() {
 			return base_type::core_type == core_types::final_norm_and_sampling;
 		}
