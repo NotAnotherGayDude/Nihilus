@@ -36,7 +36,15 @@ namespace nihilus {
 	};
 
 	template<> struct kernel_dispatcher_impl<device_types::cpu, 1, core_types::token_embeddings, processing_phases::prompt_eval_time> {
+		template<typename core_type> NIHILUS_INLINE static void process_chunk(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_chunk) {
+			/// PROCESS DATA.
+		}
 		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count) {
+			int64_t chunk_count{ /* GET CHUNK COUNT */ };
+			int64_t current_chunk{ params.current_chunk_prompt_eval.fetch_add(1) };
+			for (; current_chunk < chunk_count; current_chunk = params.current_chunk_prompt_eval.fetch_add(1)) {
+				process_chunk(params, thread_index, thread_count, current_chunk);
+			}
 			params.latch_prompt_eval.fetch_sub(1);
 			params.latch_prompt_eval.wait();
 		};
