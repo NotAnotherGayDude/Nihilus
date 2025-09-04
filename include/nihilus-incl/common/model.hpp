@@ -204,7 +204,7 @@ namespace nihilus {
 				int64_t total_time_ns = perf_base<config_new>::perf_stats.total_prompt_eval_time_ns + perf_base<config_new>::perf_stats.total_eval_time_ns;
 				int32_t total_tokens  = perf_base<config_new>::perf_stats.prompt_token_count + perf_base<config_new>::perf_stats.generated_token_count;
 
-				std::cout << "\n=== HONEST NIHILUS TIMING ===" << std::endl;
+				std::cout << "\n=== NIHILUS TIMING ===" << std::endl;
 				std::cout << "nihilus_perf_context_print:        load time = " << perf_base<config_new>::perf_stats.total_load_time_ns * 1e-6 << " ms" << std::endl;
 				std::cout << "nihilus_perf_context_print: prompt eval time = " << perf_base<config_new>::perf_stats.total_prompt_eval_time_ns * 1e-6 << " ms / "
 						  << perf_base<config_new>::perf_stats.prompt_token_count << " tokens ("

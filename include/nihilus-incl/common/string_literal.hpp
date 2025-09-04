@@ -47,14 +47,14 @@ namespace nihilus {
 			for (uint64_t x = 0; x < length; ++x) {
 				values[x] = str[x];
 			}
-			values[length] = '\0';
+			values[static_cast<int64_t>(length)] = '\0';
 		}
 
 		NIHILUS_INLINE explicit constexpr string_literal(const char* str) noexcept {
 			for (uint64_t x = 0; x < length; ++x) {
 				values[x] = str[x];
 			}
-			values[length] = '\0';
+			values[static_cast<int64_t>(length)] = '\0';
 		}
 
 		NIHILUS_INLINE constexpr const_pointer data() const noexcept {

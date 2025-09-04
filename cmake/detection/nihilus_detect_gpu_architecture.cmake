@@ -18,104 +18,91 @@
 # */
 
 if (UNIX OR APPLE)
-    file(WRITE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/detection/BuildFeatureTesterArch.sh" "#!/bin/bash
-\"${CMAKE_COMMAND}\" -S ./ -B ./Build-Arch -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DNIHILUS_DETECT_GPU_ARCH=TRUE
-\"${CMAKE_COMMAND}\" --build ./Build-Arch --config=Release")
+    file(WRITE "${CMAKE_SOURCE_DIR}/cmake/detection/BuildFeatureTesterArchCuda.sh" "#!/bin/bash
+\"${CMAKE_COMMAND}\" -S ./ -B ./Build-Arch-Cuda -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DNIHILUS_DETECT_GPU_ARCH=TRUE
+\"${CMAKE_COMMAND}\" --build ./Build-Arch-Cuda  --config=Release")
     execute_process(
-        COMMAND chmod +x "${CMAKE_CURRENT_SOURCE_DIR}/cmake/detection/BuildFeatureTesterArch.sh"
+        COMMAND chmod +x "${CMAKE_SOURCE_DIR}/cmake/detection/BuildFeatureTesterArchCuda.sh"
         RESULT_VARIABLE CHMOD_RESULT
     )
     if(NOT ${CHMOD_RESULT} EQUAL 0)
-        message(FATAL_ERROR "Failed to set executable permissions for BuildFeatureTesterArch.sh")
+        message(FATAL_ERROR "Failed to set executable permissions for BuildFeatureTesterArchCuda.sh")
     endif()
     execute_process(
-        COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/cmake/detection/BuildFeatureTesterArch.sh"
-        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/cmake/detection"
+        COMMAND "${CMAKE_SOURCE_DIR}/cmake/detection/BuildFeatureTesterArchCuda.sh"
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/cmake/detection"
     )
-    set(FEATURE_TESTER_FILE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/detection/Build-Arch/feature_detector")
+    set(FEATURE_TESTER_FILE "${CMAKE_SOURCE_DIR}/cmake/detection/Build-Arch-Cuda/feature_detector")
 elseif(WIN32)
-    file(WRITE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/detection/BuildFeatureTesterArch.bat" "\"${CMAKE_COMMAND}\" -S ./ -B ./Build-Arch -DCMAKE_BUILD_TYPE=Release  -DNIHILUS_DETECT_GPU_ARCH=TRUE
-\"${CMAKE_COMMAND}\" --build ./Build-Arch --config=Release")
+    file(WRITE "${CMAKE_SOURCE_DIR}/cmake/detection/BuildFeatureTesterArchCuda.bat" "\"${CMAKE_COMMAND}\" -S ./ -B ./Build-Arch-Cuda  -DCMAKE_BUILD_TYPE=Release  -DNIHILUS_DETECT_GPU_ARCH=TRUE
+\"${CMAKE_COMMAND}\" --build ./Build-Arch-Cuda  --config=Release")
     execute_process(
-        COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/cmake/detection/BuildFeatureTesterArch.bat"
-        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/cmake/detection"
+        COMMAND "${CMAKE_SOURCE_DIR}/cmake/detection/BuildFeatureTesterArchCuda.bat"
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/cmake/detection"
     )
-    set(FEATURE_TESTER_FILE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/detection/Build-Arch/Release/feature_detector.exe")
+    set(FEATURE_TESTER_FILE "${CMAKE_SOURCE_DIR}/cmake/detection/Build-Arch-Cuda/Release/feature_detector.exe")
 endif()
 
-if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    set(NIHILUS_AVX2_FLAGS "/arch:AVX2")
-    set(NIHILUS_AVX512_FLAGS "/arch:AVX512")
-    set(NIHILUS_NEON_FLAGS "")
-    set(NIHILUS_SVE2_FLAGS "")
-else()
-    set(NIHILUS_AVX2_FLAGS "-mfma;-mavx2;-mavx;-mlzcnt;-mpopcnt;-mbmi;-mbmi2;-msse4.2;-mf16c")
-    set(NIHILUS_AVX512_FLAGS "-mavx512f;-mfma;-mavx2;-mavx;-mlzcnt;-mpopcnt;-mbmi;-mbmi2;-msse4.2;-mf16c")
-    set(NIHILUS_NEON_FLAGS "-march=armv8-a")
-    set(NIHILUS_SVE2_FLAGS "-march=armv8-a+sve;-msve-vector-bits=scalable;-march=armv8-a+sve+sve2")
-endif()
+set(NIHILUS_CUDA_9_FLAGS "cuda_9")
+set(NIHILUS_CUDA_10_FLAGS "cuda_10")
+set(NIHILUS_CUDA_11_FLAGS "cuda_11")
+set(NIHILUS_CUDA_12_FLAGS "cuda_12")
 
-if (NOT NIHILUS_CPU_INSTRUCTIONS)
+if (NOT NIHILUS_GPU_INSTRUCTIONS)
 
     execute_process(
         COMMAND "${FEATURE_TESTER_FILE}"
-        RESULT_VARIABLE NIHILUS_CPU_INSTRUCTIONS_NEW
+        RESULT_VARIABLE NIHILUS_GPU_INSTRUCTIONS_NEW
     )
 
-    set(NIHILUS_SIMD_FLAGS "")
+    set(NIHILUS_GPU_FLAGS "")
 
-    math(EXPR NIHILUS_CPU_INSTRUCTIONS_NUMERIC "${NIHILUS_CPU_INSTRUCTIONS_NEW}")
-    math(EXPR NIHILUS_CPU_INSTRUCTIONS 0)
-    math(EXPR INSTRUCTION_PRESENT_SVE2 "(${NIHILUS_CPU_INSTRUCTIONS_NUMERIC} & 0x8)")
-    math(EXPR INSTRUCTION_PRESENT_AVX512 "(${NIHILUS_CPU_INSTRUCTIONS_NUMERIC} & 0x2)")
-    math(EXPR INSTRUCTION_PRESENT_NEON "(${NIHILUS_CPU_INSTRUCTIONS_NUMERIC} & 0x4)")
-    math(EXPR INSTRUCTION_PRESENT_AVX2 "(${NIHILUS_CPU_INSTRUCTIONS_NUMERIC} & 0x1)")
+    math(EXPR NIHILUS_GPU_INSTRUCTIONS_NUMERIC "${NIHILUS_GPU_INSTRUCTIONS_NEW}")
+    math(EXPR NIHILUS_GPU_INSTRUCTIONS 0)
+    math(EXPR INSTRUCTION_PRESENT_CUDA_12 "(${NIHILUS_GPU_INSTRUCTIONS_NUMERIC} & 0x8)")
+    math(EXPR INSTRUCTION_PRESENT_CUDA_11 "(${NIHILUS_GPU_INSTRUCTIONS_NUMERIC} & 0x4)")
+    math(EXPR INSTRUCTION_PRESENT_CUDA_10 "(${NIHILUS_GPU_INSTRUCTIONS_NUMERIC} & 0x2)")
+    math(EXPR INSTRUCTION_PRESENT_CUDA_9 "(${NIHILUS_GPU_INSTRUCTIONS_NUMERIC} & 0x1)")
 
-    if(INSTRUCTION_PRESENT_SVE2)
-        set(NIHILUS_CPU_INSTRUCTIONS 4)
-        set(NIHILUS_CPU_ALIGNMENT 64)
-        set(NIHILUS_SIMD_FLAGS "${NIHILUS_SVE2_FLAGS}")
-    elseif(INSTRUCTION_PRESENT_AVX512)
-        set(NIHILUS_CPU_INSTRUCTIONS 2)
-        set(NIHILUS_CPU_ALIGNMENT 64)
-        set(NIHILUS_SIMD_FLAGS "${NIHILUS_AVX512_FLAGS}")
-    elseif(INSTRUCTION_PRESENT_NEON)
-        set(NIHILUS_CPU_ALIGNMENT 16)
-        set(NIHILUS_CPU_INSTRUCTIONS 3)
-        set(NIHILUS_SIMD_FLAGS "${NIHILUS_NEON_FLAGS}")
-    elseif(INSTRUCTION_PRESENT_AVX2)
-        set(NIHILUS_CPU_ALIGNMENT 32)
-        set(NIHILUS_CPU_INSTRUCTIONS 1)
-        set(NIHILUS_SIMD_FLAGS "${NIHILUS_AVX2_FLAGS}")
+    if(INSTRUCTION_PRESENT_CUDA_9)
+        set(NIHILUS_GPU_INSTRUCTIONS 1)
+        set(NIHILUS_GPU_FLAGS "${NIHILUS_CUDA_9_FLAGS}")
+    elseif(INSTRUCTION_PRESENT_CUDA_10)
+        set(NIHILUS_GPU_INSTRUCTIONS 2)
+        set(NIHILUS_GPU_FLAGS "${NIHILUS_CUDA_10_FLAGS}")
+    elseif(INSTRUCTION_PRESENT_CUDA_11)
+        set(NIHILUS_GPU_INSTRUCTIONS 3)
+        set(NIHILUS_GPU_FLAGS "${NIHILUS_CUDA_11_FLAGS}")
+    elseif(INSTRUCTION_PRESENT_CUDA_12)
+        set(NIHILUS_GPU_INSTRUCTIONS 4)
+        set(NIHILUS_GPU_FLAGS "${NIHILUS_CUDA_12_FLAGS}")
     else()
-        set(NIHILUS_CPU_INSTRUCTIONS 0)
-        set(NIHILUS_CPU_ALIGNMENT 8)
+        set(NIHILUS_GPU_INSTRUCTIONS 0)
     endif()
 endif()
 
-if(NIHILUS_CPU_INSTRUCTIONS EQUAL 4)
-    set(NIHILUS_SIMD_FLAGS "${NIHILUS_SVE2_FLAGS}")
-    set(INSTRUCTION_SET_NAME "SVE2")
-elseif(NIHILUS_CPU_INSTRUCTIONS EQUAL 2)
-    set(NIHILUS_SIMD_FLAGS "${NIHILUS_AVX512_FLAGS}")
-    set(INSTRUCTION_SET_NAME "AVX512")
-elseif(NIHILUS_CPU_INSTRUCTIONS EQUAL 3)
-    set(NIHILUS_SIMD_FLAGS "${NIHILUS_NEON_FLAGS}")
-    set(INSTRUCTION_SET_NAME "NEON")
-elseif(NIHILUS_CPU_INSTRUCTIONS EQUAL 1)
-    set(NIHILUS_SIMD_FLAGS "${NIHILUS_AVX2_FLAGS}")
-    set(INSTRUCTION_SET_NAME "AVX2")
+if(NIHILUS_GPU_INSTRUCTIONS EQUAL 1)
+    set(NIHILUS_GPU_FLAGS "${NIHILUS_CUDA_9_FLAGS}")
+    set(INSTRUCTION_SET_NAME "CUDA_9")
+elseif(NIHILUS_GPU_INSTRUCTIONS EQUAL 2)
+    set(NIHILUS_GPU_FLAGS "${NIHILUS_CUDA_10_FLAGS}")
+    set(INSTRUCTION_SET_NAME "CUDA_10")
+elseif(NIHILUS_GPU_INSTRUCTIONS EQUAL 3)
+    set(NIHILUS_GPU_FLAGS "${NIHILUS_CUDA_11_FLAGS}")
+    set(INSTRUCTION_SET_NAME "CUDA_11")
+elseif(NIHILUS_GPU_INSTRUCTIONS EQUAL 4)
+    set(NIHILUS_GPU_FLAGS "${NIHILUS_CUDA_12_FLAGS}")
+    set(INSTRUCTION_SET_NAME "CUDA_12")
 else()
-    set(NIHILUS_CPU_INSTRUCTIONS 0)
+    set(NIHILUS_GPU_INSTRUCTIONS 0)
     set(INSTRUCTION_SET_NAME "NONE")
 endif()
 
-set(NIHILUS_SIMD_FLAGS "${NIHILUS_SIMD_FLAGS}" CACHE STRING "SIMD flags" FORCE)
-set(NIHILUS_CPU_INSTRUCTIONS "${NIHILUS_CPU_INSTRUCTIONS}" CACHE STRING "CPU Instruction Sets" FORCE)
-set(NIHILUS_CPU_ALIGNMENT "${NIHILUS_CPU_ALIGNMENT}" CACHE STRING "CPU Alignment" FORCE)
+set(NIHILUS_GPU_FLAGS "${NIHILUS_GPU_FLAGS}" CACHE STRING "GPU flags" FORCE)
+set(NIHILUS_GPU_INSTRUCTIONS "${NIHILUS_GPU_INSTRUCTIONS}" CACHE STRING "GPU Instruction Sets" FORCE)
 
 configure_file(
-    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/detection/nihilus_cpu_instructions.hpp.in"
-    "${CMAKE_CURRENT_SOURCE_DIR}/include/nihilus-incl/cpu/nihilus_cpu_instructions.hpp"
+    "${CMAKE_SOURCE_DIR}/cmake/detection/nihilus_gpu_instructions.hpp.in"
+    "${CMAKE_SOURCE_DIR}/include/nihilus-incl/cuda/nihilus_gpu_instructions.hpp"
     @ONLY
 )

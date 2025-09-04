@@ -1,42 +1,31 @@
-enable_language(CUDA)
+# Copyright (c) 2025 RealTimeChris (Chris M.)
+# 
+# This file is part of software offered under a restricted-use license to a designated Licensee,
+# whose identity is confirmed in writing by the Author.
+# 
+# License Terms (Summary):
+# - Exclusive, non-transferable license for internal use only.
+# - Redistribution, sublicensing, or public disclosure is prohibited without written consent.
+# - Full ownership remains with the Author.
+# - License may terminate if unused for [X months], if materially breached, or by mutual agreement.
+# - No warranty is provided, express or implied.
+# 
+# Full license terms are provided in the LICENSE file distributed with this software.
+# 
+# Signed,
+# RealTimeChris (Chris M.)
+# 2025
+# */
+
 find_package(CUDAToolkit REQUIRED)
 
-file(GLOB_RECURSE NIHILUS_CUDA_SOURCES CONFIGURE_DEPENDS 
-    "${CMAKE_SOURCE_DIR}/src/cuda/*.cu"
-)
+include("${CMAKE_SOURCE_DIR}/cmake/detection/nihilus_detect_gpu_architecture.cmake")
 
-file(GLOB_RECURSE NIHILUS_CUDA_HEADERS CONFIGURE_DEPENDS 
-    "${CMAKE_SOURCE_DIR}/include/nihilus-incl/cuda/*.cuh"
-)
+message(STATUS "CUDA Architecture: ${NIHILUS_GPU_FLAGS}")
 
-message(STATUS "CUDA: ${CUDAARCHS}")
-
-add_library("${PROJECT_NAME}-cuda" STATIC "${NIHILUS_CUDA_SOURCES}")
+add_library("${PROJECT_NAME}-cuda" INTERFACE)
 add_library("${PROJECT_NAME}::${PROJECT_NAME}-cuda" ALIAS "${PROJECT_NAME}-cuda")
 
-target_include_directories(
-    "${PROJECT_NAME}-cuda" PUBLIC
-    "$<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include/>"
-    "$<INSTALL_INTERFACE:include/>"
-)
-
-target_link_options("${PROJECT_NAME}-cuda" PUBLIC
-    "$<$<PLATFORM_ID:Linux>:${NIHILUS_LINUX_LINK_OPTIONS}>"
-    "$<$<PLATFORM_ID:Darwin>:${NIHILUS_MACOS_LINK_OPTIONS}>"
-    "$<$<PLATFORM_ID:Windows>:${NIHILUS_WINDOWS_LINK_OPTIONS}>"
-)
-
-target_compile_definitions(
-    "${PROJECT_NAME}-cuda" PUBLIC
-    "${NIHILUS_COMMON_COMPILE_DEFITIONS}"
-    "${NIHILUS_MSVC_COMPILE_DEFITIONS}"
-)
-    
-set_property(TARGET "${PROJECT_NAME}-cuda" PROPERTY CUDA_STANDARD 20)
-set_property(TARGET "${PROJECT_NAME}-cuda" PROPERTY CUDA_STANDARD_REQUIRED ON)
-    
-target_link_libraries("${PROJECT_NAME}-cuda" PUBLIC
+target_link_libraries("${PROJECT_NAME}-cuda" INTERFACE 
     CUDA::cudart
-    CUDA::cublas
-    CUDA::cusparse
 )

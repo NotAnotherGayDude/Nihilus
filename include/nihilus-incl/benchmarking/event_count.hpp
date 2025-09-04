@@ -25,7 +25,7 @@ RealTimeChris (Chris M.)
 #include <optional>
 #include <chrono>
 
-namespace nihilus::benchmarking::internal {
+namespace nihilus::benchmarking {
 
 	struct event_count {
 		template<typename value_type> friend struct event_collector_type;
@@ -36,63 +36,63 @@ namespace nihilus::benchmarking::internal {
 			return std::chrono::duration<double, std::nano>(elapsed).count();
 		}
 
-		NIHILUS_INLINE bool bytesProcessed(uint64_t& bytesProcessedNew) const noexcept {
+		NIHILUS_INLINE bool byes_processed(uint64_t& byes_processed_new) const noexcept {
 			if (bytes_processed_val.has_value()) {
-				bytesProcessedNew = bytes_processed_val.value();
+				byes_processed_new = bytes_processed_val.value();
 				return true;
 			} else {
 				return false;
 			}
 		}
 
-		NIHILUS_INLINE bool cycles(double& cyclesNew) const {
+		NIHILUS_INLINE bool cycles(double& cycles_new) const {
 			if (cycles_val.has_value()) {
-				cyclesNew = static_cast<double>(cycles_val.value());
+				cycles_new = static_cast<double>(cycles_val.value());
 				return true;
 			} else {
 				return false;
 			}
 		}
 
-		NIHILUS_INLINE bool instructions(double& instructionsNew) const noexcept {
+		NIHILUS_INLINE bool instructions(double& instructions_new) const noexcept {
 			if (instructions_val.has_value()) {
-				instructionsNew = static_cast<double>(instructions_val.value());
+				instructions_new = static_cast<double>(instructions_val.value());
 				return true;
 			} else {
 				return false;
 			}
 		}
 
-		NIHILUS_INLINE bool branches(double& branchesNew) const noexcept {
+		NIHILUS_INLINE bool branches(double& branches_new) const noexcept {
 			if (branches_val.has_value()) {
-				branchesNew = static_cast<double>(branches_val.value());
+				branches_new = static_cast<double>(branches_val.value());
 				return true;
 			} else {
 				return false;
 			}
 		}
 
-		NIHILUS_INLINE bool branch_misses(double& branch_missesNew) const noexcept {
+		NIHILUS_INLINE bool branch_misses(double& branch_misses_new) const noexcept {
 			if (branch_misses_val.has_value()) {
-				branch_missesNew = static_cast<double>(branch_misses_val.value());
+				branch_misses_new = static_cast<double>(branch_misses_val.value());
 				return true;
 			} else {
 				return false;
 			}
 		}
 
-		NIHILUS_INLINE bool cache_misses(double& cache_missesNew) const noexcept {
+		NIHILUS_INLINE bool cache_misses(double& cache_misses_new) const noexcept {
 			if (cache_misses_val.has_value()) {
-				cache_missesNew = static_cast<double>(cache_misses_val.value());
+				cache_misses_new = static_cast<double>(cache_misses_val.value());
 				return true;
 			} else {
 				return false;
 			}
 		}
 
-		NIHILUS_INLINE bool cache_references(double& cache_referencesNew) const noexcept {
+		NIHILUS_INLINE bool cache_references(double& cache_references_new) const noexcept {
 			if (cache_references_val.has_value()) {
-				cache_referencesNew = static_cast<double>(cache_references_val.value());
+				cache_references_new = static_cast<double>(cache_references_val.value());
 				return true;
 			} else {
 				return false;

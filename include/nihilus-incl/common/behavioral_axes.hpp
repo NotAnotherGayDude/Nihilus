@@ -169,7 +169,7 @@ namespace nihilus {
 
 		NIHILUS_INLINE static void impl(base_type& parse_core, uint64_t runtime_dimension) {
 			parse_core.get_mutable_dim() = runtime_dimension;
-		};
+		}
 	};
 
 	template<model_config config, typename base_type_new> struct dim_updater {
@@ -208,13 +208,13 @@ namespace nihilus {
 			} else {
 				data[base_type::enum_value][0] = static_cast<void*>(&core_traits.data);
 			}
-		};
+		}
 	};
 
 	template<model_config config, typename core_traits_type> struct weight_mapper {
 		NIHILUS_INLINE static void impl(core_traits_type& core_traits, array<array<void*, model_traits_type<config>::block_count>, weight_types::count>& data) {
 			core_traits.values.template impl<weight_mapper_impl>(data);
-		};
+		}
 	};
 
 	template<model_config config, typename base_type_new, device_types device_type, uint64_t arch_index, processing_phases processing_phase> struct global_input_thread_function {
@@ -236,7 +236,7 @@ namespace nihilus {
 				log<log_levels::status>(stream.str());
 			}
 
-			kernel_dispatcher<device_type, arch_index, processing_phase, device_types::cpu, base_type>::impl(parse_core, thread_index_new, thread_count);
+			kernel_dispatcher<device_type, processing_phase, device_types::cpu, base_type>::impl(parse_core, thread_index_new, thread_count);
 
 			if constexpr (config.dev) {
 				std::stringstream stream{};
@@ -266,7 +266,7 @@ namespace nihilus {
 					   << " expected threads, for Op: " << base_type::core_type << ", for [BLOCK]: " << current_block << std::endl;
 				log<log_levels::status>(stream.str());
 			}
-			kernel_dispatcher<device_type, arch_index, processing_phase, device_types::cpu, base_type>::impl(parse_core, thread_index_new, thread_count, current_block);
+			kernel_dispatcher<device_type, processing_phase, device_types::cpu, base_type>::impl(parse_core, thread_index_new, thread_count, current_block);
 
 			if constexpr (config.dev) {
 				std::stringstream stream{};
@@ -295,7 +295,7 @@ namespace nihilus {
 					   << " expected threads, for Op: " << base_type::core_type << std::endl;
 				log<log_levels::status>(stream.str());
 			}
-			kernel_dispatcher<device_type, arch_index, processing_phase, device_types::cpu, base_type>::impl(parse_core, thread_index_new, thread_count);
+			kernel_dispatcher<device_type, processing_phase, device_types::cpu, base_type>::impl(parse_core, thread_index_new, thread_count);
 			if constexpr (config.dev) {
 				std::stringstream stream{};
 				stream << "[DEBUG] Thread (ID: " << std::this_thread::get_id() << ") " << thread_index_new << " [FINISHED] a barrier with " << thread_count

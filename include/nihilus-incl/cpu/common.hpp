@@ -134,103 +134,6 @@ namespace nihilus {
 
 #endif
 
-	enum class cache_level {
-		one	  = 1,
-		two	  = 2,
-		three = 3,
-	};
-
-	NIHILUS_INLINE size_t get_cache_size(cache_level level) {
-#if NIHILUS_PLATFORM_WINDOWS
-		DWORD bufferSize = 0;
-		cache_level cacheLevel{ level };
-		PROCESSOR_CACHE_TYPE cacheType{ level == cache_level::one ? PROCESSOR_CACHE_TYPE::CacheInstruction : PROCESSOR_CACHE_TYPE::CacheUnified };
-		aligned_vector<SYSTEM_LOGICAL_PROCESSOR_INFORMATION> buffer{};
-
-		GetLogicalProcessorInformation(nullptr, &bufferSize);
-		buffer.resize(bufferSize / sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION));
-
-		if (!GetLogicalProcessorInformation(buffer.data(), &bufferSize)) {
-			std::cerr << "Failed to retrieve processor information!" << std::endl;
-			return 0;
-		}
-
-		size_t cacheSize = 0;
-		auto collectSize = [&](auto cacheLevelNew, auto cacheTypeNew) {
-			size_t cacheSizeNew{};
-			const auto infoCount = bufferSize / sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION);
-			for (size_t i = 0; i < infoCount; ++i) {
-				if (buffer[i].Relationship == RelationCache && buffer[i].Cache.Level == static_cast<int32_t>(cacheLevelNew) && buffer[i].Cache.Type == cacheTypeNew) {
-					cacheSizeNew = buffer[i].Cache.Size;
-					break;
-				}
-			}
-			return cacheSizeNew;
-		};
-		if (level == cache_level::one) {
-			cacheSize += collectSize(cacheLevel, PROCESSOR_CACHE_TYPE::CacheData);
-		}
-		return cacheSize + collectSize(cacheLevel, cacheType);
-#elif NIHILUS_PLATFORM_LINUX || NIHILUS_PLATFORM_ANDROID
-		size_t cacheSize = 0;
-
-		auto get_cache_sizeFromFile = [](const std::string& cacheType) {
-			const std::string cacheFilePath = "/sys/devices/system/cpu/cpu0/cache/index" + cacheType + "/size";
-			std::ifstream file(cacheFilePath);
-			if (!file.is_open()) {
-				std::cerr << "Failed to open cache info file: " << cacheFilePath << std::endl;
-				return static_cast<size_t>(0);
-			}
-
-			std::string sizeStr;
-			file >> sizeStr;
-			file.close();
-
-			size_t size = 0;
-			if (sizeStr.back() == 'K') {
-				size = std::stoul(sizeStr) * 1024;
-			} else if (sizeStr.back() == 'M') {
-				size = std::stoul(sizeStr) * 1024 * 1024;
-			} else {
-				size = std::stoul(sizeStr);
-			}
-			return size;
-		};
-
-		if (level == cache_level::one) {
-			cacheSize += get_cache_sizeFromFile("0");
-			cacheSize += get_cache_sizeFromFile("1");
-		} else {
-			std::string index = (level == cache_level::two) ? "2" : "3";
-			cacheSize		  = get_cache_sizeFromFile(index);
-		}
-
-		return cacheSize;
-#elif NIHILUS_PLATFORM_MAC
-		auto get_cache_size = [](const std::string& cacheType) {
-			size_t cacheSizeNew = 0;
-			size_t size			= sizeof(cacheSizeNew);
-
-			std::string sysctlQuery = "hw." + cacheType + "cachesize";
-			if (sysctlbyname(sysctlQuery.c_str(), &cacheSizeNew, &size, nullptr, 0) != 0) {
-				return size_t{ 0 };
-			}
-			return cacheSizeNew;
-		};
-
-		if (level == cache_level::one) {
-			return get_cache_size("l1d") + get_cache_size("l1i");
-		} else if (level == cache_level::two) {
-			return get_cache_size("l2");
-		} else {
-			return get_cache_size("l3");
-		}
-#endif
-		return 0;
-	}
-
-	inline const uint64_t l1_cache_size{ get_cache_size(cache_level::one) };
-
 	template<typename value_type>
 	concept nihilus_simd_512_types = std::same_as<nihilus_simd_int_512_t, detail::remove_cvref_t<value_type>>;
 	template<typename value_type>
@@ -262,7 +165,7 @@ namespace nihilus {
 		return _mm_cvtss_f32(_mm_sqrt_ss(_mm_set_ss(x)));
 	}
 
-	NIHILUS_INLINE static float fp16_to_fp32(uint16_t h) {
+	NIHILUS_INLINE static float fp16_to_fp32(half h) {
 		return _mm_cvtss_f32(_mm_cvtph_ps(_mm_cvtsi32_si128(h)));
 	}
 
@@ -347,7 +250,7 @@ namespace nihilus {
 		return vget_lane_f32(vsqrt_f32(vdup_n_f32(x)), 0);
 	}
 
-	NIHILUS_INLINE static float fp16_to_fp32_simd(uint16_t h) {
+	NIHILUS_INLINE static float fp16_to_fp32(half h) {
 		return vgetq_lane_f32(vcvt_f32_f16(vreinterpret_f16_u16(vdup_n_u16(h))), 0);
 	}
 
@@ -402,7 +305,7 @@ namespace nihilus {
 		return svextract_f32(svsqrt_f32_z(svptrue_b32(), svdup_n_f32(x)), 0);
 	}
 
-	NIHILUS_INLINE static float fp16_to_fp32_simd(uint16_t h) {
+	NIHILUS_INLINE static float fp16_to_fp32(half h) {
 		return svextract_f32(svcvt_f32_f16_z(svptrue_b16(), svreinterpret_f16_u16(svdup_n_u16(h))), 0);
 	}
 
@@ -580,7 +483,7 @@ namespace nihilus {
 		return return_values_new.data();
 	}() };
 
-	NIHILUS_INLINE static float fp16_to_fp32(uint16_t f) {
+	NIHILUS_INLINE static float fp16_to_fp32(half f) {
 		return fp16_to_fp32_array[f];
 	}
 

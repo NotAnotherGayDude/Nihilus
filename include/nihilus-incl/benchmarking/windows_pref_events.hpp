@@ -26,13 +26,13 @@ RealTimeChris (Chris M.)
 	#include <intrin.h>
 	#include <vector>
 
-namespace nihilus::benchmarking::internal {
+namespace nihilus::benchmarking {
 
 	template<typename event_count> struct event_collector_type : std::vector<event_count> {
 		using duration_type = decltype(clock_type::now());
-		volatile uint64_t cycle_start{};
 		duration_type clock_start{};
 		int64_t current_index{};
+		uint64_t cycle_start{};
 		bool started{};
 
 		NIHILUS_INLINE event_collector_type() : std::vector<event_count>{} {};

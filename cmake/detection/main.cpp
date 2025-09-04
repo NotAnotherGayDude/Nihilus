@@ -1,4 +1,22 @@
-// Sampled mostly from Simdjson: https://github.com/simdjson/simdjson
+/*
+Copyright (c) 2025 RealTimeChris (Chris M.)
+
+This file is part of software offered under a restricted-use license to a designated Licensee,
+whose identity is confirmed in writing by the Author.
+
+License Terms (Summary):
+- Exclusive, non-transferable license for internal use only.
+- Redistribution, sublicensing, or public disclosure is prohibited without written consent.
+- Full ownership remains with the Author.
+- License may terminate if unused for [X months], if materially breached, or by mutual agreement.
+- No warranty is provided, express or implied.
+
+Full license terms are provided in the LICENSE file distributed with this software.
+
+Signed,
+RealTimeChris (Chris M.)
+2025
+*/
 #if defined(NIHILUS_DETECT_CPU_ARCH)
 	#include <cstring>
 	#include <cstdint>
@@ -126,7 +144,138 @@ int32_t main() {
 	return supported_isa;
 }
 #elif defined(NIHILUS_DETECT_GPU_ARCH)
+	#include <cuda_runtime.h>
+	#include <iostream>
+	enum class instruction_set {
+		cuda_9	= 0x1,
+		cuda_10 = 0x2,
+		cuda_11 = 0x4,
+		cuda_12 = 0x8,
+	};
 
+int32_t main() {
+	cudaDeviceProp deviceProp;
+	cudaGetDeviceProperties(&deviceProp, 0);
+	if (deviceProp.major == 9) {
+		return static_cast<int32_t>(instruction_set::cuda_9);
+	} else if (deviceProp.major == 10) {
+		return static_cast<int32_t>(instruction_set::cuda_10);
+	} else if (deviceProp.major == 11) {
+		return static_cast<int32_t>(instruction_set::cuda_11);
+	} else if (deviceProp.major == 12) {
+		return static_cast<int32_t>(instruction_set::cuda_12);
+	}
+}
+#elif defined(NIHILUS_DETECT_CPU_CACHE_SIZES)
+	#include <iostream>
+	#include <vector>
+
+	#if NIHILUS_PLATFORM_WINDOWS
+		#include <Windows.h>
+	#endif
+
+	#if NIHILUS_PLATFORM_LINUX || NIHILUS_PLATFORM_ANDROID
+		#include <fstream>
+		#include <string>
+	#endif
+
+	#if NIHILUS_PLATFORM_MAC
+		#include <sys/sysctl.h>
+		#include <sys/types.h>
+		#include <string>
+	#endif
+
+enum class cache_level {
+	one	  = 1,
+	two	  = 2,
+	three = 3,
+};
+
+inline size_t get_cache_size(cache_level level) {
+	#if NIHILUS_PLATFORM_WINDOWS
+	DWORD bufferSize = 0;
+	cache_level cacheLevel{ level };
+	PROCESSOR_CACHE_TYPE cacheType{ level == cache_level::one ? PROCESSOR_CACHE_TYPE::CacheInstruction : PROCESSOR_CACHE_TYPE::CacheUnified };
+	std::vector<SYSTEM_LOGICAL_PROCESSOR_INFORMATION> buffer{};
+	GetLogicalProcessorInformation(nullptr, &bufferSize);
+	buffer.resize(bufferSize / sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION));
+	if (!GetLogicalProcessorInformation(buffer.data(), &bufferSize)) {
+		std::cerr << "Failed to retrieve processor information!" << std::endl;
+		return 0;
+	}
+	size_t cacheSize = 0;
+	auto collectSize = [&](auto cacheLevelNew, auto cacheTypeNew) {
+		size_t cacheSizeNew{};
+		const auto infoCount = bufferSize / sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION);
+		for (size_t i = 0; i < infoCount; ++i) {
+			if (buffer[i].Relationship == RelationCache && buffer[i].Cache.Level == static_cast<int32_t>(cacheLevelNew) && buffer[i].Cache.Type == cacheTypeNew) {
+				cacheSizeNew = buffer[i].Cache.Size;
+				break;
+			}
+		}
+		return cacheSizeNew;
+	};
+	if (level == cache_level::one) {
+		cacheSize += collectSize(cacheLevel, PROCESSOR_CACHE_TYPE::CacheData);
+	}
+	std::cout << "CURRENT SIZE: " << cacheSize + collectSize(cacheLevel, cacheType) << std::endl;
+	return cacheSize + collectSize(cacheLevel, cacheType);
+	#elif NIHILUS_PLATFORM_LINUX || NIHILUS_PLATFORM_ANDROID
+	size_t cacheSize			= 0;
+	auto get_cache_sizeFromFile = [](const std::string& cacheType) {
+		const std::string cacheFilePath = "/sys/devices/system/cpu/cpu0/cache/index" + cacheType + "/size";
+		std::ifstream file(cacheFilePath);
+		if (!file.is_open()) {
+			std::cerr << "Failed to open cache info file: " << cacheFilePath << std::endl;
+			return static_cast<size_t>(0);
+		}
+		std::string sizeStr;
+		file >> sizeStr;
+		file.close();
+		size_t size = 0;
+		if (sizeStr.back() == 'K') {
+			size = std::stoul(sizeStr) * 1024;
+		} else if (sizeStr.back() == 'M') {
+			size = std::stoul(sizeStr) * 1024 * 1024;
+		} else {
+			size = std::stoul(sizeStr);
+		}
+		return size;
+	};
+	if (level == cache_level::one) {
+		cacheSize += get_cache_sizeFromFile("0");
+		cacheSize += get_cache_sizeFromFile("1");
+	} else {
+		std::string index = (level == cache_level::two) ? "2" : "3";
+		cacheSize		  = get_cache_sizeFromFile(index);
+	}
+	std::cout << "CURRENT SIZE: " << cacheSize << std::endl;
+	return cacheSize;
+	#elif NIHILUS_PLATFORM_MAC
+	auto get_cache_size = [](const std::string& cacheType) {
+		size_t cacheSizeNew		= 0;
+		size_t size				= sizeof(cacheSizeNew);
+		std::string sysctlQuery = "hw." + cacheType + "cachesize";
+		if (sysctlbyname(sysctlQuery.c_str(), &cacheSizeNew, &size, nullptr, 0) != 0) {
+			return size_t{ 0 };
+		}
+		return cacheSizeNew;
+	};
+	if (level == cache_level::one) {
+		return get_cache_size("l1d") + get_cache_size("l1i");
+	} else if (level == cache_level::two) {
+		return get_cache_size("l2");
+	} else {
+		return get_cache_size("l3");
+	}
+	#endif
+	return 0;
+}
+
+int32_t main() {
+	std::cout << "CURRENT SIZE: " << get_cache_size(cache_level::one) << std::endl;
+	return get_cache_size(cache_level::one);
+}
 #else
 	#include <thread>
 int32_t main() {

@@ -18,29 +18,29 @@
 # */
 
 if (UNIX OR APPLE)
-    file(WRITE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/detection/BuildFeatureTesterArch.sh" "#!/bin/bash
+    file(WRITE "${CMAKE_SOURCE_DIR}/cmake/detection/BuildFeatureTesterArch.sh" "#!/bin/bash
 \"${CMAKE_COMMAND}\" -S ./ -B ./Build-Arch -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DNIHILUS_DETECT_CPU_ARCH=TRUE
 \"${CMAKE_COMMAND}\" --build ./Build-Arch --config=Release")
     execute_process(
-        COMMAND chmod +x "${CMAKE_CURRENT_SOURCE_DIR}/cmake/detection/BuildFeatureTesterArch.sh"
+        COMMAND chmod +x "${CMAKE_SOURCE_DIR}/cmake/detection/BuildFeatureTesterArch.sh"
         RESULT_VARIABLE CHMOD_RESULT
     )
     if(NOT ${CHMOD_RESULT} EQUAL 0)
         message(FATAL_ERROR "Failed to set executable permissions for BuildFeatureTesterArch.sh")
     endif()
     execute_process(
-        COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/cmake/detection/BuildFeatureTesterArch.sh"
-        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/cmake/detection"
+        COMMAND "${CMAKE_SOURCE_DIR}/cmake/detection/BuildFeatureTesterArch.sh"
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/cmake/detection"
     )
-    set(FEATURE_TESTER_FILE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/detection/Build-Arch/feature_detector")
+    set(FEATURE_TESTER_FILE "${CMAKE_SOURCE_DIR}/cmake/detection/Build-Arch/feature_detector")
 elseif(WIN32)
-    file(WRITE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/detection/BuildFeatureTesterArch.bat" "\"${CMAKE_COMMAND}\" -S ./ -B ./Build-Arch -DCMAKE_BUILD_TYPE=Release  -DNIHILUS_DETECT_CPU_ARCH=TRUE
+    file(WRITE "${CMAKE_SOURCE_DIR}/cmake/detection/BuildFeatureTesterArch.bat" "\"${CMAKE_COMMAND}\" -S ./ -B ./Build-Arch -DCMAKE_BUILD_TYPE=Release  -DNIHILUS_DETECT_CPU_ARCH=TRUE
 \"${CMAKE_COMMAND}\" --build ./Build-Arch --config=Release")
     execute_process(
-        COMMAND "${CMAKE_CURRENT_SOURCE_DIR}/cmake/detection/BuildFeatureTesterArch.bat"
-        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/cmake/detection"
+        COMMAND "${CMAKE_SOURCE_DIR}/cmake/detection/BuildFeatureTesterArch.bat"
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/cmake/detection"
     )
-    set(FEATURE_TESTER_FILE "${CMAKE_CURRENT_SOURCE_DIR}/cmake/detection/Build-Arch/Release/feature_detector.exe")
+    set(FEATURE_TESTER_FILE "${CMAKE_SOURCE_DIR}/cmake/detection/Build-Arch/Release/feature_detector.exe")
 endif()
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
@@ -115,7 +115,7 @@ set(NIHILUS_CPU_INSTRUCTIONS "${NIHILUS_CPU_INSTRUCTIONS}" CACHE STRING "CPU Ins
 set(NIHILUS_CPU_ALIGNMENT "${NIHILUS_CPU_ALIGNMENT}" CACHE STRING "CPU Alignment" FORCE)
 
 configure_file(
-    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/detection/nihilus_cpu_instructions.hpp.in"
-    "${CMAKE_CURRENT_SOURCE_DIR}/include/nihilus-incl/cpu/nihilus_cpu_instructions.hpp"
+    "${CMAKE_SOURCE_DIR}/cmake/detection/nihilus_cpu_instructions.hpp.in"
+    "${CMAKE_SOURCE_DIR}/include/nihilus-incl/cpu/nihilus_cpu_instructions.hpp"
     @ONLY
 )

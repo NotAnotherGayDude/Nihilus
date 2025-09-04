@@ -26,6 +26,8 @@ RealTimeChris (Chris M.)
 #include <nihilus-incl/common/config.hpp>
 #include <nihilus-incl/common/exception.hpp>
 #include <nihilus-incl/cpu/nihilus_cpu_instructions.hpp>
+#include <nihilus-incl/cpu/nihilus_cpu_cache_sizes.hpp>
+#include <nihilus-incl/cpu/nihilus_thread_count.hpp>
 #include <nihilus-incl/common/data_types.hpp>
 #include <nihilus-incl/common/concepts.hpp>
 #include <nihilus-incl/common/array.hpp>
@@ -270,7 +272,7 @@ namespace nihilus {
 
 		NIHILUS_INLINE void init(value_type thread_count_new) {
 			thread_count = thread_count_new;
-			flags.resize(static_cast<value_type>(thread_count));
+			flags.resize(static_cast<typename aligned_vector<atomic_flag_wrapper<int64_t>>::size_type>(thread_count));
 			global_counter.store(thread_count);
 		}
 
@@ -298,9 +300,9 @@ namespace nihilus {
 
 	template<printable_enum_types auto current_index> consteval std::string_view get_enum_name() {
 #if NIHILUS_COMPILER_MSVC
-		alignas(64) constexpr static_aligned_const<const char*> pretty_function_tail[]{ ">(void)" };
+		alignas(64) constexpr static_aligned_const<const char*> pretty_function_tail[]{ { ">(void)" } };
 #else
-		alignas(64) constexpr static_aligned_const<const char*> pretty_function_tail[]{ "]" };
+		alignas(64) constexpr static_aligned_const<const char*> pretty_function_tail[]{ { "]" } };
 #endif
 		std::string_view str = std::source_location::current().function_name();
 #if NIHILUS_COMPILER_GNUCXX

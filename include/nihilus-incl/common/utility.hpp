@@ -41,6 +41,30 @@ namespace detail {
 
 	template<typename value_type> using remove_const_t = remove_const<value_type>::type;
 
+	template<typename value_type> struct remove_volatile {
+		using type = value_type;
+	};
+
+	template<typename value_type> struct remove_volatile<const value_type> {
+		using type = value_type;
+	};
+
+	template<typename value_type> using remove_volatile_t = remove_volatile<value_type>::type;
+
+	template<typename value_type> struct remove_reference {
+		using type = value_type;
+	};
+
+	template<typename value_type> struct remove_reference<value_type&&> {
+		using type = value_type;
+	};
+
+	template<typename value_type> struct remove_reference<value_type&> {
+		using type = value_type;
+	};
+
+	template<typename value_type> using remove_reference_t = remove_reference<value_type>::type;
+
 	template<typename value_type> struct remove_cvref {
 		using type = value_type;
 	};

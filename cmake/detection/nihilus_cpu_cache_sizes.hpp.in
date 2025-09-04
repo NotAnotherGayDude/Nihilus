@@ -17,6 +17,15 @@ Signed,
 RealTimeChris (Chris M.)
 2025
 */
+#pragma once
 
-#include <nihilus-incl/index.hpp>
+#include <nihilus-incl/common/config.hpp>
 
+namespace nihilus {
+
+	struct cpu_cache_size_holder {
+		static constexpr static_aligned_const cpu_cache_size_raw{ @NIHILUS_CPU_CACHE_SIZE@ull };
+		static constexpr const uint64_t& cpu_cache_size{ *cpu_cache_size_raw };
+	};
+
+}

@@ -17,16 +17,15 @@ Signed,
 RealTimeChris (Chris M.)
 2025
 */
+#pragma once
 
-#include <nihilus-incl/cuda/common.cuh>
-#include <cuda_runtime.h>
+#include <nihilus-incl/common/config.hpp>
 
 namespace nihilus {
 
-	void print_cuda_arch() {
-		cudaDeviceProp deviceProp;
-		cudaGetDeviceProperties(&deviceProp, 0);
-		printf("Compute capability: %d.%d\n", deviceProp.major, deviceProp.minor);
-	}
+	struct cpu_cache_size_holder {
+		static constexpr static_aligned_const cpu_cache_size_raw{ 81920ull };
+		static constexpr const uint64_t& cpu_cache_size{ *cpu_cache_size_raw };
+	};
 
 }

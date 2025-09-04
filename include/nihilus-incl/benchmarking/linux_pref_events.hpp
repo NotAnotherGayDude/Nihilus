@@ -31,7 +31,7 @@ RealTimeChris (Chris M.)
 	#include <cstring>
 	#include <vector>
 
-namespace nihilus::benchmarking::internal {
+namespace nihilus::benchmarking {
 
 	NIHILUS_INLINE size_t rdtsc() {
 		uint32_t a, d;

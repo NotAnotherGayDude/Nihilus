@@ -42,21 +42,18 @@ namespace nihilus::benchmarking {
 		std::optional<double> cyclesPerByte{};
 		std::optional<double> frequencyGHz{};
 		double throughputMbPerSec{};
-		uint64_t bytesProcessed{};
+		uint64_t byes_processed{};
 		double timeInNs{};
 
 		NIHILUS_INLINE bool operator>(const performance_metrics& other) const {
 			return throughputMbPerSec > other.throughputMbPerSec;
 		}
 	};
-}
 
-namespace nihilus::benchmarking::internal {
-
-	NIHILUS_INLINE static double calculate_throughput_mbps(double nanoseconds, double bytesProcessed) {
+	NIHILUS_INLINE static double calculate_throughput_mbps(double nanoseconds, double byes_processed) {
 		constexpr double bytesPerMB		= 1024.0 * 1024.0;
 		constexpr double nanosPerSecond = 1e9;
-		double megabytes = bytesProcessed / bytesPerMB;
+		double megabytes = byes_processed / bytesPerMB;
 		double seconds	 = nanoseconds / nanosPerSecond;
 		if (seconds == 0.0) {
 			return 0.0;
@@ -64,8 +61,8 @@ namespace nihilus::benchmarking::internal {
 		return megabytes / seconds;
 	}
 
-	NIHILUS_INLINE static double calculate_unitsps(double nanoseconds, double bytesProcessed) {
-		return (bytesProcessed * 1000000000.0) / nanoseconds;
+	NIHILUS_INLINE static double calculate_unitsps(double nanoseconds, double byes_processed) {
+		return (byes_processed * 1000000000.0) / nanoseconds;
 	}
 
 	NIHILUS_INLINE static performance_metrics collect_metrics(std::span<event_count>&& eventsNewer, size_t totalIterationCount) {
@@ -75,9 +72,9 @@ namespace nihilus::benchmarking::internal {
 		double throughPutTotal{};
 		double throughPutAvg{};
 		double throughPutMin{ std::numeric_limits<double>::max() };
-		uint64_t bytesProcessed{};
-		uint64_t bytesProcessedTotal{};
-		uint64_t bytesProcessedAvg{};
+		uint64_t byes_processed{};
+		uint64_t byes_processedTotal{};
+		uint64_t byes_processedAvg{};
 		double ns{};
 		double nsTotal{};
 		double nsAvg{};
@@ -103,9 +100,9 @@ namespace nihilus::benchmarking::internal {
 			ns = e.elapsedNs();
 			nsTotal += ns;
 
-			if (e.bytesProcessed(bytesProcessed)) {
-				bytesProcessedTotal += bytesProcessed;
-				throughPut = calculate_throughput_mbps(ns, static_cast<double>(bytesProcessed));
+			if (e.byes_processed(byes_processed)) {
+				byes_processedTotal += byes_processed;
+				throughPut = calculate_throughput_mbps(ns, static_cast<double>(byes_processed));
 				throughPutTotal += throughPut;
 				throughPutMin = throughPut < throughPutMin ? throughPut : throughPutMin;
 			}
@@ -135,7 +132,7 @@ namespace nihilus::benchmarking::internal {
 			}
 		}
 		if (eventsNewer.size() > 0) {
-			bytesProcessedAvg  = bytesProcessedTotal / eventsNewer.size();
+			byes_processedAvg  = byes_processedTotal / eventsNewer.size();
 			nsAvg			   = nsTotal / static_cast<double>(eventsNewer.size());
 			throughPutAvg	   = throughPutTotal / static_cast<double>(eventsNewer.size());
 			cyclesAvg		   = cyclesTotal / static_cast<double>(eventsNewer.size());
@@ -151,20 +148,20 @@ namespace nihilus::benchmarking::internal {
 
 		constexpr double epsilon = 1e-6;
 		if (std::abs(nsAvg) > epsilon) {
-			metrics.bytesProcessed				  = bytesProcessedAvg;
+			metrics.byes_processed				  = byes_processedAvg;
 			metrics.throughputMbPerSec			  = throughPutAvg;
 			metrics.throughput_percentage_deviation = ((throughPutAvg - throughPutMin) * 100.0) / throughPutAvg;
 		}
 		if (std::abs(cyclesAvg) > epsilon) {
-			if (metrics.bytesProcessed > 0) {
-				metrics.cyclesPerByte.emplace(cyclesAvg / static_cast<double>(metrics.bytesProcessed));
+			if (metrics.byes_processed > 0) {
+				metrics.cyclesPerByte.emplace(cyclesAvg / static_cast<double>(metrics.byes_processed));
 			}
 			metrics.cyclesPerExecution.emplace(cyclesTotal / static_cast<double>(eventsNewer.size()));
 			metrics.frequencyGHz.emplace(cyclesAvg / nsAvg);
 		}
 		if (std::abs(instructionsAvg) > epsilon) {
-			if (metrics.bytesProcessed > 0) {
-				metrics.instructionsPerByte.emplace(instructionsAvg / static_cast<double>(metrics.bytesProcessed));
+			if (metrics.byes_processed > 0) {
+				metrics.instructionsPerByte.emplace(instructionsAvg / static_cast<double>(metrics.byes_processed));
 			}
 			if (std::abs(cyclesAvg) > epsilon) {
 				metrics.instructionsPerCycle.emplace(instructionsAvg / cyclesAvg);
@@ -217,7 +214,7 @@ namespace nihilus::benchmarking::internal {
 		cycleCount		 = "Cycles per Byte";
 		instructionCount = "Instructions per Byte";
 		printMetric("Iterations", metrics.totalIterationCount, stream);
-		printMetric(metricName, metrics.bytesProcessed, stream);
+		printMetric(metricName, metrics.byes_processed, stream);
 		printMetric("Nanoseconds per Execution", metrics.timeInNs, stream);
 		printMetric("Frequency (GHz)", metrics.frequencyGHz, stream);
 		printMetric(throughPutString, metrics.throughputMbPerSec, stream);

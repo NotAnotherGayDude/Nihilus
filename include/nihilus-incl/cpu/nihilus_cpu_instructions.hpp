@@ -19,7 +19,7 @@ RealTimeChris (Chris M.)
 */
 #pragma once
 
-#include <cstdint>
+#include <nihilus-incl/common/config.hpp>
 
 #define NIHILUS_AVX2_BIT 1
 #define NIHILUS_AVX512_BIT 2
@@ -41,3 +41,16 @@ static constexpr uint64_t cpu_alignments[]{ 16, 32, 64, 16, 64 };
 #define NIHILUS_AVX512 (NIHILUS_CHECK_CPU_INSTRUCTIONS(NIHILUS_CPU_INSTRUCTION_INDEX, NIHILUS_AVX512_BIT) && NIHILUS_ARCH_X64)
 #define NIHILUS_NEON (NIHILUS_CHECK_CPU_INSTRUCTIONS(NIHILUS_CPU_INSTRUCTION_INDEX, NIHILUS_NEON_BIT) && NIHILUS_ARCH_ARM64)
 #define NIHILUS_SVE2 (NIHILUS_CHECK_CPU_INSTRUCTIONS(NIHILUS_CPU_INSTRUCTION_INDEX, NIHILUS_SVE2_BIT) && NIHILUS_ARCH_ARM64)
+
+namespace nihilus {
+
+	struct cpu_arch_index_holder {
+		static constexpr static_aligned_const cpu_arch_index_raw{ arch_indices[NIHILUS_CPU_INSTRUCTION_INDEX] };
+		static constexpr const uint64_t& cpu_arch_index{ *cpu_arch_index_raw };
+	};
+
+	struct cpu_alignment_holder {
+		static constexpr static_aligned_const cpu_alignment_raw{ cpu_alignments[NIHILUS_CPU_INSTRUCTION_INDEX] };
+		static constexpr const uint64_t& cpu_alignment{ *cpu_alignment_raw };
+	};
+}

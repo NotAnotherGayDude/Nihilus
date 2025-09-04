@@ -22,6 +22,7 @@ RealTimeChris (Chris M.)
 
 #if NIHILUS_CUDA_ENABLED
 
+	#include <nihilus-incl/cuda/nihilus_gpu_instructions.hpp>
 	#include <nihilus-incl/common/array.hpp>
 	#include <nihilus-incl/common/kernel_traits.hpp>
 	#include <nihilus-incl/common/core_bases.hpp>
@@ -30,7 +31,11 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-	void print_cuda_arch();
+	void print_cuda_arch() {
+		cudaDeviceProp deviceProp;
+		cudaGetDeviceProperties(&deviceProp, 0);
+		printf("Compute capability: %d.%d\n", deviceProp.major, deviceProp.minor);
+	}
 
 }
 #endif

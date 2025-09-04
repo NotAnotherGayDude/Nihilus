@@ -24,7 +24,7 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-	template<> struct kernel_dispatcher_impl<device_types::gpu, 1, core_types::token_embeddings, processing_phases::prompt_eval_time> {
+	template<> struct kernel_dispatcher_impl<device_types::gpu, 4, core_types::token_embeddings, processing_phases::prompt_eval_time> {
 		template<typename core_type> NIHILUS_INLINE __device__ static void process_chunk(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_chunk) {
 		}
 
@@ -32,7 +32,7 @@ namespace nihilus {
 		}
 	};
 
-	template<> struct kernel_dispatcher_impl<device_types::gpu, 1, core_types::token_embeddings, processing_phases::eval_time> {
+	template<> struct kernel_dispatcher_impl<device_types::gpu, 4, core_types::token_embeddings, processing_phases::eval_time> {
 		template<typename core_type> NIHILUS_INLINE __device__ static void process_chunk(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_chunk) {
 		}
 
@@ -40,7 +40,7 @@ namespace nihilus {
 		}
 	};
 
-	template<> struct kernel_dispatcher_impl<device_types::gpu, 1, core_types::mega_qkv_prep_and_cache_publish, processing_phases::eval_time> {
+	template<> struct kernel_dispatcher_impl<device_types::gpu, 4, core_types::mega_qkv_prep_and_cache_publish, processing_phases::eval_time> {
 		template<typename core_type>
 		NIHILUS_INLINE __device__ static void process_chunk(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_chunk, int64_t current_block) {
 		}
@@ -49,7 +49,7 @@ namespace nihilus {
 		}
 	};
 
-	template<> struct kernel_dispatcher_impl<device_types::gpu, 1, core_types::mega_qkv_prep_and_cache_publish, processing_phases::prompt_eval_time> {
+	template<> struct kernel_dispatcher_impl<device_types::gpu, 4, core_types::mega_qkv_prep_and_cache_publish, processing_phases::prompt_eval_time> {
 		template<typename core_type>
 		NIHILUS_INLINE __device__ static void process_chunk(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_chunk, int64_t current_block) {
 		}
@@ -58,7 +58,7 @@ namespace nihilus {
 		}
 	};
 
-	template<> struct kernel_dispatcher_impl<device_types::gpu, 1, core_types::mega_attention_apply, processing_phases::eval_time> {
+	template<> struct kernel_dispatcher_impl<device_types::gpu, 4, core_types::mega_attention_apply, processing_phases::eval_time> {
 		template<typename core_type> NIHILUS_INLINE __device__ static void process_chunk(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_chunk) {
 			// PROCESS DATA.
 		}
@@ -66,7 +66,7 @@ namespace nihilus {
 		}
 	};
 
-	template<> struct kernel_dispatcher_impl<device_types::gpu, 1, core_types::mega_attention_apply, processing_phases::prompt_eval_time> {
+	template<> struct kernel_dispatcher_impl<device_types::gpu, 4, core_types::mega_attention_apply, processing_phases::prompt_eval_time> {
 		template<typename core_type> NIHILUS_INLINE __device__ static void process_chunk(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_chunk) {
 			// PROCESS DATA.
 		}
@@ -74,7 +74,7 @@ namespace nihilus {
 		}
 	};
 
-	template<> struct kernel_dispatcher_impl<device_types::gpu, 1, core_types::mega_ffn, processing_phases::eval_time> {
+	template<> struct kernel_dispatcher_impl<device_types::gpu, 4, core_types::mega_ffn, processing_phases::eval_time> {
 		template<typename core_type> NIHILUS_INLINE __device__ static void process_chunk(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_chunk) {
 			// PROCESS DATA.
 		}
@@ -82,7 +82,7 @@ namespace nihilus {
 		}
 	};
 
-	template<> struct kernel_dispatcher_impl<device_types::gpu, 1, core_types::mega_ffn, processing_phases::prompt_eval_time> {
+	template<> struct kernel_dispatcher_impl<device_types::gpu, 4, core_types::mega_ffn, processing_phases::prompt_eval_time> {
 		template<typename core_type> NIHILUS_INLINE __device__ static void process_chunk(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_chunk) {
 			// PROCESS DATA.
 		}
@@ -90,14 +90,14 @@ namespace nihilus {
 		}
 	};
 
-	template<> struct kernel_dispatcher_impl<device_types::gpu, 1, core_types::final_norm_and_sampling, processing_phases::eval_time> {
+	template<> struct kernel_dispatcher_impl<device_types::gpu, 4, core_types::final_norm_and_sampling, processing_phases::eval_time> {
 		template<typename core_type> NIHILUS_INLINE __device__ static void process_chunk(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_chunk) {
 			// PROCESS DATA.
 		}
 		template<typename core_type> NIHILUS_INLINE __device__ static void impl(core_type& params, int64_t thread_index, int64_t thread_count) {}
 	};
 
-	template<> struct kernel_dispatcher_impl<device_types::gpu, 1, core_types::final_norm_and_sampling, processing_phases::prompt_eval_time> {
+	template<> struct kernel_dispatcher_impl<device_types::gpu, 4, core_types::final_norm_and_sampling, processing_phases::prompt_eval_time> {
 		template<typename core_type> NIHILUS_INLINE __device__ static void process_chunk(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_chunk) {
 			// PROCESS DATA.
 		}

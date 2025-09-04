@@ -37,5 +37,9 @@ build-arm64-*
 build-x64-*
 Tensor-Data.txt
 cmake/detection/Build-Arch/
+cmake/detection/Build-Arch-Cuda/
+cmake/detection/Build-Cache-Sizes/
 cmake/detection/BuildFeatureTesterArch.bat
 cmake/detection/BuildFeatureTester.bat
+cmake/detection/BuildFeatureTesterArchCuda.bat
+/cmake/detection/BuildFeatureTesterCacheSizes.bat

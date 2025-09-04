@@ -108,7 +108,7 @@ namespace nihilus {
 	}
 
 	struct benchmark_stats {
-		array<array<benchmarking::internal::event_collector, core_types::count>, max_thread_count_holder::max_thread_count> collector{};
+		array<array<benchmarking::event_collector, core_types::count>, max_thread_count_holder::max_thread_count> collector{};
 		clock_type::time_point sampling_start		= {};
 		clock_type::time_point prompt_start			= {};
 		clock_type::time_point token_start			= {};

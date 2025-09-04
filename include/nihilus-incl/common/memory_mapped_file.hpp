@@ -32,10 +32,9 @@ RealTimeChris (Chris M.)
 	#include <sys/stat.h>
 	#include <fcntl.h>
 	#include <unistd.h>
-	#if NIHIULUS_PLATFORM_LINUX
+	#if NIHILUS_PLATFORM_LINUX
 		#include <sys/resource.h>
-	#endif
-	#if NIHIULUS_PLATFORM_MACOS
+	#elif NIHILUS_PLATFORM_MAC
 		#include <TargetConditionals.h>
 	#endif
 #endif
@@ -73,8 +72,8 @@ namespace nihilus {
 	  public:
 		NIHILUS_INLINE explicit memory_mapped_file() noexcept = default;
 
-		NIHILUS_INLINE explicit memory_mapped_file(std::string_view file_path, uint64_t prefetch_bytes = 0, bool numa_aware = false) : file_path(file_path) {
-			map_file(file_path, prefetch_bytes, numa_aware);
+		NIHILUS_INLINE explicit memory_mapped_file(std::string_view file_path_new, uint64_t prefetch_bytes = 0, bool numa_aware = false) : file_path(file_path_new) {
+			map_file(prefetch_bytes, numa_aware);
 			lock_memory();
 		}
 
@@ -127,15 +126,14 @@ namespace nihilus {
 		int32_t file_descriptor{};
 #endif
 
-		NIHILUS_INLINE void map_file(std::string_view file_path, uint64_t prefetch_bytes, bool numa_aware) {
+		NIHILUS_INLINE void map_file(uint64_t prefetch_bytes, bool numa_aware) {
 #if NIHILUS_PLATFORM_WINDOWS
 			( void )numa_aware;
 			( void )prefetch_bytes;
-			std::string_view file_pathstr(file_path);
-			if (file_pathstr.empty()) {
+			if (file_path.empty()) {
 				return;
 			}
-			file_handle = CreateFileA(file_pathstr.data(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+			file_handle = CreateFileA(file_path.data(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
 			if (file_handle == INVALID_HANDLE_VALUE) {
 				throw std::runtime_error(std::string{ "Failed to open file: " } + format_win_error(GetLastError()));
 			}
@@ -168,8 +166,8 @@ namespace nihilus {
 			}
 #else
 			( void )prefetch_bytes;
-			std::string_view file_pathstr(file_path);
-			file_descriptor = open(file_pathstr.data(), O_RDONLY);
+			std::string_view file_path(file_path);
+			file_descriptor = open(file_path.data(), O_RDONLY);
 			if (file_descriptor == -1) {
 				throw std::runtime_error("Failed to open file: " + std::string(std::strerror(errno)));
 			}

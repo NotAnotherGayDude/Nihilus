@@ -46,7 +46,7 @@
 	#include <dlfcn.h>
 	#include <array>
 
-namespace nihilus::benchmarking::internal {
+namespace nihilus::benchmarking {
 
 	struct performance_counters {
 		double branch_misses{};
