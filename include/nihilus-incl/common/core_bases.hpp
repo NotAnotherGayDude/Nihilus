@@ -45,14 +45,7 @@ namespace nihilus {
 			return (*this)[tag<enum_value>()];
 		}
 
-		template<enum_types enum_type, enum_type enum_value> NIHILUS_INLINE static decltype(auto) get_core_for_type() noexcept {
-			return core_bases{}.operator[](tag<enum_value>());
-		}
-
-		template<enum_types enum_type, enum_type enum_value> using get_core_type = decltype(get_core_for_type<enum_type, enum_value>());
-
 	  protected:
-
 		template<template<model_config, typename> typename mixin_type, typename base_type, typename... arg_types>
 		NIHILUS_INLINE constexpr void impl_internal_filtered([[maybe_unused]] arg_types&&... args) noexcept {
 			if constexpr (mixin_type<config, base_type>::filter()) {

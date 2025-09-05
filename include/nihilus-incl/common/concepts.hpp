@@ -202,4 +202,10 @@ namespace nihilus {
 	template<typename value_type>
 	concept printable_enum_types = enum_types<value_type> && has_count<value_type>;
 
+	template<typename value_type>
+	concept pointer_types = std::is_pointer_v<value_type>;
+
+	template<typename value_type>
+	concept not_pointer_types = !std::is_pointer_v<value_type>;
+
 }

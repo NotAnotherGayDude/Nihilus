@@ -69,15 +69,23 @@ namespace nihilus {
 		NIHILUS_INLINE constexpr decltype(auto) operator[](tag<index>) & noexcept {
 			return *static_cast<derived_type*>(this);
 		}
-
-		NIHILUS_INLINE constexpr decltype(auto) operator[](tag<index>) const& noexcept {
-			return *static_cast<const derived_type*>(this);
-		}
-
-		NIHILUS_INLINE constexpr decltype(auto) operator[](tag<index>) && noexcept {
-			return detail::move(*static_cast<derived_type*>(this));
-		}
 	};
+
+	template<uint64_t required_bytes, uint64_t block_count, data_strategy_types data_strategy_type> constexpr uint64_t get_total_required_bytes{ [] {
+		if constexpr (data_strategy_type == data_strategy_types::per_block) {
+			return required_bytes * block_count;
+		} else {
+			return required_bytes;
+		}
+	}() };
+
+	template<device_types device_type> constexpr allocation_strategy_types allocation_strategy_type{ [] {
+		if constexpr (device_type == device_types::gpu) {
+			return allocation_strategy_types::alloc;
+		} else {
+			return allocation_strategy_types::mmap;
+		}
+	}() };
 
 	template<model_config config_new, core_types core_type_new, enum_types auto enum_value_new, composite_kernel_types kernel_type, data_strategy_types data_strategy_type,
 		allocation_strategy_types allocation_strategy_type, typename composite_kernel_type_new, typename... input_composite_kernel_types_new>
@@ -89,7 +97,8 @@ namespace nihilus {
 		using output_type = composite_kernel_type_new::output_type;
 		using dims_type	  = composite_kernel_type_new::dims_type;
 		using enum_type	  = decltype(enum_value_new);
-		static constexpr uint64_t total_required_bytes{ round_up_to_multiple<64>(type_traits<output_type>::total_byte_size(dims_type::get_array())) };
+		static constexpr uint64_t total_required_bytes{ get_total_required_bytes<round_up_to_multiple<64>(type_traits<output_type>::total_byte_size(dims_type::get_array())),
+			model_traits_type<config_new>::block_count, data_strategy_type> };
 		static constexpr auto enum_value{ enum_value_new };
 		static constexpr core_types core_type{ core_type_new };
 	};
@@ -147,36 +156,44 @@ namespace nihilus {
 				typename kernel_type_profile_traits<config_new.kernel_profile>::weight_type>;
 
 		using attn_q_weight_type	  = op_traits<config_new, core_types::weights, weight_types::attn_q, composite_kernel_types::none, data_strategy_types::per_block,
-				 allocation_strategy_types::mmap, attn_q_weight_kernel_traits>;
+				 allocation_strategy_type<config_new.device_type>, attn_q_weight_kernel_traits>;
 		using attn_k_weight_type	  = op_traits<config_new, core_types::weights, weight_types::attn_k, composite_kernel_types::none, data_strategy_types::per_block,
-				 allocation_strategy_types::mmap, attn_k_weight_kernel_traits>;
+				 allocation_strategy_type<config_new.device_type>, attn_k_weight_kernel_traits>;
 		using attn_v_weight_type	  = op_traits<config_new, core_types::weights, weight_types::attn_v, composite_kernel_types::none, data_strategy_types::per_block,
-				 allocation_strategy_types::mmap, attn_v_weight_kernel_traits>;
+				 allocation_strategy_type<config_new.device_type>, attn_v_weight_kernel_traits>;
 		using attn_output_weight_type = op_traits<config_new, core_types::weights, weight_types::attn_output, composite_kernel_types::none, data_strategy_types::per_block,
-			allocation_strategy_types::mmap, attn_output_weight_kernel_traits>;
+			allocation_strategy_type<config_new.device_type>, attn_output_weight_kernel_traits>;
 		using attn_norm_weight_type	  = op_traits<config_new, core_types::weights, weight_types::attn_norm, composite_kernel_types::none, data_strategy_types::per_block,
-			  allocation_strategy_types::mmap, attn_norm_weight_kernel_traits>;
+			  allocation_strategy_type<config_new.device_type>, attn_norm_weight_kernel_traits>;
 		using ffn_gate_weight_type	  = op_traits<config_new, core_types::weights, weight_types::ffn_gate, composite_kernel_types::none, data_strategy_types::per_block,
-			   allocation_strategy_types::mmap, ffn_gate_weight_kernel_traits>;
+			   allocation_strategy_type<config_new.device_type>, ffn_gate_weight_kernel_traits>;
 		using ffn_up_weight_type	  = op_traits<config_new, core_types::weights, weight_types::ffn_up, composite_kernel_types::none, data_strategy_types::per_block,
-				 allocation_strategy_types::mmap, ffn_up_weight_kernel_traits>;
+				 allocation_strategy_type<config_new.device_type>, ffn_up_weight_kernel_traits>;
 		using ffn_down_weight_type	  = op_traits<config_new, core_types::weights, weight_types::ffn_down, composite_kernel_types::none, data_strategy_types::per_block,
-			   allocation_strategy_types::mmap, ffn_down_weight_kernel_traits>;
+			   allocation_strategy_type<config_new.device_type>, ffn_down_weight_kernel_traits>;
 		using ffn_norm_weight_type	  = op_traits<config_new, core_types::weights, weight_types::ffn_norm, composite_kernel_types::none, data_strategy_types::per_block,
-			   allocation_strategy_types::mmap, ffn_norm_weight_kernel_traits>;
+			   allocation_strategy_type<config_new.device_type>, ffn_norm_weight_kernel_traits>;
 		using token_embd_weight_type  = op_traits<config_new, core_types::weights, weight_types::token_embd, composite_kernel_types::none, data_strategy_types::global,
-			 allocation_strategy_types::mmap, token_embd_weight_kernel_traits>;
+			 allocation_strategy_type<config_new.device_type>, token_embd_weight_kernel_traits>;
 		using rope_freqs_weight_type  = op_traits<config_new, core_types::weights, weight_types::rope_freqs, composite_kernel_types::none, data_strategy_types::global,
-			 allocation_strategy_types::mmap, rope_freqs_weight_kernel_traits>;
+			 allocation_strategy_type<config_new.device_type>, rope_freqs_weight_kernel_traits>;
 		using output_norm_weight_type = op_traits<config_new, core_types::weights, weight_types::output_norm, composite_kernel_types::none, data_strategy_types::global,
-			allocation_strategy_types::mmap, output_norm_weight_kernel_traits>;
+			allocation_strategy_type<config_new.device_type>, output_norm_weight_kernel_traits>;
 		using output_weight_type	  = op_traits<config_new, core_types::weights, weight_types::output, composite_kernel_types::none, data_strategy_types::global,
-				 allocation_strategy_types::mmap, output_weight_kernel_traits>;
+				 allocation_strategy_type<config_new.device_type>, output_weight_kernel_traits>;
 
 		using list_of_traits =
 			get_core_base_t<config_new, attn_q_weight_type, attn_k_weight_type, attn_v_weight_type, attn_output_weight_type, attn_norm_weight_type, ffn_gate_weight_type,
 				ffn_up_weight_type, ffn_down_weight_type, ffn_norm_weight_type, token_embd_weight_type, rope_freqs_weight_type, output_norm_weight_type, output_weight_type>;
 		list_of_traits values{};
+
+		static constexpr uint64_t total_required_bytes{ attn_q_weight_type::total_required_bytes + attn_k_weight_type::total_required_bytes +
+			attn_v_weight_type::total_required_bytes + attn_output_weight_type::total_required_bytes + attn_norm_weight_type::total_required_bytes +
+			ffn_gate_weight_type::total_required_bytes + ffn_up_weight_type::total_required_bytes + ffn_down_weight_type::total_required_bytes +
+			ffn_norm_weight_type::total_required_bytes + token_embd_weight_type::total_required_bytes + rope_freqs_weight_type::total_required_bytes +
+			output_norm_weight_type::total_required_bytes + output_weight_type::total_required_bytes };
+
+		static constexpr bool has_total_required_bytes{ config_new.device_type == device_types::gpu };
 	};
 
 	template<model_config config_new> struct core_traits<config_new, core_types::global_inputs>
@@ -260,6 +277,7 @@ namespace nihilus {
 			top_k_type::total_required_bytes + top_p_type::total_required_bytes + repetition_penalty_type::total_required_bytes + presence_penalty_type::total_required_bytes +
 			frequency_penalty_type::total_required_bytes + rep_window_type::total_required_bytes + token_history_type::total_required_bytes +
 			rng_state_type::total_required_bytes };
+		static constexpr bool has_total_required_bytes{ true };
 	};
 
 	template<model_config config_new> struct core_traits<config_new, core_types::token_embeddings>
@@ -289,6 +307,7 @@ namespace nihilus {
 		atomic_flag_wrapper<int64_t> latch_eval{};
 
 		static constexpr uint64_t total_required_bytes{ token_embeddings_type::total_required_bytes };
+		static constexpr bool has_total_required_bytes{ true };
 	};
 
 	template<model_config config_new> struct core_traits<config_new, core_types::mega_qkv_prep_and_cache_publish>
@@ -371,6 +390,7 @@ namespace nihilus {
 		array<atomic_flag_wrapper<int64_t>, mt::block_count> latch_eval{};
 
 		static constexpr uint64_t total_required_bytes{ q_out_type::total_required_bytes };
+		static constexpr bool has_total_required_bytes{ true };
 	};
 
 	template<model_config config_new> struct core_traits<config_new, core_types::mega_attention_apply>
@@ -432,6 +452,7 @@ namespace nihilus {
 		array<atomic_flag_wrapper<int64_t>, mt::block_count> latch_eval{};
 
 		static constexpr uint64_t total_required_bytes{ ffn_inp_type::total_required_bytes };
+		static constexpr bool has_total_required_bytes{ true };
 	};
 
 	template<model_config config_new> struct core_traits<config_new, core_types::mega_ffn>
@@ -488,6 +509,7 @@ namespace nihilus {
 		array<atomic_flag_wrapper<int64_t>, mt::block_count> latch_eval{};
 
 		static constexpr uint64_t total_required_bytes{ l_out_type::total_required_bytes };
+		static constexpr bool has_total_required_bytes{ true };
 	};
 
 	template<model_config config_new> struct core_traits<config_new, core_types::final_norm_and_sampling>
@@ -572,6 +594,7 @@ namespace nihilus {
 		atomic_flag_wrapper<int64_t> latch_eval{};
 
 		static constexpr uint64_t total_required_bytes{ result_token_id_type::total_required_bytes };
+		static constexpr bool has_total_required_bytes{ true };
 	};
 
 	template<model_config config_new, auto kernel_type> struct get_adjacent_value {

@@ -593,7 +593,7 @@ namespace nihilus::benchmarking {
 
 	// -----------------------------------------------------------------------------
 	// kdebug protected structs
-	// https://github.com/apple/darwin-xnu/blob/main/bsd/sys_private/kdebug_private.h
+	// https://github.com/apple/darwin-xnu/blob/main/bsd/sys_protected/kdebug_protected.h
 	// -----------------------------------------------------------------------------
 
 	/*

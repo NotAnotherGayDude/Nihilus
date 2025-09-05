@@ -20,6 +20,7 @@ RealTimeChris (Chris M.)
 
 #pragma once
 
+#include <iostream>
 #include <cstdint>
 
 namespace nihilus {

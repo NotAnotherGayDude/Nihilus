@@ -25,9 +25,9 @@ RealTimeChris (Chris M.)
 #include <nihilus-incl/common/allocator.hpp>
 #include <nihilus-incl/common/config.hpp>
 #include <nihilus-incl/common/exception.hpp>
-#include <nihilus-incl/cpu/nihilus_cpu_instructions.hpp>
+#include <nihilus-incl/cpu/nihilus_cpu_arch.hpp>
 #include <nihilus-incl/cpu/nihilus_cpu_cache_sizes.hpp>
-#include <nihilus-incl/cpu/nihilus_thread_count.hpp>
+#include <nihilus-incl/cpu/nihilus_nax_thread_count.hpp>
 #include <nihilus-incl/common/data_types.hpp>
 #include <nihilus-incl/common/concepts.hpp>
 #include <nihilus-incl/common/array.hpp>

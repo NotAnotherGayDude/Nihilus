@@ -146,12 +146,12 @@ int32_t main() {
 #elif defined(NIHILUS_DETECT_GPU_ARCH)
 	#include <cuda_runtime.h>
 	#include <iostream>
-	enum class instruction_set {
-		cuda_9	= 0x1,
-		cuda_10 = 0x2,
-		cuda_11 = 0x4,
-		cuda_12 = 0x8,
-	};
+enum class instruction_set {
+	cuda_9	= 0x1,
+	cuda_10 = 0x2,
+	cuda_11 = 0x4,
+	cuda_12 = 0x8,
+};
 
 int32_t main() {
 	cudaDeviceProp deviceProp;
@@ -218,7 +218,6 @@ inline size_t get_cache_size(cache_level level) {
 	if (level == cache_level::one) {
 		cacheSize += collectSize(cacheLevel, PROCESSOR_CACHE_TYPE::CacheData);
 	}
-	std::cout << "CURRENT SIZE: " << cacheSize + collectSize(cacheLevel, cacheType) << std::endl;
 	return cacheSize + collectSize(cacheLevel, cacheType);
 	#elif NIHILUS_PLATFORM_LINUX || NIHILUS_PLATFORM_ANDROID
 	size_t cacheSize			= 0;
@@ -249,7 +248,6 @@ inline size_t get_cache_size(cache_level level) {
 		std::string index = (level == cache_level::two) ? "2" : "3";
 		cacheSize		  = get_cache_sizeFromFile(index);
 	}
-	std::cout << "CURRENT SIZE: " << cacheSize << std::endl;
 	return cacheSize;
 	#elif NIHILUS_PLATFORM_MAC
 	auto get_cache_size = [](const std::string& cacheType) {
@@ -273,7 +271,6 @@ inline size_t get_cache_size(cache_level level) {
 }
 
 int32_t main() {
-	std::cout << "CURRENT SIZE: " << get_cache_size(cache_level::one) << std::endl;
 	return get_cache_size(cache_level::one);
 }
 #else

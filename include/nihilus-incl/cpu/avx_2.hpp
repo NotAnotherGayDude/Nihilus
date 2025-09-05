@@ -29,13 +29,28 @@ namespace nihilus {
 
 	NIHILUS_INLINE void dequantize_q8_0_to_f32(const block_q8_0<half>* src, float* dst, uint64_t count) {
 		constexpr uint64_t block_size = 32;
-		for (uint64_t i = 0; i < count; i += block_size) {
-			const block_q8_0<half>& block	 = src[(i / block_size)];
-			const float scale				 = fp16_to_fp32((block.d));
-			const int8_t* quantized			 = block.qs;
-			const uint64_t elements_in_block = detail::min(block_size, count - i);
-			for (uint64_t j = 0; j < elements_in_block; ++j) {
-				dst[i + j] = scale * static_cast<float>(quantized[j]);
+
+		const uint64_t full_blocks = count / block_size;
+		const uint64_t remainder   = count % block_size;
+
+		for (uint64_t block_idx = 0; block_idx < full_blocks; ++block_idx) {
+			const block_q8_0<half>& block = src[block_idx];
+			const float scale			  = fp16_to_fp32(block.d);
+			const int8_t* quantized		  = block.qs;
+			const uint64_t base_offset	  = block_idx * block_size;
+
+			for (uint64_t j = 0; j < block_size; ++j) {
+				dst[base_offset + j] = scale * static_cast<float>(quantized[j]);
+			}
+		}
+		if (remainder > 0) {
+			const block_q8_0<half>& final_block = src[full_blocks];
+			const float scale					= fp16_to_fp32(final_block.d);
+			const int8_t* quantized				= final_block.qs;
+			const uint64_t base_offset			= full_blocks * block_size;
+
+			for (uint64_t j = 0; j < remainder; ++j) {
+				dst[base_offset + j] = scale * static_cast<float>(quantized[j]);
 			}
 		}
 	}
@@ -50,17 +65,14 @@ namespace nihilus {
 		constexpr uint64_t usable_cache				  = target_cache_bytes * 7 / 10;
 		constexpr uint64_t optimal_chunk_size		  = detail::max(1ULL, usable_cache / total_bytes_per_embedding);
 		chunk_size_out								  = detail::min(optimal_chunk_size, sequence_length);
-
 		return (sequence_length + chunk_size_out - 1) / chunk_size_out;
 	}
 
 	template<> struct kernel_dispatcher_impl<device_types::cpu, 1, core_types::token_embeddings, processing_phases::prompt_eval_time> {
 		template<typename core_type> NIHILUS_INLINE static void process_chunk(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_chunk) {
-			
 			auto& token_embd_op = params.values.template get_core<token_embedding_types, token_embedding_types::get_rows>();
-
-			auto& weights_core = get_adjacent_value<core_type::config, core_types::weights>::impl(params);
-			auto& inputs_core  = get_adjacent_value<core_type::config, core_types::global_inputs>::impl(params);
+			auto& weights_core	= get_adjacent_value<core_type::config, core_types::weights>::impl(params);
+			auto& inputs_core	= get_adjacent_value<core_type::config, core_types::global_inputs>::impl(params);
 
 			const auto* weight_data = weights_core.values.template get_core<weight_types, weight_types::token_embd>().data;
 			const auto* token_ids	= inputs_core.values.template get_core<global_input_types, global_input_types::inp_tokens>().data;
@@ -70,12 +82,12 @@ namespace nihilus {
 
 			uint64_t chunk_size;
 			calculate_chunk_count_and_size(params, chunk_size);
+
 			const uint64_t start_token = current_chunk * chunk_size;
 			const uint64_t end_token   = detail::min(start_token + chunk_size, sequence_length);
+			auto* output_data		   = token_embd_op.data;
 
-			auto* output_data = token_embd_op.data;
-
-			constexpr uint64_t blocks_per_embedding = (embedding_length) / 32;
+			constexpr uint64_t blocks_per_embedding = embedding_length / 32;
 
 			for (uint64_t token_idx = start_token; token_idx < end_token; ++token_idx) {
 				const uint32_t token_id = token_ids[token_idx];
@@ -102,7 +114,6 @@ namespace nihilus {
 
 	template<> struct kernel_dispatcher_impl<device_types::cpu, 1, core_types::token_embeddings, processing_phases::eval_time> {
 		template<typename core_type> NIHILUS_INLINE static void process_chunk(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_chunk) {
-			
 			auto& token_embd_op = params.values.template get_core<token_embedding_types, token_embedding_types::get_rows>();
 
 			auto& weights_core = get_adjacent_value<core_type::config, core_types::weights>::impl(params);
@@ -267,10 +278,10 @@ namespace nihilus {
 		}
 
 		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {
-			int64_t current_chunk = params.current_chunk_eval[current_block].fetch_add(1);
-			if (current_chunk < thread_count) {
-				process_chunk(params, thread_index, thread_count, current_chunk, current_block);
-			}
+			//int64_t current_chunk = params.current_chunk_eval[current_block].fetch_add(1);
+			//if (current_chunk < thread_count) {
+			//process_chunk(params, thread_index, thread_count, current_chunk, current_block);
+			//}
 
 			params.latch_eval[current_block].fetch_sub(1);
 			params.latch_eval[current_block].wait();
@@ -385,6 +396,7 @@ namespace nihilus {
 		}
 
 		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {
+			/*
 			constexpr uint64_t embedding_length			  = model_traits_type<core_type::config>::embedding_length;
 			const uint64_t cache_budget					  = cpu_cache_size_holder::cpu_cache_size / 2;
 			constexpr uint64_t input_row_bytes			  = embedding_length * sizeof(float);
@@ -396,9 +408,9 @@ namespace nihilus {
 			const int64_t chunk_count = (embedding_length + rows_per_chunk - 1) / rows_per_chunk;
 
 			int64_t current_chunk = params.current_chunk_prompt_eval[current_block].fetch_add(1);
-			for (; current_chunk < chunk_count; current_chunk = params.current_chunk_prompt_eval[current_block].fetch_add(1)) {
-				process_chunk(params, thread_index, thread_count, current_chunk, current_block);
-			}
+						for (; current_chunk < chunk_count; current_chunk = params.current_chunk_prompt_eval[current_block].fetch_add(1)) {
+							process_chunk(params, thread_index, thread_count, current_chunk, current_block);
+			}*/
 
 			params.latch_prompt_eval[current_block].fetch_sub(1);
 			params.latch_prompt_eval[current_block].wait();
@@ -410,11 +422,12 @@ namespace nihilus {
 			// PROCESS DATA.
 		}
 		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {
-			int64_t chunk_count{ /* GET CHUNK COUNT */ };
+			/*
+			int64_t chunk_count{ /* GET CHUNK COUNT  };
 			int64_t current_chunk{ params.current_chunk_eval[current_block].fetch_add(1) };
 			for (; current_chunk < chunk_count; current_chunk = params.current_chunk_prompt_eval[current_block].fetch_add(1)) {
 				process_chunk(params, thread_index, thread_count, current_chunk);
-			}
+			}*/
 			params.latch_eval[current_block].fetch_sub(1);
 			params.latch_eval[current_block].wait();
 		}
@@ -425,11 +438,11 @@ namespace nihilus {
 			// PROCESS DATA.
 		}
 		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {
-			int64_t chunk_count{ /* GET CHUNK COUNT */ };
-			int64_t current_chunk{ params.current_chunk_prompt_eval[current_block].fetch_add(1) };
-			for (; current_chunk < chunk_count; current_chunk = params.current_chunk_prompt_eval[current_block].fetch_add(1)) {
-				process_chunk(params, thread_index, thread_count, current_chunk);
-			}
+			//int64_t chunk_count{ /* GET CHUNK COUNT */ };
+			//int64_t current_chunk{ params.current_chunk_prompt_eval[current_block].fetch_add(1) };
+			//for (; current_chunk < chunk_count; current_chunk = params.current_chunk_prompt_eval[current_block].fetch_add(1)) {
+			//				process_chunk(params, thread_index, thread_count, current_chunk);
+			//}
 			params.latch_prompt_eval[current_block].fetch_sub(1);
 			params.latch_prompt_eval[current_block].wait();
 		}
@@ -440,11 +453,11 @@ namespace nihilus {
 			// PROCESS DATA.
 		}
 		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {
-			int64_t chunk_count{ /* GET CHUNK COUNT */ };
-			int64_t current_chunk{ params.current_chunk_eval[current_block].fetch_add(1) };
-			for (; current_chunk < chunk_count; current_chunk = params.current_chunk_prompt_eval[current_block].fetch_add(1)) {
-				process_chunk(params, thread_index, thread_count, current_chunk);
-			}
+			//int64_t chunk_count{ /* GET CHUNK COUNT */ };
+			//int64_t current_chunk{ params.current_chunk_eval[current_block].fetch_add(1) };
+			//for (; current_chunk < chunk_count; current_chunk = params.current_chunk_prompt_eval[current_block].fetch_add(1)) {
+			//				process_chunk(params, thread_index, thread_count, current_chunk);
+			//}
 			params.latch_eval[current_block].fetch_sub(1);
 			params.latch_eval[current_block].wait();
 		}
@@ -455,11 +468,11 @@ namespace nihilus {
 			// PROCESS DATA.
 		}
 		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {
-			int64_t chunk_count{ /* GET CHUNK COUNT */ };
-			int64_t current_chunk{ params.current_chunk_prompt_eval[current_block].fetch_add(1) };
-			for (; current_chunk < chunk_count; current_chunk = params.current_chunk_prompt_eval[current_block].fetch_add(1)) {
-				process_chunk(params, thread_index, thread_count, current_chunk);
-			}
+			//int64_t chunk_count{ /* GET CHUNK COUNT */ };
+			//int64_t current_chunk{ params.current_chunk_prompt_eval[current_block].fetch_add(1) };
+			//for (; current_chunk < chunk_count; current_chunk = params.current_chunk_prompt_eval[current_block].fetch_add(1)) {
+			//process_chunk(params, thread_index, thread_count, current_chunk);
+			//}
 			params.latch_prompt_eval[current_block].fetch_sub(1);
 			params.latch_prompt_eval[current_block].wait();
 		}
@@ -470,11 +483,11 @@ namespace nihilus {
 			// PROCESS DATA.
 		}
 		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count) {
-			int64_t chunk_count{ /* GET CHUNK COUNT */ };
-			int64_t current_chunk{ params.current_chunk_eval.fetch_add(1) };
-			for (; current_chunk < chunk_count; current_chunk = params.current_chunk_prompt_eval.fetch_add(1)) {
-				process_chunk(params, thread_index, thread_count, current_chunk);
-			}
+			//int64_t chunk_count{ /* GET CHUNK COUNT */ };
+			//int64_t current_chunk{ params.current_chunk_eval.fetch_add(1) };
+			//for (; current_chunk < chunk_count; current_chunk = params.current_chunk_prompt_eval.fetch_add(1)) {
+			//process_chunk(params, thread_index, thread_count, current_chunk);
+			//}
 			params.latch_eval.fetch_sub(1);
 			params.latch_eval.wait();
 		}
@@ -485,11 +498,11 @@ namespace nihilus {
 			// PROCESS DATA.
 		}
 		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count) {
-			int64_t chunk_count{ /* GET CHUNK COUNT */ };
-			int64_t current_chunk{ params.current_chunk_prompt_eval.fetch_add(1) };
-			for (; current_chunk < chunk_count; current_chunk = params.current_chunk_prompt_eval.fetch_add(1)) {
-				process_chunk(params, thread_index, thread_count, current_chunk);
-			}
+			//int64_t chunk_count{ /* GET CHUNK COUNT */ };
+			//int64_t current_chunk{ params.current_chunk_prompt_eval.fetch_add(1) };
+			//for (; current_chunk < chunk_count; current_chunk = params.current_chunk_prompt_eval.fetch_add(1)) {
+			//process_chunk(params, thread_index, thread_count, current_chunk);
+			//}
 			params.latch_prompt_eval.fetch_sub(1);
 			params.latch_prompt_eval.wait();
 		}

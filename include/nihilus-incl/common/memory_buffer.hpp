@@ -28,6 +28,27 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
+	template<model_config config> struct memory_transfer;
+
+	template<model_config config>
+	struct memory_transfer {
+		template<pointer_types value_type> NIHILUS_INLINE static void host_to_device(const value_type& src, value_type* dst, uint64_t count) noexcept {
+			std::memcpy(dst, &src, sizeof(value_type) * count);
+		}
+
+		template<not_pointer_types value_type> NIHILUS_INLINE static void host_to_device(const value_type& src, value_type* dst) noexcept {
+			*dst = src;
+		}
+
+		template<pointer_types value_type> NIHILUS_INLINE static void device_to_host(const value_type* src, value_type& dst, uint64_t count) noexcept {
+			std::memcpy(&dst, src, sizeof(value_type) * count);
+		}
+
+		template<not_pointer_types value_type> NIHILUS_INLINE static void device_to_host(const value_type* src, value_type& dst) noexcept {
+			dst = *src;
+		}
+	};
+
 	template<model_config config> struct memory_buffer : public allocator<uint8_t> {
 		using value_type   = uint8_t;
 		using alloc		   = allocator<value_type>;
@@ -101,6 +122,6 @@ namespace nihilus {
 				size_val = 0;
 			}
 		}
-	};
+	};	
 
 }

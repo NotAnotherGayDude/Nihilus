@@ -48,9 +48,8 @@ namespace nihilus {
 			requires(std::is_move_assignable_v<value_type>)
 		{
 			if NIHILUS_LIKELY (this != &other) {
-				std::swap(data_val, other.data_val);
-				std::swap(size_val, other.size_val);
-				std::swap(capacity_val, other.capacity_val);
+				aligned_vector vector_new{ std::move(other) };
+				swap(vector_new);
 			}
 			return *this;
 		}
@@ -67,9 +66,8 @@ namespace nihilus {
 			requires(std::is_copy_assignable_v<value_type>)
 		{
 			if NIHILUS_LIKELY (this != &other) {
-				reserve(other.capacity_val);
-				size_val = other.size_val;
-				std::uninitialized_copy_n(other.data(), other.size(), data_val);
+				aligned_vector vector_new{ other };
+				swap(vector_new);
 			}
 			return *this;
 		}
@@ -81,6 +79,14 @@ namespace nihilus {
 			size_val = other.size_val;
 			std::uninitialized_copy_n(other.data(), other.size(), data_val);
 		}
+
+		NIHILUS_INLINE constexpr aligned_vector& operator=(aligned_vector&& other)
+			requires(!std::is_move_assignable_v<value_type>)
+		= delete;
+
+		NIHILUS_INLINE constexpr aligned_vector(aligned_vector&& other)
+			requires(!std::is_move_assignable_v<value_type>)
+		= delete;
 
 		NIHILUS_INLINE constexpr aligned_vector& operator=(const aligned_vector& other)
 			requires(!std::is_copy_assignable_v<value_type>)
@@ -157,6 +163,12 @@ namespace nihilus {
 
 		NIHILUS_INLINE constexpr const_reverse_iterator crend() const noexcept {
 			return rend();
+		}
+
+		NIHILUS_INLINE constexpr void swap(aligned_vector& other) noexcept {
+			std::swap(capacity_val, other.capacity_val);
+			std::swap(data_val, other.data_val);
+			std::swap(size_val, other.size_val);
 		}
 
 		NIHILUS_INLINE constexpr uint64_t size() const noexcept {

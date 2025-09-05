@@ -131,7 +131,7 @@ namespace nihilus {
 	};
 
 	struct pair_hash {
-		NIHILUS_INLINE uint64_t operator()(const std::pair<std::string_view, std::string_view>& p) const noexcept {
+		NIHILUS_INLINE uint64_t operator()(const std::pair<const std::string_view, const std::string_view>& p) const noexcept {
 			return std::hash<std::string_view>{}(p.first) ^ (std::hash<std::string_view>{}(p.second) << 1);
 		}
 	};
@@ -147,8 +147,8 @@ namespace nihilus {
 		}
 
 		NIHILUS_INLINE void tokenize_init(int32_t* output_tokens) {
-			output_tokens[0] = tokenizer_traits_type::special_bos_id;
-			output_tokens[1] = tokenizer_traits_type::special_eos_id;
+			memory_transfer<config>::host_to_device(tokenizer_traits_type::special_bos_id, output_tokens);
+			memory_transfer<config>::host_to_device(tokenizer_traits_type::special_eos_id, output_tokens + 1);
 		}
 
 		NIHILUS_INLINE uint64_t tokenize(char input_text, int32_t* output_tokens) {
@@ -168,7 +168,7 @@ namespace nihilus {
 			}
 
 			for (uint64_t i = 0; i < temp_tokens.size(); ++i) {
-				output_tokens[i] = temp_tokens[i];
+				memory_transfer<config>::host_to_device(temp_tokens[i], output_tokens + i);
 			}
 
 			if constexpr (config.dev) {
@@ -178,7 +178,7 @@ namespace nihilus {
 			return temp_tokens.size();
 		}
 
-		NIHILUS_INLINE uint64_t tokenize(std::string_view input_text, int32_t* output_tokens) {
+		NIHILUS_INLINE uint64_t tokenize(const std::string_view input_text, int32_t* output_tokens) {
 			aligned_vector<int32_t> temp_tokens;
 			if constexpr (tokenizer_traits_type::add_bos && tokenizer_traits_type::special_bos_id > 0) {
 				temp_tokens.emplace_back(static_cast<int32_t>(tokenizer_traits_type::special_bos_id));
@@ -195,7 +195,7 @@ namespace nihilus {
 			}
 
 			for (uint64_t i = 0; i < temp_tokens.size(); ++i) {
-				output_tokens[i] = temp_tokens[i];
+				memory_transfer<config>::host_to_device(temp_tokens[i], output_tokens + i);
 			}
 
 			if constexpr (config.dev) {
@@ -415,7 +415,7 @@ namespace nihilus {
 		}
 
 	  protected:
-		static constexpr std::string_view regex_exprs{ [] {
+		static constexpr const std::string_view regex_exprs{ [] {
 			if constexpr (tokenizer_traits_type::pre_type == tokenizer_pre_types::llama3) {
 				return "(?:'[sS]|'[tT]|'[rR][eE]|'[vV][eE]|'[mM]|'[lL][lL]|'[dD])|[^\\r\\n\\p{L}\\p{N}]?\\p{L}+|\\p{N}{1,3}| "
 					   "?[^\\s\\p{L}\\p{N}]+[\\r\\n]*|\\s*[\\r\\n]+|\\s+(?!\\S)|\\s+";
@@ -423,7 +423,7 @@ namespace nihilus {
 				return std::string_view{};
 			}
 		}() };
-		std::unordered_map<std::pair<std::string_view, std::string_view>, int32_t, pair_hash> bpe_ranks{};
+		std::unordered_map<std::pair<const std::string_view, const std::string_view>, int32_t, pair_hash> bpe_ranks{};
 		nihilus_bigram_bpe::queue work_queue{};
 		aligned_vector<nihilus_symbol> symbols{};
 
@@ -589,8 +589,8 @@ namespace nihilus {
 			if (left == -1 || right == -1)
 				return;
 
-			std::string_view left_token(symbols[static_cast<uint64_t>(left)].text, symbols[static_cast<uint64_t>(left)].n);
-			std::string_view right_token(symbols[static_cast<uint64_t>(right)].text, symbols[static_cast<uint64_t>(right)].n);
+			const std::string_view left_token(symbols[static_cast<uint64_t>(left)].text, symbols[static_cast<uint64_t>(left)].n);
+			const std::string_view right_token(symbols[static_cast<uint64_t>(right)].text, symbols[static_cast<uint64_t>(right)].n);
 
 			auto it = bpe_ranks.find({ left_token, right_token });
 			if (it == bpe_ranks.end())
@@ -619,7 +619,7 @@ namespace nihilus {
 			return 1;
 		}
 
-		NIHILUS_INLINE void print_tokenization_debug(std::string_view input_text, const aligned_vector<int32_t>& tokens_new) {
+		NIHILUS_INLINE void print_tokenization_debug(const std::string_view input_text, const aligned_vector<int32_t>& tokens_new) {
 			std::cout << "=== NIHILUS BPE TOKENIZATION DEBUG ===" << std::endl;
 			//std::cout << "tokenizer_traits_type: " << static_cast<int32_t>(tokenizer_traits_type) << " (BPE)" << std::endl;
 			std::cout << "pre_type: " << pre << std::endl;

@@ -61,9 +61,17 @@ namespace nihilus {
 		uint64_t peak_allocated_bytes	   = 0;
 	};
 
-	template<model_config config, uint64_t current_index = 1> consteval memory_plan_new get_memory_plan(memory_plan_new values = {}) {
+	template<device_types device_type> constexpr uint64_t base_index{ [] {
+		if constexpr (device_type == device_types::cpu) {
+			return 1;
+		} else {
+			return 0;
+		}
+	}() };
+
+	template<model_config config, uint64_t current_index = base_index<config.device_type>> consteval memory_plan_new get_memory_plan(memory_plan_new values = {}) {
 		constexpr uint64_t max_index{ static_cast<uint64_t>(core_types::count) };
-		if constexpr (current_index == 1) {
+		if constexpr (current_index == base_index<config.device_type>) {
 			values.currently_allocated_bytes = 0;
 			values.peak_allocated_bytes		 = 0;
 		}
@@ -106,9 +114,18 @@ namespace nihilus {
 		}
 		NIHILUS_INLINE static void impl(base_derived_type& core_traits, const memory_plan_new& plan, memory_buffer<config>& memory_buffer, uint64_t& internal_offset) {
 			using data_type = detail::remove_cvref_t<decltype(core_traits.data)>;
-			data_type ptr	 = static_cast<data_type>(memory_buffer.claim_memory(plan.footprints[base_type::derived_type::core_type].offset + internal_offset));
-			internal_offset	 = core_traits.total_required_bytes;
-			core_traits.data = ptr;
+			if constexpr (array_types<data_type>) {
+				using data_type_new = typename data_type::value_type;
+				for (uint64_t x = 0; x < model_traits_type<config>::block_count; ++x) {
+					data_type_new ptr	= static_cast<data_type_new>(memory_buffer.claim_memory(plan.footprints[base_type::derived_type::core_type].offset + internal_offset));
+					internal_offset		= core_traits.total_required_bytes;
+					core_traits.data[x] = ptr;
+				}
+			} else {
+				data_type ptr	 = static_cast<data_type>(memory_buffer.claim_memory(plan.footprints[base_type::derived_type::core_type].offset + internal_offset));
+				internal_offset	 = core_traits.total_required_bytes;
+				core_traits.data = ptr;
+			}
 		}
 	};
 
@@ -120,13 +137,29 @@ namespace nihilus {
 		NIHILUS_INLINE memory_mapper(memory_mapper&&) noexcept				   = delete;
 		using base_type														   = base_type_new;
 		NIHILUS_INLINE static constexpr bool filter() {
-			return has_total_required_bytes_types<base_type>;
+			return base_type::has_total_required_bytes;
 		}
 
 		NIHILUS_INLINE static void impl(base_type& parse_core, const memory_plan_new& plan, memory_buffer<config>& memory_buffer) {
 			uint64_t internal_offset{};
 			parse_core.values.template impl<memory_mapper_impl>(plan, memory_buffer, internal_offset);
 		}
+	};
+
+	template<model_config config, typename base_type_new> struct tensor_debugger {
+		NIHILUS_INLINE tensor_debugger() noexcept								   = default;
+		NIHILUS_INLINE tensor_debugger& operator=(const tensor_debugger&) noexcept = delete;
+		NIHILUS_INLINE tensor_debugger(const tensor_debugger&) noexcept			   = delete;
+		NIHILUS_INLINE tensor_debugger& operator=(tensor_debugger&&) noexcept	   = delete;
+		NIHILUS_INLINE tensor_debugger(tensor_debugger&&) noexcept				   = delete;
+		using base_type															   = base_type_new;
+		NIHILUS_INLINE static constexpr bool filter() {
+			return true;
+		}
+
+		NIHILUS_INLINE static void impl(base_type& parse_core, uint64_t current_block, core_types core_type) {
+
+		};
 	};
 
 	template<model_config config, typename base_type_new> struct sync_resetter {
@@ -236,7 +269,7 @@ namespace nihilus {
 				log<log_levels::status>(stream.str());
 			}
 
-			kernel_dispatcher<device_type, processing_phase, device_types::cpu, base_type>::impl(parse_core, thread_index_new, thread_count);
+			kernel_dispatcher<device_type, processing_phase, base_type>::impl(parse_core, thread_index_new, thread_count);
 
 			if constexpr (config.dev) {
 				std::stringstream stream{};
@@ -266,7 +299,7 @@ namespace nihilus {
 					   << " expected threads, for Op: " << base_type::core_type << ", for [BLOCK]: " << current_block << std::endl;
 				log<log_levels::status>(stream.str());
 			}
-			kernel_dispatcher<device_type, processing_phase, device_types::cpu, base_type>::impl(parse_core, thread_index_new, thread_count, current_block);
+			kernel_dispatcher<device_type, processing_phase, base_type>::impl(parse_core, thread_index_new, thread_count, current_block);
 
 			if constexpr (config.dev) {
 				std::stringstream stream{};
@@ -295,7 +328,7 @@ namespace nihilus {
 					   << " expected threads, for Op: " << base_type::core_type << std::endl;
 				log<log_levels::status>(stream.str());
 			}
-			kernel_dispatcher<device_type, processing_phase, device_types::cpu, base_type>::impl(parse_core, thread_index_new, thread_count);
+			kernel_dispatcher<device_type, processing_phase, base_type>::impl(parse_core, thread_index_new, thread_count);
 			if constexpr (config.dev) {
 				std::stringstream stream{};
 				stream << "[DEBUG] Thread (ID: " << std::this_thread::get_id() << ") " << thread_index_new << " [FINISHED] a barrier with " << thread_count

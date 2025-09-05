@@ -19,12 +19,14 @@
 
 find_package(CUDAToolkit REQUIRED)
 
-include("${CMAKE_SOURCE_DIR}/cmake/detection/nihilus_detect_gpu_architecture.cmake")
+include("${CMAKE_SOURCE_DIR}/cmake/detection/nihilus_detect_gpu_arch.cmake")
 
-message(STATUS "CUDA Architecture: ${NIHILUS_GPU_FLAGS}")
+message(STATUS "CUDA Architecture: ${NIHILUS_GPU_NAME}")
 
 add_library("${PROJECT_NAME}-cuda" INTERFACE)
 add_library("${PROJECT_NAME}::${PROJECT_NAME}-cuda" ALIAS "${PROJECT_NAME}-cuda")
+
+set_property(TARGET "${PROJECT_NAME}-cuda" PROPERTY CUDA_STANDARD 23)
 
 target_link_libraries("${PROJECT_NAME}-cuda" INTERFACE 
     CUDA::cudart

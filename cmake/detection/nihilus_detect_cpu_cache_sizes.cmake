@@ -18,9 +18,10 @@
 # */
 
 if (UNIX OR APPLE)
-    file(WRITE "${CMAKE_SOURCE_DIR}/cmake/detection/BuildFeatureTesterCacheSizes.sh" "#!/bin/bash
-\"${CMAKE_COMMAND}\" -S ./ -B ./Build-Cache-Sizes -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DNIHILUS_DETECT_CPU_CACHE_SIZES=TRUE
-\"${CMAKE_COMMAND}\" --build ./Build-Cache-Sizes --config=Release")
+    file(WRITE "${CMAKE_SOURCE_DIR}/cmake/detection/BuildFeatureTesterCacheSizes.sh" "#!/bin/bash\n"
+        "\"${CMAKE_COMMAND}\" -S ./ -B ./Build-Cache-Sizes -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DNIHILUS_DETECT_CPU_CACHE_SIZES=TRUE\n"
+        "\"${CMAKE_COMMAND}\" --build ./Build-Cache-Sizes --config=Release"
+    )
     execute_process(
         COMMAND chmod +x "${CMAKE_SOURCE_DIR}/cmake/detection/BuildFeatureTesterCacheSizes.sh"
         RESULT_VARIABLE CHMOD_RESULT
@@ -34,8 +35,9 @@ if (UNIX OR APPLE)
     )
     set(FEATURE_TESTER_FILE "${CMAKE_SOURCE_DIR}/cmake/detection/Build-Cache-Sizes/feature_detector")
 elseif(WIN32)
-    file(WRITE "${CMAKE_SOURCE_DIR}/cmake/detection/BuildFeatureTesterCacheSizes.bat" "\"${CMAKE_COMMAND}\" -S ./ -B ./Build-Cache-Sizes -DCMAKE_BUILD_TYPE=Release  -DNIHILUS_DETECT_CPU_CACHE_SIZES=TRUE
-\"${CMAKE_COMMAND}\" --build ./Build-Cache-Sizes --config=Release")
+    file(WRITE "${CMAKE_SOURCE_DIR}/cmake/detection/BuildFeatureTesterCacheSizes.bat" "\"${CMAKE_COMMAND}\" -S ./ -B ./Build-Cache-Sizes -DCMAKE_BUILD_TYPE=Release  -DNIHILUS_DETECT_CPU_CACHE_SIZES=TRUE\n"
+        "\"${CMAKE_COMMAND}\" --build ./Build-Cache-Sizes --config=Release"
+    )
     execute_process(
         COMMAND "${CMAKE_SOURCE_DIR}/cmake/detection/BuildFeatureTesterCacheSizes.bat"
         WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/cmake/detection"
@@ -47,12 +49,17 @@ if (NOT NIHILUS_CPU_CACHE_SIZE)
 
     execute_process(
         COMMAND "${FEATURE_TESTER_FILE}"
-        RESULT_VARIABLE NIHILUS_CPU_CACHE_SIZE
+        RESULT_VARIABLE NIHILUS_CPU_CACHE_SIZE_NEW
     )
 
-endif()
+    if(NIHILUS_CPU_CACHE_SIZE_NEW GREATER 0)
+        set(NIHILUS_CPU_CACHE_SIZE "${NIHILUS_CPU_CACHE_SIZE_NEW}" CACHE STRING "CPU L1 cache size " FORCE)
+    else()
+        message(WARNING "Feature detector failed, using default thread count of 1")
+        set(NIHILUS_CPU_CACHE_SIZE "64" CACHE STRING "CPU L1 cache size (default fallback)" FORCE)
+    endif()
 
-set(NIHILUS_CPU_CACHE_SIZE "${NIHILUS_CPU_CACHE_SIZE}" CACHE STRING "CPU Cache Size" FORCE)
+endif()
 
 configure_file(
     "${CMAKE_SOURCE_DIR}/cmake/detection/nihilus_cpu_cache_sizes.hpp.in"

@@ -18,9 +18,10 @@
 # */
 
 if (UNIX OR APPLE)
-    file(WRITE "${CMAKE_SOURCE_DIR}/cmake/detection/BuildFeatureTester.sh" "#!/bin/bash
-\"${CMAKE_COMMAND}\" -S ./ -B ./Build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
-\"${CMAKE_COMMAND}\" --build ./Build --config=Release")
+    file(WRITE "${CMAKE_SOURCE_DIR}/cmake/detection/BuildFeatureTester.sh" "#!/bin/bash\n"
+        "\"${CMAKE_COMMAND}\" -S ./ -B ./Build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}\n"
+        "\"${CMAKE_COMMAND}\" --build ./Build --config=Release"
+    )
     execute_process(
         COMMAND chmod +x "${CMAKE_SOURCE_DIR}/cmake/detection/BuildFeatureTester.sh"
         RESULT_VARIABLE CHMOD_RESULT
@@ -34,8 +35,9 @@ if (UNIX OR APPLE)
     )
     set(FEATURE_TESTER_FILE "${CMAKE_SOURCE_DIR}/cmake/detection/Build/feature_detector")
 elseif(WIN32)
-    file(WRITE "${CMAKE_SOURCE_DIR}/cmake/detection/BuildFeatureTester.bat" "\"${CMAKE_COMMAND}\" -S ./ -B ./Build -DCMAKE_BUILD_TYPE=Release
-\"${CMAKE_COMMAND}\" --build ./Build --config=Release")
+    file(WRITE "${CMAKE_SOURCE_DIR}/cmake/detection/BuildFeatureTester.bat" "\"${CMAKE_COMMAND}\" -S ./ -B ./Build -DCMAKE_BUILD_TYPE=Release\n"
+        "\"${CMAKE_COMMAND}\" --build ./Build --config=Release"
+    )
     execute_process(
         COMMAND "${CMAKE_SOURCE_DIR}/cmake/detection/BuildFeatureTester.bat"
         WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/cmake/detection"
@@ -50,12 +52,17 @@ if (NOT NIHILUS_MAX_THREAD_COUNT)
         RESULT_VARIABLE NIHILUS_MAX_THREAD_COUNT_NEW
     )
 
-    set(NIHILUS_MAX_THREAD_COUNT "${NIHILUS_MAX_THREAD_COUNT_NEW}" CACHE STRING "CPU max thread count" FORCE)
+    if(NIHILUS_MAX_THREAD_COUNT_NEW GREATER 0)
+        set(NIHILUS_MAX_THREAD_COUNT "${NIHILUS_MAX_THREAD_COUNT_NEW}" CACHE STRING "CPU max thread count" FORCE)
+    else()
+        message(WARNING "Feature detector failed, using default thread count of 1")
+        set(NIHILUS_MAX_THREAD_COUNT "1" CACHE STRING "CPU max thread count (default fallback)" FORCE)
+    endif()
 
 endif()
 
 configure_file(
-    "${CMAKE_SOURCE_DIR}/cmake/detection/nihilus_thread_count.hpp.in"
-    "${CMAKE_SOURCE_DIR}/include/nihilus-incl/cpu/nihilus_thread_count.hpp"
+    "${CMAKE_SOURCE_DIR}/cmake/detection/nihilus_max_thread_count.hpp.in"
+    "${CMAKE_SOURCE_DIR}/include/nihilus-incl/cpu/nihilus_nax_thread_count.hpp"
     @ONLY
 )

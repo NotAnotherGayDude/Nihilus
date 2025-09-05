@@ -57,9 +57,8 @@ namespace nihilus {
 			requires(std::is_move_assignable_v<value_type>)
 		{
 			if (this != &other) {
-				for (size_type i = 0; i < size_val; ++i) {
-					data_val[i] = detail::move(other.data_val[i]);
-				}
+				array array_new{ std::move(other) };
+				swap(array_new);
 			}
 			return *this;
 		}
@@ -76,9 +75,8 @@ namespace nihilus {
 			requires(std::is_copy_assignable_v<value_type>)
 		{
 			if (this != &other) {
-				for (size_type i = 0; i < size_val; ++i) {
-					data_val[i] = other.data_val[i];
-				}
+				array array_new{ other };
+				swap(array_new);
 			}
 			return *this;
 		}
@@ -90,6 +88,14 @@ namespace nihilus {
 				data_val[i] = other.data_val[i];
 			}
 		}
+
+		NIHILUS_INLINE constexpr array& operator=(array&& other)
+			requires(!std::is_move_assignable_v<value_type>)
+		= delete;
+
+		NIHILUS_INLINE constexpr array(array&& other)
+			requires(!std::is_move_assignable_v<value_type>)
+		= delete;
 
 		NIHILUS_INLINE constexpr array& operator=(const array& other)
 			requires(!std::is_copy_assignable_v<value_type>)
@@ -108,6 +114,12 @@ namespace nihilus {
 		template<typename... arg_types> NIHILUS_INLINE constexpr array(arg_types&&... args)
 			requires(sizeof...(arg_types) == size_val && (std::is_constructible_v<value_type, arg_types> && ...) && std::is_copy_constructible_v<value_type>)
 			: data_val{ static_cast<value_type>(forward<arg_types>(args))... } {
+		}
+
+		NIHILUS_INLINE constexpr void swap(array& other) noexcept {
+			for (uint64_t x = 0; x < size_val; ++x) {
+				std::swap(data_val[x], other.data_val[x]);
+			}
 		}
 
 		NIHILUS_INLINE constexpr void fill(const value_type& value) {

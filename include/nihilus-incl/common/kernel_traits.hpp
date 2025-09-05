@@ -283,6 +283,8 @@ namespace nihilus {
 
 	template<device_types devive_type, uint64_t, core_types core_type, processing_phases processing_phase> struct kernel_dispatcher_impl;
 
+	template<uint64_t, core_types core_type, processing_phases processing_phase> struct kernel_dispatcher_impl_dev;
+
 	template<model_config config, typename dims_type, kernel_types kernel_type, typename output_type_new, typename... operand_types> struct kernel_traits;
 
 	template<model_config config, typename dims_type_new, typename output_type_new> struct kernel_traits<config, dims_type_new, kernel_types::none, output_type_new>

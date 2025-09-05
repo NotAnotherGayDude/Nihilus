@@ -117,7 +117,7 @@ int main(int argc, char** argv) {
 			llama_numa_init(params.numa);
 
 			llama_model* model	 = nullptr;
-			ctx	 = nullptr;
+			ctx					 = nullptr;
 			common_sampler* smpl = nullptr;
 
 			g_model = &model;
@@ -596,7 +596,7 @@ int main(int argc, char** argv) {
 			bnch_swt::doNotOptimizeAway(cli_args.n_tokens);
 			return static_cast<int32_t>(cli_args.n_tokens);
 		});
-		
+
 		std::cout << return_value << std::endl;
 		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 4, 2, true, "Token">::printResults();
 	} catch (const std::exception& error) {

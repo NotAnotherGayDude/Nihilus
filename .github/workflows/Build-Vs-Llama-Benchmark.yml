@@ -1,4 +1,4 @@
-name: Nihilus Multi-Platform Benchmark Build
+name: Nihilus Multi-Platform Vs-Llama-Benchmark Build
 on:
   push:
     branches: [ "**" ]
@@ -71,7 +71,7 @@ jobs:
     
     - name: Configure CMake
       run: |
-        cmake -S . -B ./Build -DCMAKE_BUILD_TYPE=Release -DLLAMA_CURL=OFF -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=TRUE -DCMAKE_INSTALL_RPATH="@loader_path/../lib" -DNIHILUS_BENCHMARK=TRUE -DGGML_METAL=OFF -DNIHILUS_MODEL_SIZE_OVERRIDE=nihilus::model_sizes::llm_8B
+        cmake -S . -B ./Build -DCMAKE_BUILD_TYPE=Release -DLLAMA_CURL=OFF -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=TRUE -DCMAKE_INSTALL_RPATH="@loader_path/../lib" -DVS_LLAMA_BENCHMARK=TRUE -DGGML_METAL=OFF -DNIHILUS_MODEL_SIZE_OVERRIDE=nihilus::model_sizes::llm_8B
     
     - name: Build Project
       run: |

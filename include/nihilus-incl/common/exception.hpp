@@ -36,7 +36,7 @@ namespace nihilus {
 		status,
 	};
 
-	template<log_levels level> NIHILUS_INLINE void log(std::string_view string) {
+	template<log_levels level> NIHILUS_INLINE void log(const std::string_view string) {
 		static std::mutex mutex_new{};
 		std::unique_lock<std::mutex> lock{ mutex_new };
 		if constexpr (level == log_levels::error) {
@@ -77,7 +77,7 @@ namespace nihilus {
 			static constexpr uint64_t str_length{ str_len(source_info.file_name()) };
 			static constexpr string_literal return_value{ "Error: " + error_type + "\nIn File: " + string_literal<str_length>{ source_info.file_name() } +
 				"\nOn Line: " + to_string_literal<source_info.line()>() + "\n" };
-			throw nihilus_exception(static_cast<std::string_view>(return_value));
+			throw nihilus_exception(static_cast<const std::string_view>(return_value));
 		}
 		NIHILUS_INLINE static void impl(const std::string_view input_string) {
 			static constexpr uint64_t str_length{ str_len(source_info.file_name()) };
@@ -85,11 +85,11 @@ namespace nihilus {
 			static constexpr string_literal return_value02{ "\nIn File: " + string_literal<str_length>{ source_info.file_name() } +
 				"\nOn Line: " + to_string_literal<source_info.line()>() + "\n" };
 			std::string new_string{ return_value01.operator std::string() + input_string + return_value02.operator std::string() };
-			throw nihilus_exception(static_cast<std::string_view>(new_string));
+			throw nihilus_exception(static_cast<const std::string_view>(new_string));
 		}
 
 	  protected:
-		nihilus_exception(std::string_view new_value) : std::runtime_error(static_cast<std::string>(new_value)) {
+		nihilus_exception(const std::string_view new_value) : std::runtime_error(static_cast<std::string>(new_value)) {
 		}
 	};
 }

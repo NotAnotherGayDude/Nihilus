@@ -23,7 +23,6 @@ RealTimeChris (Chris M.)
 #include <nihilus-incl/common/kernel_traits.hpp>
 #include <nihilus-incl/cuda/common.cuh>
 #include <nihilus-incl/common/common.hpp>
-//#include <nihilus-incl/cpu/cpu_arch.hpp>
 
 namespace nihilus {
 
@@ -38,7 +37,7 @@ namespace nihilus {
 #endif
 	}() };
 
-	template<device_types device_type, processing_phases processing_phase, device_types dev_type, typename core_type>
+	template<device_types device_type, processing_phases processing_phase, typename core_type>
 	struct kernel_dispatcher {
 		NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {
 			kernel_dispatcher_impl<device_type, arch_index<device_type>, core_type::core_type, processing_phase>::impl(params, thread_index, thread_count, current_block);

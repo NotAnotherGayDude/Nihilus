@@ -838,10 +838,10 @@ namespace nihilus {
 
 	template<typename value_type>
 	concept has_mutable_dims = requires(detail::remove_cvref_t<value_type> value) { value.get_mutable_dim(); };
-	template<model_config config> struct tensor_debugger {
+	template<model_config config> struct tensor_debugger_impl {
 		inline static jsonifier::jsonifier_core parser{};
 
-		template<typename tensor_type> static bool compare_tensor_data(tensor_type& tensor, uint64_t current_block, uint64_t iteration, uint64_t runtime_dim) {
+		template<typename tensor_type> static bool impl(tensor_type& tensor, uint64_t current_block, uint64_t iteration, uint64_t runtime_dim) {
 			std::string file_name{ convert_op_to_string(tensor.op_type, current_block) + "-" + std::to_string(iteration) + ".json" };
 			file_loader<config> file{ file_name };
 			std::string new_string = file.operator const std::string&();
@@ -872,13 +872,15 @@ namespace nihilus {
 #else
 
 namespace nihilus {
+
 	template<typename value_type>
 	concept has_mutable_dims = requires(detail::remove_cvref_t<value_type> value) { value.get_mutable_dim(); };
-	template<model_config config> struct tensor_debugger {
-		template<typename tensor_type> static bool compare_tensor_data(tensor_type& tensor, uint64_t current_block, uint64_t iteration, uint64_t runtime_dim) {
-			return false;
+	template<model_config config> struct tensor_debugger_impl {
+		template<typename tensor_type> static void impl(tensor_type& tensor, uint64_t current_block, uint64_t iteration, uint64_t runtime_dim) {
+			return;
 		}
 	};
+
 }
 
 #endif

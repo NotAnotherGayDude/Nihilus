@@ -40,7 +40,7 @@ static std::string build_repetition(const std::string & item_rule, int min_items
     return result;
 }
 
-/* Minimalistic replacement for std::string_view, which is only available from C++17 onwards */
+/* Minimalistic replacement for const std::string_view, which is only available from C++17 onwards */
 class string_view {
     const std::string & _str;
     const size_t _start;

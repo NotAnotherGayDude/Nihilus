@@ -19,12 +19,13 @@ RealTimeChris (Chris M.)
 */
 #pragma once
 
-#include <cstdint>
+#include <nihilus-incl/common/config.hpp>
 
 namespace nihilus {
 
-	struct max_thread_count_holder {
-		static constexpr uint64_t max_thread_count{ 32 };
+	struct gpu_arch_index_holder {
+		static constexpr static_aligned_const gpu_arch_index_raw{ 4ull };
+		static constexpr const uint64_t& gpu_arch_index{ *gpu_arch_index_raw };
 	};
 
 }
