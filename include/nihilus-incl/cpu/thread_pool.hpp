@@ -20,8 +20,8 @@ RealTimeChris (Chris M.)
 
 #pragma once
 
-#include <nihilus-incl/common/monolithic_dispatcher.hpp>
-#include <nihilus-incl/common/core_bases.hpp>
+#include <nihilus-incl/infra/monolithic_dispatcher.hpp>
+#include <nihilus-incl/infra/core_bases.hpp>
 #include <nihilus-incl/common/common.hpp>
 #include <nihilus-incl/common/tuple.hpp>
 #include <atomic>
@@ -121,7 +121,6 @@ namespace nihilus {
 		uint64_t generated_token_count				= {};
 		uint64_t prompt_token_count					= {};
 		uint64_t total_sampling_runs				= {};
-		uint64_t current_iteration					= {};
 		aligned_vector<uint64_t> runtime_dimensions = {};
 	};
 
@@ -153,9 +152,16 @@ namespace nihilus {
 		}
 
 		template<processing_phases processing_phase, size_t... indices> NIHILUS_INLINE void execute_blocks(uint64_t thread_index, std::index_sequence<indices...>) {
-			(core_bases_type::template impl_thread<per_block_thread_function, config.device_type, cpu_arch_index_holder::cpu_arch_index, processing_phase>(indices, thread_index,
-				 thread_count),
-				...);
+			if constexpr (config.dev) {
+				((core_bases_type::template impl_thread<per_block_thread_function, config.device_type, cpu_arch_index_holder::cpu_arch_index, processing_phase>(indices,
+					  thread_index, thread_count),
+					 core_bases_type::template impl<tensor_debugger>(indices, core_types::token_embeddings)),
+					...);
+			} else {
+				(core_bases_type::template impl_thread<per_block_thread_function, config.device_type, cpu_arch_index_holder::cpu_arch_index, processing_phase>(indices,
+					 thread_index, thread_count),
+					...);
+			}
 		}
 
 		NIHILUS_INLINE void thread_function(uint64_t thread_index) {

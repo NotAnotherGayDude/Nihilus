@@ -581,16 +581,13 @@ namespace nihilus {
 			return *this;
 		}
 
-		template<core_traits_types tensor_type> NIHILUS_INLINE tensor_wrapper(tensor_type& other, const std::string& name_new, uint64_t current_block) {
+		template<typename tensor_type> NIHILUS_INLINE tensor_wrapper(tensor_type& other, const std::string& name_new, uint64_t current_block) {
+			/*
 			using output_type = typename tensor_type::output_type;
 			dims[0]			  = other[0];
 			dims[1]			  = other[1];
 			dims[2]			  = other[2];
 			dims[3]			  = other[3];
-
-			if constexpr (tensor_type::runtime_dims != 5) {
-				dims[tensor_type::runtime_dims] = other.get_mutable_dim();
-			}
 			source_type			   = source_types::nihilus;
 			uint64_t element_count = get_runtime_byte_size(other);
 			byte_size			   = element_count;
@@ -610,7 +607,7 @@ namespace nihilus {
 				} else {
 					std::cout << "Sorry, but no data for op: " << op << std::endl;
 				}
-			}
+			}*/
 		}
 		array<uint64_t, 4> dims{};
 		std::string name{};
@@ -836,32 +833,30 @@ namespace nihilus {
 		}
 	}
 
-	template<typename value_type>
-	concept has_mutable_dims = requires(detail::remove_cvref_t<value_type> value) { value.get_mutable_dim(); };
 	template<model_config config> struct tensor_debugger_impl {
 		inline static jsonifier::jsonifier_core parser{};
 
-		template<typename tensor_type> static bool impl(tensor_type& tensor, uint64_t current_block, uint64_t iteration, uint64_t runtime_dim) {
-			std::string file_name{ convert_op_to_string(tensor.op_type, current_block) + "-" + std::to_string(iteration) + ".json" };
+		template<typename tensor_type> static bool impl(tensor_type& tensor, uint64_t current_block, uint64_t iteration) {
+			std::string file_name{ convert_op_to_string(tensor.core_type, current_block) + "-" + std::to_string(iteration) + ".json" };
 			file_loader<config> file{ file_name };
 			std::string new_string = file.operator const std::string&();
-			tensor_wrapper tensor_newer{ tensor, convert_op_to_string(tensor.op_type, current_block), current_block };
+			tensor_wrapper tensor_newer{ tensor, convert_op_to_string(tensor.core_type, current_block), current_block };
 			intermediary_tensor tensor_new{};
 			parser.parseJson(tensor_new, new_string);
 			std::stringstream stream{};
 			if (!new_string.empty()) {
 				auto return_value{ tensor_newer == tensor_new };
 				if (!return_value) {
-					stream << "Not Equal: Tensor of name: " << file_name << ", OF TYPE: " << tensor.op_type << " (iteration " << iteration << ")" << std::endl;
+					stream << "Not Equal: Tensor of name: " << file_name << ", OF TYPE: " << tensor.core_type << " (iteration " << iteration << ")" << std::endl;
 					stream << return_value.result_output;
 					log<log_levels::status>(stream.str());
 				} else {
-					stream << "Found an equal op of name: " << file_name << ", OF TYPE: " << tensor.op_type << " (iteration " << iteration << ")" << std::endl;
+					stream << "Found an equal op of name: " << file_name << ", OF TYPE: " << tensor.core_type << " (iteration " << iteration << ")" << std::endl;
 					log<log_levels::status>(stream.str());
 				}
 				return return_value;
 			} else {
-				stream << "Not Found: Tensor of name: " << file_name << ", OF TYPE: " << tensor.op_type << " (iteration " << iteration << ")" << std::endl;
+				stream << "Not Found: Tensor of name: " << file_name << ", OF TYPE: " << tensor.core_type << " (iteration " << iteration << ")" << std::endl;
 			}
 			log<log_levels::status>(stream.str());
 			return false;
@@ -876,7 +871,7 @@ namespace nihilus {
 	template<typename value_type>
 	concept has_mutable_dims = requires(detail::remove_cvref_t<value_type> value) { value.get_mutable_dim(); };
 	template<model_config config> struct tensor_debugger_impl {
-		template<typename tensor_type> static void impl(tensor_type& tensor, uint64_t current_block, uint64_t iteration, uint64_t runtime_dim) {
+		template<typename tensor_type> static void impl(tensor_type& tensor, uint64_t current_block, uint64_t iteration) {
 			return;
 		}
 	};

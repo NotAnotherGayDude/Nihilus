@@ -19,10 +19,10 @@ RealTimeChris (Chris M.)
 */
 #pragma once
 
-#include <nihilus-incl/common/memory_mapped_file.hpp>
+#include <nihilus-incl/cpu/memory_mapped_file.hpp>
 #include <nihilus-incl/common/parse_entity.hpp>
-#include <nihilus-incl/common/tokenizer.hpp>
-#include <nihilus-incl/common/core_traits.hpp>
+#include <nihilus-incl/infra/tokenizer.hpp>
+#include <nihilus-incl/infra/core_traits.hpp>
 
 namespace nihilus {
 
@@ -661,7 +661,7 @@ namespace nihilus {
 			return num_blocks * type_size_val;
 		}
 
-		template<core_traits_types op_traits> NIHILUS_INLINE bool operator==(const op_traits&) const {
+		template<typename op_traits> NIHILUS_INLINE bool operator==(const op_traits&) const {
 			static constexpr auto other_dims = op_traits::get_array();
 			return dimensions[0] == other_dims[0] && dimensions[1] == other_dims[1] && dimensions[2] == other_dims[2] && dimensions[3] == other_dims[3];
 		}

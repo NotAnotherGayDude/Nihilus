@@ -25,9 +25,7 @@ RealTimeChris (Chris M.)
 #include <nihilus-incl/common/allocator.hpp>
 #include <nihilus-incl/common/config.hpp>
 #include <nihilus-incl/common/exception.hpp>
-#include <nihilus-incl/cpu/nihilus_cpu_arch.hpp>
-#include <nihilus-incl/cpu/nihilus_cpu_cache_sizes.hpp>
-#include <nihilus-incl/cpu/nihilus_nax_thread_count.hpp>
+#include <nihilus-incl/cpu/fallback.hpp>
 #include <nihilus-incl/common/data_types.hpp>
 #include <nihilus-incl/common/concepts.hpp>
 #include <nihilus-incl/common/array.hpp>
@@ -192,7 +190,8 @@ namespace nihilus {
 
 	template<integral_or_enum_types value_type_new> struct alignas(64) atomic_flag_wrapper {
 		static constexpr static_aligned_const spin_cycles{ 500000ull };
-		using value_type										= typename std::atomic_signed_lock_free::value_type;
+		using value_type = typename std::atomic_signed_lock_free::value_type;
+		NIHILUS_INLINE constexpr atomic_flag_wrapper(value_type_new) noexcept {};
 		NIHILUS_INLINE constexpr atomic_flag_wrapper() noexcept = default;
 		NIHILUS_INLINE constexpr atomic_flag_wrapper& operator=(const atomic_flag_wrapper&) noexcept {
 			return *this;
@@ -260,6 +259,8 @@ namespace nihilus {
 	  protected:
 		alignas(64) std::atomic_signed_lock_free flag{};
 	};
+
+	template<typename value_type> atomic_flag_wrapper(value_type) -> atomic_flag_wrapper<value_type>;
 
 	struct alignas(64) main_gate_latch {
 		NIHILUS_INLINE main_gate_latch()								  = default;

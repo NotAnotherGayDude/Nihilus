@@ -19,8 +19,9 @@ RealTimeChris (Chris M.)
 */
 #pragma once
 
-#include <nihilus-incl/common/kernel_traits.hpp>
-#include <nihilus-incl/cpu/common.hpp>
+#include <nihilus-incl/cpu/nihilus_nax_thread_count.hpp>
+#include <nihilus-incl/cpu/nihilus_cpu_cache_size.hpp>
+#include <nihilus-incl/cpu/nihilus_cpu_arch.hpp>
 
 #if NIHILUS_SVE2
 

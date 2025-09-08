@@ -62,7 +62,7 @@ if (NOT NIHILUS_CPU_CACHE_SIZE)
 endif()
 
 configure_file(
-    "${CMAKE_SOURCE_DIR}/cmake/detection/nihilus_cpu_cache_sizes.hpp.in"
-    "${CMAKE_SOURCE_DIR}/include/nihilus-incl/cpu/nihilus_cpu_cache_sizes.hpp"
+    "${CMAKE_SOURCE_DIR}/cmake/detection/nihilus_cpu_cache_size.hpp.in"
+    "${CMAKE_SOURCE_DIR}/include/nihilus-incl/cpu/nihilus_cpu_cache_size.hpp"
     @ONLY
 )

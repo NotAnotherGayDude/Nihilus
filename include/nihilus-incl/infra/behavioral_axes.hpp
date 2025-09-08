@@ -20,8 +20,9 @@ RealTimeChris (Chris M.)
 
 #pragma once
 
-#include <nihilus-incl/common/monolithic_dispatcher.hpp>
-#include <nihilus-incl/common/memory_buffer.hpp>
+#include <nihilus-incl/infra/monolithic_dispatcher.hpp>
+#include <nihilus-incl/cpu/memory_buffer.hpp>
+#include <nihilus-incl/common/debugging_io.hpp>
 #include <nihilus-incl/common/common.hpp>
 #include <nihilus-incl/common/tuple.hpp>
 #include <atomic>
@@ -30,7 +31,9 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-	using namespace std::chrono_literals;
+	using namespace std::chrono_literals;	
+
+	inline atomic_flag_wrapper current_iteration_new{ 4ull };
 
 	NIHILUS_INLINE static void spinlock_nanoseconds(uint64_t nanoseconds) {
 #if NIHILUS_PLATFORM_WINDOWS
@@ -158,7 +161,7 @@ namespace nihilus {
 		}
 
 		NIHILUS_INLINE static void impl(base_type& parse_core, uint64_t current_block, core_types core_type) {
-
+			tensor_debugger_impl<config>::impl(parse_core, current_block, current_iteration_new.load());
 		};
 	};
 

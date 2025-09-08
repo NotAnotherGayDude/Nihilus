@@ -54,7 +54,7 @@ endif()
 
 include("cmake/detection/nihilus_detect_cpu_arch.cmake")
 include("cmake/detection/nihilus_detect_max_thread_count.cmake")
-include("cmake/detection/nihilus_detect_cpu_cache_sizes.cmake")
+include("cmake/detection/nihilus_detect_cpu_cache_size.cmake")
 
 add_library("${PROJECT_NAME}" INTERFACE)
 add_library("${PROJECT_NAME}::${PROJECT_NAME}" ALIAS "${PROJECT_NAME}")
@@ -180,7 +180,7 @@ message(STATUS "Version: ${PROJECT_VERSION}")
 message(STATUS "Max Thread Count: ${NIHILUS_MAX_THREAD_COUNT}")
 message(STATUS "Architecture: ${CMAKE_SYSTEM_PROCESSOR}")
 message(STATUS "Compiler: ${CMAKE_CXX_COMPILER_ID}")
-message(STATUS "CPU Variants: ${INSTRUCTION_SET_NAME}")
+message(STATUS "CPU Variants: ${NIHILUS_INSTRUCTION_SET_NAME}")
 
 if (VS_LLAMA_CLEAN)
     add_subdirectory("./tests/vs-llama-clean")
