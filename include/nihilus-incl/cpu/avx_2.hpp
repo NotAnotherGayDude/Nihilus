@@ -27,17 +27,17 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-	NIHILUS_INLINE void dequantize_q8_0_to_f32(const block_q8_0<half>* src, float* dst, uint64_t count) {
+	NIHILUS_INLINE void dequantize_q8_0_to_f32(const block_q8_0<half>* __restrict src, float* __restrict dst, uint64_t count) {
 		constexpr uint64_t block_size = 32;
 
 		const uint64_t full_blocks = count / block_size;
 		const uint64_t remainder   = count % block_size;
 
 		for (uint64_t block_idx = 0; block_idx < full_blocks; ++block_idx) {
-			const block_q8_0<half>& block = src[block_idx];
-			const float scale			  = fp16_to_fp32(block.d);
-			const int8_t* quantized		  = block.qs;
-			const uint64_t base_offset	  = block_idx * block_size;
+			const block_q8_0<half>& block	   = src[block_idx];
+			const float scale				   = fp16_to_fp32(block.d);
+			const int8_t* __restrict quantized = block.qs;
+			const uint64_t base_offset		   = block_idx * block_size;
 
 			for (uint64_t j = 0; j < block_size; ++j) {
 				dst[base_offset + j] = scale * static_cast<float>(quantized[j]);
@@ -46,7 +46,7 @@ namespace nihilus {
 		if (remainder > 0) {
 			const block_q8_0<half>& final_block = src[full_blocks];
 			const float scale					= fp16_to_fp32(final_block.d);
-			const int8_t* quantized				= final_block.qs;
+			const int8_t* __restrict quantized	= final_block.qs;
 			const uint64_t base_offset			= full_blocks * block_size;
 
 			for (uint64_t j = 0; j < remainder; ++j) {
@@ -55,44 +55,37 @@ namespace nihilus {
 		}
 	}
 
-	template<typename core_type> NIHILUS_INLINE static constexpr int64_t calculate_chunk_count_and_size(core_type& params, uint64_t& chunk_size_out) {
-		constexpr uint64_t embedding_length			  = model_traits_type<core_type::config>::embedding_length;
-		const uint64_t sequence_length				  = params.runtime_dimension;
-		constexpr uint64_t output_bytes_per_embedding = embedding_length * sizeof(float);
-		constexpr uint64_t input_bytes_per_embedding  = (embedding_length + 31) / 32 * 34;
-		constexpr uint64_t total_bytes_per_embedding  = output_bytes_per_embedding + input_bytes_per_embedding;
-		constexpr uint64_t target_cache_bytes		  = cpu_cache_size_holder::cpu_cache_size * 2;
-		constexpr uint64_t usable_cache				  = target_cache_bytes * 7 / 10;
-		constexpr uint64_t optimal_chunk_size		  = detail::max(1ULL, usable_cache / total_bytes_per_embedding);
-		chunk_size_out								  = detail::min(optimal_chunk_size, sequence_length);
-		return (sequence_length + chunk_size_out - 1) / chunk_size_out;
+	template<typename output_type>
+	NIHILUS_INLINE static constexpr int64_t calculate_chunk_count_and_size(uint64_t& chunk_size_out) {
+		return 0;
 	}
 
 	template<> struct kernel_dispatcher_impl<device_types::cpu, 1, core_types::token_embeddings, processing_phases::prompt_eval_time> {
 		template<typename core_type> NIHILUS_INLINE static void process_chunk(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_chunk) {
-			auto& token_embd_op = params.values.template get_core<token_embedding_types, token_embedding_types::get_rows>();
+			auto& get_rows_op = params.values.template get_core<token_embedding_types, token_embedding_types::get_rows>();
 			auto& weights_core	= get_adjacent_value<core_type::config, core_types::weights>::impl(params);
 			auto& inputs_core	= get_adjacent_value<core_type::config, core_types::global_inputs>::impl(params);
 
-			const auto* weight_data = weights_core.values.template get_core<weight_types, weight_types::token_embd>().data;
-			const auto* token_ids	= inputs_core.values.template get_core<global_input_types, global_input_types::inp_tokens>().data;
+			auto& token_embd_op				   = weights_core.values.template get_core<weight_types, weight_types::token_embd>();
+			auto& inp_tokens_op				   = inputs_core.values.template get_core<global_input_types, global_input_types::inp_tokens>();
+			const auto* __restrict weight_data = token_embd_op.data;
+			const auto* __restrict token_ids   = inputs_core.values.template get_core<global_input_types, global_input_types::inp_tokens>().data;
 
 			constexpr uint64_t embedding_length = model_traits_type<core_type::config>::embedding_length;
 			const uint64_t sequence_length		= params.runtime_dimension;
 
 			uint64_t chunk_size;
-			calculate_chunk_count_and_size(params, chunk_size);
 
-			const uint64_t start_token = current_chunk * chunk_size;
-			const uint64_t end_token   = detail::min(start_token + chunk_size, sequence_length);
-			auto* output_data		   = token_embd_op.data;
+			const uint64_t start_token	 = current_chunk * chunk_size;
+			const uint64_t end_token	 = detail::min(start_token + chunk_size, sequence_length);
+			auto* __restrict output_data = get_rows_op.data;
 
 			constexpr uint64_t blocks_per_embedding = embedding_length / 32;
 
 			for (uint64_t token_idx = start_token; token_idx < end_token; ++token_idx) {
-				const uint32_t token_id = token_ids[token_idx];
-				const auto* src_row		= weight_data + (token_id * blocks_per_embedding);
-				auto* dst_row			= output_data + (token_idx * embedding_length);
+				const uint32_t token_id		   = token_ids[token_idx];
+				const auto* __restrict src_row = weight_data + (token_id * blocks_per_embedding);
+				auto* __restrict dst_row	   = output_data + (token_idx * embedding_length);
 
 				dequantize_q8_0_to_f32(src_row, dst_row, embedding_length);
 			}
@@ -100,7 +93,7 @@ namespace nihilus {
 
 		template<typename core_type> NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count) {
 			uint64_t chunk_size;
-			const int64_t chunk_count = calculate_chunk_count_and_size(params, chunk_size);
+			const int64_t chunk_count = calculate_chunk_count_and_size<typename core_type::token_embeddings_type::output_type>(chunk_size);
 
 			int64_t current_chunk = params.current_chunk_prompt_eval.fetch_add(1);
 			for (; current_chunk < chunk_count; current_chunk = params.current_chunk_prompt_eval.fetch_add(1)) {
@@ -119,26 +112,27 @@ namespace nihilus {
 			auto& weights_core = get_adjacent_value<core_type::config, core_types::weights>::impl(params);
 			auto& inputs_core  = get_adjacent_value<core_type::config, core_types::global_inputs>::impl(params);
 
-			const auto* weight_data = weights_core.values.template get_core<weight_types, weight_types::token_embd>().data;
-			const auto* token_ids	= inputs_core.values.template get_core<global_input_types, global_input_types::inp_tokens>().data;
+			const auto* __restrict weight_data = weights_core.values.template get_core<weight_types, weight_types::token_embd>().data;
+			const auto* __restrict token_ids   = inputs_core.values.template get_core<global_input_types, global_input_types::inp_tokens>().data;
 
 			constexpr uint64_t embedding_length = model_traits_type<core_type::config>::embedding_length;
 			const uint64_t sequence_length		= params.runtime_dimension;
 
 			uint64_t chunk_size;
-			calculate_chunk_count_and_size(params, chunk_size);
 			const uint64_t start_token = current_chunk * chunk_size;
 			const uint64_t end_token   = detail::min(start_token + chunk_size, sequence_length);
 
-			auto* output_data = token_embd_op.data;
+			auto* __restrict output_data = token_embd_op.data;
 
 			constexpr uint64_t blocks_per_embedding = (embedding_length) / 32;
 
-			for (uint64_t token_idx = start_token; token_idx < end_token; ++token_idx) {
-				const uint32_t token_id = token_ids[token_idx];
-				const auto* src_row		= weight_data + (token_id * blocks_per_embedding);
-				auto* dst_row			= output_data + (token_idx * embedding_length);
 
+			std::cout << "WERE HERE THIS IS IT START: " << start_token << std::endl;
+			std::cout << "WERE HERE THIS IS IT END: " << end_token << std::endl;
+			for (uint64_t token_idx = start_token; token_idx < end_token; ++token_idx) {
+				const uint32_t token_id		   = token_ids[token_idx];
+				const auto* __restrict src_row = weight_data + (token_id * blocks_per_embedding);
+				auto* __restrict dst_row	   = output_data + (token_idx * embedding_length);
 				dequantize_q8_0_to_f32(src_row, dst_row, embedding_length);
 			}
 		}
@@ -5946,28 +5940,7 @@ namespace nihilus {
 			}
 		}
 	};
-
-	template<typename core_type> struct kernel_dispatcher_impl<device_types::cpu, 1, kernel_types::copy, processing_phases::eval_time, core_type, float, float>
-		: public kernel_base<kernel_types::copy, core_type, float, float> {
-		using input_type01 = typename core_type::input_01_type;
-
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01) {
-		}
-	};
-
-	template<typename core_type> struct kernel_dispatcher_impl<device_types::cpu, 1, kernel_types::cont, processing_phases::eval_time, core_type, float, float>
-		: public kernel_base<kernel_types::cont, core_type, float, float> {
-		using input_type01 = typename core_type::input_01_type;
-
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_type& output, const typename core_type::input_01_type& input01) {
-		}
-	};
-
-	template<typename core_type> struct kernel_dispatcher_impl<device_types::cpu, 1, kernel_types::silu, processing_phases::eval_time, core_type, float, float>
-		: public kernel_base<kernel_types::silu, core_type, float, float> {
-		NIHILUS_INLINE static void impl(int64_t, int64_t, int64_t, core_type&, const typename core_type::input_01_type&) {
-		}
-	};*/
+	*/
 
 };
 

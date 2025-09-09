@@ -26,8 +26,6 @@ RealTimeChris (Chris M.)
 #include <nihilus-incl/common/config.hpp>
 #include <nihilus-incl/common/exception.hpp>
 #include <nihilus-incl/cpu/nihilus_cpu_arch.hpp>
-#include <nihilus-incl/cpu/nihilus_cpu_cache_sizes.hpp>
-#include <nihilus-incl/cpu/nihilus_nax_thread_count.hpp>
 #include <nihilus-incl/common/data_types.hpp>
 #include <nihilus-incl/common/concepts.hpp>
 #include <nihilus-incl/common/array.hpp>
@@ -151,7 +149,7 @@ namespace nihilus {
 		static constexpr auto value{ value_new };
 	};
 
-	template<typename value_type> NIHILUS_INLINE static bool is_alpha(value_type c) noexcept {
+	template<int8_types value_type> NIHILUS_INLINE static bool is_alpha(value_type c) noexcept {
 		alignas(64) static constexpr const static_aligned_const<bool>* __restrict alpha_table{ [] {
 			alignas(64) constexpr array<static_aligned_const<bool>, 256> return_values{ [] {
 				array<static_aligned_const<bool>, 256> return_values_new{};
@@ -169,7 +167,7 @@ namespace nihilus {
 		return alpha_table[static_cast<uint8_t>(c)];
 	}
 
-	template<typename value_type> NIHILUS_INLINE static bool is_space(value_type c) noexcept {
+	template<int8_types value_type> NIHILUS_INLINE static bool is_space(value_type c) noexcept {
 		alignas(64) static constexpr const static_aligned_const<bool>* __restrict space_table{ [] {
 			alignas(64) constexpr array<static_aligned_const<bool>, 256> return_values{ [] {
 				array<static_aligned_const<bool>, 256> return_values_new{};
@@ -186,7 +184,7 @@ namespace nihilus {
 		return space_table[static_cast<uint8_t>(c)];
 	}
 
-	template<typename value_type> NIHILUS_INLINE static constexpr bool is_digit(value_type c) noexcept {
+	template<int8_types value_type> NIHILUS_INLINE static constexpr bool is_digit(value_type c) noexcept {
 		return static_cast<uint8_t>(c - '0') < 10;
 	}
 

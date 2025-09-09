@@ -436,7 +436,8 @@ int32_t main(int32_t argc, char** argv) {
 	result02 = get_read_writes(create_mega_pipeline_layer_tensor_ops_with_seqlen<131072>());
 	std::cout << "Read bytes (Nihilus): " << result02.read_bytes << std::endl;
 	std::cout << "Written bytes (Nihilus): " << result02.written_bytes << std::endl;
-	constexpr auto model_config_00 = generate_model_config(model_generations::v3_1, model_sizes::llm_8B, kernel_type_profiles::q8_gqa, model_arches::llama, true, nullptr, 32);
+	constexpr auto model_config_00 =
+		generate_model_config(model_generations::v3_1, model_sizes::llm_8B, kernel_type_profiles::q8_gqa, model_arches::llama, nihilus::device_types::cpu, true, false, 32);
 	constexpr auto model_config_01 = update_model_config_benchmark(model_config_00, true);
 	cli_params cli_args			   = harbinger<model_config_01>::parse_cli_arguments(argc, argv);
 	auto model_new_01{ harbinger<model_config_01>::parse_model_graph_data(cli_args) };

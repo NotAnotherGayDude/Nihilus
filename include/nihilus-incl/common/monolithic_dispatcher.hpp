@@ -27,18 +27,17 @@ RealTimeChris (Chris M.)
 namespace nihilus {
 
 	template<device_types device_type> constexpr uint64_t arch_index{ [] {
-		if constexpr (device_type == device_types::cpu) {
-			return cpu_arch_index_holder::cpu_arch_index;
-		}
+		if constexpr (device_type == device_types::gpu) {
 #if NIHILUS_CUDA_ENABLED
-		if constexpr (device_type == device_types::gpu ) {
 			return gpu_arch_index_holder::gpu_arch_index;
-		}
+#else
+			static_assert(false, "Sorry, but it appears as though you have selected device_types::gpu, without enabling CUDA.");
 #endif
+		}
+		return cpu_arch_index_holder::cpu_arch_index;
 	}() };
 
-	template<device_types device_type, processing_phases processing_phase, typename core_type>
-	struct kernel_dispatcher {
+	template<device_types device_type, processing_phases processing_phase, typename core_type> struct kernel_dispatcher {
 		NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {
 			kernel_dispatcher_impl<device_type, arch_index<device_type>, core_type::core_type, processing_phase>::impl(params, thread_index, thread_count, current_block);
 		}

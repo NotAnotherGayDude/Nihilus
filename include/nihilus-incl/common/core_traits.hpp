@@ -182,10 +182,10 @@ namespace nihilus {
 		using output_weight_type	  = op_traits<config_new, core_types::weights, weight_types::output, composite_kernel_types::none, data_strategy_types::global,
 				 allocation_strategy_type<config_new.device_type>, output_weight_kernel_traits>;
 
-		using list_of_traits =
+		using composite_ops =
 			get_core_base_t<config_new, attn_q_weight_type, attn_k_weight_type, attn_v_weight_type, attn_output_weight_type, attn_norm_weight_type, ffn_gate_weight_type,
 				ffn_up_weight_type, ffn_down_weight_type, ffn_norm_weight_type, token_embd_weight_type, rope_freqs_weight_type, output_norm_weight_type, output_weight_type>;
-		list_of_traits values{};
+		composite_ops values{};
 
 		static constexpr uint64_t total_required_bytes{ attn_q_weight_type::total_required_bytes + attn_k_weight_type::total_required_bytes +
 			attn_v_weight_type::total_required_bytes + attn_output_weight_type::total_required_bytes + attn_norm_weight_type::total_required_bytes +
@@ -266,11 +266,11 @@ namespace nihilus {
 		using allowed_vocab_mask_type = op_traits<config_new, core_types::global_inputs, global_input_types::allowed_vocab_mask, composite_kernel_types::none,
 			data_strategy_types::global, allocation_strategy_types::alloc, allowed_vocab_mask_kernel_traits>;
 
-		using list_of_traits = get_core_base_t<config_new, inp_tokens_type, inp_pos_type, cache_k_type, cache_v_type, kq_mask_type, inp_out_ids_type, temperature_type, top_k_type,
+		using composite_ops = get_core_base_t<config_new, inp_tokens_type, inp_pos_type, cache_k_type, cache_v_type, kq_mask_type, inp_out_ids_type, temperature_type, top_k_type,
 			top_p_type, repetition_penalty_type, presence_penalty_type, frequency_penalty_type, rep_window_type, token_history_type, rng_state_type, logits_bias_type,
 			allowed_vocab_mask_type>;
 
-		list_of_traits values{};
+		composite_ops values{};
 
 		static constexpr uint64_t total_required_bytes{ inp_tokens_type::total_required_bytes + inp_pos_type::total_required_bytes + cache_k_type::total_required_bytes +
 			cache_v_type::total_required_bytes + kq_mask_type::total_required_bytes + inp_out_ids_type::total_required_bytes + temperature_type::total_required_bytes +
@@ -297,9 +297,9 @@ namespace nihilus {
 		using token_embeddings_type = op_traits<config_new, core_types::token_embeddings, token_embedding_types::get_rows, composite_kernel_types::get_rows,
 			data_strategy_types::global, allocation_strategy_types::alloc, input_embedding_kernel_traits>;
 
-		using list_of_traits = get_core_base_t<config_new, token_embeddings_type>;
+		using composite_ops = get_core_base_t<config_new, token_embeddings_type>;
 
-		list_of_traits values{};
+		composite_ops values{};
 
 		atomic_flag_wrapper<int64_t> current_chunk_prompt_eval{};
 		atomic_flag_wrapper<int64_t> current_chunk_eval{};
@@ -381,9 +381,9 @@ namespace nihilus {
 		using q_out_type = op_traits<config_new, core_types::mega_qkv_prep_and_cache_publish, mega_qkv_prep_and_cache_publish_types::q_out,
 			composite_kernel_types::mega_qkv_prep_and_cache, data_strategy_types::global, allocation_strategy_types::alloc, mega_qkv_composite_traits>;
 
-		using list_of_traits = get_core_base_t<config_new, q_out_type>;
+		using composite_ops = get_core_base_t<config_new, q_out_type>;
 
-		list_of_traits values{};
+		composite_ops values{};
 		array<atomic_flag_wrapper<int64_t>, mt::block_count> current_chunk_prompt_eval{};
 		array<atomic_flag_wrapper<int64_t>, mt::block_count> current_chunk_eval{};
 		array<atomic_flag_wrapper<int64_t>, mt::block_count> latch_prompt_eval{};
@@ -444,8 +444,8 @@ namespace nihilus {
 		using ffn_inp_type = op_traits<config_new, core_types::mega_attention_apply, mega_attention_apply_types::ffn_inp, composite_kernel_types::mega_attention_apply,
 			data_strategy_types::global, allocation_strategy_types::alloc, mega_attention_composite_traits>;
 
-		using list_of_traits = get_core_base_t<config_new, ffn_inp_type>;
-		list_of_traits values{};
+		using composite_ops = get_core_base_t<config_new, ffn_inp_type>;
+		composite_ops values{};
 		array<atomic_flag_wrapper<int64_t>, mt::block_count> current_chunk_prompt_eval{};
 		array<atomic_flag_wrapper<int64_t>, mt::block_count> current_chunk_eval{};
 		array<atomic_flag_wrapper<int64_t>, mt::block_count> latch_prompt_eval{};
@@ -501,8 +501,8 @@ namespace nihilus {
 		using l_out_type = op_traits<config_new, core_types::mega_ffn, mega_ffn_types::l_out, composite_kernel_types::mega_ffn, data_strategy_types::global,
 			allocation_strategy_types::alloc, mega_ffn_composite_traits>;
 
-		using list_of_traits = get_core_base_t<config_new, l_out_type>;
-		list_of_traits values{};
+		using composite_ops = get_core_base_t<config_new, l_out_type>;
+		composite_ops values{};
 		array<atomic_flag_wrapper<int64_t>, mt::block_count> current_chunk_prompt_eval{};
 		array<atomic_flag_wrapper<int64_t>, mt::block_count> current_chunk_eval{};
 		array<atomic_flag_wrapper<int64_t>, mt::block_count> latch_prompt_eval{};
@@ -586,8 +586,8 @@ namespace nihilus {
 		using result_token_id_type = op_traits<config_new, core_types::final_norm_and_sampling, final_norm_and_sampling_types::result_token_id,
 			composite_kernel_types::final_norm_and_sampling, data_strategy_types::global, allocation_strategy_types::alloc, mega_final_composite_traits>;
 
-		using list_of_traits = get_core_base_t<config_new, result_token_id_type>;
-		list_of_traits values{};
+		using composite_ops = get_core_base_t<config_new, result_token_id_type>;
+		composite_ops values{};
 		atomic_flag_wrapper<int64_t> current_chunk_prompt_eval{};
 		atomic_flag_wrapper<int64_t> current_chunk_eval{};
 		atomic_flag_wrapper<int64_t> latch_prompt_eval{};

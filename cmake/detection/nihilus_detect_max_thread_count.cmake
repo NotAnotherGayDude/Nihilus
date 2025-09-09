@@ -63,6 +63,6 @@ endif()
 
 configure_file(
     "${CMAKE_SOURCE_DIR}/cmake/detection/nihilus_max_thread_count.hpp.in"
-    "${CMAKE_SOURCE_DIR}/include/nihilus-incl/cpu/nihilus_nax_thread_count.hpp"
+    "${CMAKE_SOURCE_DIR}/include/nihilus-incl/cpu/nihilus_max_thread_count.hpp"
     @ONLY
 )
