@@ -20,9 +20,8 @@ RealTimeChris (Chris M.)
 
 #pragma once
 
-#include <nihilus-incl/cpu/memory_buffer.hpp>
-#include <nihilus-incl/infra/model_traits.hpp>
-#include <nihilus-incl/infra/tokenizer_traits.hpp>
+#include <nihilus-incl/common/model_traits.hpp>
+#include <nihilus-incl/common/tokenizer_traits.hpp>
 #include <unordered_map>
 #include <iterator>
 #include <queue>

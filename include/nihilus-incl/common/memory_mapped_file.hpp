@@ -21,6 +21,23 @@ RealTimeChris (Chris M.)
 
 #include <nihilus-incl/common/common.hpp>
 
+#if NIHILUS_PLATFORM_WINDOWS
+	#ifndef PATH_MAX
+		#define PATH_MAX MAX_PATH
+	#endif
+	#include <Windows.h>
+	#include <io.h>
+#else
+	#include <sys/mman.h>
+	#include <sys/stat.h>
+	#include <fcntl.h>
+	#include <unistd.h>
+	#if NIHILUS_PLATFORM_LINUX
+		#include <sys/resource.h>
+	#elif NIHILUS_PLATFORM_MAC
+		#include <TargetConditionals.h>
+	#endif
+#endif
 #include <unordered_set>
 #include <variant>
 #include <fstream>

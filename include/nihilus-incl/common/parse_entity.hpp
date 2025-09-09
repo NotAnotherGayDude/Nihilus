@@ -22,7 +22,7 @@ RealTimeChris (Chris M.)
 #include <nihilus-incl/common/type_traits.hpp>
 #include <nihilus-incl/common/compare.hpp>
 #include <nihilus-incl/common/debugging_io.hpp>
-#include <nihilus-incl/infra/model_traits.hpp>
+#include <nihilus-incl/common/model_traits.hpp>
 
 namespace nihilus {
 

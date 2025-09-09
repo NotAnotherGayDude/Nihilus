@@ -20,7 +20,7 @@ RealTimeChris (Chris M.)
 
 #pragma once
 
-#include <nihilus-incl/infra/behavioral_axes.hpp>
+#include <nihilus-incl/common/behavioral_axes.hpp>
 
 namespace nihilus {
 

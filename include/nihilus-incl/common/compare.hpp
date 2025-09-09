@@ -21,7 +21,7 @@ RealTimeChris (Chris M.)
 #pragma once
 
 #include <nihilus-incl/common/string_literal.hpp>
-#include <nihilus-incl/cpu/common.hpp>
+#include <nihilus-incl/cpu/fallback.hpp>
 #include <nihilus-incl/common/allocator.hpp>
 #include <type_traits>
 #include <concepts>
@@ -107,7 +107,11 @@ namespace nihilus {
 		}
 	}
 
-	template<string_literal string> struct string_literal_comparitor;
+	template<string_literal string> struct string_literal_comparitor {
+		NIHILUS_INLINE static bool impl(const char* str) noexcept {
+			static_assert(false, "Sorry, but this will not work!");
+		};
+	};
 
 	template<string_literal string>
 		requires(string.size() > 0 && string.size() < 16)

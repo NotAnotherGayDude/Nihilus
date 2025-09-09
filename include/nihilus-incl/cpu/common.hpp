@@ -20,11 +20,7 @@ RealTimeChris (Chris M.)
 
 #pragma once
 
-#include <nihilus-incl/cpu/fallback.hpp>
-#include <nihilus-incl/cpu/avx_2.hpp>
-#include <nihilus-incl/cpu/avx_512.hpp>
-#include <nihilus-incl/cpu/arm_neon.hpp>
-#include <nihilus-incl/cpu/arm_sve2.hpp>
+#include <nihilus-incl/common/config.hpp>
 
 namespace nihilus {
 
@@ -491,33 +487,5 @@ namespace nihilus {
 		return fp16_to_fp32_array[f];
 	}
 
-#endif	
-
-	NIHILUS_INLINE void dequantize_q8_0_to_f32(const block_q8_0<half>* src, float* dst, uint64_t count) {
-		constexpr uint64_t block_size = 32;
-
-		const uint64_t full_blocks = count / block_size;
-		const uint64_t remainder   = count % block_size;
-
-		for (uint64_t block_idx = 0; block_idx < full_blocks; ++block_idx) {
-			const block_q8_0<half>& block = src[block_idx];
-			const float scale			  = fp16_to_fp32(block.d);
-			const int8_t* quantized		  = block.qs;
-			const uint64_t base_offset	  = block_idx * block_size;
-
-			for (uint64_t j = 0; j < block_size; ++j) {
-				dst[base_offset + j] = scale * static_cast<float>(quantized[j]);
-			}
-		}
-		if (remainder > 0) {
-			const block_q8_0<half>& final_block = src[full_blocks];
-			const float scale					= fp16_to_fp32(final_block.d);
-			const int8_t* quantized				= final_block.qs;
-			const uint64_t base_offset			= full_blocks * block_size;
-
-			for (uint64_t j = 0; j < remainder; ++j) {
-				dst[base_offset + j] = scale * static_cast<float>(quantized[j]);
-			}
-		}
-	}
+#endif
 }

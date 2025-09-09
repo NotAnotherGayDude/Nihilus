@@ -20,7 +20,10 @@ RealTimeChris (Chris M.)
 
 #pragma once
 
-#include <nihilus-incl/common/config.hpp>
+#include <nihilus-incl/cpu/avx_2.hpp>
+#include <nihilus-incl/cpu/avx_512.hpp>
+#include <nihilus-incl/cpu/arm_neon.hpp>
+#include <nihilus-incl/cpu/arm_sve2.hpp>
 
 namespace nihilus {
 

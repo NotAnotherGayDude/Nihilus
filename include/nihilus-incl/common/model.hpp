@@ -20,11 +20,11 @@ RealTimeChris (Chris M.)
 
 #pragma once
 
-#include <nihilus-incl/infra/model_traits.hpp>
-#include <nihilus-incl/infra/model_parser.hpp>
-#include <nihilus-incl/cpu/memory_mapped_file.hpp>
-#include <nihilus-incl/infra/model_serializer.hpp>
-#include <nihilus-incl/infra/core_bases.hpp>
+#include <nihilus-incl/common/model_traits.hpp>
+#include <nihilus-incl/common/model_parser.hpp>
+#include <nihilus-incl/common/memory_mapped_file.hpp>
+#include <nihilus-incl/common/model_serializer.hpp>
+#include <nihilus-incl/common/core_bases.hpp>
 #include <nihilus-incl/cpu/thread_pool.hpp>
 #include <nihilus-incl/common/tuple.hpp>
 
@@ -107,7 +107,7 @@ namespace nihilus {
 			static_cast<thread_pool<config_new>*>(this)->template execute_tasks<processing_phases::prompt_eval_time>(2);
 
 			if constexpr (config_new.dev) {
-				current_iteration_new.fetch_add(1);
+				++perf_base<config_new>::perf_stats.current_iteration;
 			}
 
 			exec_params.sequence_length = tokenizer_type::tokenize(input,
@@ -138,7 +138,7 @@ namespace nihilus {
 			static_cast<thread_pool<config_new>*>(this)->template execute_tasks<processing_phases::prompt_eval_time>(exec_params.sequence_length);
 
 			if constexpr (config_new.dev) {
-				current_iteration_new.fetch_add(1);
+				++perf_base<config_new>::perf_stats.current_iteration;
 			}
 
 			if constexpr (config_new.benchmark || config_new.dev) {
@@ -158,7 +158,7 @@ namespace nihilus {
 				static_cast<thread_pool<config_new>*>(this)->template execute_tasks<processing_phases::eval_time>(1);
 
 				if constexpr (config_new.benchmark || config_new.dev) {
-					current_iteration_new.fetch_add(1);
+					++perf_base<config_new>::perf_stats.current_iteration;
 					auto token_end	   = clock_type::now();
 					auto token_time_ns = std::chrono::duration<double, std::nano>(token_end - perf_base<config_new>::perf_stats.token_start).count();
 					perf_base<config_new>::perf_stats.total_eval_time_ns += token_time_ns;

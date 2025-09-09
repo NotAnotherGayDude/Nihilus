@@ -27,7 +27,7 @@ RealTimeChris (Chris M.)
 	#include <nihilus-incl/cuda/nihilus_gpu_arch.hpp>
 	#include <nihilus-incl/common/array.hpp>
 	#include <nihilus-incl/common/kernel_traits.hpp>
-	#include <nihilus-incl/infra/core_bases.hpp>
+	#include <nihilus-incl/common/core_bases.hpp>
 	#include <nihilus-incl/common/config.hpp>
 	#include <nihilus-incl/cuda/cuda_12.cuh>
 
@@ -45,26 +45,44 @@ namespace nihilus {
 		requires(config.device_type == device_types::gpu)
 	struct memory_transfer<config> {
 		template<typename value_type> NIHILUS_INLINE static void host_to_device(const value_type* src, value_type* dst, uint64_t count) noexcept {
-			auto result = cudaMemcpy(static_cast<void*>(dst), static_cast<const void*>(src), sizeof(value_type) * count, cudaMemcpyHostToDevice);
 			if constexpr (config.dev) {
+				auto result = cudaMemcpy(static_cast<void*>(dst), static_cast<const void*>(src), sizeof(value_type) * count, cudaMemcpyHostToDevice);
 				if (result != cudaError::cudaSuccess) {
 					log<log_levels::error>(std::string{ "Failed to copy from host to device (pointer types): " } + cudaGetErrorString(result));
 				}
+			} else {
+				cudaMemcpy(static_cast<void*>(dst), static_cast<const void*>(src), sizeof(value_type) * count, cudaMemcpyHostToDevice);
 			}
 		}
 		template<not_pointer_types value_type> NIHILUS_INLINE static void host_to_device(const value_type& src, value_type* dst) noexcept {
-			cudaMemcpy(dst, &src, sizeof(value_type), cudaMemcpyHostToDevice);
+			if constexpr (config.dev) {
+				auto result = cudaMemcpy(dst, &src, sizeof(value_type), cudaMemcpyHostToDevice);
+				if (result != cudaError::cudaSuccess) {
+					log<log_levels::error>(std::string{ "Failed to copy from host to device: " } + cudaGetErrorString(result));
+				}
+			} else {
+				cudaMemcpy(dst, &src, sizeof(value_type), cudaMemcpyHostToDevice);
+			}
 		}
 		template<pointer_types value_type> NIHILUS_INLINE static void device_to_host(const value_type* src, value_type* dst, uint64_t count) noexcept {
-			auto result = cudaMemcpy(dst, src, sizeof(value_type) * count, cudaMemcpyDeviceToHost);
 			if constexpr (config.dev) {
+				auto result = cudaMemcpy(static_cast<void*>(dst), static_cast<const void*>(src), sizeof(value_type) * count, cudaMemcpyDeviceToHost);
 				if (result != cudaError::cudaSuccess) {
 					log<log_levels::error>(std::string{ "Failed to copy from device to host (pointer types): " } + cudaGetErrorString(result));
 				}
+			} else {
+				cudaMemcpy(static_cast<void*>(dst), static_cast<const void*>(src), sizeof(value_type) * count, cudaMemcpyDeviceToHost);
 			}
 		}
 		template<not_pointer_types value_type> NIHILUS_INLINE static void device_to_host(const value_type* src, value_type& dst) noexcept {
-			cudaMemcpy(&dst, src, sizeof(value_type), cudaMemcpyDeviceToHost);
+			if constexpr (config.dev) {
+				auto result = cudaMemcpy(&dst, src, sizeof(value_type), cudaMemcpyDeviceToHost);
+				if (result != cudaError::cudaSuccess) {
+					log<log_levels::error>(std::string{ "Failed to copy from device to host: " } + cudaGetErrorString(result));
+				}
+			} else {
+				cudaMemcpy(&dst, src, sizeof(value_type), cudaMemcpyDeviceToHost);
+			}
 		}
 	};
 

@@ -20,10 +20,10 @@ RealTimeChris (Chris M.)
 
 #pragma once
 
-#include <nihilus-incl/infra/core_bases.hpp>
+#include <nihilus-incl/common/core_bases.hpp>
 #include <nihilus-incl/common/kernel_traits.hpp>
 #include <nihilus-incl/common/kernel_type_profile_traits.hpp>
-#include <nihilus-incl/infra/model_traits.hpp>
+#include <nihilus-incl/common/model_traits.hpp>
 #include <nihilus-incl/common/type_traits.hpp>
 #include <nihilus-incl/common/common.hpp>
 #include <nihilus-incl/common/array.hpp>
