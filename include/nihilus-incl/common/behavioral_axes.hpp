@@ -175,15 +175,15 @@ namespace nihilus {
 		NIHILUS_INLINE static void impl(base_type& parse_core, uint64_t thread_count) {
 			for (uint64_t x = 0; x < model_traits_type<config>::block_count; ++x) {
 				if constexpr (array_types<decltype(parse_core.current_chunk_eval)>) {
-					parse_core.current_chunk_eval[x].store(thread_count);
-					parse_core.current_chunk_prompt_eval[x].store(thread_count);
+					parse_core.current_chunk_eval[x].store(0);
+					parse_core.current_chunk_prompt_eval[x].store(0);
 					parse_core.latch_eval[x].store(thread_count);
 					parse_core.latch_prompt_eval[x].store(thread_count);
 				} else {
 					parse_core.latch_eval.store(thread_count);
 					parse_core.latch_prompt_eval.store(thread_count);
-					parse_core.current_chunk_eval.store(thread_count);
-					parse_core.current_chunk_prompt_eval.store(thread_count);
+					parse_core.current_chunk_eval.store(0);
+					parse_core.current_chunk_prompt_eval.store(0);
 				}
 			}
 		}
@@ -217,7 +217,6 @@ namespace nihilus {
 		}
 
 		NIHILUS_INLINE static void impl(base_type& parse_core, uint64_t runtime_dimension) {
-			parse_core.runtime_dimension = runtime_dimension;
 			parse_core.values.template impl<dim_updater_impl>(runtime_dimension);
 		}
 	};

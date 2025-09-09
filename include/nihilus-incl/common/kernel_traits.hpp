@@ -127,27 +127,8 @@ namespace nihilus {
 		static constexpr uint64_t dim02{ dim02_new };
 		static constexpr uint64_t dim03{ dim03_new };
 
-		constexpr core_trait_dims() noexcept {
-		}
-
-		static constexpr uint64_t runtime_dim{ std::numeric_limits<uint64_t>::max() };
-
-		const uint64_t* dims[4]{ &dim00, &dim01, &dim02, &dim03 };
-
 		NIHILUS_INLINE static constexpr array<uint64_t, 4> get_array() {
-			return { { dim00, dim01, dim02, dim03 } };
-		}
-
-		NIHILUS_INLINE array<uint64_t, 4> get_array_rt() {
-			return { { *dims[0], *dims[1], *dims[2], *dims[3] } };
-		}
-
-		NIHILUS_INLINE static constexpr uint64_t get_total_elements() {
-			return dim00_new * dim01_new * dim02_new * dim03_new;
-		}
-
-		NIHILUS_INLINE operator array<uint64_t, 4>() const {
-			return { { dim00, dim01, dim02, dim03 } };
+			return { { dim00_new, dim01_new, dim02_new, dim03_new } };
 		}
 	};
 
@@ -158,27 +139,8 @@ namespace nihilus {
 		static constexpr uint64_t dim02{ dim02_new };
 		static constexpr uint64_t dim03{ dim03_new };
 
-		constexpr core_trait_dims() noexcept {
-		}
-
-		static constexpr uint64_t runtime_dim{ std::numeric_limits<uint64_t>::max() };
-
-		const uint64_t* dims[4]{ &dim00, &dim01, &dim02, &dim03 };
-
 		NIHILUS_INLINE static constexpr array<uint64_t, 4> get_array() {
-			return { { dim00, dim01, dim02, dim03 } };
-		}
-
-		NIHILUS_INLINE static constexpr uint64_t get_total_elements() {
-			return dim00_new * dim01_new * dim02_new * dim03_new;
-		}
-
-		NIHILUS_INLINE operator array<uint64_t, 4>() const {
-			return { { dim00, dim01, dim02, dim03 } };
-		}
-
-		NIHILUS_INLINE array<uint64_t, 4> get_array_rt() {
-			return { { *dims[0], *dims[1], *dims[2], *dims[3] } };
+			return { { dim00_new, dim01_new, dim02_new, dim03_new } };
 		}
 	};
 
@@ -195,20 +157,12 @@ namespace nihilus {
 			return { { dim00_new, dim01_new, dim02_new, dim03_new } };
 		}
 
-		NIHILUS_INLINE static constexpr uint64_t get_total_elements() {
-			return dim00_new * dim01_new * dim02_new * dim03_new;
-		}
-
-		NIHILUS_INLINE operator array<uint64_t, 4>() const {
-			return { { dim00, dim01, dim02, dim03 } };
+		NIHILUS_INLINE array<uint64_t, 4> get_array_rt() {
+			return { { *dims[0], *dims[1], *dims[2], *dims[3] } };
 		}
 
 		NIHILUS_INLINE uint64_t& get_mutable_dim() const {
 			return dim00;
-		}
-
-		NIHILUS_INLINE array<uint64_t, 4> get_array_rt() {
-			return { { *dims[0], *dims[1], *dims[2], *dims[3] } };
 		}
 	};
 
@@ -225,20 +179,12 @@ namespace nihilus {
 			return { { dim00_new, dim01_new, dim02_new, dim03_new } };
 		}
 
-		NIHILUS_INLINE static constexpr uint64_t get_total_elements() {
-			return dim00_new * dim01_new * dim02_new * dim03_new;
-		}
-
-		NIHILUS_INLINE operator array<uint64_t, 4>() const {
-			return { { dim00, dim01, dim02, dim03 } };
+		NIHILUS_INLINE array<uint64_t, 4> get_array_rt() {
+			return { { *dims[0], *dims[1], *dims[2], *dims[3] } };
 		}
 
 		NIHILUS_INLINE uint64_t& get_mutable_dim() const {
 			return dim01;
-		}
-
-		NIHILUS_INLINE array<uint64_t, 4> get_array_rt() {
-			return { { *dims[0], *dims[1], *dims[2], *dims[3] } };
 		}
 	};
 
@@ -255,29 +201,17 @@ namespace nihilus {
 			return { { dim00_new, dim01_new, dim02_new, dim03_new } };
 		}
 
-		NIHILUS_INLINE static constexpr uint64_t get_total_elements() {
-			return dim00_new * dim01_new * dim02_new * dim03_new;
-		}
-
-		NIHILUS_INLINE operator array<uint64_t, 4>() const {
-			return { { dim00, dim01, dim02, dim03 } };
+		NIHILUS_INLINE array<uint64_t, 4> get_array_rt() {
+			return { { *dims[0], *dims[1], *dims[2], *dims[3] } };
 		}
 
 		NIHILUS_INLINE uint64_t& get_mutable_dim() const {
 			return dim02;
 		}
-
-		NIHILUS_INLINE uint64_t operator[](uint64_t index) const {
-			return *dims[index];
-		}
-	};
-
-	template<uint64_t dimension_new> struct runtime_dims {
-		static constexpr uint64_t dimension{ dimension_new };
 	};
 
 	template<typename value_type>
-	concept runtime_dims_t = requires() { detail::remove_cvref_t<value_type>::dimension; };
+	concept runtime_dims_t = detail::remove_cvref_t<value_type>::runtime_dims != 5;
 
 	enum class get_new_dims_errors { unknown_kernel_type };
 
@@ -752,31 +686,31 @@ namespace nihilus {
 		static constexpr auto dims02 = dims_02_type::get_array();
 		static constexpr auto get_new_dims_new_fn() {
 			if constexpr (kernel_type == kernel_types::get_rows) {
-				return core_trait_dims<dims01[0], dims02[0], dims01[2], dims01[3], dims_01_type::runtime_dims>{};
+				return core_trait_dims<dims01[0], dims02[0], dims01[2], dims01[3], dims_02_type::runtime_dims>{};
 			} else if constexpr (kernel_type == kernel_types::mul_mat) {
-				return core_trait_dims<dims01[1], dims02[1], dims02[2], dims01[3], dims_01_type::runtime_dims>{};
+				return core_trait_dims<dims01[1], dims02[1], dims02[2], dims01[3], dims_02_type::runtime_dims>{};
 			} else if constexpr (kernel_type == kernel_types::sub) {
-				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_01_type::runtime_dims>{};
+				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_02_type::runtime_dims>{};
 			} else if constexpr (kernel_type == kernel_types::copy) {
-				return core_trait_dims<dims02[0], dims02[1], dims02[2], dims02[3], dims_01_type::runtime_dims>{};
+				return core_trait_dims<dims02[0], dims02[1], dims02[2], dims02[3], dims_02_type::runtime_dims>{};
 			} else if constexpr (kernel_type == kernel_types::add) {
-				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_01_type::runtime_dims>{};
+				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_02_type::runtime_dims>{};
 			} else if constexpr (kernel_type == kernel_types::mul) {
-				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_01_type::runtime_dims>{};
+				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_02_type::runtime_dims>{};
 			} else if constexpr (kernel_type == kernel_types::softmax) {
 				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_02_type::runtime_dims>{};
 			} else if constexpr (kernel_type == kernel_types::temperature_scale) {
-				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_01_type::runtime_dims>{};
+				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_02_type::runtime_dims>{};
 			} else if constexpr (kernel_type == kernel_types::top_k_filter) {
-				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_01_type::runtime_dims>{};
+				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_02_type::runtime_dims>{};
 			} else if constexpr (kernel_type == kernel_types::top_p_filter) {
-				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_01_type::runtime_dims>{};
+				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_02_type::runtime_dims>{};
 			} else if constexpr (kernel_type == kernel_types::vocab_mask) {
-				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_01_type::runtime_dims>{};
+				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_02_type::runtime_dims>{};
 			} else if constexpr (kernel_type == kernel_types::sample_logits) {
 				return core_trait_dims<1, 1, 1, 1, 0>{};
 			} else if constexpr (kernel_type == kernel_types::none) {
-				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_01_type::runtime_dims>{};
+				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_02_type::runtime_dims>{};
 			} else {
 				static_assert(static_assert_printer<false, get_new_dims_new_errors::unknown_kernel_type, dims_01_type, dims_02_type>::impl);
 			}
