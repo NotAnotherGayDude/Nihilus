@@ -17,8 +17,15 @@ Signed,
 RealTimeChris (Chris M.)
 2025
 */
-/// index.hpp
 #pragma once
 
-#include <nihilus-incl/cuda/common.cuh>
-#include <nihilus-incl/infra/harbinger.hpp>
+#include <nihilus-incl/common/config.hpp>
+
+namespace nihilus {
+
+	struct gpu_cache_size_holder {
+		static constexpr static_aligned_const l2_data_cache_size_raw{ @NIHILUS_GPU_CACHE_SIZE@ull };
+		static constexpr const uint64_t& l2_data_cache_size{ *l2_data_cache_size_raw };
+	};
+
+}

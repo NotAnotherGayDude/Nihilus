@@ -20,8 +20,8 @@ RealTimeChris (Chris M.)
 
 #pragma once
 
-#include <nihilus-incl/common/model.hpp>
-#include <nihilus-incl/common/model_parser.hpp>
+#include <nihilus-incl/infra/model.hpp>
+#include <nihilus-incl/infra/model_parser.hpp>
 #include <nihilus-incl/common/common.hpp>
 #include <cstdint>
 

@@ -25,9 +25,10 @@ RealTimeChris (Chris M.)
 	#include <cuda_runtime.h>
 	#include <cuda.h>
 	#include <nihilus-incl/cuda/nihilus_gpu_arch.hpp>
+	#include <nihilus-incl/cuda/nihilus_gpu_cache_size.hpp>
 	#include <nihilus-incl/common/array.hpp>
 	#include <nihilus-incl/common/kernel_traits.hpp>
-	#include <nihilus-incl/common/core_bases.hpp>
+	#include <nihilus-incl/infra/core_bases.hpp>
 	#include <nihilus-incl/common/config.hpp>
 	#include <nihilus-incl/cuda/cuda_12.cuh>
 

@@ -19,7 +19,7 @@ RealTimeChris (Chris M.)
 */
 #pragma once
 
-#include <nihilus-incl/cpu/nihilus_cpu_cache_sizes.hpp>
+#include <nihilus-incl/cpu/nihilus_cpu_cache_size.hpp>
 #include <nihilus-incl/cpu/nihilus_max_thread_count.hpp>
 #include <nihilus-incl/common/config.hpp>
 

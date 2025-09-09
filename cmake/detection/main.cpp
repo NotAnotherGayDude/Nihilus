@@ -166,19 +166,30 @@ int32_t main() {
 		return static_cast<int32_t>(instruction_set::cuda_12);
 	}
 }
-#elif defined(NIHILUS_DETECT_CPU_CACHE_SIZES)
+#elif defined(NIHILUS_DETECT_GPU_CACHE_SIZE)
+	#include <cuda_runtime.h>
+	#include <iostream>
+
+uint32_t get_gpu_l2_cache_size() {
+	cudaDeviceProp deviceProp;
+	cudaGetDeviceProperties(&deviceProp, 0);
+	return deviceProp.l2CacheSize;
+}
+
+int32_t main() {
+	std::cout << "WERE HERE THIS IT I!" << std::endl;
+	return get_gpu_l2_cache_size();
+}
+#elif defined(NIHILUS_DETECT_CPU_CACHE_SIZE)
 	#include <iostream>
 	#include <vector>
-
 	#if NIHILUS_PLATFORM_WINDOWS
 		#include <Windows.h>
 	#endif
-
 	#if NIHILUS_PLATFORM_LINUX || NIHILUS_PLATFORM_ANDROID
 		#include <fstream>
 		#include <string>
 	#endif
-
 	#if NIHILUS_PLATFORM_MAC
 		#include <sys/sysctl.h>
 		#include <sys/types.h>
@@ -194,43 +205,41 @@ enum class cache_level {
 inline size_t get_cache_size(cache_level level) {
 	#if NIHILUS_PLATFORM_WINDOWS
 	DWORD bufferSize = 0;
-	cache_level cacheLevel{ level };
-	PROCESSOR_CACHE_TYPE cacheType{ level == cache_level::one ? PROCESSOR_CACHE_TYPE::CacheInstruction : PROCESSOR_CACHE_TYPE::CacheUnified };
 	std::vector<SYSTEM_LOGICAL_PROCESSOR_INFORMATION> buffer{};
 	GetLogicalProcessorInformation(nullptr, &bufferSize);
 	buffer.resize(bufferSize / sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION));
+
 	if (!GetLogicalProcessorInformation(buffer.data(), &bufferSize)) {
 		std::cerr << "Failed to retrieve processor information!" << std::endl;
 		return 0;
 	}
-	size_t cacheSize = 0;
-	auto collectSize = [&](auto cacheLevelNew, auto cacheTypeNew) {
-		size_t cacheSizeNew{};
-		const auto infoCount = bufferSize / sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION);
-		for (size_t i = 0; i < infoCount; ++i) {
-			if (buffer[i].Relationship == RelationCache && buffer[i].Cache.Level == static_cast<int32_t>(cacheLevelNew) && buffer[i].Cache.Type == cacheTypeNew) {
-				cacheSizeNew = buffer[i].Cache.Size;
-				break;
+
+	const auto infoCount = bufferSize / sizeof(SYSTEM_LOGICAL_PROCESSOR_INFORMATION);
+	for (size_t i = 0; i < infoCount; ++i) {
+		if (buffer[i].Relationship == RelationCache && buffer[i].Cache.Level == static_cast<int32_t>(level)) {
+			if (level == cache_level::one && buffer[i].Cache.Type == CacheData) {
+				return buffer[i].Cache.Size;
+			}
+			else if (level != cache_level::one && buffer[i].Cache.Type == CacheUnified) {
+				return buffer[i].Cache.Size;
 			}
 		}
-		return cacheSizeNew;
-	};
-	if (level == cache_level::one) {
-		cacheSize += collectSize(cacheLevel, PROCESSOR_CACHE_TYPE::CacheData);
 	}
-	return cacheSize + collectSize(cacheLevel, cacheType);
+	return 0;
+
 	#elif NIHILUS_PLATFORM_LINUX || NIHILUS_PLATFORM_ANDROID
-	size_t cacheSize			= 0;
-	auto get_cache_sizeFromFile = [](const std::string& cacheType) {
-		const std::string cacheFilePath = "/sys/devices/system/cpu/cpu0/cache/index" + cacheType + "/size";
+	auto get_cache_size_from_file = [](const std::string& index) {
+		const std::string cacheFilePath = "/sys/devices/system/cpu/cpu0/cache/index" + index + "/size";
 		std::ifstream file(cacheFilePath);
 		if (!file.is_open()) {
 			std::cerr << "Failed to open cache info file: " << cacheFilePath << std::endl;
 			return static_cast<size_t>(0);
 		}
+
 		std::string sizeStr;
 		file >> sizeStr;
 		file.close();
+
 		size_t size = 0;
 		if (sizeStr.back() == 'K') {
 			size = std::stoul(sizeStr) * 1024;
@@ -241,32 +250,34 @@ inline size_t get_cache_size(cache_level level) {
 		}
 		return size;
 	};
+
 	if (level == cache_level::one) {
-		cacheSize += get_cache_sizeFromFile("0");
-		cacheSize += get_cache_sizeFromFile("1");
+		return get_cache_size_from_file("0");
 	} else {
 		std::string index = (level == cache_level::two) ? "2" : "3";
-		cacheSize		  = get_cache_sizeFromFile(index);
+		return get_cache_size_from_file(index);
 	}
-	return cacheSize;
+
 	#elif NIHILUS_PLATFORM_MAC
 	auto get_cache_size = [](const std::string& cacheType) {
-		size_t cacheSizeNew		= 0;
-		size_t size				= sizeof(cacheSizeNew);
+		size_t cacheSize		= 0;
+		size_t size				= sizeof(cacheSize);
 		std::string sysctlQuery = "hw." + cacheType + "cachesize";
-		if (sysctlbyname(sysctlQuery.c_str(), &cacheSizeNew, &size, nullptr, 0) != 0) {
+		if (sysctlbyname(sysctlQuery.c_str(), &cacheSize, &size, nullptr, 0) != 0) {
 			return size_t{ 0 };
 		}
-		return cacheSizeNew;
+		return cacheSize;
 	};
+
 	if (level == cache_level::one) {
-		return get_cache_size("l1d") + get_cache_size("l1i");
+		return get_cache_size("l1d");
 	} else if (level == cache_level::two) {
 		return get_cache_size("l2");
 	} else {
 		return get_cache_size("l3");
 	}
 	#endif
+
 	return 0;
 }
 

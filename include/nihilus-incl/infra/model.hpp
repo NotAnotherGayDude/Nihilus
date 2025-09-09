@@ -20,11 +20,11 @@ RealTimeChris (Chris M.)
 
 #pragma once
 
-#include <nihilus-incl/common/model_traits.hpp>
-#include <nihilus-incl/common/model_parser.hpp>
-#include <nihilus-incl/common/memory_mapped_file.hpp>
-#include <nihilus-incl/common/model_serializer.hpp>
-#include <nihilus-incl/common/core_bases.hpp>
+#include <nihilus-incl/infra/model_traits.hpp>
+#include <nihilus-incl/infra/model_parser.hpp>
+#include <nihilus-incl/cpu/memory_mapped_file.hpp>
+#include <nihilus-incl/infra/model_serializer.hpp>
+#include <nihilus-incl/infra/core_bases.hpp>
 #include <nihilus-incl/cpu/thread_pool.hpp>
 #include <nihilus-incl/common/tuple.hpp>
 

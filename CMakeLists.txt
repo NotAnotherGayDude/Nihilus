@@ -28,7 +28,9 @@ option(NIHILUS_MAX_THREAD_COUNT "Override detected thread count" OFF)
 
 option(NIHILUS_CPU_ARCHITECTURE "Override cpu-arch selection" OFF)
 
-option(NIHILUS_CPU_CACHE_SIZES "Override cpu-cache-sizes selection" OFF)
+option(NIHILUS_CPU_CACHE_SIZE "Override cpu-cache-size selection" OFF)
+
+option(NIHILUS_GPU_CACHE_SIZE "Override gpu-cache-size selection" OFF)
 
 option(NIHILUS_GPU_ARCHITECTURE "Override gpu-arch selection" OFF)
 
@@ -54,7 +56,7 @@ endif()
 
 include("cmake/detection/nihilus_detect_cpu_arch.cmake")
 include("cmake/detection/nihilus_detect_max_thread_count.cmake")
-include("cmake/detection/nihilus_detect_cpu_cache_sizes.cmake")
+include("cmake/detection/nihilus_detect_cpu_cache_size.cmake")
 
 add_library("${PROJECT_NAME}" INTERFACE)
 add_library("${PROJECT_NAME}::${PROJECT_NAME}" ALIAS "${PROJECT_NAME}")

@@ -24,8 +24,8 @@ RealTimeChris (Chris M.)
 namespace nihilus {
 
 	struct cpu_cache_size_holder {
-		static constexpr static_aligned_const cpu_cache_size_raw{ 81920ull };
-		static constexpr const uint64_t& cpu_cache_size{ *cpu_cache_size_raw };
+		static constexpr static_aligned_const l1_data_cache_size_raw{ 49152ull };
+		static constexpr const uint64_t& l1_data_cache_size{ *l1_data_cache_size_raw };
 	};
 
 }

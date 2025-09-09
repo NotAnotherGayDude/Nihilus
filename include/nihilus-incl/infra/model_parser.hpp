@@ -19,10 +19,10 @@ RealTimeChris (Chris M.)
 */
 #pragma once
 
-#include <nihilus-incl/common/memory_mapped_file.hpp>
+#include <nihilus-incl/cpu/memory_mapped_file.hpp>
 #include <nihilus-incl/common/parse_entity.hpp>
-#include <nihilus-incl/common/tokenizer.hpp>
-#include <nihilus-incl/common/core_traits.hpp>
+#include <nihilus-incl/infra/tokenizer.hpp>
+#include <nihilus-incl/infra/core_traits.hpp>
 
 namespace nihilus {
 

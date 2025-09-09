@@ -19,6 +19,7 @@
 
 find_package(CUDAToolkit REQUIRED)
 
+include("${CMAKE_SOURCE_DIR}/cmake/detection/nihilus_detect_gpu_cache_size.cmake")
 include("${CMAKE_SOURCE_DIR}/cmake/detection/nihilus_detect_gpu_arch.cmake")
 
 message(STATUS "CUDA Architecture: ${NIHILUS_GPU_NAME}")

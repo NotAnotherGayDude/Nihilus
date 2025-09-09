@@ -21,7 +21,7 @@ RealTimeChris (Chris M.)
 #if NIHILUS_CUDA_ENABLED
 
 #include <nihilus-incl/common/kernel_traits.hpp>
-#include <nihilus-incl/common/core_traits.hpp>
+#include <nihilus-incl/infra/core_traits.hpp>
 #include <cuda_runtime.h>
 
 namespace nihilus {

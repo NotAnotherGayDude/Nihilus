@@ -20,8 +20,8 @@ RealTimeChris (Chris M.)
 
 #pragma once
 
-#include <nihilus-incl/common/monolithic_dispatcher.hpp>
-#include <nihilus-incl/common/memory_buffer.hpp>
+#include <nihilus-incl/infra/monolithic_dispatcher.hpp>
+#include <nihilus-incl/cpu/memory_buffer.hpp>
 #include <nihilus-incl/common/common.hpp>
 #include <nihilus-incl/common/tuple.hpp>
 #include <atomic>

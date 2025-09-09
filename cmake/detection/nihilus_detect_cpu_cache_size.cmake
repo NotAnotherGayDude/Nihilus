@@ -18,31 +18,31 @@
 # */
 
 if (UNIX OR APPLE)
-    file(WRITE "${CMAKE_SOURCE_DIR}/cmake/detection/BuildFeatureTesterCacheSizes.sh" "#!/bin/bash\n"
-        "\"${CMAKE_COMMAND}\" -S ./ -B ./Build-Cache-Sizes -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DNIHILUS_DETECT_CPU_CACHE_SIZES=TRUE\n"
-        "\"${CMAKE_COMMAND}\" --build ./Build-Cache-Sizes --config=Release"
+    file(WRITE "${CMAKE_SOURCE_DIR}/cmake/detection/BuildFeatureTesterCpuCacheSize.sh" "#!/bin/bash\n"
+        "\"${CMAKE_COMMAND}\" -S ./ -B ./Build-Cpu-Cache-Sizes -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DNIHILUS_DETECT_CPU_CACHE_SIZE=TRUE\n"
+        "\"${CMAKE_COMMAND}\" --build ./Build-Cpu-Cache-Sizes --config=Release"
     )
     execute_process(
-        COMMAND chmod +x "${CMAKE_SOURCE_DIR}/cmake/detection/BuildFeatureTesterCacheSizes.sh"
+        COMMAND chmod +x "${CMAKE_SOURCE_DIR}/cmake/detection/BuildFeatureTesterCpuCacheSize.sh"
         RESULT_VARIABLE CHMOD_RESULT
     )
     if(NOT ${CHMOD_RESULT} EQUAL 0)
-        message(FATAL_ERROR "Failed to set executable permissions for BuildFeatureTesterCacheSizes.sh")
+        message(FATAL_ERROR "Failed to set executable permissions for BuildFeatureTesterCpuCacheSize.sh")
     endif()
     execute_process(
-        COMMAND "${CMAKE_SOURCE_DIR}/cmake/detection/BuildFeatureTesterCacheSizes.sh"
+        COMMAND "${CMAKE_SOURCE_DIR}/cmake/detection/BuildFeatureTesterCpuCacheSize.sh"
         WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/cmake/detection"
     )
-    set(FEATURE_TESTER_FILE "${CMAKE_SOURCE_DIR}/cmake/detection/Build-Cache-Sizes/feature_detector")
+    set(FEATURE_TESTER_FILE "${CMAKE_SOURCE_DIR}/cmake/detection/Build-Cpu-Cache-Sizes/feature_detector")
 elseif(WIN32)
-    file(WRITE "${CMAKE_SOURCE_DIR}/cmake/detection/BuildFeatureTesterCacheSizes.bat" "\"${CMAKE_COMMAND}\" -S ./ -B ./Build-Cache-Sizes -DCMAKE_BUILD_TYPE=Release  -DNIHILUS_DETECT_CPU_CACHE_SIZES=TRUE\n"
-        "\"${CMAKE_COMMAND}\" --build ./Build-Cache-Sizes --config=Release"
+    file(WRITE "${CMAKE_SOURCE_DIR}/cmake/detection/BuildFeatureTesterCpuCacheSize.bat" "\"${CMAKE_COMMAND}\" -S ./ -B ./Build-Cpu-Cache-Sizes -DCMAKE_BUILD_TYPE=Release  -DNIHILUS_DETECT_CPU_CACHE_SIZE=TRUE\n"
+        "\"${CMAKE_COMMAND}\" --build ./Build-Cpu-Cache-Sizes --config=Release"
     )
     execute_process(
-        COMMAND "${CMAKE_SOURCE_DIR}/cmake/detection/BuildFeatureTesterCacheSizes.bat"
+        COMMAND "${CMAKE_SOURCE_DIR}/cmake/detection/BuildFeatureTesterCpuCacheSize.bat"
         WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}/cmake/detection"
     )
-    set(FEATURE_TESTER_FILE "${CMAKE_SOURCE_DIR}/cmake/detection/Build-Cache-Sizes/Release/feature_detector.exe")
+    set(FEATURE_TESTER_FILE "${CMAKE_SOURCE_DIR}/cmake/detection/Build-Cpu-Cache-Sizes/Release/feature_detector.exe")
 endif()
 
 if (NOT NIHILUS_CPU_CACHE_SIZE)
@@ -62,7 +62,7 @@ if (NOT NIHILUS_CPU_CACHE_SIZE)
 endif()
 
 configure_file(
-    "${CMAKE_SOURCE_DIR}/cmake/detection/nihilus_cpu_cache_sizes.hpp.in"
-    "${CMAKE_SOURCE_DIR}/include/nihilus-incl/cpu/nihilus_cpu_cache_sizes.hpp"
+    "${CMAKE_SOURCE_DIR}/cmake/detection/nihilus_cpu_cache_size.hpp.in"
+    "${CMAKE_SOURCE_DIR}/include/nihilus-incl/cpu/nihilus_cpu_cache_size.hpp"
     @ONLY
 )
