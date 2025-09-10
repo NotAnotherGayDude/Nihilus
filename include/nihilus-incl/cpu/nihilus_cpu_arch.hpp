@@ -26,12 +26,16 @@ RealTimeChris (Chris M.)
 namespace nihilus {
 
 	struct cpu_arch_index_holder {
+	  protected:
 		static constexpr static_aligned_const cpu_arch_index_raw{ 1ull };
+	  public:
 		static constexpr const uint64_t& cpu_arch_index{ *cpu_arch_index_raw };
 	};
 
 	struct cpu_alignment_holder {
+	  protected:
 		static constexpr static_aligned_const cpu_alignment_raw{ 32ull };
+	  public:
 		static constexpr const uint64_t& cpu_alignment{ *cpu_alignment_raw };
 	};
 }

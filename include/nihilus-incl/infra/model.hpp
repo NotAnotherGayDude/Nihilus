@@ -26,6 +26,7 @@ RealTimeChris (Chris M.)
 #include <nihilus-incl/infra/model_serializer.hpp>
 #include <nihilus-incl/infra/core_bases.hpp>
 #include <nihilus-incl/cpu/thread_pool.hpp>
+#include <nihilus-incl/common/input_collector.hpp>
 #include <nihilus-incl/common/tuple.hpp>
 
 namespace nihilus {
@@ -35,14 +36,16 @@ namespace nihilus {
 		NIHILUS_INLINE model_base(model_config config_new) : config{ config_new } {
 		}
 		model_config config{};
-		virtual bool process_input(const std::string_view params) = 0;
+		virtual bool process_input(std::string_view params) = 0;
+		virtual bool process_input() = 0;
 		virtual ~model_base();
 	};
 
 	model_base::~model_base() {};
 
 	template<model_config config_new> struct model
-		: public thread_pool<config_new>,
+		: public input_collector<config_new>,
+		  public thread_pool<config_new>,
 		  public model_base,
 		  public tokenizer<config_new, model_traits<config_new.arch, config_new.model_size, config_new.model_generation>::arch, config_new.tokenizer_type> {
 		using thread_pool_type		 = thread_pool<config_new>;
@@ -61,7 +64,8 @@ namespace nihilus {
 		model& operator=(const model&) = delete;
 		model(const model&)			   = delete;
 
-		NIHILUS_INLINE bool process_input(const std::string_view input) override {
+		NIHILUS_INLINE bool process_input(std::string_view input) override {
+			input = input.size() > config_new.default_max_sequence_length ? input.substr(0, config_new.default_max_sequence_length) : input;
 			tokenizer_type::tokenize_init(
 				this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::inp_tokens>().data);
 			using output_type = detail::remove_cvref_t<decltype(this->template get_core<core_types, core_types::global_inputs>()
@@ -74,6 +78,23 @@ namespace nihilus {
 			generate_causal_mask();
 			execute_model(input);
 			return false;
+		}
+
+		NIHILUS_INLINE bool process_input() override {
+			input_collector<config_new>::read_multiline();
+			tokenizer_type::tokenize_init(
+				this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::inp_tokens>().data);
+			using output_type = detail::remove_cvref_t<decltype(this->template get_core<core_types, core_types::global_inputs>()
+					.values.template get_core<global_input_types, global_input_types::inp_tokens>())>::output_type;
+			output_type val{ 1 };
+			memory_transfer<config_new>::host_to_device(val,
+				this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::inp_pos>().data + 1);
+			memory_transfer<config_new>::host_to_device(val,
+				this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::inp_out_ids>().data);
+			generate_causal_mask();
+			execute_model(input_collector<config_new>::get_view());
+			input_collector<config_new>::clear();
+			return true;
 		}
 
 		NIHILUS_INLINE void init(cli_params params) {
@@ -249,4 +270,5 @@ namespace nihilus {
 		memory_buffer<config_new> memory{};
 		execution_parameters exec_params{};
 	};
+
 }

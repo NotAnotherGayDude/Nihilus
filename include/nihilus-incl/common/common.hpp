@@ -21,7 +21,6 @@ RealTimeChris (Chris M.)
 #pragma once
 
 #include <nihilus-incl/benchmarking/event_counter.hpp>
-#include <nihilus-incl/cuda/common.cuh>
 #include <nihilus-incl/common/allocator.hpp>
 #include <nihilus-incl/common/config.hpp>
 #include <nihilus-incl/common/exception.hpp>

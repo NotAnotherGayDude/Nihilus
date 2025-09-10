@@ -24,7 +24,9 @@ RealTimeChris (Chris M.)
 namespace nihilus {
 
 	struct max_thread_count_holder {
+	  protected:
 		static constexpr static_aligned_const max_thread_count_raw{ 32ull };
+	  public:
 		static constexpr const uint64_t& max_thread_count{ *max_thread_count_raw };
 	};
 

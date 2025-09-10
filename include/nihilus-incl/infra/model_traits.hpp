@@ -21,11 +21,12 @@ RealTimeChris (Chris M.)
 #pragma once
 
 #include <nihilus-incl/common/kernel_type_profile_traits.hpp>
+#include <nihilus-incl/common/common.hpp>
 #include <nihilus-incl/common/tuple.hpp>
 
 namespace nihilus {
 
-	template<model_arches arch, auto model_size, auto model_generation> struct model_traits;
+	template<model_arches arch, model_sizes model_size, model_generations model_generation> struct model_traits;
 
 	template<> struct model_traits<model_arches::llama, model_sizes::llm_8B, model_generations::v3_1> {
 		static constexpr auto arch{ model_arches::llama };

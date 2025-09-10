@@ -177,7 +177,6 @@ uint32_t get_gpu_l2_cache_size() {
 }
 
 int32_t main() {
-	std::cout << "WERE HERE THIS IT I!" << std::endl;
 	return get_gpu_l2_cache_size();
 }
 #elif defined(NIHILUS_DETECT_CPU_CACHE_SIZE)

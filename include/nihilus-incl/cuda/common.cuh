@@ -27,7 +27,6 @@ RealTimeChris (Chris M.)
 	#include <nihilus-incl/cuda/nihilus_gpu_arch.hpp>
 	#include <nihilus-incl/cuda/nihilus_gpu_cache_size.hpp>
 	#include <nihilus-incl/common/array.hpp>
-	#include <nihilus-incl/common/kernel_traits.hpp>
 	#include <nihilus-incl/infra/core_bases.hpp>
 	#include <nihilus-incl/common/config.hpp>
 	#include <nihilus-incl/cuda/cuda_12.cuh>
@@ -87,12 +86,13 @@ namespace nihilus {
 		}
 	};
 
+	template<model_config config> struct memory_buffer;
+
 	template<model_config config>
 		requires(config.device_type == device_types::gpu)
 	struct memory_buffer<config> {
 		using value_type   = uint8_t;
 		using pointer	   = value_type*;
-		using uint64_types = uint64_t;
 		using size_type	   = uint64_t;
 
 		NIHILUS_INLINE memory_buffer() noexcept								   = default;
@@ -130,7 +130,7 @@ namespace nihilus {
 			clear();
 		}
 
-		NIHILUS_INLINE uint64_types size() noexcept {
+		NIHILUS_INLINE size_type size() noexcept {
 			return size_val;
 		}
 

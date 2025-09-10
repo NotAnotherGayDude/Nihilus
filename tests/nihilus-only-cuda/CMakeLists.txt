@@ -21,12 +21,12 @@
 
 add_executable(
   "nihilus_performance" 
-  "./main.cpp"
+  "main.cpp"
 )
 
 target_link_libraries(
 	"nihilus_performance" PUBLIC 
-	nihilus::nihilus nihilus::nihilus-cuda
+	nihilus::nihilus
 )
 
 install(

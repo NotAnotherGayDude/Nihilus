@@ -173,18 +173,18 @@ namespace nihilus {
 			return has_chunk_types<base_type>;
 		}
 		NIHILUS_INLINE static void impl(base_type& parse_core, uint64_t thread_count) {
-			for (uint64_t x = 0; x < model_traits_type<config>::block_count; ++x) {
-				if constexpr (array_types<decltype(parse_core.current_chunk_eval)>) {
+			if constexpr (array_types<decltype(parse_core.current_chunk_eval)>) {
+				for (uint64_t x = 0; x < model_traits_type<config>::block_count; ++x) {
 					parse_core.current_chunk_eval[x].store(0);
 					parse_core.current_chunk_prompt_eval[x].store(0);
 					parse_core.latch_eval[x].store(thread_count);
 					parse_core.latch_prompt_eval[x].store(thread_count);
-				} else {
-					parse_core.latch_eval.store(thread_count);
-					parse_core.latch_prompt_eval.store(thread_count);
-					parse_core.current_chunk_eval.store(0);
-					parse_core.current_chunk_prompt_eval.store(0);
 				}
+			} else {
+				parse_core.current_chunk_eval.store(0);
+				parse_core.current_chunk_prompt_eval.store(0);
+				parse_core.latch_eval.store(thread_count);
+				parse_core.latch_prompt_eval.store(thread_count);
 			}
 		}
 	};
@@ -268,7 +268,7 @@ namespace nihilus {
 				log<log_levels::status>(stream.str());
 			}
 
-			kernel_dispatcher<device_type, processing_phase, base_type>::impl(parse_core, thread_index_new, thread_count);
+			kernel_dispatcher<config, device_type, processing_phase, base_type>::impl(parse_core, thread_index_new, thread_count);
 
 			if constexpr (config.dev) {
 				std::stringstream stream{};
@@ -298,7 +298,7 @@ namespace nihilus {
 					   << " expected threads, for Op: " << base_type::core_type << ", for [BLOCK]: " << current_block << std::endl;
 				log<log_levels::status>(stream.str());
 			}
-			kernel_dispatcher<device_type, processing_phase, base_type>::impl(parse_core, thread_index_new, thread_count, current_block);
+			kernel_dispatcher<config, device_type, processing_phase, base_type>::impl(parse_core, thread_index_new, thread_count, current_block);
 
 			if constexpr (config.dev) {
 				std::stringstream stream{};
@@ -327,7 +327,7 @@ namespace nihilus {
 					   << " expected threads, for Op: " << base_type::core_type << std::endl;
 				log<log_levels::status>(stream.str());
 			}
-			kernel_dispatcher<device_type, processing_phase, base_type>::impl(parse_core, thread_index_new, thread_count);
+			kernel_dispatcher<config, device_type, processing_phase, base_type>::impl(parse_core, thread_index_new, thread_count);
 			if constexpr (config.dev) {
 				std::stringstream stream{};
 				stream << "[DEBUG] Thread (ID: " << std::this_thread::get_id() << ") " << thread_index_new << " [FINISHED] a barrier with " << thread_count

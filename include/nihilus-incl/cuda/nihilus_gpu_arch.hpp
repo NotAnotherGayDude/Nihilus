@@ -24,7 +24,9 @@ RealTimeChris (Chris M.)
 namespace nihilus {
 
 	struct gpu_arch_index_holder {
+	  protected:
 		static constexpr static_aligned_const gpu_arch_index_raw{ 4ull };
+	  public:
 		static constexpr const uint64_t& gpu_arch_index{ *gpu_arch_index_raw };
 	};
 

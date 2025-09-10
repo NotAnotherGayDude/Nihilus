@@ -44,7 +44,7 @@ namespace nihilus {
 		using const_pointer	   = const value_type_new*;
 		using reference		   = value_type_new&;
 		using const_reference  = const value_type_new&;
-		using uint64_types	   = uint64_t;
+		using size_type		   = uint64_t;
 		using difference_type  = std::ptrdiff_t;
 		using allocator_traits = std::allocator_traits<allocator<value_type>>;
 
@@ -57,7 +57,7 @@ namespace nihilus {
 		template<typename U> allocator(const allocator<U>&) noexcept {
 		}
 
-		NIHILUS_INLINE static pointer allocate(uint64_types count_new) noexcept {
+		NIHILUS_INLINE static pointer allocate(size_type count_new) noexcept {
 			if NIHILUS_UNLIKELY (count_new == 0) {
 				return nullptr;
 			}

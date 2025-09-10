@@ -53,7 +53,6 @@ namespace nihilus {
 		using value_type   = uint8_t;
 		using alloc		   = allocator<value_type>;
 		using pointer	   = value_type*;
-		using uint64_types = uint64_t;
 		using size_type	   = uint64_t;
 
 		NIHILUS_INLINE memory_buffer() noexcept = default;
@@ -89,7 +88,7 @@ namespace nihilus {
 			clear();
 		}
 
-		NIHILUS_INLINE uint64_types size() noexcept {
+		NIHILUS_INLINE size_type size() noexcept {
 			return size_val;
 		}
 

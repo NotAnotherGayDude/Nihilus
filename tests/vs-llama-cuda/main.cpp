@@ -81,8 +81,8 @@ using namespace nihilus;
 
 int main(int argc, char** argv) {
 	try {
-		constexpr auto model_config =
-			nihilus::generate_model_config(nihilus::model_generations::v3_1, model_sizes::llm_8B, nihilus::kernel_type_profiles::q8_gqa, nihilus::model_arches::llama, false);
+		constexpr auto model_config	   = nihilus::generate_model_config(nihilus::model_generations::v3_1, model_sizes::llm_8B, nihilus::kernel_type_profiles::q8_gqa,
+			   nihilus::model_arches::llama, device_types::gpu, true);
 		constexpr auto model_config_00 = update_model_device_type(model_config, device_types::gpu);
 		constexpr auto model_config_01 = update_model_config_benchmark(model_config_00, true);
 		const cli_params cli_args	   = harbinger<model_config_01>::parse_cli_arguments(argc, argv);

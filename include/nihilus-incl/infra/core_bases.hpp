@@ -33,12 +33,12 @@ namespace nihilus {
 		core_bases(const core_bases&)			 = delete;
 
 		template<template<model_config, typename> typename mixin_type, typename... arg_types> NIHILUS_INLINE constexpr void impl(arg_types&&... args) noexcept {
-			(impl_internal_filtered<mixin_type, bases>(args...), ...);
+			(impl_internal_filtered<mixin_type, bases>(detail::forward<arg_types>(args)...), ...);
 		}
 
 		template<template<model_config, typename, auto...> typename mixin_type, auto... values, typename... arg_types>
 		NIHILUS_INLINE constexpr void impl_thread(arg_types&&... args) noexcept {
-			(impl_internal_filtered_thread<mixin_type, bases, values...>(args...), ...);
+			(impl_internal_filtered_thread<mixin_type, bases, values...>(detail::forward<arg_types>(args)...), ...);
 		}
 
 		template<enum_types enum_type, enum_type enum_value> NIHILUS_INLINE decltype(auto) get_core() noexcept {
@@ -49,14 +49,14 @@ namespace nihilus {
 		template<template<model_config, typename> typename mixin_type, typename base_type, typename... arg_types>
 		NIHILUS_INLINE constexpr void impl_internal_filtered([[maybe_unused]] arg_types&&... args) noexcept {
 			if constexpr (mixin_type<config, base_type>::filter()) {
-				mixin_type<config, base_type>::impl(*static_cast<typename base_type::derived_type*>(static_cast<base_type*>(this)), args...);
+				mixin_type<config, base_type>::impl(*static_cast<typename base_type::derived_type*>(this), detail::forward<arg_types>(args)...);
 			}
 		}
 
 		template<template<model_config, typename, auto...> typename mixin_type, typename base_type, auto... values, typename... arg_types>
 		NIHILUS_INLINE constexpr void impl_internal_filtered_thread([[maybe_unused]] arg_types&&... args) noexcept {
 			if constexpr (mixin_type<config, base_type, values...>::filter()) {
-				mixin_type<config, base_type, values...>::impl(*static_cast<typename base_type::derived_type*>(static_cast<base_type*>(this)), detail::forward<arg_types>(args)...);
+				mixin_type<config, base_type, values...>::impl(*static_cast<typename base_type::derived_type*>(this), detail::forward<arg_types>(args)...);
 			}
 		}
 	};

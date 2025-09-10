@@ -28,9 +28,6 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-	template<typename value_type>
-	concept sl_types = is_specialization_val_v<std::remove_cvref_t<value_type>, string_literal>;
-
 	template<uint64_t length> struct convert_length_to_int {
 		static_assert(length <= 8, "Sorry, but that string is too long!");
 		using type = std::conditional_t<length == 1, uint8_t,
@@ -70,7 +67,7 @@ namespace nihilus {
 	static constexpr auto pack_values() {
 		alignas(64) array<uint64_t, get_packing_size<string.size()>() / sizeof(uint64_t)> out{};
 		for (uint64_t i = 0; i < string.size() && i < get_packing_size<string.size()>(); ++i) {
-			out[i / 8] |= (static_cast<uint64_t>(static_cast<unsigned char>(string[i])) << ((i % 8) * 8));
+			out[i / 8] |= static_cast<uint64_t>(static_cast<unsigned char>(string[i])) << ((i % 8) * 8);
 		}
 		return out;
 	}

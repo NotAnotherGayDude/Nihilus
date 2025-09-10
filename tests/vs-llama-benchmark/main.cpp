@@ -80,7 +80,7 @@ static constexpr nihilus::model_sizes model_size{ LLAMA_MODEL_SIZE };
 int main(int argc, char** argv) {
 	try {
 		static constexpr auto model_config	 = nihilus::generate_model_config(nihilus::model_generations::v3_1, nihilus::model_sizes::llm_8B, nihilus::kernel_type_profiles::q8_gqa,
-			  nihilus::model_arches::llama, nihilus::device_types::cpu, true);
+			  nihilus::model_arches::llama, nihilus::device_types::cpu, true, false, 1024);
 		static constexpr auto model_config01 = nihilus::update_model_config_benchmark(model_config, true);
 
 		nihilus::cli_params cli_args = nihilus::harbinger<model_config01>::parse_cli_arguments(argc, argv);
@@ -198,8 +198,10 @@ int main(int argc, char** argv) {
 			bool waiting_for_first_input = false;
 			auto chat_add_and_format	 = [&chat_msgs, &chat_templates](const std::string& role, const std::string& content) {
 				common_chat_msg new_msg;
-				new_msg.role	= role;
-				new_msg.content = content;
+				new_msg.role = role;
+				std::cout << "CONTENT SIZE (BEFORE): " << content.size() << std::endl;
+				new_msg.content = content.substr(0, 32);
+				std::cout << "CONTENT SIZE (AFTER): " << new_msg.content.size() << std::endl;
 				auto formatted	= common_chat_format_single(chat_templates.get(), chat_msgs, new_msg, role == "user", g_params->use_jinja);
 				chat_msgs.push_back(new_msg);
 				LOG_DBG("formatted: '%s'\n", formatted.c_str());
