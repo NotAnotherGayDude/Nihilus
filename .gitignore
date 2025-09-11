@@ -38,12 +38,7 @@ build-x64-*
 Tensor-Data.txt
 cmake/detection/Build-Arch/
 cmake/detection/Build-Arch-Cuda/
-cmake/detection/Build-Cpu-Cache-Sizes/
-cmake/detection/Build-Gpu-Cache-Sizes/
-cmake/detection/BuildFeatureTesterArch.bat
-cmake/detection/BuildFeatureTester.bat
-cmake/detection/BuildFeatureTesterArchCuda.bat
-/cmake/detection/BuildFeatureTesterCpuCacheSize.bat
-cmake/detection/BuildFeatureTesterGpuCacheSize.bat
-cmake/detection/BuildFeatureTesterCacheSizes.bat
-cmake/detection/BuildFeatureTesterCacheSizes.bat
+cmake/detection/Build-Cpu-Properties/
+cmake/detection/Build-Gpu-Properties/
+cmake/detection/BuildFeatureTesterCpuProperties.bat
+/cmake/detection/BuildFeatureTesterGpuProperties.bat

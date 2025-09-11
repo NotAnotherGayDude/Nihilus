@@ -17,6 +17,7 @@ Signed,
 RealTimeChris (Chris M.)
 2025
 */
+// cuda_12.cuh
 
 #if NIHILUS_CUDA_ENABLED
 
@@ -28,14 +29,47 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-	template<typename output_type> NIHILUS_INLINE static constexpr int64_t calculate_chunk_count_gpu(output_type& output, int64_t& chunk_size, int64_t thread_count) {
-		const auto dims			   = output.get_array_rt();
-		const uint64_t total_bytes = type_traits<typename output_type::output_type>::total_byte_size(dims);
-		uint64_t chunk_count	   = detail::max(1, total_bytes / static_cast<uint64_t>(static_cast<float>(gpu_cache_size_holder::l2_data_cache_size) * 0.5f));
-		chunk_count				   = (chunk_count == 1) ? thread_count : chunk_count;
-		const uint64_t total_elems = dims[0] * dims[1] * dims[2] * dims[3];
-		chunk_size				   = total_elems / chunk_count;
-		return chunk_count;
+	template<core_types kernel_type> struct kernel_scaling_factors {
+		static constexpr float memory_bound_factor	= 1.0f;
+		static constexpr float compute_bound_factor = 1.0f;
+	};
+
+	template<typename output_type, core_types kernel_type>
+	NIHILUS_INLINE static constexpr int64_t calculate_gpu_launch_params(output_type& output, int64_t& work_per_thread, int64_t& grid_size, int64_t& block_size) {
+		const auto dims				= output.get_array_rt();
+		const uint64_t total_elems	= dims[0] * dims[1] * dims[2] * dims[3];
+		const uint64_t element_size = sizeof(typename output_type::output_type);
+		const uint64_t total_bytes	= total_elems * element_size;
+
+		block_size = gpu_properties::optimal_block_size;
+		block_size = (block_size / gpu_properties::warp_size) * gpu_properties::warp_size;
+
+		const uint64_t l2_working_set  = static_cast<uint64_t>(gpu_properties::l2_cache_size * 0.75f);
+		const uint64_t bytes_per_block = (total_bytes / gpu_properties::optimal_grid_size) + 1;
+
+		float scaling_factor;
+		if (bytes_per_block > l2_working_set) {
+			scaling_factor = kernel_scaling_factors<kernel_type>::memory_bound_factor;
+			grid_size	   = static_cast<int64_t>(total_bytes / l2_working_set) + 1;
+			grid_size	   = static_cast<int64_t>(static_cast<float>(grid_size) * scaling_factor);
+		} else {
+			scaling_factor = kernel_scaling_factors<kernel_type>::compute_bound_factor;
+			grid_size	   = static_cast<int64_t>(static_cast<float>(gpu_properties::optimal_grid_size) * scaling_factor);
+		}
+
+		const int64_t min_grid_size = gpu_properties::sm_count;
+		const int64_t max_grid_size = detail::min(static_cast<int64_t>(gpu_properties::max_grid_size_x), static_cast<int64_t>(total_elems / gpu_properties::warp_size) + 1);
+		grid_size					= detail::max(min_grid_size, detail::min(grid_size, max_grid_size));
+
+		const int64_t total_threads = grid_size * block_size;
+		work_per_thread				= (total_elems + total_threads - 1) / total_threads;
+
+		const int64_t coalescing_factor = gpu_properties::warp_size / element_size;
+		if (coalescing_factor > 1) {
+			work_per_thread = ((work_per_thread + coalescing_factor - 1) / coalescing_factor) * coalescing_factor;
+		}
+
+		return total_threads;
 	}
 
 	template<model_config config, typename core_traits_type>
@@ -62,15 +96,6 @@ namespace nihilus {
 		}
 
 		NIHILUS_INLINE static void impl(core_traits_type& params, int64_t thread_index, int64_t thread_count) {
-			int64_t chunk_size{};
-			const int64_t chunk_count = calculate_chunk_count<typename core_traits_type::token_embeddings_type>(params.values, chunk_size, thread_count);
-			int64_t current_chunk	  = params.current_chunk_prompt_eval.fetch_add(1);
-			for (; current_chunk < chunk_count; current_chunk = params.current_chunk_prompt_eval.fetch_add(1)) {
-				process_chunk(params, current_chunk, chunk_size);
-			}
-
-			params.latch_prompt_eval.fetch_sub(1);
-			params.latch_prompt_eval.wait();
 		}
 	};
 
@@ -80,8 +105,6 @@ namespace nihilus {
 		}
 
 		NIHILUS_INLINE static void impl(core_traits_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {
-			params.latch_eval[current_block].fetch_sub(1);
-			params.latch_eval[current_block].wait();
 		}
 	};
 
@@ -91,8 +114,7 @@ namespace nihilus {
 		}
 
 		NIHILUS_INLINE static void impl(core_traits_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {
-			params.latch_prompt_eval[current_block].fetch_sub(1);
-			params.latch_prompt_eval[current_block].wait();
+			
 		}
 	};
 
@@ -102,8 +124,6 @@ namespace nihilus {
 			// PROCESS DATA.
 		}
 		NIHILUS_INLINE static void impl(core_traits_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {
-			params.latch_eval[current_block].fetch_sub(1);
-			params.latch_eval[current_block].wait();
 		}
 	};
 
@@ -113,8 +133,7 @@ namespace nihilus {
 			// PROCESS DATA.
 		}
 		NIHILUS_INLINE static void impl(core_traits_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {
-			params.latch_prompt_eval[current_block].fetch_sub(1);
-			params.latch_prompt_eval[current_block].wait();
+			
 		}
 	};
 
@@ -124,8 +143,6 @@ namespace nihilus {
 			// PROCESS DATA.
 		}
 		NIHILUS_INLINE static void impl(core_traits_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {
-			params.latch_eval[current_block].fetch_sub(1);
-			params.latch_eval[current_block].wait();
 		}
 	};
 
@@ -135,8 +152,7 @@ namespace nihilus {
 			// PROCESS DATA.
 		}
 		NIHILUS_INLINE static void impl(core_traits_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {
-			params.latch_prompt_eval[current_block].fetch_sub(1);
-			params.latch_prompt_eval[current_block].wait();
+			
 		}
 	};
 
@@ -146,8 +162,6 @@ namespace nihilus {
 			// PROCESS DATA.
 		}
 		NIHILUS_INLINE static void impl(core_traits_type& params, int64_t thread_index, int64_t thread_count) {
-			params.latch_eval.fetch_sub(1);
-			params.latch_eval.wait();
 		}
 	};
 
@@ -157,13 +171,6 @@ namespace nihilus {
 			// PROCESS DATA.
 		}
 		NIHILUS_INLINE static void impl(core_traits_type& params, int64_t thread_index, int64_t thread_count) {
-			//int64_t chunk_count{ /* GET CHUNK COUNT */ };
-			//int64_t current_chunk{ params.current_chunk_prompt_eval.fetch_add(1) };
-			//for (; current_chunk < chunk_count; current_chunk = params.current_chunk_prompt_eval.fetch_add(1)) {
-			//process_chunk(params, thread_index, thread_count, current_chunk);
-			//}
-			params.latch_prompt_eval.fetch_sub(1);
-			params.latch_prompt_eval.wait();
 		}
 	};
 

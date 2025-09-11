@@ -58,7 +58,7 @@ namespace nihilus {
 	template<typename output_type> NIHILUS_INLINE static constexpr int64_t calculate_chunk_count(output_type& output, int64_t& chunk_size, int64_t thread_count) {
 		const auto dims			   = output.get_array_rt();
 		const uint64_t total_bytes = type_traits<typename output_type::output_type>::total_byte_size(dims);
-		uint64_t chunk_count	   = detail::max(1, total_bytes / static_cast<uint64_t>(static_cast<float>(cpu_cache_size_holder::l1_data_cache_size) * 0.5f));
+		uint64_t chunk_count	   = detail::max(1, total_bytes / static_cast<uint64_t>(static_cast<float>(cpu_properties::l1_cache_size) * 0.5f));
 		chunk_count				   = (chunk_count == 1) ? thread_count : chunk_count;
 		const uint64_t total_elems = dims[0] * dims[1] * dims[2] * dims[3];
 		chunk_size				   = total_elems / chunk_count;
@@ -423,7 +423,7 @@ namespace nihilus {
 
 			uint64_t sync_ith = output.current_chunk_prompt_eval[current_block].fetch_sub(1);
 
-			const uint64_t chunk_count = detail::max((type_traits<typename core_traits_type::output_type>::total_byte_size(output) / (cpu_cache_size_holder::cpu_cache_size) * 4) / 3, 1);
+			const uint64_t chunk_count = detail::max((type_traits<typename core_traits_type::output_type>::total_byte_size(output) / (cpu_properties::cpu_properties) * 4) / 3, 1);
 			const uint64_t block_byte_size{};
 			const uint64_t element_byte_size{};
 			if (block_byte_size > element_byte_size) {
@@ -498,7 +498,7 @@ namespace nihilus {
 
 			uint64_t sync_ith = output.current_chunk_prompt_eval[current_block].fetch_sub(1);
 
-			const uint64_t chunk_count = detail::max((type_traits<typename core_traits_type::output_type>::total_byte_size(output) / (cpu_cache_size_holder::cpu_cache_size) * 4) / 3, 1);
+			const uint64_t chunk_count = detail::max((type_traits<typename core_traits_type::output_type>::total_byte_size(output) / (cpu_properties::cpu_properties) * 4) / 3, 1);
 			const uint64_t block_byte_size{};
 			const uint64_t element_byte_size{};
 			if (block_byte_size > element_byte_size) {
@@ -1004,7 +1004,7 @@ namespace nihilus {
 
 			uint64_t sync_ith = output.current_chunk_prompt_eval[current_block].fetch_sub(1);
 
-			const uint64_t chunk_count = detail::max((type_traits<typename core_traits_type::output_type>::total_byte_size(output) / (cpu_cache_size_holder::cpu_cache_size) * 4) / 3, 1);
+			const uint64_t chunk_count = detail::max((type_traits<typename core_traits_type::output_type>::total_byte_size(output) / (cpu_properties::cpu_properties) * 4) / 3, 1);
 			const uint64_t block_byte_size{};
 			const uint64_t element_byte_size{};
 			if (block_byte_size > element_byte_size) {
@@ -1079,7 +1079,7 @@ namespace nihilus {
 
 			uint64_t sync_ith = output.current_chunk_prompt_eval[current_block].fetch_sub(1);
 
-			const uint64_t chunk_count = detail::max((type_traits<typename core_traits_type::output_type>::total_byte_size(output) / (cpu_cache_size_holder::cpu_cache_size) * 4) / 3, 1);
+			const uint64_t chunk_count = detail::max((type_traits<typename core_traits_type::output_type>::total_byte_size(output) / (cpu_properties::cpu_properties) * 4) / 3, 1);
 			const uint64_t block_byte_size{};
 			const uint64_t element_byte_size{};
 			if (block_byte_size > element_byte_size) {
@@ -1351,7 +1351,7 @@ namespace nihilus {
 
 			uint64_t sync_ith = output.current_chunk_prompt_eval[current_block].fetch_sub(1);
 
-			const uint64_t chunk_count = detail::max((type_traits<typename core_traits_type::output_type>::total_byte_size(output) / (cpu_cache_size_holder::cpu_cache_size) * 4) / 3, 1);
+			const uint64_t chunk_count = detail::max((type_traits<typename core_traits_type::output_type>::total_byte_size(output) / (cpu_properties::cpu_properties) * 4) / 3, 1);
 			const uint64_t block_byte_size{};
 			const uint64_t element_byte_size{};
 			if (block_byte_size > element_byte_size) {
@@ -1426,7 +1426,7 @@ namespace nihilus {
 
 			uint64_t sync_ith = output.current_chunk_prompt_eval[current_block].fetch_sub(1);
 
-			const uint64_t chunk_count = detail::max((type_traits<typename core_traits_type::output_type>::total_byte_size(output) / (cpu_cache_size_holder::cpu_cache_size) * 4) / 3, 1);
+			const uint64_t chunk_count = detail::max((type_traits<typename core_traits_type::output_type>::total_byte_size(output) / (cpu_properties::cpu_properties) * 4) / 3, 1);
 			const uint64_t block_byte_size{};
 			const uint64_t element_byte_size{};
 			if (block_byte_size > element_byte_size) {
@@ -1501,7 +1501,7 @@ namespace nihilus {
 
 			uint64_t sync_ith = output.current_chunk_prompt_eval[current_block].fetch_sub(1);
 
-			const uint64_t chunk_count = detail::max((type_traits<typename core_traits_type::output_type>::total_byte_size(output) / (cpu_cache_size_holder::cpu_cache_size) * 4) / 3, 1);
+			const uint64_t chunk_count = detail::max((type_traits<typename core_traits_type::output_type>::total_byte_size(output) / (cpu_properties::cpu_properties) * 4) / 3, 1);
 			const uint64_t block_byte_size{};
 			const uint64_t element_byte_size{};
 			if (block_byte_size > element_byte_size) {
@@ -1576,7 +1576,7 @@ namespace nihilus {
 
 			uint64_t sync_ith = output.current_chunk_prompt_eval[current_block].fetch_sub(1);
 
-			const uint64_t chunk_count = detail::max((type_traits<typename core_traits_type::output_type>::total_byte_size(output) / (cpu_cache_size_holder::cpu_cache_size) * 4) / 3, 1);
+			const uint64_t chunk_count = detail::max((type_traits<typename core_traits_type::output_type>::total_byte_size(output) / (cpu_properties::cpu_properties) * 4) / 3, 1);
 			const uint64_t block_byte_size{};
 			const uint64_t element_byte_size{};
 			if (block_byte_size > element_byte_size) {
@@ -1799,7 +1799,7 @@ namespace nihilus {
 
 			uint64_t sync_ith = output.current_chunk_prompt_eval[current_block].fetch_sub(1);
 
-			const uint64_t chunk_count = detail::max((type_traits<typename core_traits_type::output_type>::total_byte_size(output) / (cpu_cache_size_holder::cpu_cache_size) * 4) / 3, 1);
+			const uint64_t chunk_count = detail::max((type_traits<typename core_traits_type::output_type>::total_byte_size(output) / (cpu_properties::cpu_properties) * 4) / 3, 1);
 			const uint64_t block_byte_size{};
 			const uint64_t element_byte_size{};
 			if (block_byte_size > element_byte_size) {
@@ -1879,7 +1879,7 @@ namespace nihilus {
 
 			uint64_t sync_ith = output.current_chunk_prompt_eval[current_block].fetch_sub(1);
 
-			const uint64_t chunk_count = detail::max((type_traits<typename core_traits_type::output_type>::total_byte_size(output) / (cpu_cache_size_holder::cpu_cache_size) * 4) / 3, 1);
+			const uint64_t chunk_count = detail::max((type_traits<typename core_traits_type::output_type>::total_byte_size(output) / (cpu_properties::cpu_properties) * 4) / 3, 1);
 			const uint64_t block_byte_size{};
 			const uint64_t element_byte_size{};
 			if (block_byte_size > element_byte_size) {
@@ -2132,7 +2132,7 @@ namespace nihilus {
 
 			uint64_t sync_ith = output.current_chunk_prompt_eval[current_block].fetch_sub(1);
 
-			const uint64_t chunk_count = detail::max((type_traits<typename core_traits_type::output_type>::total_byte_size(output) / (cpu_cache_size_holder::cpu_cache_size) * 4) / 3, 1);
+			const uint64_t chunk_count = detail::max((type_traits<typename core_traits_type::output_type>::total_byte_size(output) / (cpu_properties::cpu_properties) * 4) / 3, 1);
 			const uint64_t block_byte_size{};
 			const uint64_t element_byte_size{};
 			if (block_byte_size > element_byte_size) {
@@ -2207,7 +2207,7 @@ namespace nihilus {
 
 			uint64_t sync_ith = output.current_chunk_prompt_eval[current_block].fetch_sub(1);
 
-			const uint64_t chunk_count = detail::max((type_traits<typename core_traits_type::output_type>::total_byte_size(output) / (cpu_cache_size_holder::cpu_cache_size) * 4) / 3, 1);
+			const uint64_t chunk_count = detail::max((type_traits<typename core_traits_type::output_type>::total_byte_size(output) / (cpu_properties::cpu_properties) * 4) / 3, 1);
 			const uint64_t block_byte_size{};
 			const uint64_t element_byte_size{};
 			if (block_byte_size > element_byte_size) {
@@ -2287,7 +2287,7 @@ namespace nihilus {
 
 			uint64_t sync_ith = output.current_chunk_prompt_eval[current_block].fetch_sub(1);
 
-			const uint64_t chunk_count = detail::max((type_traits<typename core_traits_type::output_type>::total_byte_size(output) / (cpu_cache_size_holder::cpu_cache_size) * 4) / 3, 1);
+			const uint64_t chunk_count = detail::max((type_traits<typename core_traits_type::output_type>::total_byte_size(output) / (cpu_properties::cpu_properties) * 4) / 3, 1);
 			const uint64_t block_byte_size{};
 			const uint64_t element_byte_size{};
 			if (block_byte_size > element_byte_size) {
@@ -2367,7 +2367,7 @@ namespace nihilus {
 
 			uint64_t sync_ith = output.current_chunk_prompt_eval[current_block].fetch_sub(1);
 
-			const uint64_t chunk_count = detail::max((type_traits<typename core_traits_type::output_type>::total_byte_size(output) / (cpu_cache_size_holder::cpu_cache_size) * 4) / 3, 1);
+			const uint64_t chunk_count = detail::max((type_traits<typename core_traits_type::output_type>::total_byte_size(output) / (cpu_properties::cpu_properties) * 4) / 3, 1);
 			const uint64_t block_byte_size{};
 			const uint64_t element_byte_size{};
 			if (block_byte_size > element_byte_size) {
@@ -2454,7 +2454,7 @@ namespace nihilus {
 
 			uint64_t sync_ith = output.current_chunk_prompt_eval[current_block].fetch_sub(1);
 
-			const uint64_t chunk_count = detail::max((type_traits<typename core_traits_type::output_type>::total_byte_size(output) / (cpu_cache_size_holder::cpu_cache_size) * 4) / 3, 1);
+			const uint64_t chunk_count = detail::max((type_traits<typename core_traits_type::output_type>::total_byte_size(output) / (cpu_properties::cpu_properties) * 4) / 3, 1);
 			const uint64_t block_byte_size{};
 			const uint64_t element_byte_size{};
 			if (block_byte_size > element_byte_size) {
@@ -2541,7 +2541,7 @@ namespace nihilus {
 
 			uint64_t sync_ith = output.current_chunk_prompt_eval[current_block].fetch_sub(1);
 
-			const uint64_t chunk_count = detail::max((type_traits<typename core_traits_type::output_type>::total_byte_size(output) / (cpu_cache_size_holder::cpu_cache_size) * 4) / 3, 1);
+			const uint64_t chunk_count = detail::max((type_traits<typename core_traits_type::output_type>::total_byte_size(output) / (cpu_properties::cpu_properties) * 4) / 3, 1);
 			const uint64_t block_byte_size{};
 			const uint64_t element_byte_size{};
 			if (block_byte_size > element_byte_size) {
@@ -2621,7 +2621,7 @@ namespace nihilus {
 
 			uint64_t sync_ith = output.current_chunk_prompt_eval[current_block].fetch_sub(1);
 
-			const uint64_t chunk_count = detail::max((type_traits<typename core_traits_type::output_type>::total_byte_size(output) / (cpu_cache_size_holder::cpu_cache_size) * 4) / 3, 1);
+			const uint64_t chunk_count = detail::max((type_traits<typename core_traits_type::output_type>::total_byte_size(output) / (cpu_properties::cpu_properties) * 4) / 3, 1);
 			const uint64_t block_byte_size{};
 			const uint64_t element_byte_size{};
 			if (block_byte_size > element_byte_size) {
@@ -2701,7 +2701,7 @@ namespace nihilus {
 
 			uint64_t sync_ith = output.current_chunk_prompt_eval[current_block].fetch_sub(1);
 
-			const uint64_t chunk_count = detail::max((type_traits<typename core_traits_type::output_type>::total_byte_size(output) / (cpu_cache_size_holder::cpu_cache_size) * 4) / 3, 1);
+			const uint64_t chunk_count = detail::max((type_traits<typename core_traits_type::output_type>::total_byte_size(output) / (cpu_properties::cpu_properties) * 4) / 3, 1);
 			const uint64_t block_byte_size{};
 			const uint64_t element_byte_size{};
 			if (block_byte_size > element_byte_size) {

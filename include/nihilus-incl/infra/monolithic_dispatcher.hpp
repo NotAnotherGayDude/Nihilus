@@ -21,6 +21,7 @@ RealTimeChris (Chris M.)
 #pragma once
 
 #include <nihilus-incl/common/kernel_traits.hpp>
+#include <nihilus-incl/cpu/nihilus_cpu_properties.hpp>
 #include <nihilus-incl/cuda/common.cuh>
 #include <nihilus-incl/common/common.hpp>
 
@@ -29,12 +30,12 @@ namespace nihilus {
 	template<device_types device_type> constexpr uint64_t arch_index{ [] {
 		if constexpr (device_type == device_types::gpu) {
 #if NIHILUS_CUDA_ENABLED
-			return gpu_arch_index_holder::gpu_arch_index;
+			return gpu_properties::gpu_arch_index;
 #else
 			static_assert(false, "Sorry, but it appears as though you have selected device_types::gpu, without enabling CUDA.");
 #endif
 		}
-		return cpu_arch_index_holder::cpu_arch_index;
+		return cpu_properties::cpu_arch_index;
 	}() };
 
 	template<model_config config, device_types device_type, processing_phases processing_phase, typename core_type> struct kernel_dispatcher {

@@ -106,7 +106,7 @@ namespace nihilus {
 
 	template<string_literal string> struct string_literal_comparitor {
 		NIHILUS_INLINE static bool impl(const char* str) noexcept {
-			static_assert(false, "Sorry, but this will not work!");
+			return false;
 		};
 	};
 
@@ -247,7 +247,7 @@ namespace nihilus {
 #endif
 
 	template<string_literal string>
-		requires(string.size() > cpu_alignment_holder::cpu_alignment)
+		requires(string.size() > cpu_properties::cpu_alignment)
 	struct string_literal_comparitor<string> {
 		inline static constexpr auto string_new{ offset_new_literal<string, get_offset_into_literal_size(string.size())>() };
 		inline static constexpr auto string_size = string_new.size();

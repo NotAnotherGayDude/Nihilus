@@ -19,9 +19,8 @@
 
 find_package(CUDAToolkit REQUIRED)
 
-include("${CMAKE_SOURCE_DIR}/cmake/detection/nihilus_detect_gpu_cache_size.cmake")
-include("${CMAKE_SOURCE_DIR}/cmake/detection/nihilus_detect_gpu_arch.cmake")
-include("flags_and_options.cmake")
+include("${CMAKE_SOURCE_DIR}/cmake/detection/nihilus_detect_gpu_properties.cmake")
+include("${CMAKE_SOURCE_DIR}/cmake/flags_and_options.cmake")
 
 message(STATUS "CUDA Architecture: ${NIHILUS_GPU_NAME}")
 
@@ -32,9 +31,9 @@ add_library("${PROJECT_NAME}::${PROJECT_NAME}-cuda" ALIAS "${PROJECT_NAME}-cuda"
 
 set_property(TARGET "${PROJECT_NAME}-cuda" PROPERTY CUDA_STANDARD 20)
 
-target_compile_definitions("${PROJECT_NAME}-cuda" PRIVATE "${NIHILUS_CUDA_COMPILE_DEFINITIONS};NIHILUS_CUDA_ENABLED=1")
-target_compile_options("${PROJECT_NAME}-cuda" PRIVATE "${NIHILUS_CUDA_COMPILE_OPTIONS}")
-target_link_options("${PROJECT_NAME}-cuda" PRIVATE "${NIHILUS_CUDA_LINK_OPTIONS}")
+target_compile_definitions("${PROJECT_NAME}-cuda" PUBLIC "${NIHILUS_CUDA_COMPILE_DEFINITIONS}")
+target_compile_options("${PROJECT_NAME}-cuda" PUBLIC "${NIHILUS_CUDA_COMPILE_OPTIONS}")
+target_link_options("${PROJECT_NAME}-cuda" PUBLIC "${NIHILUS_CUDA_LINK_OPTIONS}")
 
 target_include_directories(
     "${PROJECT_NAME}-cuda" PRIVATE

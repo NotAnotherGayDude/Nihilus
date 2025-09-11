@@ -24,15 +24,9 @@ set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_INSTALL_PREFIX "${CMAKE_SOURCE_DIR}/../Install")
 
-option(NIHILUS_MAX_THREAD_COUNT "Override detected thread count" OFF)
+option(NIHILUS_DETECT_CPU_PROPERTIES "Override cpu-cache-size selection" OFF)
 
-option(NIHILUS_CPU_ARCHITECTURE "Override cpu-arch selection" OFF)
-
-option(NIHILUS_CPU_CACHE_SIZE "Override cpu-cache-size selection" OFF)
-
-option(NIHILUS_GPU_CACHE_SIZE "Override gpu-cache-size selection" OFF)
-
-option(NIHILUS_GPU_ARCHITECTURE "Override gpu-arch selection" OFF)
+option(NNIHILUS_DETECT_GPU_PROPERTIES "Override gpu-cache-size selection" OFF)
 
 option(NIHILUS_MODEL_SIZE_OVERRIDE "For manually setting which model size gets used in 'tests'" OFF)
 
@@ -54,9 +48,7 @@ else()
     )
 endif()
 
-include("cmake/detection/nihilus_detect_cpu_arch.cmake")
-include("cmake/detection/nihilus_detect_max_thread_count.cmake")
-include("cmake/detection/nihilus_detect_cpu_cache_size.cmake")
+include("cmake/detection/nihilus_detect_cpu_properties.cmake")
 
 add_library("${PROJECT_NAME}" INTERFACE)
 add_library("${PROJECT_NAME}::${PROJECT_NAME}" ALIAS "${PROJECT_NAME}")
@@ -109,17 +101,17 @@ target_include_directories(
 
 target_compile_options(
     "${PROJECT_NAME}" INTERFACE
-    "${NIHILUS_COMPILE_OPTIONS}"    
+    "${NIHILUS_COMMON_COMPILE_OPTIONS}"
 )
 
 target_link_options(
     "${PROJECT_NAME}" INTERFACE
-    "${NIHILUS_LINK_OPTIONS}"
+    "${NIHILUS_COMMON_LINK_OPTIONS}"
 )
 
 target_compile_definitions(
     "${PROJECT_NAME}" INTERFACE
-    "${NIHILUS_CCOMPILE_DEFINITIONS}"
+    "${NIHILUS_COMMON_COMPILE_DEFINITIONS}"
 )
 
 set(CONFIG_FILE_NAME "${PROJECT_NAME}Config.cmake")

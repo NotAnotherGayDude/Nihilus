@@ -23,7 +23,6 @@
 /// Sep 1, 2024
 #pragma once
 
-#include <nihilus-incl/cpu/nihilus_cpu_arch.hpp>
 #include <nihilus-incl/common/config.hpp>
 #include <type_traits>
 #include <algorithm>

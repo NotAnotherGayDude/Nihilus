@@ -21,6 +21,7 @@ RealTimeChris (Chris M.)
 #pragma once
 
 #include <nihilus-incl/infra/monolithic_dispatcher.hpp>
+#include <nihilus-incl/cpu/nihilus_cpu_properties.hpp>
 #include <nihilus-incl/infra/core_bases.hpp>
 #include <nihilus-incl/common/common.hpp>
 #include <nihilus-incl/common/tuple.hpp>
@@ -108,7 +109,7 @@ namespace nihilus {
 	}
 
 	struct benchmark_stats {
-		array<array<benchmarking::event_collector, core_types::count>, max_thread_count_holder::max_thread_count> collector{};
+		array<array<benchmarking::event_collector, core_types::count>, cpu_properties::thread_count> collector{};
 		clock_type::time_point sampling_start		= {};
 		clock_type::time_point prompt_start			= {};
 		clock_type::time_point token_start			= {};
@@ -153,29 +154,29 @@ namespace nihilus {
 		}
 
 		template<processing_phases processing_phase, size_t... indices> NIHILUS_INLINE void execute_blocks(uint64_t thread_index, std::index_sequence<indices...>) {
-			(core_bases_type::template impl_thread<per_block_thread_function, config.device_type, cpu_arch_index_holder::cpu_arch_index, processing_phase>(indices, thread_index,
+			(core_bases_type::template impl_thread<per_block_thread_function, config.device_type, cpu_properties::cpu_arch_index, processing_phase>(indices, thread_index,
 				 thread_count),
 				...);
 		}
 
 		NIHILUS_INLINE void thread_function(uint64_t thread_index) {
-			if (thread_index % 4 == 0 && (thread_index < max_thread_count_holder::max_thread_count / 3)) {
+			if (thread_index % 4 == 0 && (thread_index < cpu_properties::thread_count / 3)) {
 				//raise_current_thread_priority();
 			}
 			while (!stop.load()) {
 				thread_latch.worker_wait(thread_index);
 				if (!stop.load()) {
 					if (processing_phase.load() == processing_phases::prompt_eval_time) {
-						core_bases_type::template impl_thread<global_input_thread_function, config.device_type, cpu_arch_index_holder::cpu_arch_index,
+						core_bases_type::template impl_thread<global_input_thread_function, config.device_type, cpu_properties::cpu_arch_index,
 							processing_phases::prompt_eval_time>(thread_index, thread_count);
 						execute_blocks<processing_phases::prompt_eval_time>(thread_index, std::make_index_sequence<static_cast<size_t>(model_traits_type<config>::block_count)>{});
-						core_bases_type::template impl_thread<global_output_thread_function, config.device_type, cpu_arch_index_holder::cpu_arch_index,
+						core_bases_type::template impl_thread<global_output_thread_function, config.device_type, cpu_properties::cpu_arch_index,
 							processing_phases::prompt_eval_time>(thread_index, thread_count);
 					} else {
-						core_bases_type::template impl_thread<global_input_thread_function, config.device_type, cpu_arch_index_holder::cpu_arch_index,
+						core_bases_type::template impl_thread<global_input_thread_function, config.device_type, cpu_properties::cpu_arch_index,
 							processing_phases::eval_time>(thread_index, thread_count);
 						execute_blocks<processing_phases::eval_time>(thread_index, std::make_index_sequence<static_cast<size_t>(model_traits_type<config>::block_count)>{});
-						core_bases_type::template impl_thread<global_output_thread_function, config.device_type, cpu_arch_index_holder::cpu_arch_index,
+						core_bases_type::template impl_thread<global_output_thread_function, config.device_type, cpu_properties::cpu_arch_index,
 							processing_phases::eval_time>(thread_index, thread_count);
 					}
 					thread_latch.arrive();
