@@ -263,7 +263,7 @@ namespace nihilus {
 			return !(lhs == rhs);
 		}
 
-		alignas(64) value_type data_val[size_val]{};
+		NIHILUS_ALIGN(64) value_type data_val[size_val] {};
 	};
 
 	template<typename value_type, typename... U> array(value_type, U...) -> array<value_type, 1 + sizeof...(U)>;

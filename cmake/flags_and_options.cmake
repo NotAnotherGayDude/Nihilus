@@ -63,16 +63,20 @@ set(NIHILUS_COMMON_LINK_OPTIONS
 set(NIHILUS_CUDA_INLINE_KEYWORD "$<IF:$<CONFIG:Release>,__forceinline__,__noinline__>")
 
 set(NIHILUS_CUDA_COMPILE_DEFINITIONS
-    "${NIHILUS_COMMON_COMPILE_DEFINITIONS}"
+    "NIHILUS_ARCH_X64=$<IF:$<OR:$<STREQUAL:${CMAKE_SYSTEM_PROCESSOR},x86_64>,$<STREQUAL:${CMAKE_SYSTEM_PROCESSOR},AMD64>>,1,0>"
+    "NIHILUS_ARCH_ARM64=$<IF:$<OR:$<STREQUAL:${CMAKE_SYSTEM_PROCESSOR},aarch64>,$<STREQUAL:${CMAKE_SYSTEM_PROCESSOR},ARM64>,$<STREQUAL:${CMAKE_SYSTEM_PROCESSOR},arm64>>,1,0>"
+    "${NIHILUS_PLATFORM_DEFINITIONS}"
+    "${NIHILUS_COMPILER_DEFINITIONS}"
     "NIHILUS_CUDA_ENABLED=1"
     "NIHILUS_INLINE=${NIHILUS_CUDA_INLINE_KEYWORD}"
+    "${NIHILUS_SIMD_DEFINITIONS}"
     "$<IF:$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>,NIHILUS_CUDA_HOST_CLANG=1;NIHILUS_CUDA_HOST_MSVC=0;NIHILUS_CUDA_HOST_GNUCXX=0,>"
     "$<IF:$<CXX_COMPILER_ID:MSVC>,NIHILUS_CUDA_HOST_CLANG=0;NIHILUS_CUDA_HOST_MSVC=1;NIHILUS_CUDA_HOST_GNUCXX=0,>"
     "$<IF:$<CXX_COMPILER_ID:GNU>,NIHILUS_CUDA_HOST_CLANG=0;NIHILUS_CUDA_HOST_MSVC=0;NIHILUS_CUDA_HOST_GNUCXX=1,>"
 )
 
 set(NIHILUS_CUDA_COMPILE_OPTIONS
-    "$<$<CONFIG:Release>:--expt-relaxed-constexpr;--extended-lambda;--expt-extended-lambda;-O3;--use_fast_math;--restrict;--extra-device-vectorization;--ptxas-options=-O3;--ptxas-options=-v;--maxrregcount=255>"
+    "$<$<CONFIG:Release>:--extended-lambda;--expt-extended-lambda;-O3;--use_fast_math;--restrict;--extra-device-vectorization;--ptxas-options=-O3;--ptxas-options=-v;--maxrregcount=255>"
     "$<$<CXX_COMPILER_ID:MSVC>:-Xcompiler=/Ob3;-Xcompiler=/Ot;-Xcompiler=/Oy;-Xcompiler=/GT;-Xcompiler=/GL;-Xcompiler=/fp:precise;-Xcompiler=/Qpar;-Xcompiler=/constexpr:depth2048;-Xcompiler=/constexpr:backtrace0;-Xcompiler=/constexpr:steps2000000;-Xcompiler=/GS-;-Xcompiler=/Gy;-Xcompiler=/Gw;-Xcompiler=/Zc:inline;-Xcompiler=/permissive->"
     "$<$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>:-Xcompiler=-O3;-Xcompiler=-flto=thin;-Xcompiler=-funroll-loops;-Xcompiler=-finline-functions;-Xcompiler=-fomit-frame-pointer;-Xcompiler=-fmerge-all-constants;-Xcompiler=-ftemplate-depth=2048;-Xcompiler=-fconstexpr-depth=2048;-Xcompiler=-fconstexpr-steps=50000000;-Xcompiler=-ffunction-sections;-Xcompiler=-fdata-sections;-Xcompiler=-falign-functions=32;-Xcompiler=-fno-math-errno;-Xcompiler=-fno-trapping-math;-Xcompiler=-ffp-contract=fast;-Xcompiler=-fvisibility=hidden;-Xcompiler=-fvisibility-inlines-hidden;-Xcompiler=-fno-rtti;-Xcompiler=-fno-stack-protector>"
     "$<$<CXX_COMPILER_ID:GNU>:-Xcompiler=-O3;-Xcompiler=-flto;-Xcompiler=-funroll-loops;-Xcompiler=-finline-functions;-Xcompiler=-fomit-frame-pointer;-Xcompiler=-fno-math-errno;-Xcompiler=-ffinite-math-only;-Xcompiler=-fno-signed-zeros;-Xcompiler=-fno-trapping-math;-Xcompiler=-ftemplate-depth=2000;-Xcompiler=-fconstexpr-depth=2000;-Xcompiler=-fconstexpr-ops-limit=100000000;-Xcompiler=-fconstexpr-loop-limit=1000000;-Xcompiler=-falign-functions=32;-Xcompiler=-falign-loops=32;-Xcompiler=-fprefetch-loop-arrays;-Xcompiler=-ftree-vectorize;-Xcompiler=-fstrict-aliasing;-Xcompiler=-ffunction-sections;-Xcompiler=-fdata-sections;-Xcompiler=-fvisibility=hidden;-Xcompiler=-fvisibility-inlines-hidden;-Xcompiler=-fno-keep-inline-functions;-Xcompiler=-fmerge-all-constants;-Xcompiler=-fno-stack-protector;-Xcompiler=-fno-rtti;-Xcompiler=-fgcse-after-reload;-Xcompiler=-ftree-loop-distribute-patterns;-Xcompiler=-fpredictive-commoning;-Xcompiler=-funswitch-loops;-Xcompiler=-ftree-loop-vectorize;-Xcompiler=-ftree-slp-vectorize>"
@@ -86,3 +90,7 @@ set(NIHILUS_CUDA_LINK_OPTIONS
     "$<$<AND:$<CXX_COMPILER_ID:GNU>,$<PLATFORM_ID:Linux>>:-Xlinker=-flto;-Xlinker=--gc-sections;-Xlinker=--strip-all;-Xlinker=--as-needed>"
     "$<$<AND:$<CXX_COMPILER_ID:MSVC>,$<PLATFORM_ID:Windows>>:-Xlinker=/LTCG;-Xlinker=/OPT:REF;-Xlinker=/OPT:ICF;-Xlinker=/INCREMENTAL:NO>"
 )
+
+set(NIHILUS_LINK_OPTIONS "$<IF:$<STREQUAL:${NIHILUS_CUDA_ENABLED},OFF>,${NIHILUS_COMMON_LINK_OPTIONS},${NIHILUS_CUDA_LINK_OPTIONS}>")
+set(NIHILUS_COMPILE_OPTIONS "$<IF:$<STREQUAL:${NIHILUS_CUDA_ENABLED},OFF>,${NIHILUS_COMMON_COMPILE_OPTIONS},${NIHILUS_CUDA_COMPILE_OPTIONS}>")
+set(NIHILUS_COMPILE_DEFINITIONS "$<IF:$<STREQUAL:${NIHILUS_CUDA_ENABLED},OFF>,${NIHILUS_COMMON_COMPILE_DEFINITIONS},${NIHILUS_CUDA_COMPILE_DEFINITIONS}>")

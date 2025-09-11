@@ -27,9 +27,6 @@ project(
   LANGUAGES CXX
 )
 
-set(CMAKE_CXX_STANDARD 23)
-set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
-
 include(FetchContent)
 
 FetchContent_Declare(
@@ -50,8 +47,10 @@ FetchContent_MakeAvailable(benchmarksuite)
 
 add_executable(
   "nihilus_performance" 
-  "./main.cpp"
- )
+  "main${NIHILUS_MAIN_FILE_EXTENSION}"
+)
+
+set_target_properties(nihilus_performance PROPERTIES LANGUAGE CUDA)
 
 add_subdirectory("./common")
 

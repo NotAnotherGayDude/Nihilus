@@ -52,20 +52,21 @@ namespace nihilus {
 
 	template<typename value_type> struct parse_core;
 
-	template<auto member_ptr_new, string_literal name_new> struct parse_entity {
+	template<auto member_ptr_new, string_literal name_new> struct parse_entity_regular {
 		using member_type = remove_class_pointer_t<decltype(member_ptr_new)>;
 		inline static constexpr member_type member_ptr{ member_ptr_new };
 		inline static constexpr string_literal name{ name_new };
 	};
 
-	template<auto member_ptr_new, string_literal name_new>
-		requires(std::is_member_pointer_v<decltype(member_ptr_new)>)
-	struct parse_entity<member_ptr_new, name_new> {
+	template<auto member_ptr_new, string_literal name_new> struct parse_entity_member_ptr {
 		using member_type = remove_class_pointer_t<decltype(member_ptr_new)>;
 		using class_type  = remove_member_pointer_t<decltype(member_ptr_new)>;
 		inline static constexpr member_type class_type::* member_ptr{ member_ptr_new };
 		inline static constexpr string_literal name{ name_new };
 	};
+
+	template<auto member_ptr_new, string_literal name_new> using parse_entity =
+		std::conditional_t<std::is_member_pointer_v<decltype(member_ptr_new)>, parse_entity_member_ptr<member_ptr_new, name_new>, parse_entity_regular<member_ptr_new, name_new>>;
 
 	template<typename value_type>
 	concept parse_entity_types = requires {

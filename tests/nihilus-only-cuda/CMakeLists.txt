@@ -20,8 +20,8 @@
 # 2025
 
 add_executable(
-  "nihilus_performance" 
-  "main.cpp"
+	"nihilus_performance" 
+	"main${NIHILUS_MAIN_FILE_EXTENSION}"
 )
 
 target_link_libraries(

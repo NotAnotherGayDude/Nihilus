@@ -19,9 +19,6 @@
 
 cmake_minimum_required(VERSION 3.28)
 
-set(CMAKE_CXX_STANDARD 23)
-set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
-
 if(NIHILUS_DETECT_GPU_ARCH OR NIHILUS_DETECT_GPU_PROPERTIES)
     project(
         feature_detector 
@@ -45,15 +42,11 @@ include("${CMAKE_SOURCE_DIR}/../flags_and_options.cmake")
 if(NIHILUS_DETECT_CPU_ARCH)
     target_compile_definitions(feature_detector PUBLIC "NIHILUS_DETECT_CPU_ARCH;${NIHILUS_PLATFORM_DEFINITIONS}")
 elseif(NIHILUS_DETECT_GPU_ARCH)
-    set_property(TARGET feature_detector PROPERTY CUDA_STANDARD 23)
-    set_property(TARGET feature_detector PROPERTY CUDA_STANDARD_REQUIRED ON)
     target_link_libraries(feature_detector PUBLIC CUDA::cudart)
     target_compile_definitions(feature_detector PUBLIC "NIHILUS_DETECT_GPU_ARCH;${NIHILUS_PLATFORM_DEFINITIONS}")
 elseif(NIHILUS_DETECT_CPU_PROPERTIES)
     target_compile_definitions(feature_detector PUBLIC "NIHILUS_DETECT_CPU_PROPERTIES;${NIHILUS_PLATFORM_DEFINITIONS}")    
 elseif(NIHILUS_DETECT_GPU_PROPERTIES)
-    set_property(TARGET feature_detector PROPERTY CUDA_STANDARD 23)
-    set_property(TARGET feature_detector PROPERTY CUDA_STANDARD_REQUIRED ON)
     target_link_libraries(feature_detector PUBLIC CUDA::cudart)
     target_compile_definitions(feature_detector PUBLIC "NIHILUS_DETECT_GPU_PROPERTIES;${NIHILUS_PLATFORM_DEFINITIONS}")
 endif()

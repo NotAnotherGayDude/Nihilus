@@ -56,7 +56,7 @@
       "inherits": "x64-release-base",
       "cacheVariables": {
         "NIHILUS_ONLY_CUDA": true,
-        "NIHILUS_CUDA": true
+        "NIHILUS_CUDA_ENABLED": true
       }
     },
     {
@@ -64,7 +64,7 @@
       "inherits": "x64-debug-base",
       "cacheVariables": {
         "NIHILUS_ONLY_CUDA": true,
-        "NIHILUS_CUDA": true
+        "NIHILUS_CUDA_ENABLED": true
       }
     },
     {
@@ -72,7 +72,7 @@
       "inherits": "x64-debug-base",
       "cacheVariables": {
         "VS_LLAMA_CUDA": true,
-        "NIHILUS_CUDA": true,
+        "NIHILUS_CUDA_ENABLED": true,
         "GGML_CUDA": true,
         "CMAKE_CUDA_ARCHITECTURES": "all-major",
         "LLAMA_CURL": "Off"
@@ -83,7 +83,7 @@
       "inherits": "x64-release-base",
       "cacheVariables": {
         "VS_LLAMA_CUDA": true,
-        "NIHILUS_CUDA": true,
+        "NIHILUS_CUDA_ENABLED": true,
         "GGML_CUDA": true,
         "CMAKE_CUDA_ARCHITECTURES": "all-major",
         "LLAMA_CURL": "Off"

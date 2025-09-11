@@ -782,7 +782,6 @@ namespace nihilus {
 		kernel_type_profiles kernel_profile{};
 		model_arches arch{};
 		bool exceptions{};
-		std::istream* input_stream{};
 		uint64_t default_max_sequence_length{};
 		uint64_t default_batch_size{};
 		kv_cache_strategies cache_strategy{};

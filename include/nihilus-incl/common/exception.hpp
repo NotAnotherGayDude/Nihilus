@@ -46,11 +46,7 @@ namespace nihilus {
 		}
 	}
 
-	template<auto config, string_literal error_type, const auto& source_info = std::source_location::current()> struct nihilus_exception;
-
-	template<auto config, string_literal error_type, const std::source_location& source_info>
-		requires(!config.exceptions)
-	struct nihilus_exception<config, error_type, source_info> {
+	template<auto config, string_literal error_type, const std::source_location& source_info> struct nihilus_exception {
 		NIHILUS_INLINE static void impl() {
 			static constexpr uint64_t str_length{ str_len(source_info.file_name()) };
 			static constexpr string_literal return_value{ "Error: " + error_type + "\nIn File: " + string_literal<str_length>{ source_info.file_name() } +
@@ -67,7 +63,7 @@ namespace nihilus {
 			log<log_levels::error>(new_string);
 			std::exit(-1);
 		}
-		nihilus_exception() = delete;
+		nihilus_exception() = delete;	
 	};
 
 	template<auto config, string_literal error_type, const std::source_location& source_info>

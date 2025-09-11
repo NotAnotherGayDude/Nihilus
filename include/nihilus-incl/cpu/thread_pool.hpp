@@ -215,8 +215,5 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config> using core_bases_type = typename thread_pool<config>::core_bases_type;
-
-	template<model_config config, core_types core_type> using core_traits_type = decltype(core_bases_type<config>{}.template get_core<core_types, core_type>());
 
 }

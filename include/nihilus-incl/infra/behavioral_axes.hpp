@@ -268,7 +268,7 @@ namespace nihilus {
 				log<log_levels::status>(stream.str());
 			}
 
-			kernel_dispatcher<config, device_type, processing_phase, base_type>::impl(parse_core, thread_index_new, thread_count);
+			kernel_dispatcher<config, processing_phase, base_type>::impl(parse_core, thread_index_new, thread_count);
 
 			if constexpr (config.dev) {
 				std::stringstream stream{};
@@ -298,7 +298,7 @@ namespace nihilus {
 					   << " expected threads, for Op: " << base_type::core_type << ", for [BLOCK]: " << current_block << std::endl;
 				log<log_levels::status>(stream.str());
 			}
-			kernel_dispatcher<config, device_type, processing_phase, base_type>::impl(parse_core, thread_index_new, thread_count, current_block);
+			kernel_dispatcher<config, processing_phase, base_type>::impl(parse_core, thread_index_new, thread_count, current_block);
 
 			if constexpr (config.dev) {
 				std::stringstream stream{};
@@ -327,7 +327,7 @@ namespace nihilus {
 					   << " expected threads, for Op: " << base_type::core_type << std::endl;
 				log<log_levels::status>(stream.str());
 			}
-			kernel_dispatcher<config, device_type, processing_phase, base_type>::impl(parse_core, thread_index_new, thread_count);
+			kernel_dispatcher<config, processing_phase, base_type>::impl(parse_core, thread_index_new, thread_count);
 			if constexpr (config.dev) {
 				std::stringstream stream{};
 				stream << "[DEBUG] Thread (ID: " << std::this_thread::get_id() << ") " << thread_index_new << " [FINISHED] a barrier with " << thread_count

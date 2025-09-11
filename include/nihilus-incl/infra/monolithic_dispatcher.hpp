@@ -38,14 +38,15 @@ namespace nihilus {
 		return cpu_properties::cpu_arch_index;
 	}() };
 
-	template<model_config config, device_types device_type, processing_phases processing_phase, typename core_type> struct kernel_dispatcher {
+	template<model_config config, processing_phases processing_phase, typename core_type> struct kernel_dispatcher {
 		NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {
-			kernel_dispatcher_impl<config, core_type, device_type, arch_index<device_type>, core_type::core_type, processing_phase>::impl(params, thread_index, thread_count,
-				current_block);
+			kernel_dispatcher_impl<config, core_type, config.device_type, arch_index<config.device_type>, core_type::core_type, processing_phase>::impl(params, thread_index,
+				thread_count, current_block);
 		}
 
 		NIHILUS_INLINE static void impl(core_type& params, int64_t thread_index, int64_t thread_count) {
-			kernel_dispatcher_impl<config, core_type, device_type, arch_index<device_type>, core_type::core_type, processing_phase>::impl(params, thread_index, thread_count);
+			kernel_dispatcher_impl<config, core_type, config.device_type, arch_index<config.device_type>, core_type::core_type, processing_phase>::impl(params, thread_index,
+				thread_count);
 		}
 	};
 

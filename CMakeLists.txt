@@ -20,7 +20,7 @@
 cmake_minimum_required(VERSION 3.28)
 
 set(PROJECT_NAME "nihilus")
-set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_INSTALL_PREFIX "${CMAKE_SOURCE_DIR}/../Install")
 
@@ -30,15 +30,16 @@ option(NNIHILUS_DETECT_GPU_PROPERTIES "Override gpu-cache-size selection" OFF)
 
 option(NIHILUS_MODEL_SIZE_OVERRIDE "For manually setting which model size gets used in 'tests'" OFF)
 
-option(NIHILUS_CUDA "Enable CUDA support" OFF)
+option(NIHILUS_CUDA_ENABLED "Enable CUDA support" OFF)
 
-if (NIHILUS_CUDA)
+if (NIHILUS_CUDA_ENABLED)
     project(
         "${PROJECT_NAME}"
         VERSION "1.0.0"
         DESCRIPTION "Nihilus: You trained the model. Nihilus gives it a voice."
-        LANGUAGES CXX CUDA
+        LANGUAGES CUDA
     )
+    set(NIHILUS_MAIN_FILE_EXTENSION ".cu")
 else()
     project(
         "${PROJECT_NAME}"
@@ -46,6 +47,7 @@ else()
         DESCRIPTION "Nihilus: You trained the model. Nihilus gives it a voice."
         LANGUAGES CXX
     )
+    set(NIHILUS_MAIN_FILE_EXTENSION ".cpp")
 endif()
 
 include("cmake/detection/nihilus_detect_cpu_properties.cmake")
@@ -58,7 +60,6 @@ set_target_properties(
     OUTPUT_NAME "nihilus"
     CXX_STANDARD_REQUIRED ON
     CXX_EXTENSIONS OFF
-    INTERFACE_COMPILE_FEATURES cxx_std_23
     CXX_VISIBILITY_PRESET hidden
     VISIBILITY_INLINES_HIDDEN ON
     INTERPROCEDURAL_OPTIMIZATION TRUE
@@ -83,13 +84,13 @@ if (NIHILUS_DEV)
     FetchContent_MakeAvailable(Jsonifier)
 endif()
 
-if(NIHILUS_CUDA)
+if(NIHILUS_CUDA_ENABLED)
     add_subdirectory("cmake/cuda")
 endif()
 
 target_link_libraries(
     "${PROJECT_NAME}" INTERFACE
-    "$<$<TARGET_EXISTS:${PROJECT_NAME}-cuda>:${PROJECT_NAME}-cuda>"
+    "$<$<TARGET_EXISTS:nihilus::nihilus-cuda>:nihilus::nihilus-cuda>"
     "$<$<TARGET_EXISTS:Jsonifier::Jsonifier>:Jsonifier::Jsonifier>"
 )
 
@@ -101,17 +102,17 @@ target_include_directories(
 
 target_compile_options(
     "${PROJECT_NAME}" INTERFACE
-    "${NIHILUS_COMMON_COMPILE_OPTIONS}"
+    #"${NIHILUS_COMPILE_OPTIONS}"
 )
 
 target_link_options(
     "${PROJECT_NAME}" INTERFACE
-    "${NIHILUS_COMMON_LINK_OPTIONS}"
+    #"${NIHILUS_LINK_OPTIONS}"
 )
 
 target_compile_definitions(
     "${PROJECT_NAME}" INTERFACE
-    "${NIHILUS_COMMON_COMPILE_DEFINITIONS}"
+    "${NIHILUS_COMPILE_DEFINITIONS}"
 )
 
 set(CONFIG_FILE_NAME "${PROJECT_NAME}Config.cmake")
@@ -147,7 +148,7 @@ install(
     FILES_MATCHING PATTERN "*.hpp"
 )
 
-if (NIHILUS_CUDA)
+if (NIHILUS_CUDA_ENABLED)
     set(NIHILUS_ALL_TARGETS "${PROJECT_NAME};${PROJECT_NAME}-cuda")
 else()
     set(NIHILUS_ALL_TARGETS "${PROJECT_NAME}")

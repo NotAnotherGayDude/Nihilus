@@ -46,6 +46,12 @@ RealTimeChris (Chris M.)
 	#endif
 #endif
 
+#if NIHILUS_CUDA_ENABLED
+	#define NIHILUS_ALIGN(x) __align__(x)
+#else
+	#define NIHILUS_ALIGN(x) alignas(x)
+#endif
+
 #if !defined(NIHILUS_LIKELY)
 	#define NIHILUS_LIKELY(...) (__VA_ARGS__) [[likely]]
 #endif
