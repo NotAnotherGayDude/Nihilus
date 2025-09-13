@@ -1,0 +1,1 @@
+Although this repository is publicly viewable for CI and verification purposes, no party is authorized to use, reproduce, or derive from this software without a signed agreement with RealTimeChris (Chris M.).

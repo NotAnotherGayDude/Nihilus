@@ -6,5 +6,3 @@ Designed for extreme throughput and deterministic behavior, Nihilus executes mod
 The entire graph is compiled into types. Execution is a **direct memory walk**. Synchronization is used **only where required** — around blocking operations like matrix multiplies — via ultra-light, per-layer latch primitives.
 
 > _“Nothing blocks. Nothing schedules. Only execution.”_
-
----
