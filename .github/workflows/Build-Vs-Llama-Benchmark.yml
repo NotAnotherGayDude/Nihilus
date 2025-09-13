@@ -1,0 +1,245 @@
+name: Nihilus Multi-Platform Vs-Llama-Benchmark Build
+on:
+  push:
+    branches: [ "**" ]
+  pull_request:
+    branches: [ "**" ]
+  workflow_dispatch:
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            compiler: clang
+            cc: clang
+            cxx: clang++
+            name: "Ubuntu Clang"
+          - os: ubuntu-latest
+            compiler: gcc
+            cc: gcc
+            cxx: g++
+            name: "Ubuntu GCC"
+          - os: macos-latest
+            compiler: clang
+            cc: clang
+            cxx: clang++
+            name: "macOS Clang"
+          - os: windows-latest
+            compiler: msvc
+            name: "Windows MSVC"
+    runs-on: ${{ matrix.os }}
+    name: Build on ${{ matrix.name }}
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+    
+    - name: Setup Clang (Ubuntu)
+      if: matrix.os == 'ubuntu-latest' && matrix.compiler == 'clang'
+      run: |
+        sudo apt-get update
+        sudo apt update
+        wget https://apt.llvm.org/llvm.sh
+        chmod u+x llvm.sh
+        sudo ./llvm.sh 20
+    
+    - name: Setup GCC (Ubuntu)
+      if: matrix.os == 'ubuntu-latest' && matrix.compiler == 'gcc'
+      run: |
+        sudo apt-get install build-essential
+        sudo apt-get install g++-14
+    
+    - name: Setup Clang (macOS)
+      if: matrix.os == 'macos-latest'
+      run: |
+        brew install llvm
+    
+    - name: Setup MSVC (Windows)
+      if: matrix.os == 'windows-latest'
+      uses: ilammy/msvc-dev-cmd@v1
+    
+    - name: Print Compiler and Linker Options (Ubuntu GCC)
+      if: matrix.os == 'ubuntu-latest' && matrix.compiler == 'gcc'
+      run: |
+        echo "======================================"
+        echo "GCC COMPILER OPTIONS"
+        echo "======================================"
+        gcc --help
+        echo ""
+        echo "======================================"
+        echo "GCC OPTIMIZATION OPTIONS"
+        echo "======================================"
+        gcc --help=optimizers
+        echo ""
+        echo "======================================"
+        echo "GCC WARNING OPTIONS"
+        echo "======================================"
+        gcc --help=warnings
+        echo ""
+        echo "======================================"
+        echo "G++ COMPILER OPTIONS"
+        echo "======================================"
+        g++ --help
+        echo ""
+        echo "======================================"
+        echo "GNU LD LINKER OPTIONS"
+        echo "======================================"
+        ld --help
+        echo ""
+        echo "======================================"
+        echo "LINKER OPTIONS VIA GCC"
+        echo "======================================"
+        gcc -Wl,--help
+    
+    - name: Print Compiler and Linker Options (Ubuntu Clang)
+      if: matrix.os == 'ubuntu-latest' && matrix.compiler == 'clang'
+      run: |
+        echo "======================================"
+        echo "CLANG COMPILER OPTIONS"
+        echo "======================================"
+        clang --help
+        echo ""
+        echo "======================================"
+        echo "CLANG HIDDEN OPTIONS"
+        echo "======================================"
+        clang --help-hidden
+        echo ""
+        echo "======================================"
+        echo "CLANG++ COMPILER OPTIONS"
+        echo "======================================"
+        clang++ --help
+        echo ""
+        echo "======================================"
+        echo "LLD LINKER OPTIONS"
+        echo "======================================"
+        ld.lld --help || echo "LLD not available, trying ld..."
+        echo ""
+        echo "======================================"
+        echo "LINKER OPTIONS VIA CLANG"
+        echo "======================================"
+        clang -fuse-ld=lld -Wl,--help || clang -Wl,--help
+    
+    - name: Print Compiler and Linker Options (macOS Clang)
+      if: matrix.os == 'macos-latest'
+      run: |
+        echo "======================================"
+        echo "CLANG COMPILER OPTIONS"
+        echo "======================================"
+        clang --help
+        echo ""
+        echo "======================================"
+        echo "CLANG HIDDEN OPTIONS"
+        echo "======================================"
+        clang --help-hidden
+        echo ""
+        echo "======================================"
+        echo "CLANG++ COMPILER OPTIONS"
+        echo "======================================"
+        clang++ --help
+        echo ""
+        echo "======================================"
+        echo "LD64 LINKER OPTIONS"
+        echo "======================================"
+        ld -help || ld --help || echo "Linker help not available in standard format"
+        echo ""
+        echo "======================================"
+        echo "LINKER OPTIONS VIA CLANG"
+        echo "======================================"
+        clang -Wl,--help || echo "Linker help format may differ on macOS"
+    
+    - name: Print Compiler and Linker Options (Windows MSVC)
+      if: matrix.os == 'windows-latest'
+      run: |
+        echo "======================================"
+        echo "MSVC COMPILER OPTIONS"
+        echo "======================================"
+        cl /?
+        echo ""
+        echo "======================================"
+        echo "MSVC LINKER OPTIONS"
+        echo "======================================"
+        link /?
+
+    - name: Create Build Directory
+      run: mkdir -p Build
+
+    - name: Bless the Code
+      run: |
+        echo "🕯️🧠✨ BLESSING THE CODE WITH PRIXONIAN KINEMATICS ✨🧠🕯️"
+        echo "==============================================="
+        cat .github/Prixonian_Kinematics.md || echo "❌ Prixonian scroll not found. The build shall proceed... unblessed."
+        echo "==============================================="
+
+    - name: Configure CMake (Ubuntu-Gcc)
+      if: matrix.os == 'ubuntu-latest' && matrix.compiler == 'gcc'
+      run: |
+        cmake -S . -B ./Build -DCMAKE_BUILD_TYPE=Release -DLLAMA_CURL=OFF -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=TRUE -DCMAKE_INSTALL_RPATH="@loader_path/../lib" -DVS_LLAMA_BENCHMARK=TRUE -DCMAKE_CXX_COMPILER=/usr/bin/g++-14
+    
+    - name: Configure CMake (Ubuntu-Clang)
+      if: matrix.os == 'ubuntu-latest' && matrix.compiler == 'clang'
+      run: |
+        cmake -S . -B ./Build -DCMAKE_BUILD_TYPE=Release -DLLAMA_CURL=OFF -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=TRUE -DCMAKE_INSTALL_RPATH="@loader_path/../lib" -DVS_LLAMA_BENCHMARK=TRUE -DCMAKE_CXX_COMPILER=/usr/bin/clang++-20        
+
+    - name: Configure CMake (macOS)
+      if: matrix.os == 'macos-latest'
+      run: |
+        cmake -S . -B ./Build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=TRUE -DCMAKE_INSTALL_RPATH="@loader_path/../lib" -DVS_LLAMA_BENCHMARK=TRUE  
+
+    - name: Configure CMake (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        cmake -S . -B ./Build -DCMAKE_BUILD_TYPE=Release -DLLAMA_CURL=OFF -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=TRUE -DCMAKE_INSTALL_RPATH="@loader_path/../lib" -DVS_LLAMA_BENCHMARK=TRUE  
+    
+    - name: Build Project
+      if: matrix.os != 'windows-latest'
+      run: |
+        sudo cmake --build ./Build --config=Release -v
+
+    - name: Build Project (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        cmake --build ./Build --config=Release -v
+    
+    - name: Install Project
+      if: matrix.os != 'windows-latest'
+      run: |
+        sudo cmake --install ./Build --config=Release -v
+
+    - name: Install Project (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        cmake --install ./Build --config=Release -v
+    
+    - name: Create Models Directory
+      run: |
+        mkdir -p installed-to
+    
+    - name: Download Model (Linux/macOS)
+      if: runner.os != 'Windows'
+      run: |
+        wget -O installed-to/Meta-Llama-3.1-8B-Instruct-Q8_0.gguf https://huggingface.co/bartowski/Meta-Llama-3.1-8B-Instruct-GGUF/resolve/main/Meta-Llama-3.1-8B-Instruct-Q8_0.gguf?download=true
+    
+    - name: Download Model (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        Invoke-WebRequest -Uri "https://huggingface.co/bartowski/Meta-Llama-3.1-8B-Instruct-GGUF/resolve/main/Meta-Llama-3.1-8B-Instruct-Q8_0.gguf?download=true" -OutFile "installed-to/Meta-Llama-3.1-8B-Instruct-Q8_0.gguf"
+    
+    - name: Set Library Path and Run Model (macOS)
+      if: runner.os == 'macOS'
+      run: |
+        export DYLD_LIBRARY_PATH="${GITHUB_WORKSPACE}/../Install/lib:$DYLD_LIBRARY_PATH"
+        chmod +x "/usr/local/bin/nihilus_performance"
+        "/usr/local/bin/nihilus_performance" -m installed-to/Meta-Llama-3.1-8B-Instruct-Q8_0.gguf -p "What is the meaning of life?" -s 0 -n 4 -no-cnv -t 1 
+    
+    - name: Set Library Path and Run Model (Linux)
+      if: runner.os == 'Linux'
+      run: |
+        export LD_LIBRARY_PATH="${GITHUB_WORKSPACE}/../Install/lib:$LD_LIBRARY_PATH"
+        chmod +x "/usr/local/bin/nihilus_performance"
+        "/usr/local/bin/nihilus_performance" -m installed-to/Meta-Llama-3.1-8B-Instruct-Q8_0.gguf -p "What is the meaning of life?" -s 0 -n 4 -no-cnv -t 1 
+    
+    - name: Run Model (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        & "C:/Program Files (x86)/nihilus/bin/nihilus_performance.exe" -m installed-to/Meta-Llama-3.1-8B-Instruct-Q8_0.gguf -p "What is the meaning of life?" -s 0 -n 4 -no-cnv -t 1

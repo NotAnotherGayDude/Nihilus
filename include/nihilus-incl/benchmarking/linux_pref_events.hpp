@@ -1,0 +1,204 @@
+/*
+Copyright (c) 2025 RealTimeChris (Chris M.)
+
+This file is part of software offered under a restricted-use license to a designated Licensee,
+whose identity is confirmed in writing by the Author.
+
+License Terms (Summary):
+- Exclusive, non-transferable license for internal use only.
+- Redistribution, sublicensing, or public disclosure is prohibited without written consent.
+- Full ownership remains with the Author.
+- License may terminate if unused for [X months], if materially breached, or by mutual agreement.
+- No warranty is provided, express or implied.
+
+Full license terms are provided in the LICENSE file distributed with this software.
+
+Signed,
+RealTimeChris (Chris M.)
+2025
+*/
+// Sampled mostly from https://github.com/fastfloat/fast_float
+#pragma once
+
+#include <nihilus-incl/benchmarking/metrics.hpp>
+
+#if NIHILUS_PLATFORM_LINUX
+
+	#include <linux/perf_event.h>
+	#include <asm/unistd.h>
+	#include <sys/ioctl.h>
+	#include <unistd.h>
+	#include <cstring>
+	#include <vector>
+
+namespace nihilus::benchmarking {
+
+	NIHILUS_HOST uint64_t rdtsc() {
+		uint32_t a, d;
+		__asm__ volatile("rdtsc" : "=a"(a), "=d"(d));
+		return static_cast<unsigned long>(a) | (static_cast<unsigned long>(d) << 32);
+	}
+
+	class linux_events {
+	  protected:
+		aligned_vector<uint64_t> temp_result_vec{};
+		aligned_vector<uint64_t> ids{};
+		perf_event_attr attribs{};
+		uint64_t num_events{};
+		bool working{};
+		int32_t fd{};
+
+	  public:
+		NIHILUS_HOST explicit linux_events(int32_t config_val01, int32_t config_val02, int32_t config_val03, int32_t config_val04, int32_t config_val05, int32_t config_val06)
+			: working(true) {
+			memset(&attribs, 0, sizeof(attribs));
+			attribs.type		   = PERF_TYPE_HARDWARE;
+			attribs.size		   = sizeof(attribs);
+			attribs.disabled	   = 1;
+			attribs.exclude_kernel = 1;
+			attribs.exclude_hv	   = 1;
+
+			attribs.sample_period	  = 0;
+			attribs.read_format		  = PERF_FORMAT_GROUP | PERF_FORMAT_ID;
+			const int32_t pid		  = 0;
+			const int32_t cpu		  = -1;
+			const unsigned long flags = 0;
+			aligned_vector<int32_t> config_vec{ config_val01, config_val02, config_val03, config_val04, config_val05, config_val06 };
+			int32_t group = -1;
+			num_events	  = 6;
+			ids.resize(config_vec.size());
+			uint32_t i = 0;
+			for (auto config: config_vec) {
+				attribs.config = static_cast<uint64_t>(config);
+				int32_t _fd	   = static_cast<int32_t>(syscall(__NR_perf_event_open, &attribs, pid, cpu, group, flags));
+				if (_fd == -1) {
+					reportError("perf_event_open");
+				}
+				ioctl(_fd, PERF_EVENT_IOC_ID, &ids[i++]);
+				if (group == -1) {
+					group = _fd;
+					fd	  = _fd;
+				}
+			}
+
+			temp_result_vec.resize(num_events * 2 + 1);
+		}
+
+		NIHILUS_HOST ~linux_events() {
+			if (fd != -1) {
+				close(fd);
+			}
+		}
+
+		NIHILUS_HOST void run() {
+			if (fd != -1) {
+				if (ioctl(fd, PERF_EVENT_IOC_RESET, PERF_IOC_FLAG_GROUP) == -1) {
+					reportError("ioctl(PERF_EVENT_IOC_RESET)");
+				}
+
+				if (ioctl(fd, PERF_EVENT_IOC_ENABLE, PERF_IOC_FLAG_GROUP) == -1) {
+					reportError("ioctl(PERF_EVENT_IOC_ENABLE)");
+				}
+			}
+		}
+
+		NIHILUS_HOST void end(aligned_vector<uint64_t>& results) {
+			if (fd != -1) {
+				if (ioctl(fd, PERF_EVENT_IOC_DISABLE, PERF_IOC_FLAG_GROUP) == -1) {
+					reportError("ioctl(PERF_EVENT_IOC_DISABLE)");
+				}
+
+				if (read(fd, temp_result_vec.data(), temp_result_vec.size() * 8) == -1) {
+					reportError("read");
+				}
+			}
+
+			for (uint32_t i = 1; i < temp_result_vec.size(); i += 2) {
+				results[i / 2] = temp_result_vec[i];
+			}
+			for (uint32_t i = 2; i < temp_result_vec.size(); i += 2) {
+				if (ids[i / 2 - 1] != temp_result_vec[i]) {
+					reportError("event mismatch");
+				}
+			}
+		}
+
+		bool isWorking() {
+			return working;
+		}
+
+	  protected:
+		NIHILUS_HOST void reportError(const std::string&) {
+			working = false;
+		}
+	};
+
+	template<typename event_count> struct event_collector_type : public linux_events, public aligned_vector<event_count> {
+		using duration_type = decltype(clock_type::now());
+		aligned_vector<uint64_t> results{};
+		volatile uint64_t cycle_start{};
+		duration_type clock_start{};
+		int64_t current_index{};
+		bool started{};
+
+		NIHILUS_HOST event_collector_type()
+			: linux_events{ PERF_COUNT_HW_CPU_CYCLES, PERF_COUNT_HW_INSTRUCTIONS, PERF_COUNT_HW_BRANCH_INSTRUCTIONS, PERF_COUNT_HW_BRANCH_MISSES, PERF_COUNT_HW_CACHE_REFERENCES,
+				  PERF_COUNT_HW_CACHE_MISSES },
+			  aligned_vector<event_count>{} {
+		}
+
+		NIHILUS_HOST void reset() {
+			started		  = false;
+			current_index = 0;
+			aligned_vector<event_count>::clear();
+		}
+
+		NIHILUS_HOST operator bool() {
+			return started;
+		}
+
+		NIHILUS_HOST bool has_events() {
+			return linux_events::isWorking();
+		}
+
+		NIHILUS_HOST void start() {
+			if (has_events()) {
+				linux_events::run();
+			}
+			clock_start = clock_type::now();
+			cycle_start = rdtsc();
+		}
+
+		NIHILUS_HOST performance_metrics operator*() {
+			return collect_metrics(std::span<event_count>{ aligned_vector<event_count>::data(), aligned_vector<event_count>::size() }, aligned_vector<event_count>::size());
+		}
+
+		NIHILUS_HOST void end(uint64_t bytes_processed) {
+			if (!started) {
+				started = true;
+			}
+			volatile uint64_t cycleEnd = rdtsc();
+			const auto endClock		   = clock_type::now();
+
+			aligned_vector<event_count>::emplace_back();
+			aligned_vector<event_count>::operator[](current_index).cycles_val.emplace(cycleEnd - cycle_start);
+			aligned_vector<event_count>::operator[](current_index).elapsed = endClock - clock_start;
+			aligned_vector<event_count>::operator[](current_index).bytes_processed_val.emplace(bytes_processed);
+
+			if (has_events()) {
+				if (results.size() != linux_events::temp_result_vec.size()) {
+					results.resize(linux_events::temp_result_vec.size());
+				}
+				linux_events::end(results);
+				aligned_vector<event_count>::operator[](current_index).instructions_val.emplace(results[1]);
+				aligned_vector<event_count>::operator[](current_index).branches_val.emplace(results[2]);
+				aligned_vector<event_count>::operator[](current_index).branch_misses_val.emplace(results[3]);
+				aligned_vector<event_count>::operator[](current_index).cache_references_val.emplace(results[4]);
+				aligned_vector<event_count>::operator[](current_index).cache_misses_val.emplace(results[5]);
+			}
+			++current_index;
+		}
+	};
+}
+
+#endif

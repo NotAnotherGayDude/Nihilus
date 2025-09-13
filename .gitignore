@@ -33,6 +33,4 @@
 .vs/
 build/
 out/
-build-arm64-*
-build-x64-*
-Tensor-Data.txt
+cmake/detection/Build*
