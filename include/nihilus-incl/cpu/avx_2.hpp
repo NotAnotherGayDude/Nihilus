@@ -27,14 +27,14 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-	template<typename output_type> NIHILUS_INLINE static constexpr int64_t calculate_chunk_count(output_type& output, int64_t& chunk_size, int64_t thread_count) {
+	template<typename output_type> NIHILUS_INLINE static constexpr int64_t calculate_chunk_count(output_type& output, uint64_t& chunk_size, int64_t thread_count) {
 		const auto dims			   = output.get_array_rt();
 		const uint64_t total_bytes = type_traits<typename output_type::output_type>::total_byte_size(dims);
-		uint64_t chunk_count	   = detail::max(1, total_bytes / static_cast<uint64_t>(static_cast<float>(cpu_properties::l1_cache_size) * 0.5f));
-		chunk_count				   = (chunk_count == 1) ? thread_count : chunk_count;
-		const uint64_t total_elems = dims[0] * dims[1] * dims[2] * dims[3];
+		uint64_t chunk_count	   = detail::max(static_cast<uint64_t>(1), total_bytes / static_cast<uint64_t>(static_cast<float>(cpu_properties::l1_cache_size) * 0.5f));
+		chunk_count				   = (chunk_count == 1) ? static_cast<uint64_t>(thread_count) : chunk_count;
+		const uint64_t total_elems = static_cast<uint64_t>(dims[0]) * static_cast<uint64_t>(dims[1]) * static_cast<uint64_t>(dims[2]) * static_cast<uint64_t>(dims[3]);
 		chunk_size				   = total_elems / chunk_count;
-		return chunk_count;
+		return static_cast<int64_t>(chunk_count);
 	}
 
 	NIHILUS_INLINE void dequantize_q8_0_to_f32(const block_q8_0<half>* __restrict src, float* __restrict dst, uint64_t count) {
@@ -65,9 +65,9 @@ namespace nihilus {
 		}
 	}
 
-	template<model_config config, typename core_traits_type>
+	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, core_types::token_embeddings, processing_phases::prompt_eval_time> {
-		NIHILUS_INLINE static void process_chunk(core_traits_type& params, int64_t current_chunk, int64_t chunk_size) {
+		NIHILUS_INLINE static void process_chunk(core_traits_type& params, int64_t current_chunk, uint64_t chunk_size) {
 			auto& get_rows_op						= params.values.template get_core<token_embedding_types, token_embedding_types::get_rows>();
 			auto& weights_core						= get_adjacent_value<core_traits_type::config, core_types::weights>::impl(params);
 			auto& inputs_core						= get_adjacent_value<core_traits_type::config, core_types::global_inputs>::impl(params);
@@ -78,19 +78,19 @@ namespace nihilus {
 			constexpr uint64_t embedding_length		= model_traits_type<core_traits_type::config>::embedding_length;
 			constexpr uint64_t blocks_per_embedding = embedding_length / 32;
 			const uint64_t sequence_length			= inp_tokens_op.get_mutable_dim();
-			const uint64_t start_token				= current_chunk * chunk_size;
+			const uint64_t start_token				= static_cast<uint64_t>(current_chunk) * chunk_size;
 			const uint64_t end_token				= detail::min(start_token + chunk_size, sequence_length);
 			auto* __restrict output_data			= get_rows_op.data;
 			for (uint64_t token_idx = start_token; token_idx < end_token; ++token_idx) {
-				const uint32_t token_id		   = token_ids[token_idx];
-				const auto* __restrict src_row = weight_data + (token_id * blocks_per_embedding);
+				const int32_t token_id		   = token_ids[token_idx];
+				const auto* __restrict src_row = weight_data + (static_cast<uint64_t>(token_id) * blocks_per_embedding);
 				auto* __restrict dst_row	   = output_data + (token_idx * embedding_length);
 				dequantize_q8_0_to_f32(src_row, dst_row, embedding_length);
 			}
 		}
 
-		NIHILUS_INLINE static void impl(core_traits_type& params, int64_t thread_index, int64_t thread_count) {
-			int64_t chunk_size{};
+		NIHILUS_INLINE static void impl(core_traits_type& params, int64_t thread_count) {
+			uint64_t chunk_size{};
 			const int64_t chunk_count = calculate_chunk_count<typename core_traits_type::token_embeddings_type>(params.values, chunk_size, thread_count);
 			int64_t current_chunk	  = params.current_chunk_prompt_eval.fetch_add(1);
 			for (; current_chunk < chunk_count; current_chunk = params.current_chunk_prompt_eval.fetch_add(1)) {
@@ -102,9 +102,9 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename core_traits_type>
+	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, core_types::token_embeddings, processing_phases::eval_time> {
-		NIHILUS_INLINE static void process_chunk(core_traits_type& params, int64_t current_chunk, int64_t chunk_size) {
+		NIHILUS_INLINE static void process_chunk(core_traits_type& params, int64_t current_chunk, uint64_t chunk_size) {
 			auto& get_rows_op						= params.values.template get_core<token_embedding_types, token_embedding_types::get_rows>();
 			auto& weights_core						= get_adjacent_value<core_traits_type::config, core_types::weights>::impl(params);
 			auto& inputs_core						= get_adjacent_value<core_traits_type::config, core_types::global_inputs>::impl(params);
@@ -115,19 +115,19 @@ namespace nihilus {
 			constexpr uint64_t embedding_length		= model_traits_type<core_traits_type::config>::embedding_length;
 			constexpr uint64_t blocks_per_embedding = embedding_length / 32;
 			const uint64_t sequence_length			= inp_tokens_op.get_mutable_dim();
-			const uint64_t start_token				= current_chunk * chunk_size;
+			const uint64_t start_token				= static_cast<uint64_t>(current_chunk) * chunk_size;
 			const uint64_t end_token				= detail::min(start_token + chunk_size, sequence_length);
 			auto* __restrict output_data			= get_rows_op.data;
 			for (uint64_t token_idx = start_token; token_idx < end_token; ++token_idx) {
-				const uint32_t token_id		   = token_ids[token_idx];
-				const auto* __restrict src_row = weight_data + (token_id * blocks_per_embedding);
+				const int32_t token_id		   = token_ids[token_idx];
+				const auto* __restrict src_row = weight_data + (static_cast<uint64_t>(token_id) * blocks_per_embedding);
 				auto* __restrict dst_row	   = output_data + (token_idx * embedding_length);
 				dequantize_q8_0_to_f32(src_row, dst_row, embedding_length);
 			}
 		}
 
-		NIHILUS_INLINE static void impl(core_traits_type& params, int64_t thread_index, int64_t thread_count) {
-			int64_t chunk_size{};
+		NIHILUS_INLINE static void impl(core_traits_type& params, int64_t thread_count) {
+			uint64_t chunk_size{};
 			const int64_t chunk_count = calculate_chunk_count<typename core_traits_type::token_embeddings_type>(params.values, chunk_size, thread_count);
 			int64_t current_chunk	  = params.current_chunk_prompt_eval.fetch_add(1);
 			for (; current_chunk < chunk_count; current_chunk = params.current_chunk_prompt_eval.fetch_add(1)) {
@@ -139,95 +139,95 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename core_traits_type>
+	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, core_types::mega_qkv_prep_and_cache_publish, processing_phases::eval_time> {
-		NIHILUS_INLINE static void process_chunk(core_traits_type& params, int64_t thread_index, int64_t thread_count, int64_t current_chunk, int64_t current_block) {
+		NIHILUS_INLINE static void process_chunk(core_traits_type&, int64_t, int64_t) {
 		}
 
-		NIHILUS_INLINE static void impl(core_traits_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {
+		NIHILUS_INLINE static void impl(core_traits_type& params, int64_t, int64_t current_block) {
 			params.latch_eval[current_block].fetch_sub(1);
 			params.latch_eval[current_block].wait();
 		}
 	};
 
-	template<model_config config, typename core_traits_type>
+	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, core_types::mega_qkv_prep_and_cache_publish, processing_phases::prompt_eval_time> {
-		NIHILUS_INLINE static void process_chunk(core_traits_type& params, int64_t thread_index, int64_t thread_count, int64_t current_chunk, int64_t current_block) {
+		NIHILUS_INLINE static void process_chunk(core_traits_type&, int64_t, int64_t) {
 		}
 
-		NIHILUS_INLINE static void impl(core_traits_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {
+		NIHILUS_INLINE static void impl(core_traits_type& params, int64_t, int64_t current_block) {
 			params.latch_prompt_eval[current_block].fetch_sub(1);
 			params.latch_prompt_eval[current_block].wait();
 		}
 	};
 
-	template<model_config config, typename core_traits_type>
+	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, core_types::mega_attention_apply, processing_phases::eval_time> {
-		NIHILUS_INLINE static void process_chunk(core_traits_type& params, int64_t thread_index, int64_t thread_count, int64_t current_chunk) {
+		NIHILUS_INLINE static void process_chunk(core_traits_type&, int64_t, int64_t) {
 			// PROCESS DATA.
 		}
-		NIHILUS_INLINE static void impl(core_traits_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {
+		NIHILUS_INLINE static void impl(core_traits_type& params, int64_t, int64_t current_block) {
 			params.latch_eval[current_block].fetch_sub(1);
 			params.latch_eval[current_block].wait();
 		}
 	};
 
-	template<model_config config, typename core_traits_type>
+	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, core_types::mega_attention_apply, processing_phases::prompt_eval_time> {
-		NIHILUS_INLINE static void process_chunk(core_traits_type& params, int64_t thread_index, int64_t thread_count, int64_t current_chunk) {
+		NIHILUS_INLINE static void process_chunk(core_traits_type&, int64_t, int64_t) {
 			// PROCESS DATA.
 		}
-		NIHILUS_INLINE static void impl(core_traits_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {
+		NIHILUS_INLINE static void impl(core_traits_type& params, int64_t, int64_t current_block) {
 			params.latch_prompt_eval[current_block].fetch_sub(1);
 			params.latch_prompt_eval[current_block].wait();
 		}
 	};
 
-	template<model_config config, typename core_traits_type>
+	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, core_types::mega_ffn, processing_phases::eval_time> {
-		NIHILUS_INLINE static void process_chunk(core_traits_type& params, int64_t thread_index, int64_t thread_count, int64_t current_chunk) {
+		NIHILUS_INLINE static void process_chunk(core_traits_type&, int64_t, int64_t) {
 			// PROCESS DATA.
 		}
-		NIHILUS_INLINE static void impl(core_traits_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {
+		NIHILUS_INLINE static void impl(core_traits_type& params, int64_t, int64_t current_block) {
 			params.latch_eval[current_block].fetch_sub(1);
 			params.latch_eval[current_block].wait();
 		}
 	};
 
-	template<model_config config, typename core_traits_type>
+	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, core_types::mega_ffn, processing_phases::prompt_eval_time> {
-		NIHILUS_INLINE static void process_chunk(core_traits_type& params, int64_t thread_index, int64_t thread_count, int64_t current_chunk) {
+		NIHILUS_INLINE static void process_chunk(core_traits_type&, int64_t, int64_t) {
 			// PROCESS DATA.
 		}
-		NIHILUS_INLINE static void impl(core_traits_type& params, int64_t thread_index, int64_t thread_count, int64_t current_block) {
+		NIHILUS_INLINE static void impl(core_traits_type& params, int64_t, int64_t current_block) {
 			params.latch_prompt_eval[current_block].fetch_sub(1);
 			params.latch_prompt_eval[current_block].wait();
 		}
 	};
 
-	template<model_config config, typename core_traits_type>
+	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, core_types::final_norm_and_sampling, processing_phases::eval_time> {
-		NIHILUS_INLINE static void process_chunk(core_traits_type& params, int64_t thread_index, int64_t thread_count, int64_t current_chunk) {
+		NIHILUS_INLINE static void process_chunk(core_traits_type&, int64_t) {
 			// PROCESS DATA.
 		}
-		NIHILUS_INLINE static void impl(core_traits_type& params, int64_t thread_index, int64_t thread_count) {
+		NIHILUS_INLINE static void impl(core_traits_type& params, int64_t) {
 			params.latch_eval.fetch_sub(1);
 			params.latch_eval.wait();
 		}
 	};
 
-	template<model_config config, typename core_traits_type>
+	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, core_types::final_norm_and_sampling, processing_phases::prompt_eval_time> {
-		NIHILUS_INLINE static void process_chunk(core_traits_type& params, int64_t thread_index, int64_t thread_count, int64_t current_chunk) {
+		NIHILUS_INLINE static void process_chunk(core_traits_type&, int64_t) {
 			// PROCESS DATA.
 		}
-		NIHILUS_INLINE static void impl(core_traits_type& params, int64_t thread_index, int64_t thread_count) {
+		NIHILUS_INLINE static void impl(core_traits_type& params, int64_t) {
 			params.latch_prompt_eval.fetch_sub(1);
 			params.latch_prompt_eval.wait();
 		}
 	};
 	/*
-	template<model_config config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::none, processing_phases::prompt_eval_time, core_traits_type, float, float, block_q8_0<half>>
+	template<const model_config& config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::none, processing_phases::prompt_eval_time, core_traits_type, float, float, block_q8_0<half>>
 		: public kernel_base<kernel_types::none, core_traits_type, float, float, block_q8_0<half>> {
 		using input_type01			   = typename core_traits_type::input_01_type;
 		using input_type02			   = typename core_traits_type::input_02_type;
@@ -298,7 +298,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::none, processing_phases::eval_time, core_traits_type, float, float, block_q8_0<half>>
+	template<const model_config& config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::none, processing_phases::eval_time, core_traits_type, float, float, block_q8_0<half>>
 		: public kernel_base<kernel_types::none, core_traits_type, float, float, block_q8_0<half>> {
 		using input_type01			   = typename core_traits_type::input_01_type;
 		using input_type02			   = typename core_traits_type::input_02_type;
@@ -365,7 +365,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::none, processing_phases::prompt_eval_time, core_traits_type, float, float, float>
+	template<const model_config& config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::none, processing_phases::prompt_eval_time, core_traits_type, float, float, float>
 		: public kernel_base<kernel_types::none, core_traits_type, float, float, float> {
 		using input_type01			   = typename core_traits_type::input_01_type;
 		using input_type02			   = typename core_traits_type::input_02_type;
@@ -440,7 +440,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::none, processing_phases::eval_time, core_traits_type, float, float, float>
+	template<const model_config& config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::none, processing_phases::eval_time, core_traits_type, float, float, float>
 		: public kernel_base<kernel_types::none, core_traits_type, float, float, float> {
 		using input_type01			   = typename core_traits_type::input_01_type;
 		using input_type02			   = typename core_traits_type::input_02_type;
@@ -515,7 +515,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename core_traits_type>
+	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::none, processing_phases::prompt_eval_time, core_traits_type, block_q8_0<half>, float, float, float>
 		: public kernel_base<kernel_types::none, core_traits_type, block_q8_0<half>, float, float, float> {
 		using input_type01			   = typename core_traits_type::input_01_type;
@@ -592,7 +592,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::none, processing_phases::eval_time, core_traits_type, block_q8_0<half>, float, float, float>
+	template<const model_config& config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::none, processing_phases::eval_time, core_traits_type, block_q8_0<half>, float, float, float>
 		: public kernel_base<kernel_types::none, core_traits_type, block_q8_0<half>, float, float, float> {
 		using input_type01			   = typename core_traits_type::input_01_type;
 		using input_type02			   = typename core_traits_type::input_02_type;
@@ -804,7 +804,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::none, processing_phases::prompt_eval_time, core_traits_type, block_q8_0<half>, float, float>
+	template<const model_config& config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::none, processing_phases::prompt_eval_time, core_traits_type, block_q8_0<half>, float, float>
 		: public kernel_base<kernel_types::none, core_traits_type, block_q8_0<half>, float, float> {
 		using input_type01			   = typename core_traits_type::input_01_type;
 		using input_type02			   = typename core_traits_type::input_02_type;
@@ -875,7 +875,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::none, processing_phases::eval_time, core_traits_type, block_q8_0<half>, float, float>
+	template<const model_config& config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::none, processing_phases::eval_time, core_traits_type, block_q8_0<half>, float, float>
 		: public kernel_base<kernel_types::none, core_traits_type, block_q8_0<half>, float, float> {
 		using input_type01			   = typename core_traits_type::input_01_type;
 		using input_type02			   = typename core_traits_type::input_02_type;
@@ -946,7 +946,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::mul, processing_phases::prompt_eval_time, core_traits_type, float, float, float>
+	template<const model_config& config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::mul, processing_phases::prompt_eval_time, core_traits_type, float, float, float>
 		: public kernel_base<kernel_types::mul, core_traits_type, float, float, float> {
 		using input_type01			   = typename core_traits_type::input_01_type;
 		using input_type02			   = typename core_traits_type::input_02_type;
@@ -1021,7 +1021,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::mul, processing_phases::eval_time, core_traits_type, float, float, float>
+	template<const model_config& config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::mul, processing_phases::eval_time, core_traits_type, float, float, float>
 		: public kernel_base<kernel_types::mul, core_traits_type, float, float, float> {
 		using input_type01			   = typename core_traits_type::input_01_type;
 		using input_type02			   = typename core_traits_type::input_02_type;
@@ -1096,7 +1096,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::mul, processing_phases::prompt_eval_time, core_traits_type, block_q8_0<half>, float, float>
+	template<const model_config& config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::mul, processing_phases::prompt_eval_time, core_traits_type, block_q8_0<half>, float, float>
 		: public kernel_base<kernel_types::mul, core_traits_type, block_q8_0<half>, float, float> {
 		using input_type01			   = typename core_traits_type::input_01_type;
 		using input_type02			   = typename core_traits_type::input_02_type;
@@ -1167,7 +1167,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::mul, processing_phases::eval_time, core_traits_type, block_q8_0<half>, float, float>
+	template<const model_config& config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::mul, processing_phases::eval_time, core_traits_type, block_q8_0<half>, float, float>
 		: public kernel_base<kernel_types::mul, core_traits_type, block_q8_0<half>, float, float> {
 		using input_type01			   = typename core_traits_type::input_01_type;
 		using input_type02			   = typename core_traits_type::input_02_type;
@@ -1238,7 +1238,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::get_rows, processing_phases::prompt_eval_time, core_traits_type, float, block_q8_0<half>, int32_t>
+	template<const model_config& config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::get_rows, processing_phases::prompt_eval_time, core_traits_type, float, block_q8_0<half>, int32_t>
 		: public kernel_base<kernel_types::get_rows, core_traits_type, float, block_q8_0<half>, int32_t> {
 		using input_type01			   = typename core_traits_type::input_01_type;
 		static constexpr uint64_t ne00 = input_type01::get_array()[0];
@@ -1252,7 +1252,7 @@ namespace nihilus {
 			const int32_t* token_ids				 = input02.data;
 
 			for (uint64_t row_idx = 0; row_idx < ne1; ++row_idx) {
-				const uint32_t token_id = static_cast<uint32_t>(token_ids[row_idx]);
+				const int32_t token_id = static_cast<uint32_t>(token_ids[row_idx]);
 				const auto* src_blocks	= src_base + token_id * blocks_per_row;
 				float* dst_row			= dst_base + row_idx * ne0;
 
@@ -1269,7 +1269,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::get_rows, processing_phases::eval_time, core_traits_type, float, block_q8_0<half>, int32_t>
+	template<const model_config& config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::get_rows, processing_phases::eval_time, core_traits_type, float, block_q8_0<half>, int32_t>
 		: public kernel_base<kernel_types::get_rows, core_traits_type, float, block_q8_0<half>, int32_t> {
 		using input_type01			   = typename core_traits_type::input_01_type;
 		static constexpr uint64_t ne00 = input_type01::get_array()[0];
@@ -1277,7 +1277,7 @@ namespace nihilus {
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02) {
 			static constexpr uint64_t blocks_per_row = ne00 / Q_SIZE;
-			const uint32_t token_id					 = static_cast<uint32_t>(input02.data[0]);
+			const int32_t token_id					 = static_cast<uint32_t>(input02.data[0]);
 			const auto* src_blocks					 = input01.data + token_id * blocks_per_row;
 			float* dst_row							 = output.data;
 
@@ -1293,7 +1293,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::mul_mat, processing_phases::prompt_eval_time, core_traits_type, float, block_q8_0<half>, block_q8_0<half>>
+	template<const model_config& config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::mul_mat, processing_phases::prompt_eval_time, core_traits_type, float, block_q8_0<half>, block_q8_0<half>>
 		: public kernel_base<kernel_types::mul_mat, core_traits_type, float, block_q8_0<half>, block_q8_0<half>> {
 		using input_type01			   = typename core_traits_type::input_01_type;
 		using input_type02			   = typename core_traits_type::input_02_type;
@@ -1368,7 +1368,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::mul_mat, processing_phases::eval_time, core_traits_type, float, block_q8_0<half>, block_q8_0<half>>
+	template<const model_config& config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::mul_mat, processing_phases::eval_time, core_traits_type, float, block_q8_0<half>, block_q8_0<half>>
 		: public kernel_base<kernel_types::mul_mat, core_traits_type, float, block_q8_0<half>, block_q8_0<half>> {
 		using input_type01			   = typename core_traits_type::input_01_type;
 		using input_type02			   = typename core_traits_type::input_02_type;
@@ -1443,7 +1443,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::mul_mat, processing_phases::prompt_eval_time, core_traits_type, block_q8_0<half>, half, float>
+	template<const model_config& config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::mul_mat, processing_phases::prompt_eval_time, core_traits_type, block_q8_0<half>, half, float>
 		: public kernel_base<kernel_types::mul_mat, core_traits_type, block_q8_0<half>, half, float> {
 		using input_type01			   = typename core_traits_type::input_01_type;
 		using input_type02			   = typename core_traits_type::input_02_type;
@@ -1518,7 +1518,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::mul_mat, processing_phases::eval_time, core_traits_type, block_q8_0<half>, half, float>
+	template<const model_config& config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::mul_mat, processing_phases::eval_time, core_traits_type, block_q8_0<half>, half, float>
 		: public kernel_base<kernel_types::mul_mat, core_traits_type, block_q8_0<half>, half, float> {
 		using input_type01			   = typename core_traits_type::input_01_type;
 		using input_type02			   = typename core_traits_type::input_02_type;
@@ -1594,7 +1594,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::softmax, processing_phases::prompt_eval_time, core_traits_type, float, block_q8_0<half>, float>
+	template<const model_config& config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::softmax, processing_phases::prompt_eval_time, core_traits_type, float, block_q8_0<half>, float>
 		: public kernel_base<kernel_types::softmax, core_traits_type, float, block_q8_0<half>, float> {
 		using input_type01			   = typename core_traits_type::input_01_type;
 		using input_type02			   = typename core_traits_type::input_02_type;
@@ -1665,7 +1665,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::softmax, processing_phases::eval_time, core_traits_type, float, block_q8_0<half>, float>
+	template<const model_config& config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::softmax, processing_phases::eval_time, core_traits_type, float, block_q8_0<half>, float>
 		: public kernel_base<kernel_types::softmax, core_traits_type, float, block_q8_0<half>, float> {
 		using input_type01			   = typename core_traits_type::input_01_type;
 		using input_type02			   = typename core_traits_type::input_02_type;
@@ -1736,7 +1736,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::rope, processing_phases::prompt_eval_time, core_traits_type, float, float, int32_t, float>
+	template<const model_config& config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::rope, processing_phases::prompt_eval_time, core_traits_type, float, float, int32_t, float>
 		: public kernel_base<kernel_types::rope, core_traits_type, float, float, int32_t, float> {
 		using input_type01			   = typename core_traits_type::input_01_type;
 		using input_type02			   = typename core_traits_type::input_02_type;
@@ -1816,7 +1816,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::rope, processing_phases::eval_time, core_traits_type, float, float, int32_t, float>
+	template<const model_config& config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::rope, processing_phases::eval_time, core_traits_type, float, float, int32_t, float>
 		: public kernel_base<kernel_types::rope, core_traits_type, float, float, int32_t, float> {
 		using input_type01			   = typename core_traits_type::input_01_type;
 		using input_type02			   = typename core_traits_type::input_02_type;
@@ -1896,7 +1896,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::get_rows, processing_phases::prompt_eval_time, core_traits_type, float, float, int32_t>
+	template<const model_config& config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::get_rows, processing_phases::prompt_eval_time, core_traits_type, float, float, int32_t>
 		: public kernel_base<kernel_types::get_rows, core_traits_type, float, float, int32_t> {
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02) {
@@ -1907,7 +1907,7 @@ namespace nihilus {
 			const int32_t* token_ids = input02.data;
 
 			for (uint64_t row_idx = 0; row_idx < ne1; ++row_idx) {
-				const uint32_t token_id = static_cast<uint32_t>(token_ids[row_idx]);
+				const int32_t token_id = static_cast<uint32_t>(token_ids[row_idx]);
 				const float* src_row	= src_base + token_id * ne0;
 				float* dst_row			= dst_base + row_idx * ne0;
 
@@ -1923,12 +1923,12 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::get_rows, processing_phases::eval_time, core_traits_type, float, float, int32_t>
+	template<const model_config& config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::get_rows, processing_phases::eval_time, core_traits_type, float, float, int32_t>
 		: public kernel_base<kernel_types::get_rows, core_traits_type, float, float, int32_t> {
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02) {
 			const uint64_t ne0		= output[0];
-			const uint32_t token_id = static_cast<uint32_t>(input02.data[0]);
+			const int32_t token_id = static_cast<uint32_t>(input02.data[0]);
 			const float* src_row	= input01.data + token_id * ne0;
 			float* dst_row			= output.data;
 
@@ -1943,7 +1943,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::silu, processing_phases::prompt_eval_time, core_traits_type, float, float>
+	template<const model_config& config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::silu, processing_phases::prompt_eval_time, core_traits_type, float, float>
 		: public kernel_base<kernel_types::silu, core_traits_type, float, float> {
 		using input_type01			   = typename core_traits_type::input_01_type;
 		static constexpr uint64_t ne00 = input_type01::get_array()[0];
@@ -2008,7 +2008,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::silu, processing_phases::eval_time, core_traits_type, float, float>
+	template<const model_config& config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::silu, processing_phases::eval_time, core_traits_type, float, float>
 		: public kernel_base<kernel_types::silu, core_traits_type, float, float> {
 		using input_type01			   = typename core_traits_type::input_01_type;
 		static constexpr uint64_t ne00 = input_type01::get_array()[0];
@@ -2073,7 +2073,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename core_traits_type>
+	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::none, processing_phases::prompt_eval_time, core_traits_type, float, block_q8_0<half>, block_q8_0<half>>
 		: public kernel_base<kernel_types::none, core_traits_type, float, block_q8_0<half>, block_q8_0<half>> {
 		using input_type01			   = typename core_traits_type::input_01_type;
@@ -2149,7 +2149,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::none, processing_phases::eval_time, core_traits_type, float, block_q8_0<half>, block_q8_0<half>>
+	template<const model_config& config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::none, processing_phases::eval_time, core_traits_type, float, block_q8_0<half>, block_q8_0<half>>
 		: public kernel_base<kernel_types::none, core_traits_type, float, block_q8_0<half>, block_q8_0<half>> {
 		using input_type01			   = typename core_traits_type::input_01_type;
 		using input_type02			   = typename core_traits_type::input_02_type;
@@ -2224,7 +2224,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::none, processing_phases::prompt_eval_time, core_traits_type, float, float, int32_t, float>
+	template<const model_config& config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::none, processing_phases::prompt_eval_time, core_traits_type, float, float, int32_t, float>
 		: public kernel_base<kernel_types::none, core_traits_type, float, float, int32_t, float> {
 		using input_type01			   = typename core_traits_type::input_01_type;
 		using input_type02			   = typename core_traits_type::input_02_type;
@@ -2304,7 +2304,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::none, processing_phases::eval_time, core_traits_type, float, float, int32_t, float>
+	template<const model_config& config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::none, processing_phases::eval_time, core_traits_type, float, float, int32_t, float>
 		: public kernel_base<kernel_types::none, core_traits_type, float, float, int32_t, float> {
 		using input_type01			   = typename core_traits_type::input_01_type;
 		using input_type02			   = typename core_traits_type::input_02_type;
@@ -2384,7 +2384,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::rope_copy, processing_phases::prompt_eval_time, core_traits_type, float, float, int32_t, float, int16_t>
+	template<const model_config& config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::rope_copy, processing_phases::prompt_eval_time, core_traits_type, float, float, int32_t, float, int16_t>
 		: public kernel_base<kernel_types::rope_copy, core_traits_type, float, float, int32_t, float, int16_t> {
 		using input_type01			   = typename core_traits_type::input_01_type;
 		using input_type02			   = typename core_traits_type::input_02_type;
@@ -2471,7 +2471,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::rope_copy, processing_phases::eval_time, core_traits_type, float, float, int32_t, float, int16_t>
+	template<const model_config& config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::rope_copy, processing_phases::eval_time, core_traits_type, float, float, int32_t, float, int16_t>
 		: public kernel_base<kernel_types::rope_copy, core_traits_type, float, float, int32_t, float, int16_t> {
 		using input_type01			   = typename core_traits_type::input_01_type;
 		using input_type02			   = typename core_traits_type::input_02_type;
@@ -2558,7 +2558,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, nihilus::kernel_types::none, nihilus::processing_phases::prompt_eval_time, core_traits_type, float,
+	template<const model_config& config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, nihilus::kernel_types::none, nihilus::processing_phases::prompt_eval_time, core_traits_type, float,
 		nihilus::block_q8_0<nihilus::half>, nihilus::block_q8_0<nihilus::half>, short> {
 		using input_type01			   = typename core_traits_type::input_01_type;
 		using input_type02			   = typename core_traits_type::input_02_type;
@@ -2638,7 +2638,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, nihilus::kernel_types::none, nihilus::processing_phases::eval_time, core_traits_type, float,
+	template<const model_config& config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, nihilus::kernel_types::none, nihilus::processing_phases::eval_time, core_traits_type, float,
 		nihilus::block_q8_0<nihilus::half>, nihilus::block_q8_0<nihilus::half>, short> {
 		using input_type01			   = typename core_traits_type::input_01_type;
 		using input_type02			   = typename core_traits_type::input_02_type;
@@ -2977,7 +2977,7 @@ namespace nihilus {
 		return sum;
 	}
 
-	template<model_config config, typename core_traits_type>
+	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::none, processing_phases::prompt_eval_time, core_traits_type, float, float, float>
 		: public kernel_base<kernel_types::none, core_traits_type, float, float, float> {
 		using input_type01 = typename core_traits_type::input_01_type;
@@ -3411,7 +3411,7 @@ namespace nihilus {
 		return sum;
 	}
 
-	template<model_config config, typename core_traits_type>
+	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::none, processing_phases::prompt_eval_time, core_traits_type, float, float, float, block_q8_0<half>>
 		: public kernel_base<kernel_types::none, core_traits_type, float, float, float, block_q8_0<half>> {
 		using input_type01 = typename core_traits_type::input_01_type;
@@ -3849,7 +3849,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename core_traits_type>
+	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::rms_norm_mul_transpose, processing_phases::prompt_eval_time, core_traits_type, float, float, float>
 		: public kernel_base<kernel_types::rms_norm_mul_transpose, core_traits_type, float, float, float> {
 		using input_type01 = typename core_traits_type::input_01_type;
@@ -4160,7 +4160,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename core_traits_type>
+	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::mul, processing_phases::prompt_eval_time, core_traits_type, float, float, float>
 		: public kernel_base<kernel_types::mul, core_traits_type, float, float, float> {
 		using input_type01 = typename core_traits_type::input_01_type;
@@ -4301,7 +4301,7 @@ namespace nihilus {
 		}
 	}
 
-	template<model_config config, typename core_traits_type>
+	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::get_rows, processing_phases::prompt_eval_time, core_traits_type, float, block_q8_0<half>, int32_t>
 		: public kernel_base<kernel_types::get_rows, core_traits_type, float, block_q8_0<half>, int32_t> {
 		using input_type01 = core_traits_type::input_01_type;
@@ -4372,7 +4372,7 @@ namespace nihilus {
 		}
 	}
 
-	template<model_config config, typename core_traits_type>
+	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::get_rows, processing_phases::prompt_eval_time, core_traits_type, float, float, int32_t>
 		: public kernel_base<kernel_types::get_rows, core_traits_type, float, float, int32_t> {
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
@@ -4851,7 +4851,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename core_traits_type>
+	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::mul_mat, processing_phases::prompt_eval_time, core_traits_type, float, block_q8_0<half>, float>
 		: public kernel_base<kernel_types::mul_mat, core_traits_type, float, block_q8_0<half>, float> {
 		using input_type01						 = typename core_traits_type::input_01_type;
@@ -4871,7 +4871,7 @@ namespace nihilus {
 		static constexpr int64_t nr0			 = ne0;
 		static constexpr int64_t nr1			 = 1;
 
-		static constexpr int64_t chunk_size	 = 8;
+		static constexpr uint64_t chunk_size	 = 8;
 		static constexpr int64_t nchunk0	 = (nr0 + chunk_size - 1) / chunk_size;
 		static constexpr int64_t nchunk1	 = (nr1 + chunk_size - 1) / chunk_size;
 		static constexpr int64_t chunk_count = nchunk0 * nchunk1;
@@ -4975,7 +4975,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename core_traits_type>
+	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::mul_mat, processing_phases::eval_time, core_traits_type, float, block_q8_0<half>, float>
 		: public kernel_base<kernel_types::mul_mat, core_traits_type, float, block_q8_0<half>, float> {
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
@@ -5003,7 +5003,7 @@ namespace nihilus {
 		}
 	};	
 
-	template<model_config config, typename core_traits_type>
+	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::mul_mat, processing_phases::prompt_eval_time, core_traits_type, float, half, float>
 		: public kernel_base<kernel_types::mul_mat, core_traits_type, float, half, float> {
 		using input_type01 = typename core_traits_type::input_01_type;
@@ -5051,7 +5051,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename core_traits_type>
+	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::softmax, processing_phases::prompt_eval_time, core_traits_type, float, float, float>
 		: public kernel_base<kernel_types::softmax, core_traits_type, float, float, float> {
 		using input_type01 = typename core_traits_type::input_01_type;
@@ -5114,7 +5114,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename core_traits_type>
+	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::copy, processing_phases::prompt_eval_time, core_traits_type, half, half, float>
 		: public kernel_base<kernel_types::copy, core_traits_type, half, half, float> {
 		using input_type01 = typename core_traits_type::input_01_type;
@@ -5139,7 +5139,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename core_traits_type>
+	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::rope, processing_phases::prompt_eval_time, core_traits_type, float, float, int32_t, float>
 		: public kernel_base<kernel_types::rope, core_traits_type, float, float, int32_t, float> {
 		using input_type01 = typename core_traits_type::input_01_type;
@@ -5259,7 +5259,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename core_traits_type>
+	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::copy, processing_phases::prompt_eval_time, core_traits_type, float, float>
 		: public kernel_base<kernel_types::copy, core_traits_type, float, float> {
 		using input_type01 = typename core_traits_type::input_01_type;
@@ -5282,7 +5282,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename core_traits_type>
+	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::cont, processing_phases::prompt_eval_time, core_traits_type, float, float>
 		: public kernel_base<kernel_types::cont, core_traits_type, float, float> {
 		using input_type01 = typename core_traits_type::input_01_type;
@@ -5321,14 +5321,14 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename core_traits_type>
+	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::silu, processing_phases::prompt_eval_time, core_traits_type, float, float>
 		: public kernel_base<kernel_types::silu, core_traits_type, float, float> {
 		NIHILUS_INLINE static void impl(int64_t, int64_t, int64_t, core_traits_type&, const typename core_traits_type::input_01_type&) {
 		}
 	};
 
-	template<model_config config, typename core_traits_type>
+	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::none, processing_phases::eval_time, core_traits_type, float, float, float>
 		: public kernel_base<kernel_types::none, core_traits_type, float, float, float> {
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
@@ -5366,7 +5366,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename core_traits_type>
+	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::none, processing_phases::eval_time, core_traits_type, float, float, float, block_q8_0<half>>
 		: public kernel_base<kernel_types::none, core_traits_type, float, float, float, block_q8_0<half>> {
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
@@ -5422,7 +5422,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename core_traits_type>
+	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::rms_norm_mul_transpose, processing_phases::eval_time, core_traits_type, float, float, float>
 		: public kernel_base<kernel_types::rms_norm_mul_transpose, core_traits_type, float, float, float> {
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
@@ -5456,7 +5456,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename core_traits_type>
+	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::mul, processing_phases::eval_time, core_traits_type, float, float, float>
 		: public kernel_base<kernel_types::mul, core_traits_type, float, float, float> {
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
@@ -5485,7 +5485,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename core_traits_type>
+	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::get_rows, processing_phases::eval_time, core_traits_type, float, block_q8_0<half>, int32_t>
 		: public kernel_base<kernel_types::get_rows, core_traits_type, float, block_q8_0<half>, int32_t> {
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
@@ -5499,7 +5499,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename core_traits_type>
+	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::get_rows, processing_phases::eval_time, core_traits_type, float, float, int32_t>
 		: public kernel_base<kernel_types::get_rows, core_traits_type, float, float, int32_t> {
 		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
@@ -5512,7 +5512,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename core_traits_type>
+	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::mul_mat, processing_phases::eval_time, core_traits_type, float, half, float>
 		: public kernel_base<kernel_types::mul_mat, core_traits_type, float, half, float> {
 		using input_type01 = typename core_traits_type::input_01_type;
@@ -5523,7 +5523,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename core_traits_type>
+	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::softmax, processing_phases::eval_time, core_traits_type, float, float, float>
 		: public kernel_base<kernel_types::softmax, core_traits_type, float, float, float> {
 		using input_type01 = typename core_traits_type::input_01_type;
@@ -5534,7 +5534,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename core_traits_type>
+	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::copy, processing_phases::eval_time, core_traits_type, half, half, float>
 		: public kernel_base<kernel_types::copy, core_traits_type, half, half, float> {
 		using input_type01 = typename core_traits_type::input_01_type;
@@ -5545,7 +5545,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename core_traits_type>
+	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::rope, processing_phases::eval_time, core_traits_type, float, float, int32_t, float>
 		: public kernel_base<kernel_types::rope, core_traits_type, float, float, int32_t, float> {
 		using input_type01 = typename core_traits_type::input_01_type;
@@ -5630,7 +5630,6 @@ namespace nihilus {
 					for (int64_t i1 = 0; i1 < num_heads; i1++) {
 						if (ir++ < work_start)
 							continue;
-						if (ir > work_end)
 							break;
 
 						const uint64_t src_offset = i3 * seq_len * num_heads * rope_dimension_count + i2 * num_heads * rope_dimension_count + i1 * rope_dimension_count;

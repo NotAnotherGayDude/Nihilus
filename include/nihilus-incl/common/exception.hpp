@@ -59,7 +59,7 @@ namespace nihilus {
 			static constexpr string_literal return_value01{ "Error: " + error_type };
 			static constexpr string_literal return_value02{ "\nIn File: " + string_literal<str_length>{ source_info.file_name() } +
 				"\nOn Line: " + to_string_literal<source_info.line()>() + "\n" };
-			std::string new_string{ return_value01.operator std::string() + input_string + return_value02.operator std::string() };
+			std::string new_string{ return_value01.operator std::string() + static_cast<std::string>(input_string) + return_value02.operator std::string() };
 			log<log_levels::error>(new_string);
 			std::exit(-1);
 		}

@@ -47,16 +47,17 @@ FetchContent_MakeAvailable(benchmarksuite)
 
 add_executable(
   "nihilus_performance" 
-  "main${NIHILUS_MAIN_FILE_EXTENSION}"
+  "main.cpp"
 )
 
-set_target_properties(nihilus_performance PROPERTIES LANGUAGE CUDA)
+set_target_properties(nihilus_performance PROPERTIES LANGUAGE CXX)
 
 add_subdirectory("./common")
 
 target_link_libraries(
 	"nihilus_performance" PUBLIC 
-	nihilus::nihilus llama common BenchmarkSuite::BenchmarkSuite ggml ggml-cpu
+	#nihilus::nihilus 
+    llama common BenchmarkSuite::BenchmarkSuite ggml ggml-cpu
 )
 
 if (WIN32)

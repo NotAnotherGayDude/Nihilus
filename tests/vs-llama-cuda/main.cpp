@@ -10,7 +10,7 @@
 #include <../src/spinlock_time.hpp>
 #include <BnchSwt/BenchmarkSuite.hpp>
 #include <../src/llama-context.h>
-#include <nihilus>
+//#include <nihilus>
 #include <llama.h>
 #include "common/arg.h"
 #include "common/chat.h"
@@ -70,7 +70,7 @@ static void sigint_handler(int signo) {
 	}
 }
 #endif
-
+/*
 #if !defined(LLAMA_MODEL_SIZE)
 static constexpr nihilus::model_sizes model_size{ nihilus::model_sizes::llm_8B };
 #else
@@ -78,9 +78,10 @@ static constexpr nihilus::model_sizes model_size{ LLAMA_MODEL_SIZE };
 #endif
 
 using namespace nihilus;
-
+*/
 int main(int argc, char** argv) {
 	try {
+		/*
 		constexpr auto model_config	   = nihilus::generate_model_config(nihilus::model_generations::v3_1, model_sizes::llm_8B, nihilus::kernel_type_profiles::q8_gqa,
 			   nihilus::model_arches::llama, device_types::gpu, true);
 		constexpr auto model_config_00 = update_model_device_type(model_config, device_types::gpu);
@@ -92,14 +93,14 @@ int main(int argc, char** argv) {
 			}
 			bnch_swt::doNotOptimizeAway(cli_args.n_tokens);
 			return cli_args.n_tokens;
-		});
+		});*/
 		test::stop_watch stop_watch_val{ 0 };
 		std::string return_value{};
 		common_params params;
 		llama_context* ctx{};
 		bnch_swt::benchmark_stage<"nihilus-vs_llama.cpp", 4, 2, true, "Token">::runBenchmark<"llama.cpp">([&] {
 			return_value.clear();
-			uint64_t token_count{ cli_args.n_tokens };
+			uint64_t token_count{};//cli_args.n_tokens };
 			g_params = &params;
 			if (!common_params_parse(argc, argv, params, LLAMA_EXAMPLE_MAIN, print_usage)) {
 				return 1;
@@ -595,8 +596,8 @@ int main(int argc, char** argv) {
 			llama_backend_free();
 			ggml_threadpool_free_fn(threadpool);
 			ggml_threadpool_free_fn(threadpool_batch);
-			bnch_swt::doNotOptimizeAway(cli_args.n_tokens);
-			return static_cast<int32_t>(cli_args.n_tokens);
+			//bnch_swt::doNotOptimizeAway(cli_args.n_tokens);
+			return 2;//static_cast<int32_t>(cli_args.n_tokens);
 		});
 
 		std::cout << return_value << std::endl;

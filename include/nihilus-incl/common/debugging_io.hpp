@@ -29,7 +29,7 @@ RealTimeChris (Chris M.)
 #include <fstream>
 #include <string>
 
-#if defined(NIHILUS_DEV)
+#if defined(NIHILUS_DEV) && !defined(NDEBUG)
 
 	#include <jsonifier/Index.hpp>
 
@@ -155,8 +155,8 @@ namespace nihilus {
 
 		stream << "[";
 
-		switch (type) {
-			case data_types::f32: {
+		switch (static_cast<uint64_t>(type)) {
+			case static_cast<uint64_t>(data_types::f32): {
 				const float* values = reinterpret_cast<const float*>(data);
 				size_t count		= detail::min(size / sizeof(float), 8);
 				for (size_t i = offending_index; i < offending_index + count; ++i) {
@@ -167,7 +167,7 @@ namespace nihilus {
 				break;
 			}
 
-			case data_types::f16: {
+			case static_cast<uint64_t>(data_types::f16): {
 				const uint16_t* values = reinterpret_cast<const uint16_t*>(data);
 				size_t count		   = detail::min(size / sizeof(uint16_t), 8);
 				for (size_t i = offending_index; i < offending_index + count; ++i) {
@@ -178,7 +178,7 @@ namespace nihilus {
 				break;
 			}
 
-			case data_types::q8_0: {
+			case static_cast<uint64_t>(data_types::q8_0): {
 				const uint8_t* values = reinterpret_cast<const uint8_t*>(data);
 				size_t count		  = detail::min(size, 8);
 				for (size_t i = offending_index; i < offending_index + count; ++i) {
@@ -189,7 +189,7 @@ namespace nihilus {
 				break;
 			}
 
-			case data_types::i8: {
+			case static_cast<uint64_t>(data_types::i8): {
 				const int8_t* values = reinterpret_cast<const int8_t*>(data);
 				size_t count		 = detail::min(size, 8);
 				for (size_t i = offending_index; i < offending_index + count; ++i) {
@@ -200,7 +200,7 @@ namespace nihilus {
 				break;
 			}
 
-			case data_types::i16: {
+			case static_cast<uint64_t>(data_types::i16): {
 				const int16_t* values = reinterpret_cast<const int16_t*>(data);
 				size_t count		  = detail::min(size / 2, 8);
 				for (size_t i = offending_index; i < offending_index + count; ++i) {
@@ -211,7 +211,7 @@ namespace nihilus {
 				break;
 			}
 
-			case data_types::i32: {
+			case static_cast<uint64_t>(data_types::i32): {
 				const int32_t* values = reinterpret_cast<const int32_t*>(data);
 				size_t count		  = detail::min(size / 4, 8);
 				for (size_t i = offending_index; i < offending_index + count; ++i) {
@@ -222,7 +222,7 @@ namespace nihilus {
 				break;
 			}
 
-			case data_types::i64: {
+			case static_cast<uint64_t>(data_types::i64): {
 				const int64_t* values = reinterpret_cast<const int64_t*>(data);
 				size_t count		  = detail::min(size / 8, 8);
 				for (size_t i = offending_index; i < offending_index + count; ++i) {
@@ -233,7 +233,7 @@ namespace nihilus {
 				break;
 			}
 
-			case data_types::f64: {
+			case static_cast<uint64_t>(data_types::f64): {
 				const double* values = reinterpret_cast<const double*>(data);
 				size_t count		 = detail::min(size / 8, 8);
 				for (size_t i = offending_index; i < offending_index + count; ++i) {
@@ -260,8 +260,8 @@ namespace nihilus {
 
 		stream << "[";
 
-		switch (type) {
-			case data_types::f32: {
+		switch (static_cast<uint64_t>(type)) {
+			case static_cast<uint64_t>(data_types::f32): {
 				const float* values = reinterpret_cast<const float*>(data.data());
 				size_t count		= detail::min(data.size() / sizeof(uint16_t), 8);
 				for (size_t i = offending_index; i < offending_index + count; ++i) {
@@ -273,7 +273,7 @@ namespace nihilus {
 				break;
 			}
 
-			case data_types::f16: {
+			case static_cast<uint64_t>(data_types::f16): {
 				const uint16_t* values = reinterpret_cast<const uint16_t*>(data.data());
 				size_t count		   = detail::min(data.size() / sizeof(uint16_t), 8);
 				for (size_t i = offending_index; i < offending_index + count; ++i) {
@@ -284,7 +284,7 @@ namespace nihilus {
 				break;
 			}
 
-			case data_types::q8_0: {
+			case static_cast<uint64_t>(data_types::q8_0): {
 				const uint8_t* values = reinterpret_cast<const uint8_t*>(data.data());
 				size_t count		  = detail::min(data.size(), 8);
 				for (size_t i = offending_index; i < offending_index + count; ++i) {
@@ -295,7 +295,7 @@ namespace nihilus {
 				break;
 			}
 
-			case data_types::i8: {
+			case static_cast<uint64_t>(data_types::i8): {
 				const int8_t* values = reinterpret_cast<const int8_t*>(data.data());
 				size_t count		 = detail::min(data.size(), 8);
 				for (size_t i = offending_index; i < offending_index + count; ++i) {
@@ -306,7 +306,7 @@ namespace nihilus {
 				break;
 			}
 
-			case data_types::i16: {
+			case static_cast<uint64_t>(data_types::i16): {
 				const int16_t* values = reinterpret_cast<const int16_t*>(data.data());
 				size_t count		  = detail::min(data.size() / 2, 8);
 				for (size_t i = offending_index; i < offending_index + count; ++i) {
@@ -317,7 +317,7 @@ namespace nihilus {
 				break;
 			}
 
-			case data_types::i32: {
+			case static_cast<uint64_t>(data_types::i32): {
 				const int32_t* values = reinterpret_cast<const int32_t*>(data.data());
 				size_t count		  = detail::min(data.size() / 4, 8);
 				for (size_t i = offending_index; i < offending_index + count; ++i) {
@@ -328,7 +328,7 @@ namespace nihilus {
 				break;
 			}
 
-			case data_types::i64: {
+			case static_cast<uint64_t>(data_types::i64): {
 				const int64_t* values = reinterpret_cast<const int64_t*>(data.data());
 				size_t count		  = detail::min(data.size() / 8, 8);
 				for (size_t i = offending_index; i < offending_index + count; ++i) {
@@ -339,7 +339,7 @@ namespace nihilus {
 				break;
 			}
 
-			case data_types::f64: {
+			case static_cast<uint64_t>(data_types::f64): {
 				const double* values = reinterpret_cast<const double*>(data.data());
 				size_t count		 = detail::min(data.size() / 8, 8);
 				for (size_t i = offending_index; i < count; ++i) {
@@ -395,18 +395,18 @@ namespace nihilus {
 	};
 
 	constexpr double get_tolerance_for_type(data_types type) {
-		switch (type) {
-			case data_types::f32:
+		switch (static_cast<uint64_t>(type)) {
+			case static_cast<uint64_t>(data_types::f32):
 				return 1.5e-2;
-			case data_types::f16:
+			case static_cast<uint64_t>(data_types::f16):
 				return 1e-3;
-			case data_types::f64:
+			case static_cast<uint64_t>(data_types::f64):
 				return 1e-12;
-			case data_types::i8:
-			case data_types::i16:
-			case data_types::i32:
-			case data_types::i64:
-			case data_types::q8_0:
+			case static_cast<uint64_t>(data_types::i8):
+			case static_cast<uint64_t>(data_types::i16):
+			case static_cast<uint64_t>(data_types::i32):
+			case static_cast<uint64_t>(data_types::i64):
+			case static_cast<uint64_t>(data_types::q8_0):
 				return 0.0;
 			default:
 				return 1e-4;
@@ -636,8 +636,8 @@ namespace nihilus {
 			size_t differences_found = 0;
 			bool has_differences	 = false;
 
-			switch (type) {
-				case data_types::f32: {
+			switch (static_cast<uint64_t>(type)) {
+				case static_cast<uint64_t>(data_types::f32): {
 					const float* vals1 = reinterpret_cast<const float*>(data1.data);
 					const float* vals2 = reinterpret_cast<const float*>(data2.data.data());
 					size_t count	   = data2.data.size() / sizeof(float);
@@ -669,7 +669,7 @@ namespace nihilus {
 					break;
 				}
 
-				case data_types::f16: {
+				case static_cast<uint64_t>(data_types::f16): {
 					const uint16_t* vals1 = reinterpret_cast<const uint16_t*>(data1.data);
 					const uint16_t* vals2 = reinterpret_cast<const uint16_t*>(data2.data.data());
 					size_t count		  = data1.byte_size / sizeof(uint16_t);
@@ -697,7 +697,7 @@ namespace nihilus {
 					break;
 				}
 
-				case data_types::f64: {
+				case static_cast<uint64_t>(data_types::f64): {
 					const double* vals1 = reinterpret_cast<const double*>(data1.data);
 					const double* vals2 = reinterpret_cast<const double*>(data2.data.data());
 					size_t count		= data1.byte_size / sizeof(double);
@@ -723,11 +723,11 @@ namespace nihilus {
 					break;
 				}
 
-				case data_types::i8:
-				case data_types::i16:
-				case data_types::i32:
-				case data_types::i64:
-				case data_types::q8_0:
+				case static_cast<uint64_t>(data_types::i8):
+				case static_cast<uint64_t>(data_types::i16):
+				case static_cast<uint64_t>(data_types::i32):
+				case static_cast<uint64_t>(data_types::i64):
+				case static_cast<uint64_t>(data_types::q8_0):
 				default: {
 					for (size_t i = 0; i < data1.byte_size; ++i) {
 						if (static_cast<uint8_t*>(data1.data)[i] != data2.data[i]) {
@@ -766,7 +766,7 @@ namespace nihilus {
 				stream << "LHS Dims: " << dims << std::endl;
 				stream << "RHS Dims: " << other.dims << std::endl;
 				return_value.result_output = stream.str();
-				//std::memcpy(data, other.data.data(), byte_size);
+				//memcpy_wrapper(data, other.data.data(), byte_size);
 				return return_value;
 			}
 
@@ -795,7 +795,7 @@ namespace nihilus {
 				stream << "LHS Byte-Size: " << byte_size << std::endl;
 				stream << "RHS Byte-Size: " << other.data.size() << std::endl;
 				return_value.result_output = stream.str();
-				std::memcpy(data, other.data.data(), byte_size);
+				memcpy_wrapper(data, other.data.data(), byte_size);
 			}
 
 			bool data_equal = compare_tensor_data_smart(*this, other, type, stream);
@@ -803,7 +803,7 @@ namespace nihilus {
 			if (!data_equal) {
 				return_value.result		   = false;
 				return_value.result_output = stream.str();
-				std::memcpy(data, other.data.data(), byte_size);
+				memcpy_wrapper(data, other.data.data(), byte_size);
 				return return_value;
 			}
 
@@ -876,7 +876,7 @@ namespace nihilus {
 	template<typename value_type>
 	concept has_mutable_dims = requires(detail::remove_cvref_t<value_type> value) { value.get_mutable_dim(); };
 	template<model_config config> struct tensor_debugger_impl {
-		template<typename tensor_type> static void impl(tensor_type& tensor, uint64_t current_block, uint64_t iteration, uint64_t runtime_dim) {
+		template<typename tensor_type> static void impl(tensor_type& , uint64_t , uint64_t , uint64_t ) {
 			return;
 		}
 	};

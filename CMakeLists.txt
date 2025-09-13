@@ -20,19 +20,20 @@
 cmake_minimum_required(VERSION 3.28)
 
 set(PROJECT_NAME "nihilus")
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 set(CMAKE_INSTALL_PREFIX "${CMAKE_SOURCE_DIR}/../Install")
 
 option(NIHILUS_DETECT_CPU_PROPERTIES "Override cpu-cache-size selection" OFF)
 
-option(NNIHILUS_DETECT_GPU_PROPERTIES "Override gpu-cache-size selection" OFF)
-
-option(NIHILUS_MODEL_SIZE_OVERRIDE "For manually setting which model size gets used in 'tests'" OFF)
+option(NIHILUS_DETECT_GPU_PROPERTIES "Override gpu-cache-size selection" OFF)
 
 option(NIHILUS_CUDA_ENABLED "Enable CUDA support" OFF)
 
 if (NIHILUS_CUDA_ENABLED)
+    set(CMAKE_CUDA_STANDARD 20)
+    set(CMAKE_CUDA_STANDARD_REQUIRED TRUE)
+    find_package(CUDAToolkit REQUIRED)
+    include("cmake/detection/nihilus_detect_gpu_properties.cmake")
+    set(CMAKE_CUDA_ARCHITECTURES "${NIHILUS_MAJOR_COMPUTE_CAPABILITY}${NIHILUS_MINOR_COMPUTE_CAPABILITY}")
     project(
         "${PROJECT_NAME}"
         VERSION "1.0.0"
@@ -41,6 +42,8 @@ if (NIHILUS_CUDA_ENABLED)
     )
     set(NIHILUS_MAIN_FILE_EXTENSION ".cu")
 else()
+    set(CMAKE_CXX_STANDARD 20)
+    set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
     project(
         "${PROJECT_NAME}"
         VERSION "1.0.0"
@@ -84,13 +87,9 @@ if (NIHILUS_DEV)
     FetchContent_MakeAvailable(Jsonifier)
 endif()
 
-if(NIHILUS_CUDA_ENABLED)
-    add_subdirectory("cmake/cuda")
-endif()
-
 target_link_libraries(
     "${PROJECT_NAME}" INTERFACE
-    "$<$<TARGET_EXISTS:nihilus::nihilus-cuda>:nihilus::nihilus-cuda>"
+    "$<$<TARGET_EXISTS:CUDA::cudart>:CUDA::cudart>"
     "$<$<TARGET_EXISTS:Jsonifier::Jsonifier>:Jsonifier::Jsonifier>"
 )
 
@@ -102,71 +101,17 @@ target_include_directories(
 
 target_compile_options(
     "${PROJECT_NAME}" INTERFACE
-    "${NIHILUS_COMPILE_OPTIONS}"
+    "$<$<CONFIG:Release>:${NIHILUS_COMPILE_OPTIONS}>"
 )
 
 target_link_options(
     "${PROJECT_NAME}" INTERFACE
-    "${NIHILUS_LINK_OPTIONS}"
+    "$<$<CONFIG:Release>:${NIHILUS_LINK_OPTIONS}>"
 )
 
 target_compile_definitions(
     "${PROJECT_NAME}" INTERFACE
     "${NIHILUS_COMPILE_DEFINITIONS}"
-)
-
-set(CONFIG_FILE_NAME "${PROJECT_NAME}Config.cmake")
-set(EXPORTED_TARGETS_NAME "${PROJECT_NAME}Targets")
-set(EXPORTED_TARGETS_FILE_NAME "${EXPORTED_TARGETS_NAME}.cmake")
-set(EXPORTED_TARGETS_FILE_PATH "share/nihilus-incl/${EXPORTED_TARGETS_FILE_NAME}")
-
-include(CMakePackageConfigHelpers)
-configure_package_config_file(
-    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/${CONFIG_FILE_NAME}.in"
-    "${CMAKE_CURRENT_BINARY_DIR}/${CONFIG_FILE_NAME}"
-    INSTALL_DESTINATION "share/nihilus"
-    PATH_VARS EXPORTED_TARGETS_FILE_PATH
-)
-
-set(VERSION_FILE_NAME "${PROJECT_NAME}ConfigVersion.cmake")
-write_basic_package_version_file(
-    "${CMAKE_CURRENT_BINARY_DIR}/${VERSION_FILE_NAME}"
-    VERSION "${PROJECT_VERSION}"
-    COMPATIBILITY AnyNewerVersion
-)
-
-install(
-    FILES
-    "${CMAKE_CURRENT_BINARY_DIR}/${CONFIG_FILE_NAME}"
-    "${CMAKE_CURRENT_BINARY_DIR}/${VERSION_FILE_NAME}"
-    DESTINATION "share/nihilus"
-)
-
-install(
-    DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/include/"
-    DESTINATION "include"
-    FILES_MATCHING PATTERN "*.hpp"
-)
-
-if (NIHILUS_CUDA_ENABLED)
-    set(NIHILUS_ALL_TARGETS "${PROJECT_NAME};${PROJECT_NAME}-cuda")
-else()
-    set(NIHILUS_ALL_TARGETS "${PROJECT_NAME}")
-endif()
-
-install(
-    TARGETS ${NIHILUS_ALL_TARGETS}
-    EXPORT "${EXPORTED_TARGETS_NAME}"
-    LIBRARY DESTINATION "lib"
-    ARCHIVE DESTINATION "lib"
-    RUNTIME DESTINATION "bin"
-)
-
-install(
-    EXPORT "${EXPORTED_TARGETS_NAME}"
-    FILE "${EXPORTED_TARGETS_FILE_NAME}"
-    NAMESPACE "${PROJECT_NAME}::"
-    DESTINATION "share/nihilus"
 )
 
 message(STATUS "Nihilus Configuration Summary:")
@@ -188,5 +133,5 @@ elseif (NIHILUS_ONLY)
 elseif (VS_LLAMA_CUDA)
     add_subdirectory("./tests/vs-llama-cuda")
 elseif (NIHILUS_ONLY_CUDA)
-    add_subdirectory("./tests/nihilus-only-cuda")
+    add_subdirectory("./src/nihilus-only-cuda")
 endif()

@@ -38,9 +38,9 @@ namespace nihilus {
 		printf("Compute capability: %d.%d\n", deviceProp.major, deviceProp.minor);
 	}
 
-	template<model_config config> struct memory_transfer;
+	template<const model_config& config> struct memory_transfer;
 
-	template<model_config config>
+	template<const model_config& config>
 		requires(config.device_type == device_types::gpu)
 	struct memory_transfer<config> {
 		template<typename value_type> NIHILUS_INLINE static void host_to_device(const value_type* src, value_type* dst, uint64_t count) noexcept {
@@ -85,9 +85,9 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config> struct memory_buffer;
+	template<const model_config& config> struct memory_buffer;
 
-	template<model_config config>
+	template<const model_config& config>
 		requires(config.device_type == device_types::gpu)
 	struct memory_buffer<config> {
 		using value_type   = uint8_t;

@@ -310,9 +310,7 @@ namespace nihilus {
 			if (p >= 1.0f)
 				return;
 
-			std::sort(candidates.begin(), candidates.end(), [](const token_prob& a, const token_prob& b) {
-				return a.probability > b.probability;
-			});
+			sort<sort_methods::greater_than, token_prob>::impl(candidates.data(), candidates.size());
 
 			float cumulative_prob = 0.0f;
 			uint64_t cutoff		  = candidates.size();

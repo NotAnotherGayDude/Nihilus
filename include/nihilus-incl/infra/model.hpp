@@ -26,6 +26,7 @@ RealTimeChris (Chris M.)
 #include <nihilus-incl/infra/model_serializer.hpp>
 #include <nihilus-incl/infra/core_bases.hpp>
 #include <nihilus-incl/cpu/thread_pool.hpp>
+#include <nihilus-incl/cuda/thread_pool.hpp>
 #include <nihilus-incl/common/input_collector.hpp>
 #include <nihilus-incl/common/tuple.hpp>
 
@@ -43,7 +44,7 @@ namespace nihilus {
 
 	model_base::~model_base() {};
 
-	template<model_config config_new> struct model
+	template<const model_config& config_new> struct model
 		: public input_collector<config_new>,
 		  public thread_pool<config_new>,
 		  public model_base,
@@ -55,8 +56,7 @@ namespace nihilus {
 
 		NIHILUS_INLINE model() noexcept = default;
 
-		NIHILUS_INLINE model(cli_params params)
-			: thread_pool<config_new>{ static_cast<int64_t>(config_new.device_type == device_types::cpu ? params.thread_count : 1) }, model_base{ config_new } {
+		NIHILUS_INLINE model(cli_params params) : thread_pool<config_new>{ static_cast<int64_t>(params.thread_count) }, model_base{ config_new } {
 			exec_params.token_count = params.n_tokens;
 			init(params);
 		}
@@ -203,7 +203,7 @@ namespace nihilus {
 			}
 		}
 
-		NIHILUS_INLINE ~model() {
+		NIHILUS_INLINE ~model() override {
 			deinit();
 		}
 
@@ -238,8 +238,10 @@ namespace nihilus {
 
 		NIHILUS_INLINE void print_performance_stats() {
 			if constexpr (config_new.benchmark || config_new.dev) {
-				int64_t total_time_ns = perf_base<config_new>::perf_stats.total_prompt_eval_time_ns + perf_base<config_new>::perf_stats.total_eval_time_ns;
-				int32_t total_tokens  = perf_base<config_new>::perf_stats.prompt_token_count + perf_base<config_new>::perf_stats.generated_token_count;
+				int64_t total_time_ns =
+					static_cast<int64_t>(perf_base<config_new>::perf_stats.total_prompt_eval_time_ns) + static_cast<int64_t>(perf_base<config_new>::perf_stats.total_eval_time_ns);
+				int64_t total_tokens =
+					static_cast<int64_t>(perf_base<config_new>::perf_stats.prompt_token_count) + static_cast<int64_t>(perf_base<config_new>::perf_stats.generated_token_count);
 
 				std::cout << "\n=== NIHILUS TIMING ===" << std::endl;
 				std::cout << "nihilus_perf_context_print:        load time = " << perf_base<config_new>::perf_stats.total_load_time_ns * 1e-6 << " ms" << std::endl;

@@ -74,43 +74,43 @@ namespace nihilus {
 
 		template<typename... value_types> NIHILUS_INLINE optional(value_types&&... args) noexcept {
 			*this = detail::forward<value_types...>(args...);
-		};
+		}
 
-		NIHILUS_INLINE pointer operator->() {
+		NIHILUS_INLINE pointer operator->() noexcept {
 			return &value;
 		}
 
-		NIHILUS_INLINE operator reference() {
+		NIHILUS_INLINE operator reference() noexcept {
 			return value;
 		}
 
-		NIHILUS_INLINE operator const_reference() const {
+		NIHILUS_INLINE operator const_reference() const noexcept {
 			return value;
 		}
 
-		NIHILUS_INLINE reference operator*() {
+		NIHILUS_INLINE reference operator*() noexcept {
 			return value;
 		}
 
-		NIHILUS_INLINE const_pointer operator->() const {
+		NIHILUS_INLINE const_pointer operator->() const noexcept {
 			return &value;
 		}
 
-		NIHILUS_INLINE const_reference operator*() const {
+		NIHILUS_INLINE const_reference operator*() const noexcept {
 			return value;
 		}
 
-		NIHILUS_INLINE void swap(optional& other) {
+		NIHILUS_INLINE void swap(optional& other) noexcept {
 			std::swap(value, other.value);
 		}
 
-		NIHILUS_INLINE ~optional(){};
+		NIHILUS_INLINE ~optional() noexcept = default;
 
 	  protected:
 		bool constructed{ true };
 		value_type value{};
 
-		NIHILUS_INLINE void destroy() {
+		NIHILUS_INLINE void destroy() noexcept {
 			value.~value_type();
 			constructed = false;
 		}

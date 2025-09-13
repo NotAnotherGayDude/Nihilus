@@ -30,11 +30,10 @@ namespace nihilus {
 		static constexpr static_aligned_const has_avx512_raw{ @NIHILUS_HAS_AVX512@ull };
 		static constexpr static_aligned_const has_neon_raw{ @NIHILUS_HAS_NEON@ull };
 		static constexpr static_aligned_const has_sve2_raw{ @NIHILUS_HAS_SVE2@ull };
-		static constexpr static_aligned_const l1_cache_size_raw{ @NIHILUS_L1_CACHE_SIZE@ull };
-		static constexpr static_aligned_const l2_cache_size_raw{ @NIHILUS_L2_CACHE_SIZE@ull };
-		static constexpr static_aligned_const l3_cache_size_raw{ @NIHILUS_L3_CACHE_SIZE@ull };
+		static constexpr static_aligned_const l1_cache_size_raw{ @NIHILUS_CPU_L1_CACHE_SIZE@ull };
+		static constexpr static_aligned_const l2_cache_size_raw{ @NIHILUS_CPU_L2_CACHE_SIZE@ull };
+		static constexpr static_aligned_const l3_cache_size_raw{ @NIHILUS_CPU_L3_CACHE_SIZE@ull };
 		static constexpr static_aligned_const cpu_arch_index_raw{ @NIHILUS_CPU_ARCH_INDEX@ull };
-		static constexpr static_aligned_const cpu_architecture_raw{ @NIHILUS_CPU_ARCHITECTURE@ull };
 		static constexpr static_aligned_const cpu_alignment_raw{ @NIHILUS_CPU_ALIGNMENT@ull };
 		
 	  public:
@@ -47,7 +46,6 @@ namespace nihilus {
 		static constexpr const uint64_t& l2_cache_size{ *l2_cache_size_raw };
 		static constexpr const uint64_t& l3_cache_size{ *l3_cache_size_raw };
 		static constexpr const uint64_t& cpu_arch_index{ *cpu_arch_index_raw };
-		static constexpr const uint64_t& cpu_architecture{ *cpu_architecture_raw };
 		static constexpr const uint64_t& cpu_alignment{ *cpu_alignment_raw };
 	};
 }

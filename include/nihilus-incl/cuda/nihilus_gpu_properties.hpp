@@ -29,7 +29,7 @@ namespace nihilus {
 		static constexpr static_aligned_const max_threads_per_sm_raw{ 1536ull };
 		static constexpr static_aligned_const max_threads_per_block_raw{ 1024ull };
 		static constexpr static_aligned_const warp_size_raw{ 32ull };
-		static constexpr static_aligned_const l2_cache_size_raw{ 2097152ull };
+		static constexpr static_aligned_const l2_cache_size_raw{ 50331648ull };
 		static constexpr static_aligned_const shared_mem_per_block_raw{ 49152ull };
 		static constexpr static_aligned_const memory_bus_width_raw{ 256ull };
 		static constexpr static_aligned_const memory_clock_rate_raw{ 14001000ull };

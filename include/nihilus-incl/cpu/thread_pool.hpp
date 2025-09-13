@@ -126,58 +126,56 @@ namespace nihilus {
 		aligned_vector<uint64_t> runtime_dimensions = {};
 	};
 
-	template<model_config config> struct perf_base {};
+	template<const model_config&  config> struct perf_base {};
 
-	template<model_config config>
+	template<const model_config&  config>
 		requires(config.benchmark || config.dev)
 	struct perf_base<config> {
 		benchmark_stats perf_stats{};
 	};
 
-	template<model_config config> struct thread_pool : public get_core_bases_t<config, core_types>, public perf_base<config> {
+	template<const model_config&  config> struct thread_pool : public get_core_bases_t<config, core_types>, public perf_base<config> {
 		using core_bases_type											   = get_core_bases_t<config, core_types>;
 		NIHILUS_INLINE thread_pool() noexcept							   = default;
 		NIHILUS_INLINE thread_pool& operator=(const thread_pool&) noexcept = delete;
 		NIHILUS_INLINE thread_pool(const thread_pool&) noexcept			   = delete;
 
 		NIHILUS_INLINE thread_pool(int64_t thread_count_new) {
-			thread_count = static_cast<uint64_t>(thread_count_new);
+			thread_count = thread_count_new;
 			threads.resize(static_cast<uint64_t>(thread_count));
-			thread_latch.init(thread_count_new);
+			thread_latch.init(static_cast<typename main_gate_latch::value_type>(thread_count_new));
 			if constexpr (config.benchmark) {
 				perf_base<config>::perf_stats.runtime_dimensions.resize(static_cast<uint64_t>(thread_count));
 			}
 
-			for (uint64_t x = 0; x < static_cast<uint64_t>(thread_count); ++x) {
+			for (int64_t x = 0; x < thread_count; ++x) {
 				threads[x] = std::thread{ &thread_pool::thread_function, this, x };
 			}
 		}
 
-		template<processing_phases processing_phase, size_t... indices> NIHILUS_INLINE void execute_blocks(uint64_t thread_index, std::index_sequence<indices...>) {
-			(core_bases_type::template impl_thread<per_block_thread_function, config.device_type, cpu_properties::cpu_arch_index, processing_phase>(indices, thread_index,
-				 thread_count),
-				...);
+		template<processing_phases processing_phase, size_t... indices> NIHILUS_INLINE void execute_blocks(std::index_sequence<indices...>) {
+			(core_bases_type::template impl_thread<per_block_thread_function, processing_phase>(static_cast<int64_t>(indices), thread_count), ...);
 		}
 
-		NIHILUS_INLINE void thread_function(uint64_t thread_index) {
-			if (thread_index % 4 == 0 && (thread_index < cpu_properties::thread_count / 3)) {
+		NIHILUS_INLINE void thread_function(int64_t thread_index) {
+			if (thread_index % 4 == 0 && (thread_index < static_cast<int64_t>(cpu_properties::thread_count) / 3)) {
 				//raise_current_thread_priority();
 			}
 			while (!stop.load()) {
-				thread_latch.worker_wait(thread_index);
+				thread_latch.worker_wait(static_cast<typename main_gate_latch::value_type>(thread_index));
 				if (!stop.load()) {
 					if (processing_phase.load() == processing_phases::prompt_eval_time) {
-						core_bases_type::template impl_thread<global_input_thread_function, config.device_type, cpu_properties::cpu_arch_index,
-							processing_phases::prompt_eval_time>(thread_index, thread_count);
-						execute_blocks<processing_phases::prompt_eval_time>(thread_index, std::make_index_sequence<static_cast<size_t>(model_traits_type<config>::block_count)>{});
-						core_bases_type::template impl_thread<global_output_thread_function, config.device_type, cpu_properties::cpu_arch_index,
-							processing_phases::prompt_eval_time>(thread_index, thread_count);
+						core_bases_type::template impl_thread<global_input_thread_function,
+							processing_phases::prompt_eval_time>(thread_count);
+						execute_blocks<processing_phases::prompt_eval_time>(std::make_index_sequence<static_cast<size_t>(model_traits_type<config>::block_count)>{});
+						core_bases_type::template impl_thread<global_output_thread_function,
+							processing_phases::prompt_eval_time>(thread_count);
 					} else {
-						core_bases_type::template impl_thread<global_input_thread_function, config.device_type, cpu_properties::cpu_arch_index,
-							processing_phases::eval_time>(thread_index, thread_count);
-						execute_blocks<processing_phases::eval_time>(thread_index, std::make_index_sequence<static_cast<size_t>(model_traits_type<config>::block_count)>{});
-						core_bases_type::template impl_thread<global_output_thread_function, config.device_type, cpu_properties::cpu_arch_index,
-							processing_phases::eval_time>(thread_index, thread_count);
+						core_bases_type::template impl_thread<global_input_thread_function,
+							processing_phases::eval_time>(thread_count);
+						execute_blocks<processing_phases::eval_time>(std::make_index_sequence<static_cast<size_t>(model_traits_type<config>::block_count)>{});
+						core_bases_type::template impl_thread<global_output_thread_function,
+							processing_phases::eval_time>(thread_count);
 					}
 					thread_latch.arrive();
 				}
@@ -202,7 +200,7 @@ namespace nihilus {
 		aligned_vector<std::thread> threads{};
 		atomic_flag_wrapper<bool> stop{};
 		main_gate_latch thread_latch{};
-		uint64_t thread_count{};
+		int64_t thread_count{};
 
 		NIHILUS_INLINE ~thread_pool() {
 			stop.store(true);

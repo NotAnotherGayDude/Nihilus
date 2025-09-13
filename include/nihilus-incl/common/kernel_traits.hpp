@@ -21,6 +21,7 @@ RealTimeChris (Chris M.)
 #pragma once
 
 #include <nihilus-incl/common/common.hpp>
+#include <nihilus-incl/common/file_io.hpp>
 #include <nihilus-incl/common/array.hpp>
 #include <nihilus-incl/infra/model_traits.hpp>
 #include <latch>
@@ -115,7 +116,7 @@ namespace nihilus {
 		eval_time,
 	};
 
-	template<model_config config_new> using model_traits_type = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+	template<const model_config& config_new> using model_traits_type = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
 
 	template<size_t... indices> struct core_trait_dims;
 
@@ -214,17 +215,17 @@ namespace nihilus {
 
 	enum class get_new_dims_errors { unknown_kernel_type };
 
-	template<model_config, typename core_traits_type, device_types devive_type, uint64_t, core_types core_type, processing_phases processing_phase> struct kernel_dispatcher_impl;
+	template<const model_config&, typename core_traits_type, device_types devive_type, uint64_t, core_types core_type, processing_phases processing_phase> struct kernel_dispatcher_impl;
 
-	template<model_config config, typename dims_type, kernel_types kernel_type, typename output_type_new, typename... operand_types> struct kernel_traits;
+	template<const model_config& config, typename dims_type, kernel_types kernel_type, typename output_type_new, typename... operand_types> struct kernel_traits;
 
-	template<model_config config, typename dims_type_new, typename output_type_new> struct kernel_traits<config, dims_type_new, kernel_types::none, output_type_new>
+	template<const model_config& config, typename dims_type_new, typename output_type_new> struct kernel_traits<config, dims_type_new, kernel_types::none, output_type_new>
 		: public dims_type_new {
 		using output_type = output_type_new;
 		using dims_type	  = dims_type_new;
 	};
 
-	template<model_config config, typename dims_type_new, typename output_type_new, typename input_01_type_new, typename input_02_type_new>
+	template<const model_config& config, typename dims_type_new, typename output_type_new, typename input_01_type_new, typename input_02_type_new>
 	struct kernel_traits<config, dims_type_new, kernel_types::mul_mat, output_type_new, input_01_type_new, input_02_type_new> : public dims_type_new {
 		using input_01_type					= input_01_type_new;
 		using input_02_type					= input_02_type_new;
@@ -250,7 +251,7 @@ namespace nihilus {
 			kernel_trait_static_assert_errors::mul_mat_output_batch_3_must_match_input_batch, output_dims[3], input_01_dims[3]>::impl);
 	};
 
-	template<model_config config, typename dims_type_new, typename output_type_new, typename input_01_type_new, typename input_02_type_new>
+	template<const model_config& config, typename dims_type_new, typename output_type_new, typename input_01_type_new, typename input_02_type_new>
 	struct kernel_traits<config, dims_type_new, kernel_types::add, output_type_new, input_01_type_new, input_02_type_new> : public dims_type_new {
 		using input_01_type					= input_01_type_new;
 		using input_02_type					= input_02_type_new;
@@ -277,7 +278,7 @@ namespace nihilus {
 			input_01_dims[3]>::impl);
 	};
 
-	template<model_config config, typename dims_type_new, typename output_type_new, typename input_01_type_new, typename input_02_type_new>
+	template<const model_config& config, typename dims_type_new, typename output_type_new, typename input_01_type_new, typename input_02_type_new>
 	struct kernel_traits<config, dims_type_new, kernel_types::mul, output_type_new, input_01_type_new, input_02_type_new> : public dims_type_new {
 		using input_01_type					= input_01_type_new;
 		using input_02_type					= input_02_type_new;
@@ -304,7 +305,7 @@ namespace nihilus {
 			input_01_dims[3]>::impl);
 	};
 
-	template<model_config config, typename dims_type_new, typename output_type_new, typename input_01_type_new, typename input_02_type_new>
+	template<const model_config& config, typename dims_type_new, typename output_type_new, typename input_01_type_new, typename input_02_type_new>
 	struct kernel_traits<config, dims_type_new, kernel_types::rms_norm, output_type_new, input_01_type_new, input_02_type_new> : public dims_type_new {
 		using input_01_type					= input_01_type_new;
 		using input_02_type					= input_02_type_new;
@@ -331,7 +332,7 @@ namespace nihilus {
 			static_assert_printer_val<(input_02_dims[3] == 1), kernel_trait_static_assert_errors::rms_norm_weight_dimension_3_must_be_one_for_broadcast, input_02_dims[3]>::impl);
 	};
 
-	template<model_config config, typename dims_type_new, typename output_type_new, typename input_01_type_new, typename input_02_type_new>
+	template<const model_config& config, typename dims_type_new, typename output_type_new, typename input_01_type_new, typename input_02_type_new>
 	struct kernel_traits<config, dims_type_new, kernel_types::copy, output_type_new, input_01_type_new, input_02_type_new> : public dims_type_new {
 		using input_01_type					= input_01_type_new;
 		using input_02_type					= input_02_type_new;
@@ -346,7 +347,7 @@ namespace nihilus {
 			input_total, output_total>::impl);
 	};
 
-	template<model_config config, typename dims_type_new, typename output_type_new, typename input_01_type_new>
+	template<const model_config& config, typename dims_type_new, typename output_type_new, typename input_01_type_new>
 	struct kernel_traits<config, dims_type_new, kernel_types::silu, output_type_new, input_01_type_new> : public dims_type_new {
 		using input_01_type					= input_01_type_new;
 		using output_type					= output_type_new;
@@ -367,7 +368,7 @@ namespace nihilus {
 			input_01_dims[3], output_dims[3]>::impl);
 	};
 
-	template<model_config config, typename dims_type_new, typename output_type_new, typename input_01_type_new>
+	template<const model_config& config, typename dims_type_new, typename output_type_new, typename input_01_type_new>
 	struct kernel_traits<config, dims_type_new, kernel_types::transpose, output_type_new, input_01_type_new> : public dims_type_new {
 		using input_01_type					= input_01_type_new;
 		using output_type					= output_type_new;
@@ -384,7 +385,7 @@ namespace nihilus {
 			input_01_dims[3]>::impl);
 	};
 
-	template<model_config config, typename dims_type_new, typename output_type_new, typename input_01_type_new>
+	template<const model_config& config, typename dims_type_new, typename output_type_new, typename input_01_type_new>
 	struct kernel_traits<config, dims_type_new, kernel_types::view, output_type_new, input_01_type_new> : public dims_type_new {
 		using input_01_type					= input_01_type_new;
 		using output_type					= output_type_new;
@@ -397,7 +398,7 @@ namespace nihilus {
 			input_total, output_total>::impl);
 	};
 
-	template<model_config config, typename dims_type_new, typename output_type_new, typename input_01_type_new>
+	template<const model_config& config, typename dims_type_new, typename output_type_new, typename input_01_type_new>
 	struct kernel_traits<config, dims_type_new, kernel_types::sample_logits, output_type_new, input_01_type_new> : public dims_type_new {
 		using input_01_type					= input_01_type_new;
 		using output_type					= output_type_new;
@@ -413,7 +414,7 @@ namespace nihilus {
 		static_assert(static_assert_printer_val<(output_dims[3] == 1), kernel_trait_static_assert_errors::logit_sample_output_dimension_3_must_be_one, output_dims[3]>::impl);
 	};
 
-	template<model_config config, typename dims_type_new, typename output_type_new, typename input_01_type_new>
+	template<const model_config& config, typename dims_type_new, typename output_type_new, typename input_01_type_new>
 	struct kernel_traits<config, dims_type_new, kernel_types::permute, output_type_new, input_01_type_new> : public dims_type_new {
 		using input_01_type					= input_01_type_new;
 		using output_type					= output_type_new;
@@ -430,7 +431,7 @@ namespace nihilus {
 			input_01_dims[3], output_dims[3]>::impl);
 	};
 
-	template<model_config config, typename dims_type_new, typename output_type_new, typename input_01_type_new>
+	template<const model_config& config, typename dims_type_new, typename output_type_new, typename input_01_type_new>
 	struct kernel_traits<config, dims_type_new, kernel_types::reshape, output_type_new, input_01_type_new> : public dims_type_new {
 		using input_01_type					= input_01_type_new;
 		using output_type					= output_type_new;
@@ -445,7 +446,7 @@ namespace nihilus {
 			output_total>::impl);
 	};
 
-	template<model_config config, typename dims_type_new, typename output_type_new, typename input_01_type_new, typename input_02_type_new, typename input_03_type_new>
+	template<const model_config& config, typename dims_type_new, typename output_type_new, typename input_01_type_new, typename input_02_type_new, typename input_03_type_new>
 	struct kernel_traits<config, dims_type_new, kernel_types::rope, output_type_new, input_01_type_new, input_02_type_new, input_03_type_new> : public dims_type_new {
 		using input_01_type					= input_01_type_new;
 		using input_02_type					= input_02_type_new;
@@ -477,7 +478,7 @@ namespace nihilus {
 		static_assert(static_assert_printer_val<(input_02_dims[3] == 1), kernel_trait_static_assert_errors::rope_position_dimension_3_must_be_one, input_02_dims[3]>::impl);
 	};
 
-	template<model_config config, typename dims_type_new, typename output_type_new, typename input_01_type_new, typename input_02_type_new>
+	template<const model_config& config, typename dims_type_new, typename output_type_new, typename input_01_type_new, typename input_02_type_new>
 	struct kernel_traits<config, dims_type_new, kernel_types::get_rows, output_type_new, input_01_type_new, input_02_type_new> : public dims_type_new {
 		using input_01_type					= input_01_type_new;
 		using input_02_type					= input_02_type_new;
@@ -497,7 +498,7 @@ namespace nihilus {
 		static_assert(static_assert_printer_val<(output_dims[3] == 1), kernel_trait_static_assert_errors::get_rows_output_dimension_3_must_be_one, output_dims[3]>::impl);
 	};
 
-	template<model_config config, typename dims_type_new, typename output_type_new, typename input_01_type_new>
+	template<const model_config& config, typename dims_type_new, typename output_type_new, typename input_01_type_new>
 	struct kernel_traits<config, dims_type_new, kernel_types::cont, output_type_new, input_01_type_new> : public dims_type_new {
 		using input_01_type					= input_01_type_new;
 		using output_type					= output_type_new;
@@ -512,7 +513,7 @@ namespace nihilus {
 			output_total>::impl);
 	};
 
-	template<model_config config, typename dims_type_new, typename output_type_new, typename input_01_type_new>
+	template<const model_config& config, typename dims_type_new, typename output_type_new, typename input_01_type_new>
 	struct kernel_traits<config, dims_type_new, kernel_types::rms_norm, output_type_new, input_01_type_new> : public dims_type_new {
 		using input_01_type					= input_01_type_new;
 		using output_type					= output_type_new;
@@ -529,7 +530,7 @@ namespace nihilus {
 			input_01_dims[3], output_dims[3]>::impl);
 	};
 
-	template<model_config config, typename dims_type_new, typename output_type_new, typename input_01_type_new, typename input_02_type_new>
+	template<const model_config& config, typename dims_type_new, typename output_type_new, typename input_01_type_new, typename input_02_type_new>
 	struct kernel_traits<config, dims_type_new, kernel_types::softmax, output_type_new, input_01_type_new, input_02_type_new> : public dims_type_new {
 		using input_01_type					= input_01_type_new;
 		using input_02_type					= input_02_type_new;
@@ -548,7 +549,7 @@ namespace nihilus {
 			input_01_dims[3], output_dims[3]>::impl);
 	};
 
-	template<model_config config, typename dims_type_new, typename output_type_new, typename input_01_type_new, typename input_02_type_new, typename input_03_type_new>
+	template<const model_config& config, typename dims_type_new, typename output_type_new, typename input_01_type_new, typename input_02_type_new, typename input_03_type_new>
 	struct kernel_traits<config, dims_type_new, kernel_types::repetition_penalty, output_type_new, input_01_type_new, input_02_type_new, input_03_type_new> : public dims_type_new {
 		using input_01_type					= input_01_type_new;
 		using input_02_type					= input_02_type_new;
@@ -562,7 +563,7 @@ namespace nihilus {
 		static_assert(static_assert_printer_val<(input_01_dims[0] == output_dims[0]), kernel_trait_static_assert_errors::repetition_penalty_logits_dim_mismatch>::impl);
 	};
 
-	template<model_config config, typename dims_type_new, typename output_type_new, typename input_01_type_new, typename input_02_type_new, typename input_03_type_new>
+	template<const model_config& config, typename dims_type_new, typename output_type_new, typename input_01_type_new, typename input_02_type_new, typename input_03_type_new>
 	struct kernel_traits<config, dims_type_new, kernel_types::presence_penalty, output_type_new, input_01_type_new, input_02_type_new, input_03_type_new> : public dims_type_new {
 		using input_01_type					= input_01_type_new;
 		using input_02_type					= input_02_type_new;
@@ -576,7 +577,7 @@ namespace nihilus {
 		static_assert(static_assert_printer_val<(input_01_dims[0] == output_dims[0]), kernel_trait_static_assert_errors::presence_penalty_logits_dim_mismatch>::impl);
 	};
 
-	template<model_config config, typename dims_type_new, typename output_type_new, typename input_01_type_new, typename input_02_type_new, typename input_03_type_new>
+	template<const model_config& config, typename dims_type_new, typename output_type_new, typename input_01_type_new, typename input_02_type_new, typename input_03_type_new>
 	struct kernel_traits<config, dims_type_new, kernel_types::frequency_penalty, output_type_new, input_01_type_new, input_02_type_new, input_03_type_new> : public dims_type_new {
 		using input_01_type					= input_01_type_new;
 		using input_02_type					= input_02_type_new;
@@ -590,7 +591,7 @@ namespace nihilus {
 		static_assert(static_assert_printer_val<(input_01_dims[0] == output_dims[0]), kernel_trait_static_assert_errors::frequency_penalty_logits_dim_mismatch>::impl);
 	};
 
-	template<model_config config, typename dims_type_new, typename output_type_new, typename input_01_type_new, typename input_02_type_new>
+	template<const model_config& config, typename dims_type_new, typename output_type_new, typename input_01_type_new, typename input_02_type_new>
 	struct kernel_traits<config, dims_type_new, kernel_types::temperature_scale, output_type_new, input_01_type_new, input_02_type_new> : public dims_type_new {
 		using input_01_type					= input_01_type_new;
 		using input_02_type					= input_02_type_new;
@@ -601,7 +602,7 @@ namespace nihilus {
 		static_assert(static_assert_printer_val<(input_01_dims[0] == output_dims[0]), kernel_trait_static_assert_errors::temperature_scale_logits_dim_mismatch>::impl);
 	};
 
-	template<model_config config, typename dims_type_new, typename output_type_new, typename input_01_type_new, typename input_02_type_new>
+	template<const model_config& config, typename dims_type_new, typename output_type_new, typename input_01_type_new, typename input_02_type_new>
 	struct kernel_traits<config, dims_type_new, kernel_types::top_k_filter, output_type_new, input_01_type_new, input_02_type_new> : public dims_type_new {
 		using input_01_type					= input_01_type_new;
 		using input_02_type					= input_02_type_new;
@@ -612,7 +613,7 @@ namespace nihilus {
 		static_assert(static_assert_printer_val<(input_01_dims[0] == output_dims[0]), kernel_trait_static_assert_errors::top_k_filter_logits_dim_mismatch>::impl);
 	};
 
-	template<model_config config, typename dims_type_new, typename output_type_new, typename input_01_type_new, typename input_02_type_new>
+	template<const model_config& config, typename dims_type_new, typename output_type_new, typename input_01_type_new, typename input_02_type_new>
 	struct kernel_traits<config, dims_type_new, kernel_types::top_p_filter, output_type_new, input_01_type_new, input_02_type_new> : public dims_type_new {
 		using input_01_type					= input_01_type_new;
 		using input_02_type					= input_02_type_new;
@@ -623,7 +624,7 @@ namespace nihilus {
 		static_assert(static_assert_printer_val<(input_01_dims[0] == output_dims[0]), kernel_trait_static_assert_errors::top_p_filter_logits_dim_mismatch>::impl);
 	};
 
-	template<model_config config, typename dims_type_new, typename output_type_new, typename input_01_type_new, typename input_02_type_new>
+	template<const model_config& config, typename dims_type_new, typename output_type_new, typename input_01_type_new, typename input_02_type_new>
 	struct kernel_traits<config, dims_type_new, kernel_types::vocab_mask, output_type_new, input_01_type_new, input_02_type_new> : public dims_type_new {
 		using input_01_type					= input_01_type_new;
 		using input_02_type					= input_02_type_new;
@@ -636,7 +637,7 @@ namespace nihilus {
 		static_assert(static_assert_printer_val<(input_01_dims[0] == output_dims[0]), kernel_trait_static_assert_errors::vocab_mask_logits_dim_mismatch>::impl);
 	};
 
-	template<model_config config, typename dims_type_new, typename output_type_new, typename input_01_type_new, typename input_02_type_new>
+	template<const model_config& config, typename dims_type_new, typename output_type_new, typename input_01_type_new, typename input_02_type_new>
 	struct kernel_traits<config, dims_type_new, kernel_types::sample_logits, output_type_new, input_01_type_new, input_02_type_new> : public dims_type_new {
 		using input_01_type				  = input_01_type_new;
 		using input_02_type				  = input_02_type_new;
@@ -745,9 +746,9 @@ namespace nihilus {
 	template<kernel_types kernel_type, typename dims_01_type, typename dims_02_type, typename dims_03_type> using get_new_dims_new_3_t =
 		typename get_new_dims_new_3<kernel_type, dims_01_type, dims_02_type, dims_03_type>::type;
 
-	template<model_config config, core_types core_type> struct core_traits {};
+	template<const model_config& config, core_types core_type> struct core_traits {};
 
-	template<model_config config, composite_kernel_types kernel_type_new, typename output_type_new, typename... input_kernel_traits_types> struct composite_kernel_traits {
+	template<const model_config& config, composite_kernel_types kernel_type_new, typename output_type_new, typename... input_kernel_traits_types> struct composite_kernel_traits {
 		using output_type									= output_type_new;
 		static constexpr composite_kernel_types kernel_type = kernel_type_new;
 

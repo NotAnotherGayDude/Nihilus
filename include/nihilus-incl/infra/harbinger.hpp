@@ -143,7 +143,7 @@ namespace nihilus {
 		return (update_funcs(config), ...);
 	}
 
-	template<model_config config> struct harbinger {
+	template<const model_config& config> struct harbinger {
 		using model_t	   = model<config>;
 		using model_base_t = model_base;
 
@@ -161,7 +161,7 @@ namespace nihilus {
 			return return_value;
 		}
 
-		NIHILUS_INLINE static cli_params parse_cli_arguments(int32_t argc, char** argv) {
+		inline static cli_params parse_cli_arguments(int32_t argc, char** argv) {
 			aligned_vector<std::string> cli_args{};
 			for (int64_t x = 0; x < argc; ++x) {
 				cli_args.emplace_back(argv[static_cast<uint64_t>(x)]);

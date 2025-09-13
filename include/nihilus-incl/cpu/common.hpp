@@ -251,7 +251,7 @@ namespace nihilus {
 	}
 
 	NIHILUS_INLINE static float fp16_to_fp32(half h) {
-		return vgetq_lane_f32(vcvt_f32_f16(vreinterpret_f16_u16(vdup_n_u16(h))), 0);
+		return vgetq_lane_f32(vcvt_f32_f16(vreinterpret_f16_s16(vdup_n_s16(h))), 0);
 	}
 
 	#define blsr(value) (value & (value - 1))

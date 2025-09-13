@@ -31,6 +31,7 @@ RealTimeChris (Chris M.)
 #include <filesystem>
 #include <iostream>
 #include <fstream>
+#include <csignal>
 #include <cstdint>
 #include <chrono>
 #include <thread>
@@ -49,6 +50,45 @@ namespace nihilus {
 		__asm__ __volatile__("" ::: "memory");
 #endif
 	}
+
+	enum class sort_methods {
+		less_than,
+		greater_than,
+	};
+
+	template<sort_methods sort_method, typename value_type> struct sort;
+
+	template<typename value_type> struct sort<sort_methods::greater_than,value_type> {
+		NIHILUS_INLINE static void impl(value_type* values, uint64_t count) {
+			for (uint64_t i = 0; i < count - 1; ++i) {
+				uint64_t min_idx = i;
+				for (uint64_t j = i + 1; j < count; ++j) {
+					if (values[j] > values[min_idx]) {
+						min_idx = j;
+					}
+				}
+				if (min_idx != i) {
+					std::swap(values[i], values[min_idx]);
+				}
+			}
+		}
+	};
+
+	template<typename value_type> struct sort<sort_methods::less_than, value_type> {
+		NIHILUS_INLINE static void impl(value_type* values, uint64_t count) {
+			for (uint64_t i = 0; i < count - 1; ++i) {
+				uint64_t min_idx = i;
+				for (uint64_t j = i + 1; j < count; ++j) {
+					if (values[j] < values[min_idx]) {
+						min_idx = j;
+					}
+				}
+				if (min_idx != i) {
+					std::swap(values[i], values[min_idx]);
+				}
+			}
+		}
+	};
 
 	template<typename value_type>
 	concept time_t = is_specialization_v<value_type, std::chrono::duration>;
@@ -261,9 +301,9 @@ namespace nihilus {
 		NIHILUS_INLINE main_gate_latch()								  = default;
 		NIHILUS_INLINE main_gate_latch& operator=(const main_gate_latch&) = delete;
 		NIHILUS_INLINE main_gate_latch(const main_gate_latch&)			  = delete;
-		aligned_vector<atomic_flag_wrapper<int64_t>> flags{};
-		atomic_flag_wrapper<int64_t> global_counter{};
-		using value_type = std::atomic_signed_lock_free::value_type;
+		using value_type												  = std::atomic_signed_lock_free::value_type;
+		aligned_vector<atomic_flag_wrapper<value_type>> flags{};
+		atomic_flag_wrapper<value_type> global_counter{};
 		alignas(64) value_type thread_count{};
 
 		NIHILUS_INLINE void init(value_type thread_count_new) {
@@ -272,7 +312,7 @@ namespace nihilus {
 			global_counter.store(thread_count);
 		}
 
-		NIHILUS_INLINE void worker_wait(uint64_t thread_index) {
+		NIHILUS_INLINE void worker_wait(value_type thread_index) {
 			flags[thread_index].hybrid_wait(1);
 			flags[thread_index].clear();
 		}
@@ -282,7 +322,7 @@ namespace nihilus {
 		}
 
 		NIHILUS_INLINE void count_down() {
-			for (uint64_t x = 0; x < static_cast<uint64_t>(thread_count); ++x) {
+			for (value_type x = 0; x < thread_count; ++x) {
 				flags[x].test_and_set();
 				flags[x].notify_one();
 			}
@@ -295,7 +335,7 @@ namespace nihilus {
 	};
 
 	template<printable_enum_types auto current_index> consteval std::string_view get_enum_name() {
-#if NIHILUS_COMPILER_MSVC
+#if NIHILUS_COMPILER_MSVC || NIHILUS_COMPILER_CUDA
 		alignas(64) constexpr static_aligned_const<const char*> pretty_function_tail[]{ { ">(void)" } };
 #else
 		alignas(64) constexpr static_aligned_const<const char*> pretty_function_tail[]{ { "]" } };
@@ -776,30 +816,6 @@ namespace nihilus {
 		count,
 	};
 
-	struct model_config {
-		model_generations model_generation{};
-		model_sizes model_size{};
-		kernel_type_profiles kernel_profile{};
-		model_arches arch{};
-		bool exceptions{};
-		uint64_t default_max_sequence_length{};
-		uint64_t default_batch_size{};
-		kv_cache_strategies cache_strategy{};
-		bool use_gradient_checkpointing{};
-		rope_scaling_types rope_scaling{};
-		tokenizer_pre_types tokenizer_pre_type{};
-		uint64_t kv_cache_block_size{};
-		bool use_rotary_embeddings{};
-		bool use_flash_attention{};
-		norm_types rms_norm_type{};
-		tokenizer_types tokenizer_type{};
-		device_types device_type{};
-		model_format format{};
-		float norm_epsilon{};
-		bool benchmark{};
-		bool dev{};
-	};
-
 	struct cli_params {
 		uint64_t thread_count{ std::thread::hardware_concurrency() };
 		bool no_conversation{ false };
@@ -830,108 +846,5 @@ namespace nihilus {
 		bool use_cache{};
 		int32_t top_k{};
 		float top_p{};
-	};
-
-	template<model_config config_new> struct config_holder {
-		static constexpr static_aligned_const config{ config_new };
-	};
-
-	template<model_config config> class file_loader;
-
-	template<model_config config>
-		requires(config.exceptions)
-	class file_loader<config> {
-	  public:
-		explicit file_loader(const std::filesystem::path& filePath) {
-			if (!std::filesystem::exists(filePath)) {
-				static constexpr auto location = std::source_location::current();
-				nihilus_exception<config, "file_loader - Path does not exist", location>::impl(filePath.string());
-			}
-
-			std::ifstream file(filePath, std::ios::binary | std::ios::ate);
-			if (!file) {
-				static constexpr auto location = std::source_location::current();
-				nihilus_exception<config, "file_loader - Failed to open file", location>::impl();
-			}
-
-			const std::streamsize size = file.tellg();
-			file.seekg(0, std::ios::beg);
-			if (size != -1) {
-				contents.resize(static_cast<uint64_t>(size));
-				if (!file.read(contents.data(), size)) {
-					static constexpr auto location = std::source_location::current();
-					nihilus_exception<config, "file_loader - Failed to read file", location>::impl();
-				}
-			}
-		}
-
-		operator const std::string&() const noexcept {
-			return contents;
-		}
-
-		uint64_t size() const noexcept {
-			return contents.size();
-		}
-
-	  protected:
-		std::string contents;
-	};
-
-	template<model_config config>
-		requires(!config.exceptions)
-	class file_loader<config> {
-	  public:
-		explicit file_loader(const std::filesystem::path& filePath) {
-			if (!std::filesystem::exists(filePath)) {
-				log<log_levels::error>("file_loader - Path does not exist");
-			}
-
-			std::ifstream file(filePath, std::ios::binary | std::ios::ate);
-			if (!file) {
-				log<log_levels::error>("file_loader - Failed to open file");
-			}
-
-			const std::streamsize size = file.tellg();
-			file.seekg(0, std::ios::beg);
-			if (size != -1) {
-				contents.resize(static_cast<uint64_t>(size));
-				if (!file.read(contents.data(), size)) {
-					log<log_levels::error>("file_loader - Failed to read file");
-				}
-			}
-		}
-
-		operator const std::string&() const noexcept {
-			return contents;
-		}
-
-		uint64_t size() const noexcept {
-			return contents.size();
-		}
-
-	  protected:
-		std::string contents;
-	};
-
-	template<model_config config> class file_saver {
-	  public:
-		file_saver(const std::filesystem::path& path, const void* data, uint64_t size) {
-			if (!data || size == 0) {
-				static constexpr auto location = std::source_location::current();
-				nihilus_exception<config, "file_saver - Cannot save null or empty data to file: ", location>::impl(path.string());
-			}
-
-			std::ofstream file(path, std::ios::binary | std::ios::trunc);
-			if (!file) {
-				static constexpr auto location = std::source_location::current();
-				nihilus_exception<config, "file_saver - Cannot save null or empty data to file: ", location>::impl(path.string());
-			}
-
-			file.write(static_cast<const char*>(data), static_cast<std::streamsize>(size));
-			if (!file) {
-				static constexpr auto location = std::source_location::current();
-				nihilus_exception<config, "file_saver - Cannot save null or empty data to file: ", location>::impl(path.string());
-			}
-		}
 	};
 }

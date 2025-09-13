@@ -119,7 +119,7 @@ namespace nihilus {
 			return dst;
 		}
 
-		NIHILUS_INLINE bool map_pointer(void* dst, const uint64_t offset, uint64_t count = 0) {
+		NIHILUS_INLINE bool map_pointer(void* dst, const uint64_t offset, uint64_t) {
 			*static_cast<void**>(dst) = static_cast<uint8_t*>(file->data()) + offset;
 			return true;
 		}
@@ -437,7 +437,7 @@ namespace nihilus {
 			static constexpr auto ptrNew	 = tupleElem.member_ptr;
 			static constexpr auto keySize	 = string_lit.size();
 			if NIHILUS_LIKELY ((string.size() <= keySize) && string_literal_comparitor<string_lit>::impl(string.data())) {
-				auto& ref = get_member<ptrNew>(value);
+				[[maybe_unused]] auto& ref = get_member<ptrNew>(value);
 				if constexpr (!std::is_const_v<std::remove_reference_t<decltype(ref)>>) {
 					ref = value_reader<config, member_type_t<index>>::gather_value(stream);
 				} else {
@@ -449,7 +449,6 @@ namespace nihilus {
 						return;
 					}
 				}
-				( void )ref;
 			}
 		}
 	};
@@ -789,7 +788,7 @@ namespace nihilus {
 	}
 
 	NIHILUS_INLINE void sort_tensor_infos(aligned_vector<core_base_creation_data>& tensor_infos) noexcept {
-		std::sort(tensor_infos.begin(), tensor_infos.end(), std::less<core_base_creation_data>{});
+		sort<sort_methods::less_than, aligned_vector<core_base_creation_data>::value_type>::impl(tensor_infos.data(), tensor_infos.size());
 	}
 
 	NIHILUS_INLINE uint64_t align_offset(uint64_t offset, uint64_t alignment) {

@@ -34,7 +34,6 @@ namespace nihilus {
 		static constexpr static_aligned_const l2_cache_size_raw{ 2097152ull };
 		static constexpr static_aligned_const l3_cache_size_raw{ 37748736ull };
 		static constexpr static_aligned_const cpu_arch_index_raw{ 1ull };
-		static constexpr static_aligned_const cpu_architecture_raw{ 1ull };
 		static constexpr static_aligned_const cpu_alignment_raw{ 32ull };
 		
 	  public:
@@ -47,7 +46,6 @@ namespace nihilus {
 		static constexpr const uint64_t& l2_cache_size{ *l2_cache_size_raw };
 		static constexpr const uint64_t& l3_cache_size{ *l3_cache_size_raw };
 		static constexpr const uint64_t& cpu_arch_index{ *cpu_arch_index_raw };
-		static constexpr const uint64_t& cpu_architecture{ *cpu_architecture_raw };
 		static constexpr const uint64_t& cpu_alignment{ *cpu_alignment_raw };
 	};
 }

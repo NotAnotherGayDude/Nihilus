@@ -20,6 +20,7 @@ RealTimeChris (Chris M.)
 #pragma once
 
 #include <nihilus-incl/common/common.hpp>
+#include <nihilus-incl/common/model_config.hpp>
 #include <unordered_set>
 #include <variant>
 #include <fstream>
@@ -184,10 +185,8 @@ namespace nihilus {
 		int32_t file_descriptor{};
 #endif
 
-		NIHILUS_INLINE void map_file(uint64_t prefetch_bytes, bool numa_aware) {
+		NIHILUS_INLINE void map_file([[maybe_unused]] uint64_t prefetch_bytes, [[maybe_unused]] bool numa_aware) {
 #if NIHILUS_PLATFORM_WINDOWS
-			( void )numa_aware;
-			( void )prefetch_bytes;
 			const std::string_view file_pathstr(file_path);
 			if (file_pathstr.empty()) {
 				return;
@@ -241,7 +240,6 @@ namespace nihilus {
 				throw std::runtime_error("Memory mapping failed to achieve required SIMD alignment");
 			}
 #else
-			( void )prefetch_bytes;
 			const std::string_view file_pathstr(file_path);
 			file_descriptor = open(file_pathstr.data(), O_RDONLY);
 			if (file_descriptor == -1) {
@@ -272,11 +270,11 @@ namespace nihilus {
 	#ifdef __APPLE__
 			fcntl(file_descriptor, F_RDAHEAD, 1);
 	#else
-			posix_fadvise(file_descriptor, aligned_offset, mapped_size + offset_adjustment, POSIX_FADV_SEQUENTIAL);
+			posix_fadvise(file_descriptor, static_cast<int64_t>(aligned_offset), static_cast<int64_t>(mapped_size + offset_adjustment), POSIX_FADV_SEQUENTIAL);
 	#endif
 
-			uint64_t aligned_map_size = ((mapped_size + offset_adjustment + 32 - 1) / 32) * 32;
-			void* raw_mapped_data	  = mmap(nullptr, aligned_map_size, PROT_READ, flags, file_descriptor, aligned_offset);
+			uint64_t aligned_map_size = ((mapped_size + offset_adjustment + 32ull - 1ull) / 32ull) * 32ull;
+			void* raw_mapped_data	  = mmap(nullptr, aligned_map_size, PROT_READ, flags, file_descriptor, static_cast<int64_t>(aligned_offset));
 			if (raw_mapped_data == MAP_FAILED) {
 				close(file_descriptor);
 				mapped_data = nullptr;

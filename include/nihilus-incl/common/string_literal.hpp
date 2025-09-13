@@ -120,11 +120,6 @@ namespace nihilus {
 
 	template<uint64_t size> string_literal(char (&)[size]) -> string_literal<size>;
 
-	template<uint64_t size> static std::ostream& operator<<(std::ostream& os, const string_literal<size>& input) noexcept {
-		os << input.operator const std::string_view();
-		return os;
-	}
-
 	inline static constexpr uint64_t count_digits(int64_t number) noexcept {
 		uint64_t count = 0;
 		if (number < 0) {

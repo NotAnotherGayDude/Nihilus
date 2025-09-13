@@ -52,13 +52,13 @@ namespace nihilus {
 		per_block,
 	};
 
-	template<model_config config_new, data_strategy_types data_strategy_type, typename output_type> struct data_mixin;
+	template<const model_config& config_new, data_strategy_types data_strategy_type, typename output_type> struct data_mixin;
 
-	template<model_config config_new, typename output_type> struct data_mixin<config_new, data_strategy_types::global, output_type> {
+	template<const model_config& config_new, typename output_type> struct data_mixin<config_new, data_strategy_types::global, output_type> {
 		output_type* data{};
 	};
 
-	template<model_config config_new, typename output_type> struct data_mixin<config_new, data_strategy_types::per_block, output_type> {
+	template<const model_config& config_new, typename output_type> struct data_mixin<config_new, data_strategy_types::per_block, output_type> {
 		array<output_type*, model_traits_type<config_new>::block_count> data{};
 	};
 
@@ -86,7 +86,7 @@ namespace nihilus {
 		}
 	}() };
 
-	template<model_config config_new, core_types core_type_new, enum_types auto enum_value_new, composite_kernel_types kernel_type, data_strategy_types data_strategy_type,
+	template<const model_config& config_new, core_types core_type_new, enum_types auto enum_value_new, composite_kernel_types kernel_type, data_strategy_types data_strategy_type,
 		allocation_strategy_types allocation_strategy_type, typename composite_kernel_type_new, typename... input_composite_kernel_types_new>
 	struct op_traits : public data_mixin<config_new, data_strategy_type, typename composite_kernel_type_new::output_type>,
 					   public composite_kernel_type_new,
@@ -102,7 +102,7 @@ namespace nihilus {
 		static constexpr core_types core_type{ core_type_new };
 	};
 
-	template<model_config config_new> struct core_traits<config_new, core_types::weights>
+	template<const model_config& config_new> struct core_traits<config_new, core_types::weights>
 		: public core_elem_base<core_types::weights, core_traits<config_new, core_types::weights>> {
 		static constexpr core_types core_type{ core_types::weights };
 		static constexpr uint64_t depth{ 0 };
@@ -195,7 +195,7 @@ namespace nihilus {
 		static constexpr bool has_total_required_bytes{ config_new.device_type == device_types::gpu };
 	};
 
-	template<model_config config_new> struct core_traits<config_new, core_types::global_inputs>
+	template<const model_config& config_new> struct core_traits<config_new, core_types::global_inputs>
 		: public core_elem_base<core_types::global_inputs, core_traits<config_new, core_types::global_inputs>> {
 		static constexpr core_types core_type{ core_types::global_inputs };
 		static constexpr uint64_t depth{ 0 };
@@ -279,13 +279,16 @@ namespace nihilus {
 		static constexpr bool has_total_required_bytes{ true };
 	};
 
-	template<model_config config_new> struct core_traits<config_new, core_types::token_embeddings>
+	template<const model_config& config_new> struct core_traits<config_new, core_types::token_embeddings>
 		: public core_elem_base<core_types::token_embeddings, core_traits<config_new, core_types::token_embeddings>> {
 		static constexpr core_types core_type{ core_types::token_embeddings };
-		static constexpr model_config config{ config_new };
+		static constexpr const model_config& config{ config_new };
 		static constexpr uint64_t depth{ core_traits<config_new, static_cast<core_types>(static_cast<uint64_t>(core_types::token_embeddings) - 1)>::depth + 1 };
-		using derived_type = thread_pool<config>;
-		using enum_type	   = token_embedding_types;
+		using enum_type	 = mega_qkv_prep_and_cache_publish_types;
+		using mt		 = model_traits_type<config_new>;
+		using prof		 = kernel_type_profile_traits<config_new.kernel_profile>;
+		using compute_t	 = typename prof::compute_type;
+		using kv_store_t = typename prof::kv_cache_type;
 
 		using input_01_type = typename core_traits<config_new, core_types::weights>::token_embd_weight_type;
 		using input_02_type = typename core_traits<config_new, core_types::global_inputs>::inp_tokens_type;
@@ -309,10 +312,10 @@ namespace nihilus {
 		static constexpr bool has_total_required_bytes{ true };
 	};
 
-	template<model_config config_new> struct core_traits<config_new, core_types::mega_qkv_prep_and_cache_publish>
+	template<const model_config& config_new> struct core_traits<config_new, core_types::mega_qkv_prep_and_cache_publish>
 		: public core_elem_base<core_types::mega_qkv_prep_and_cache_publish, core_traits<config_new, core_types::mega_qkv_prep_and_cache_publish>> {
 		static constexpr core_types core_type{ core_types::mega_qkv_prep_and_cache_publish };
-		static constexpr model_config config{ config_new };
+		static constexpr const model_config& config{ config_new };
 		static constexpr uint64_t depth{ core_traits<config_new, static_cast<core_types>(static_cast<uint64_t>(core_types::mega_qkv_prep_and_cache_publish) - 1)>::depth + 1 };
 		using enum_type	 = mega_qkv_prep_and_cache_publish_types;
 		using mt		 = model_traits_type<config_new>;
@@ -392,10 +395,10 @@ namespace nihilus {
 		static constexpr bool has_total_required_bytes{ true };
 	};
 
-	template<model_config config_new> struct core_traits<config_new, core_types::mega_attention_apply>
+	template<const model_config& config_new> struct core_traits<config_new, core_types::mega_attention_apply>
 		: public core_elem_base<core_types::mega_attention_apply, core_traits<config_new, core_types::mega_attention_apply>> {
 		static constexpr core_types core_type{ core_types::mega_attention_apply };
-		static constexpr model_config config{ config_new };
+		static constexpr const model_config& config{ config_new };
 		static constexpr uint64_t depth{ core_traits<config_new, static_cast<core_types>(static_cast<uint64_t>(core_types::mega_attention_apply) - 1)>::depth + 1 };
 		using enum_type	 = mega_attention_apply_types;
 		using mt		 = model_traits_type<config_new>;
@@ -454,10 +457,10 @@ namespace nihilus {
 		static constexpr bool has_total_required_bytes{ true };
 	};
 
-	template<model_config config_new> struct core_traits<config_new, core_types::mega_ffn>
+	template<const model_config& config_new> struct core_traits<config_new, core_types::mega_ffn>
 		: public core_elem_base<core_types::mega_ffn, core_traits<config_new, core_types::mega_ffn>> {
 		static constexpr core_types core_type{ core_types::mega_ffn };
-		static constexpr model_config config{ config_new };
+		static constexpr const model_config& config{ config_new };
 		static constexpr uint64_t depth{ core_traits<config_new, static_cast<core_types>(static_cast<uint64_t>(core_types::mega_ffn) - 1)>::depth + 1 };
 		using enum_type = mega_ffn_types;
 		using mt		= model_traits_type<config_new>;
@@ -511,10 +514,10 @@ namespace nihilus {
 		static constexpr bool has_total_required_bytes{ true };
 	};
 
-	template<model_config config_new> struct core_traits<config_new, core_types::final_norm_and_sampling>
+	template<const model_config& config_new> struct core_traits<config_new, core_types::final_norm_and_sampling>
 		: public core_elem_base<core_types::final_norm_and_sampling, core_traits<config_new, core_types::final_norm_and_sampling>> {
 		static constexpr core_types core_type{ core_types::final_norm_and_sampling };
-		static constexpr model_config config{ config_new };
+		static constexpr const model_config& config{ config_new };
 		static constexpr uint64_t depth{ core_traits<config_new, static_cast<core_types>(static_cast<uint64_t>(core_types::final_norm_and_sampling) - 1)>::depth + 1 };
 		using enum_type = final_norm_and_sampling_types;
 		using mt		= model_traits_type<config_new>;
@@ -596,7 +599,7 @@ namespace nihilus {
 		static constexpr bool has_total_required_bytes{ true };
 	};
 
-	template<model_config config_new, auto kernel_type> struct get_adjacent_value {
+	template<const model_config& config_new, auto kernel_type> struct get_adjacent_value {
 		using derived_type	   = core_traits<config_new, kernel_type>;
 		using thread_pool_type = thread_pool<config_new>;
 		using core_bases_type  = typename thread_pool<config_new>::core_bases_type;

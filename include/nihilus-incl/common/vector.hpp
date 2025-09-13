@@ -39,8 +39,8 @@ namespace nihilus {
 		using const_iterator		 = basic_iterator<const value_type>;
 		using reverse_iterator		 = std::reverse_iterator<iterator>;
 		using const_reverse_iterator = std::reverse_iterator<const_iterator>;
-		using allocator				 = allocator<value_type>;
-		using allocator_traits		 = std::allocator_traits<allocator>;
+		using allocator_type		 = allocator<value_type>;
+		using allocator_traits	 = std::allocator_traits<allocator_type>;
 
 		NIHILUS_INLINE aligned_vector() noexcept = default;
 

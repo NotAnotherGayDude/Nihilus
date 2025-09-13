@@ -105,9 +105,9 @@ namespace nihilus {
 	}
 
 	template<string_literal string> struct string_literal_comparitor {
-		NIHILUS_INLINE static bool impl(const char* str) noexcept {
+		NIHILUS_INLINE static bool impl(const char*) noexcept {
 			return false;
-		};
+		}
 	};
 
 	template<string_literal string>
@@ -119,43 +119,43 @@ namespace nihilus {
 			if constexpr (new_size > 8) {
 				NIHILUS_ALIGN(64) static constexpr auto values_new{ pack_values<string_lit>() };
 				nihilus_simd_int_128 data1{};
-				std::memcpy(&data1, str, new_size);
+				constexpr_memcpy<new_size>(&data1, str);
 				const nihilus_simd_int_128 data2{ gather_values<nihilus_simd_int_128_t>(values_new.data()) };
 				return !opTest<nihilus_simd_int_128_t>(opXor<nihilus_simd_int_128_t, nihilus_simd_int_128_t>(data1, data2));
 			} else if constexpr (new_size == 8) {
 				static constexpr static_aligned_const values_new{ pack_values<string_lit>() };
 				static_aligned_const<uint64_t> l;
-				std::memcpy(&l, str, 8);
+				constexpr_memcpy<8>(&l, str);
 				return !(l ^ values_new);
 			} else if constexpr (new_size == 7) {
 				static constexpr static_aligned_const values_new{ pack_values<string_lit>() };
 				static_aligned_const<uint64_t> l{};
-				std::memcpy(&l, str, 7);
+				constexpr_memcpy<7>(&l, str);
 				return !(l ^ values_new);
 			} else if constexpr (new_size == 6) {
 				static constexpr static_aligned_const values_new{ pack_values<string_lit>() };
 				static_aligned_const<uint64_t> l{};
-				std::memcpy(&l, str, 6);
+				constexpr_memcpy<6>(&l, str);
 				return !(l ^ values_new);
 			} else if constexpr (new_size == 5) {
 				static constexpr static_aligned_const values_new{ static_cast<uint32_t>(pack_values<string_lit>()) };
 				static_aligned_const<uint32_t> l;
-				std::memcpy(&l, str, 4);
+				constexpr_memcpy<5>(&l, str);
 				return !(l ^ values_new) && (str[4] == string_lit[4]);
 			} else if constexpr (new_size == 4) {
 				static constexpr static_aligned_const values_new{ static_cast<uint32_t>(pack_values<string_lit>()) };
 				static_aligned_const<uint32_t> l;
-				std::memcpy(&l, str, 4);
+				constexpr_memcpy<4>(&l, str);
 				return !(l ^ values_new);
 			} else if constexpr (new_size == 3) {
 				static constexpr static_aligned_const values_new{ static_cast<uint16_t>(pack_values<string_lit>()) };
 				static_aligned_const<uint16_t> l;
-				std::memcpy(&l, str, 2);
+				constexpr_memcpy<3>(&l, str);
 				return !(l ^ values_new) && (str[2] == string_lit[2]);
 			} else if constexpr (new_size == 2) {
 				static constexpr static_aligned_const values_new{ static_cast<uint16_t>(pack_values<string_lit>()) };
 				static_aligned_const<uint16_t> l;
-				std::memcpy(&l, str, 2);
+				constexpr_memcpy<2>(&l, str);
 				return !(l ^ values_new);
 			} else if constexpr (new_size == 1) {
 				return *str == string_lit[0];
@@ -172,7 +172,7 @@ namespace nihilus {
 		NIHILUS_ALIGN(64) inline static constexpr auto values_new{ pack_values<new_literal>() };
 		NIHILUS_INLINE static bool impl(const char* str) noexcept {
 			NIHILUS_ALIGN(64) char values_to_load[16];
-			std::memcpy(values_to_load, str, 16);
+			memcpy_wrapper(values_to_load, str, 16);
 			const nihilus_simd_int_128 data1{ gather_values<nihilus_simd_int_128_t>(values_to_load) };
 			const nihilus_simd_int_128 data2{ gather_values<nihilus_simd_int_128_t>(values_new.data()) };
 			return !opTest<nihilus_simd_int_128_t>(opXor<nihilus_simd_int_128_t, nihilus_simd_int_128_t>(data1, data2));
@@ -204,7 +204,7 @@ namespace nihilus {
 		NIHILUS_ALIGN(64) inline static constexpr auto values_new{ pack_values<new_literal>() };
 		NIHILUS_INLINE static bool impl(const char* str) noexcept {
 			NIHILUS_ALIGN(64) char values_to_load[32];
-			std::memcpy(values_to_load, str, 32);
+			memcpy_wrapper(values_to_load, str, 32);
 			const nihilus_simd_int_256 data1{ gather_values<nihilus_simd_int_256_t>(values_to_load) };
 			const nihilus_simd_int_256 data2{ gather_values<nihilus_simd_int_256_t>(values_new.data()) };
 			return !opTest<nihilus_simd_int_256_t>(opXor<nihilus_simd_int_256_t, nihilus_simd_int_256_t>(data1, data2));
@@ -238,7 +238,7 @@ namespace nihilus {
 		NIHILUS_ALIGN(64) inline static constexpr auto values_new{ pack_values<new_literal>() };
 		NIHILUS_INLINE static bool impl(const char* str) noexcept {
 			NIHILUS_ALIGN(64) char values_to_load[64];
-			std::memcpy(values_to_load, str, 64);
+			memcpy_wrapper(values_to_load, str, 64);
 			const nihilus_simd_int_512 data1{ gather_values<nihilus_simd_int_512_t>(values_to_load) };
 			const nihilus_simd_int_512 data2{ gather_values<nihilus_simd_int_512_t>(values_new.data()) };
 			return !opTest(opXor(data1, data2));

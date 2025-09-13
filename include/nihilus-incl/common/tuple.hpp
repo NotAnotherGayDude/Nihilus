@@ -98,7 +98,7 @@ namespace nihilus {
 		using bases::decl_elem...;
 	};
 
-	template<uint64_t index, typename value_type> struct tuple_elem : public value_type {
+	template<uint64_t index, typename value_type> struct tuple_elem : public detail::remove_cvref_t<value_type> {
 		static value_type decl_elem(tag<index>);
 		using type = value_type;
 
