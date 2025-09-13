@@ -102,12 +102,12 @@ target_include_directories(
 
 target_compile_options(
     "${PROJECT_NAME}" INTERFACE
-    #"${NIHILUS_COMPILE_OPTIONS}"
+    "${NIHILUS_COMPILE_OPTIONS}"
 )
 
 target_link_options(
     "${PROJECT_NAME}" INTERFACE
-    #"${NIHILUS_LINK_OPTIONS}"
+    "${NIHILUS_LINK_OPTIONS}"
 )
 
 target_compile_definitions(
@@ -172,10 +172,10 @@ install(
 message(STATUS "Nihilus Configuration Summary:")
 message(STATUS "==========================")
 message(STATUS "Version: ${PROJECT_VERSION}")
-message(STATUS "Max Thread Count: ${NIHILUS_MAX_THREAD_COUNT}")
+message(STATUS "Max Thread Count: ${NIHILUS_THREAD_COUNT}")
 message(STATUS "Architecture: ${CMAKE_SYSTEM_PROCESSOR}")
 message(STATUS "Compiler: ${CMAKE_CXX_COMPILER_ID}")
-message(STATUS "CPU Variants: ${INSTRUCTION_SET_NAME}")
+message(STATUS "CPU Variants: ${NIHILUS_SIMD_FLAGS}")
 
 if (VS_LLAMA_CLEAN)
     add_subdirectory("./tests/vs-llama-clean")

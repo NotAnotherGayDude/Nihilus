@@ -21,6 +21,7 @@ RealTimeChris (Chris M.)
 
 #include <nihilus-incl/cpu/memory_mapped_file.hpp>
 #include <nihilus-incl/common/parse_entity.hpp>
+#include <nihilus-incl/common/optional.hpp>
 #include <nihilus-incl/infra/tokenizer.hpp>
 #include <nihilus-incl/infra/core_traits.hpp>
 
@@ -803,9 +804,11 @@ namespace nihilus {
 	struct model_parser_impl<config> {
 		using model_traits_type = model_traits<config.arch, config.model_size, config.model_generation>;
 		static_assert((std::endian::native == std::endian::little), "Sorry, but big-endian is not yet supported by the library");
-		template<typename tokenizer_type> NIHILUS_INLINE static gguf_metadata<config> parse_model(array<array<void*, model_traits_type::block_count>, weight_types::count>& data,
-			memory_mapped_file<config>* memory_file, tokenizer_type& tokenizer) {
-			stream_iterator<config> ptr{ memory_file };
+		template<typename tokenizer_type> NIHILUS_INLINE static gguf_metadata<config> parse_model(std::string_view model_path,
+			array<array<void*, model_traits_type::block_count>, weight_types::count>& data, optional<memory_mapped_file<config>>& metadata_file,
+			optional<memory_mapped_file<config>>& memory_file, tokenizer_type& tokenizer) {
+			metadata_file = memory_mapped_file<config>{ model_path };
+			stream_iterator<config> ptr{ &*metadata_file };
 			gguf_metadata<config> gguf_file{ value_reader<config, gguf_metadata<config>>::gather_value(ptr) };
 			tokenizer.tokens		= detail::move(gguf_file.ggml_tokens);
 			tokenizer.merges		= detail::move(gguf_file.ggml_merges);
@@ -829,10 +832,12 @@ namespace nihilus {
 			}
 
 			uint64_t tensor_data_start = ptr.file->size() - max_tensor_end;
+			memory_file				   = memory_mapped_file<config>{ model_path, tensor_data_start };
+			ptr						   = { &*memory_file };
 
 			sort_tensor_infos(tensor_infos);
 			for (uint64_t x = 0; x < gguf_file.tensor_count; ++x) {
-				uint64_t absolute_offset = align_offset(tensor_data_start + tensor_infos[x].offset, gguf_file.alignment);
+				uint64_t absolute_offset = align_offset(tensor_infos[x].offset, gguf_file.alignment);
 				ptr.map_pointer(data[tensor_infos[x].op_type][tensor_infos[x].layer_number], absolute_offset, tensor_infos[x].total_byte_size());
 			}
 			return gguf_file;
@@ -842,9 +847,10 @@ namespace nihilus {
 	template<model_config config> struct model_parser {
 		using model_traits_type = model_traits<config.arch, config.model_size, config.model_generation>;
 
-		template<typename tokenizer_type> NIHILUS_INLINE static gguf_metadata<config> parse_model(array<array<void*, model_traits_type::block_count>, weight_types::count>& data,
-			memory_mapped_file<config>* memory_file, tokenizer_type& tokenizer) {
-			return model_parser_impl<config>::parse_model(data, memory_file, tokenizer);
+		template<typename tokenizer_type> NIHILUS_INLINE static gguf_metadata<config> parse_model(std::string_view model_path,
+			array<array<void*, model_traits_type::block_count>, weight_types::count>& data, optional<memory_mapped_file<config>>& metadata_file,
+			optional<memory_mapped_file<config>>& memory_file, tokenizer_type& tokenizer) {
+			return model_parser_impl<config>::parse_model(model_path, data, metadata_file, memory_file, tokenizer);
 		}
 	};
 }

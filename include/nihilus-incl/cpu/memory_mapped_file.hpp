@@ -54,7 +54,8 @@ namespace nihilus {
 	  public:
 		NIHILUS_INLINE explicit memory_mapped_file() noexcept = default;
 
-		NIHILUS_INLINE explicit memory_mapped_file(const std::string_view file_path_new, uint64_t prefetch_bytes = 0, bool numa_aware = false) : file_path(file_path_new) {
+		NIHILUS_INLINE explicit memory_mapped_file(const std::string_view file_path_new, uint64_t offset = 0, uint64_t prefetch_bytes = 0, bool numa_aware = false)
+			: file_path(file_path_new), file_offset(offset) {
 			map_file(prefetch_bytes, numa_aware);
 			lock_memory();
 		}
@@ -73,6 +74,8 @@ namespace nihilus {
 				std::swap(mapped_data, other.mapped_data);
 				std::swap(file_path, other.file_path);
 				std::swap(file_size, other.file_size);
+				std::swap(file_offset, other.file_offset);
+				std::swap(mapped_size, other.mapped_size);
 #if NIHILUS_CUDA_ENABLED
 				std::swap(is_pinned, other.is_pinned);
 				if constexpr (config.device_type == device_types::gpu) {
@@ -98,7 +101,11 @@ namespace nihilus {
 		}
 
 		NIHILUS_INLINE uint64_t size() const noexcept {
-			return file_size;
+			return mapped_size;
+		}
+
+		NIHILUS_INLINE uint64_t offset() const noexcept {
+			return file_offset;
 		}
 
 #if NIHILUS_CUDA_ENABLED
@@ -152,11 +159,15 @@ namespace nihilus {
 				file_descriptor = -1;
 			}
 #endif
-			file_size = 0;
+			file_size	= 0;
+			mapped_size = 0;
+			file_offset = 0;
 		}
 
 	  protected:
 		std::string_view file_path{};
+		uint64_t file_offset{};
+		uint64_t mapped_size{};
 		uint64_t file_size{};
 		void* mapped_data{};
 
@@ -195,19 +206,36 @@ namespace nihilus {
 				CloseHandle(file_handle);
 				throw std::runtime_error("Cannot map empty file");
 			}
+			if (file_offset >= file_size) {
+				CloseHandle(file_handle);
+				throw std::runtime_error("Offset exceeds file size");
+			}
+
+			SYSTEM_INFO sys_info;
+			GetSystemInfo(&sys_info);
+			uint64_t aligned_offset	   = (file_offset / sys_info.dwAllocationGranularity) * sys_info.dwAllocationGranularity;
+			uint64_t offset_adjustment = file_offset - aligned_offset;
+			mapped_size				   = file_size - file_offset;
+
 			mapping_handle = CreateFileMappingA(file_handle, nullptr, PAGE_READONLY, 0, 0, nullptr);
 			if (mapping_handle == nullptr) {
 				CloseHandle(file_handle);
 				throw std::runtime_error("Failed to create file mapping: " + format_win_error(GetLastError()));
 			}
-			mapped_data = MapViewOfFile(mapping_handle, FILE_MAP_READ, 0, 0, 0);
-			if (mapped_data == nullptr) {
+
+			void* raw_mapped_data = MapViewOfFile(mapping_handle, FILE_MAP_READ, static_cast<DWORD>(aligned_offset >> 32), static_cast<DWORD>(aligned_offset & 0xFFFFFFFF),
+				mapped_size + offset_adjustment);
+
+			if (raw_mapped_data == nullptr) {
 				CloseHandle(mapping_handle);
 				CloseHandle(file_handle);
 				throw std::runtime_error("Failed to map view of file: " + format_win_error(GetLastError()));
 			}
-			if (reinterpret_cast<std::uintptr_t>(mapped_data) % 64 != 0) {
-				UnmapViewOfFile(mapped_data);
+
+			mapped_data = static_cast<uint8_t*>(raw_mapped_data) + offset_adjustment;
+
+			if (reinterpret_cast<std::uintptr_t>(mapped_data) % 32 != 0) {
+				UnmapViewOfFile(raw_mapped_data);
 				CloseHandle(mapping_handle);
 				CloseHandle(file_handle);
 				throw std::runtime_error("Memory mapping failed to achieve required SIMD alignment");
@@ -229,69 +257,82 @@ namespace nihilus {
 				close(file_descriptor);
 				throw std::runtime_error("Cannot map empty file");
 			}
+			if (file_offset >= file_size) {
+				close(file_descriptor);
+				throw std::runtime_error("Offset exceeds file size");
+			}
+
+			uint64_t page_size		   = static_cast<uint64_t>(getpagesize());
+			uint64_t aligned_offset	   = (file_offset / page_size) * page_size;
+			uint64_t offset_adjustment = file_offset - aligned_offset;
+			mapped_size				   = file_size - file_offset;
+
 			int32_t flags = MAP_SHARED;
 
 	#ifdef __APPLE__
 			fcntl(file_descriptor, F_RDAHEAD, 1);
 	#else
-			posix_fadvise(file_descriptor, 0, 0, POSIX_FADV_SEQUENTIAL);
+			posix_fadvise(file_descriptor, aligned_offset, mapped_size + offset_adjustment, POSIX_FADV_SEQUENTIAL);
 	#endif
 
-			uint64_t aligned_size = ((file_size + 64 - 1) / 64) * 64;
-			mapped_data			  = mmap(nullptr, aligned_size, PROT_READ, flags, file_descriptor, 0);
-			if (mapped_data == MAP_FAILED) {
+			uint64_t aligned_map_size = ((mapped_size + offset_adjustment + 32 - 1) / 32) * 32;
+			void* raw_mapped_data	  = mmap(nullptr, aligned_map_size, PROT_READ, flags, file_descriptor, aligned_offset);
+			if (raw_mapped_data == MAP_FAILED) {
 				close(file_descriptor);
 				mapped_data = nullptr;
 				throw std::runtime_error("Failed to memory map file: " + std::string(std::strerror(errno)));
 			}
-			if (reinterpret_cast<std::uintptr_t>(mapped_data) % 64 != 0) {
-				munmap(mapped_data, aligned_size);
+
+			mapped_data = static_cast<uint8_t*>(raw_mapped_data) + offset_adjustment;
+
+			if (reinterpret_cast<std::uintptr_t>(mapped_data) % 32 != 0) {
+				munmap(raw_mapped_data, aligned_map_size);
 				close(file_descriptor);
 				throw std::runtime_error("Memory mapping failed to achieve required SIMD alignment");
 			}
 
 	#ifdef __APPLE__
-			madvise(mapped_data, aligned_size, MADV_SEQUENTIAL);
+			madvise(raw_mapped_data, aligned_map_size, MADV_SEQUENTIAL);
 	#endif
 
-			mapped_fragments.emplace_back(0, file_size);
+			mapped_fragments.emplace_back(0, mapped_size);
 #endif
 		}
 
 		NIHILUS_INLINE void lock_memory() {
 #if NIHILUS_PLATFORM_WINDOWS
-			if (mapped_data && file_size > 0) {
+			if (mapped_data && mapped_size > 0) {
 	#if NIHILUS_CUDA_ENABLED
-				cudaError_t result = cudaHostRegister(mapped_data, file_size, cudaHostRegisterReadOnly);
+				cudaError_t result = cudaHostRegister(mapped_data, mapped_size, cudaHostRegisterReadOnly);
 				if (result == cudaSuccess) {
 					is_pinned = true;
 					if constexpr (config.device_type == device_types::gpu) {
 						cudaStreamCreateWithPriority(&transfer_stream, cudaStreamNonBlocking, 0);
 					}
 				} else {
-					VirtualLock(mapped_data, file_size);
+					VirtualLock(mapped_data, mapped_size);
 				}
 	#else
-				VirtualLock(mapped_data, file_size);
+				VirtualLock(mapped_data, mapped_size);
 	#endif
-				SetProcessWorkingSetSize(GetCurrentProcess(), file_size * 2, file_size * 3);
+				SetProcessWorkingSetSize(GetCurrentProcess(), mapped_size * 2, mapped_size * 3);
 			}
 #else
-			if (mapped_data && file_size > 0) {
+			if (mapped_data && mapped_size > 0) {
 	#if NIHILUS_CUDA_ENABLED
-				cudaError_t result = cudaHostRegister(mapped_data, file_size, cudaHostRegisterReadOnly);
+				cudaError_t result = cudaHostRegister(mapped_data, mapped_size, cudaHostRegisterReadOnly);
 				if (result == cudaSuccess) {
 					is_pinned = true;
 					if constexpr (config.device_type == device_types::gpu) {
 						cudaStreamCreateWithPriority(&transfer_stream, cudaStreamNonBlocking, 0);
 					}
 				} else {
-					mlock(mapped_data, file_size);
+					mlock(mapped_data, mapped_size);
 				}
 	#else
-				mlock(mapped_data, file_size);
+				mlock(mapped_data, mapped_size);
 	#endif
-				posix_madvise(mapped_data, file_size, POSIX_MADV_WILLNEED);
+				posix_madvise(mapped_data, mapped_size, POSIX_MADV_WILLNEED);
 			}
 #endif
 		}

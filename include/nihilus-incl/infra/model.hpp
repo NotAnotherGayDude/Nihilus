@@ -108,15 +108,15 @@ namespace nihilus {
 			if constexpr (config_new.benchmark || config_new.dev) {
 				perf_base<config_new>::perf_stats.load_start = clock_type::now();
 			}
-			weight_memory									  = memory_mapped_file<config_new>{ params.model_file };
-			gguf_metadata<config_new> model_construction_data = model_parser<config_new>::parse_model(data, &weight_memory, *static_cast<tokenizer_type*>(this));
+			gguf_metadata<config_new> model_construction_data =
+				model_parser<config_new>::parse_model(params.model_file, data, metadata_memory, weight_memory, *static_cast<tokenizer_type*>(this));
 
 			if constexpr (config_new.benchmark || config_new.dev) {
 				auto load_end										 = clock_type::now();
 				perf_base<config_new>::perf_stats.total_load_time_ns = std::chrono::duration<double, std::nano>(load_end - perf_base<config_new>::perf_stats.load_start).count();
 			}
 			if constexpr (config_new.device_type == device_types::gpu) {
-				//weight_memory.unmap_file();
+				weight_memory.~optional<memory_mapped_file<config_new>>();
 			}
 		}
 
@@ -266,7 +266,8 @@ namespace nihilus {
 			}
 		}
 
-		memory_mapped_file<config_new> weight_memory{};
+		optional<memory_mapped_file<config_new>> metadata_memory{};
+		optional<memory_mapped_file<config_new>> weight_memory{};
 		memory_buffer<config_new> memory{};
 		execution_parameters exec_params{};
 	};
