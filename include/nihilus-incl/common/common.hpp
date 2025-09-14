@@ -30,6 +30,7 @@ RealTimeChris (Chris M.)
 #include <nihilus-incl/common/vector.hpp>
 #include <filesystem>
 #include <iostream>
+#include <numeric>
 #include <fstream>
 #include <csignal>
 #include <cstdint>
@@ -56,35 +57,403 @@ namespace nihilus {
 		greater_than,
 	};
 
-	template<sort_methods sort_method, typename value_type> struct sort;
+	template<sort_methods sort_method, typename value_type, uint64_t size_hint = 0> struct sort;
 
-	template<typename value_type> struct sort<sort_methods::greater_than,value_type> {
-		NIHILUS_INLINE static void impl(value_type* values, uint64_t count) {
-			for (uint64_t i = 0; i < count - 1; ++i) {
-				uint64_t min_idx = i;
-				for (uint64_t j = i + 1; j < count; ++j) {
-					if (values[j] > values[min_idx]) {
-						min_idx = j;
-					}
+	template<typename value_type>
+	concept token_prob_types = requires() {
+		detail::remove_cvref_t<value_type>::token_id;
+		detail::remove_cvref_t<value_type>::probability;
+	};
+
+	template<typename value_type>
+	concept core_base_creation_data_types = requires() {
+		detail::remove_cvref_t<value_type>::dimensions;
+		detail::remove_cvref_t<value_type>::n_dimensions;
+		detail::remove_cvref_t<value_type>::layer_number;
+		detail::remove_cvref_t<value_type>::op_type;
+		detail::remove_cvref_t<value_type>::offset;
+		detail::remove_cvref_t<value_type>::type;
+	};
+
+	template<typename T> struct greater_comparator {
+		NIHILUS_INLINE static bool impl(const T& a, const T& b) {
+			return a > b;
+		}
+	};
+
+	template<typename T> struct less_comparator {
+		NIHILUS_INLINE static bool impl(const T& a, const T& b) {
+			return a < b;
+		}
+	};
+
+	template<token_prob_types T> struct greater_comparator<T> {
+		NIHILUS_INLINE static bool impl(const T& a, const T& b) {
+			return a.probability > b.probability;
+		}
+	};
+
+	template<token_prob_types T> struct less_comparator<T> {
+		NIHILUS_INLINE static bool impl(const T& a, const T& b) {
+			return a.probability < b.probability;
+		}
+	};
+
+	template<core_base_creation_data_types T> struct greater_comparator<T> {
+		NIHILUS_INLINE static bool impl(const T& a, const T& b) {
+			uint64_t a_dims = a.total_dims();
+			uint64_t b_dims = b.total_dims();
+			return (a_dims != b_dims) ? (a_dims > b_dims) : (a.layer_number > b.layer_number);
+		}
+	};
+
+	template<core_base_creation_data_types T> struct less_comparator<T> {
+		NIHILUS_INLINE static bool impl(const T& a, const T& b) {
+			uint64_t a_dims = a.total_dims();
+			uint64_t b_dims = b.total_dims();
+			return (a_dims != b_dims) ? (a_dims < b_dims) : (a.layer_number < b.layer_number);
+		}
+	};
+
+	template<typename value_type> struct insertion_sort {
+		template<typename Comparator> NIHILUS_INLINE static void impl(value_type* values, uint64_t count) {
+			for (uint64_t i = 1; i < count; ++i) {
+				value_type key = std::move(values[i]);
+				uint64_t j	   = i;
+
+				while (j > 0 && Comparator::impl(key, values[j - 1])) {
+					values[j] = std::move(values[j - 1]);
+					--j;
 				}
-				if (min_idx != i) {
-					std::swap(values[i], values[min_idx]);
+				values[j] = std::move(key);
+			}
+		}
+	};
+
+	template<typename value_type> struct introsort {
+		template<typename Comparator> NIHILUS_INLINE static void impl(value_type* values, uint64_t count) {
+			if (count <= 1)
+				return;
+
+			uint64_t max_depth = 2 * log2_floor(count);
+			introsort_impl<Comparator>(values, 0, count - 1, max_depth);
+		}
+
+	  private:
+		NIHILUS_INLINE static uint64_t log2_floor(uint64_t n) {
+			uint64_t result = 0;
+			while (n >>= 1)
+				++result;
+			return result;
+		}
+
+		template<typename Comparator> NIHILUS_INLINE static void introsort_impl(value_type* values, uint64_t low, uint64_t high, uint64_t max_depth) {
+			while (high - low > 16) {
+				if (max_depth == 0) {
+					heapsort_range<Comparator>(values, low, high + 1);
+					return;
+				}
+				--max_depth;
+
+				uint64_t pivot = partition<Comparator>(values, low, high);
+
+				if (pivot - low < high - pivot) {
+					introsort_impl<Comparator>(values, low, pivot, max_depth);
+					low = pivot + 1;
+				} else {
+					introsort_impl<Comparator>(values, pivot + 1, high, max_depth);
+					high = pivot;
+				}
+			}
+			insertion_sort<value_type>::template impl<Comparator>(values + low, high - low + 1);
+		}
+
+		template<typename Comparator> NIHILUS_INLINE static uint64_t partition(value_type* values, uint64_t low, uint64_t high) {
+			uint64_t mid = low + (high - low) / 2;
+			if (Comparator::impl(values[mid], values[low]))
+				std::swap(values[low], values[mid]);
+			if (Comparator::impl(values[high], values[low]))
+				std::swap(values[low], values[high]);
+			if (Comparator::impl(values[high], values[mid]))
+				std::swap(values[mid], values[high]);
+			std::swap(values[mid], values[high]);
+
+			value_type& pivot = values[high];
+			uint64_t i		  = low;
+
+			for (uint64_t j = low; j < high; ++j) {
+				if (Comparator::impl(values[j], pivot)) {
+					if (i != j)
+						std::swap(values[i], values[j]);
+					++i;
+				}
+			}
+			std::swap(values[i], values[high]);
+			return i;
+		}
+
+		template<typename Comparator> NIHILUS_INLINE static void heapsort_range(value_type* values, uint64_t start, uint64_t count) {
+
+			for (int64_t i = (count / 2) - 1; i >= 0; --i) {
+				heapify<Comparator>(values + start, count, i);
+			}
+
+			for (uint64_t i = count - 1; i > 0; --i) {
+				std::swap(values[start], values[start + i]);
+				heapify<Comparator>(values + start, i, 0);
+			}
+		}
+
+		template<typename Comparator> NIHILUS_INLINE static void heapify(value_type* values, uint64_t count, uint64_t root) {
+			uint64_t largest = root;
+			uint64_t left	 = 2 * root + 1;
+			uint64_t right	 = 2 * root + 2;
+
+			if (left < count && Comparator::impl(values[largest], values[left]))
+				largest = left;
+			if (right < count && Comparator::impl(values[largest], values[right]))
+				largest = right;
+
+			if (largest != root) {
+				std::swap(values[root], values[largest]);
+				heapify<Comparator>(values, count, largest);
+			}
+		}
+	};
+
+	template<typename value_type, uint64_t size_hint> struct sort<sort_methods::greater_than, value_type, size_hint> {
+		NIHILUS_INLINE static void impl(value_type* values, uint64_t count) {
+			using Comparator = greater_comparator<value_type>;
+
+			if constexpr (size_hint > 0 && size_hint <= 32) {
+				insertion_sort<value_type>::template impl<Comparator>(values, count);
+			} else {
+				if (count <= 32) {
+					insertion_sort<value_type>::template impl<Comparator>(values, count);
+				} else {
+					introsort<value_type>::template impl<Comparator>(values, count);
 				}
 			}
 		}
 	};
 
-	template<typename value_type> struct sort<sort_methods::less_than, value_type> {
+	template<typename value_type, uint64_t size_hint> struct sort<sort_methods::less_than, value_type, size_hint> {
 		NIHILUS_INLINE static void impl(value_type* values, uint64_t count) {
-			for (uint64_t i = 0; i < count - 1; ++i) {
-				uint64_t min_idx = i;
-				for (uint64_t j = i + 1; j < count; ++j) {
-					if (values[j] < values[min_idx]) {
-						min_idx = j;
-					}
+			using Comparator = less_comparator<value_type>;
+
+			if constexpr (size_hint > 0 && size_hint <= 32) {
+				insertion_sort<value_type>::template impl<Comparator>(values, count);
+			} else {
+				if (count <= 32) {
+					insertion_sort<value_type>::template impl<Comparator>(values, count);
+				} else {
+					introsort<value_type>::template impl<Comparator>(values, count);
 				}
-				if (min_idx != i) {
-					std::swap(values[i], values[min_idx]);
+			}
+		}
+	};
+
+	template<token_prob_types value_type, uint64_t size_hint> struct sort<sort_methods::greater_than, value_type, size_hint> {
+		NIHILUS_INLINE static void impl(value_type* values, uint64_t count) {
+			if (count <= 16) {
+				for (uint64_t i = 1; i < count; ++i) {
+					value_type key = values[i];
+					uint64_t j	   = i;
+
+					while (j > 0 && values[j - 1].probability < key.probability) {
+						values[j] = values[j - 1];
+						--j;
+					}
+					values[j] = key;
+				}
+			} else {
+				using Comparator = greater_comparator<value_type >;
+				introsort<value_type>::template impl<Comparator>(values, count);
+			}
+		}
+	};
+
+	template<token_prob_types value_type, uint64_t size_hint> struct sort<sort_methods::less_than, value_type, size_hint> {
+		NIHILUS_INLINE static void impl(value_type* values, uint64_t count) {
+			if (count <= 16) {
+				for (uint64_t i = 1; i < count; ++i) {
+					value_type key = values[i];
+					uint64_t j	   = i;
+
+					while (j > 0 && values[j - 1].probability > key.probability) {
+						values[j] = values[j - 1];
+						--j;
+					}
+					values[j] = key;
+				}
+			} else {
+				using Comparator = less_comparator<value_type >;
+				introsort<value_type>::template impl<Comparator>(values, count);
+			}
+		}
+	};
+
+	template<typename value_type> struct index_sorter {
+		template<typename Comparator> NIHILUS_INLINE static void sort_by_indices(value_type* values, uint64_t count) {
+			std::vector<uint64_t> indices(count);
+			std::iota(indices.begin(), indices.end(), 0);
+
+			struct index_comparator {
+				const value_type* values_ptr;
+
+				NIHILUS_INLINE index_comparator(const value_type* ptr) : values_ptr(ptr) {
+				}
+
+				NIHILUS_INLINE static bool impl(uint64_t a, uint64_t b, const value_type* values) {
+					return Comparator::impl(values[a], values[b]);
+				}
+			};
+
+			sort_indices_impl<Comparator>(indices.data(), count, values);
+
+			rearrange_by_indices(values, indices.data(), count);
+		}
+
+	  private:
+		template<typename Comparator> NIHILUS_INLINE static void sort_indices_impl(uint64_t* indices, uint64_t count, const value_type* values) {
+			if (count <= 1)
+				return;
+
+			uint64_t max_depth = 2 * log2_floor(count);
+			sort_indices_recursive<Comparator>(indices, 0, count - 1, max_depth, values);
+		}
+
+		template<typename Comparator>
+		NIHILUS_INLINE static void sort_indices_recursive(uint64_t* indices, uint64_t low, uint64_t high, uint64_t max_depth, const value_type* values) {
+			while (high - low > 16) {
+				if (max_depth == 0) {
+					heap_sort_indices<Comparator>(indices, low, high + 1, values);
+					return;
+				}
+				--max_depth;
+
+				uint64_t pivot = partition_indices<Comparator>(indices, low, high, values);
+
+				if (pivot - low < high - pivot) {
+					sort_indices_recursive<Comparator>(indices, low, pivot, max_depth, values);
+					low = pivot + 1;
+				} else {
+					sort_indices_recursive<Comparator>(indices, pivot + 1, high, max_depth, values);
+					high = pivot;
+				}
+			}
+
+			insertion_sort_indices<Comparator>(indices + low, high - low + 1, values);
+		}
+
+		template<typename Comparator> NIHILUS_INLINE static uint64_t partition_indices(uint64_t* indices, uint64_t low, uint64_t high, const value_type* values) {
+			uint64_t mid = low + (high - low) / 2;
+			if (Comparator::impl(values[indices[mid]], values[indices[low]]))
+				std::swap(indices[low], indices[mid]);
+			if (Comparator::impl(values[indices[high]], values[indices[low]]))
+				std::swap(indices[low], indices[high]);
+			if (Comparator::impl(values[indices[high]], values[indices[mid]]))
+				std::swap(indices[mid], indices[high]);
+			std::swap(indices[mid], indices[high]);
+
+			uint64_t pivot_idx = indices[high];
+			uint64_t i		   = low;
+
+			for (uint64_t j = low; j < high; ++j) {
+				if (Comparator::impl(values[indices[j]], values[pivot_idx])) {
+					if (i != j)
+						std::swap(indices[i], indices[j]);
+					++i;
+				}
+			}
+			std::swap(indices[i], indices[high]);
+			return i;
+		}
+
+		template<typename Comparator> NIHILUS_INLINE static void insertion_sort_indices(uint64_t* indices, uint64_t count, const value_type* values) {
+			for (uint64_t i = 1; i < count; ++i) {
+				uint64_t key = indices[i];
+				uint64_t j	 = i;
+
+				while (j > 0 && Comparator::impl(values[key], values[indices[j - 1]])) {
+					indices[j] = indices[j - 1];
+					--j;
+				}
+				indices[j] = key;
+			}
+		}
+
+		template<typename Comparator> NIHILUS_INLINE static void heap_sort_indices(uint64_t* indices, uint64_t start, uint64_t count, const value_type* values) {
+			for (int64_t i = (count / 2) - 1; i >= 0; --i) {
+				heapify_indices<Comparator>(indices + start, count, i, values);
+			}
+
+			for (uint64_t i = count - 1; i > 0; --i) {
+				std::swap(indices[start], indices[start + i]);
+				heapify_indices<Comparator>(indices + start, i, 0, values);
+			}
+		}
+
+		template<typename Comparator> NIHILUS_INLINE static void heapify_indices(uint64_t* indices, uint64_t count, uint64_t root, const value_type* values) {
+			uint64_t largest = root;
+			uint64_t left	 = 2 * root + 1;
+			uint64_t right	 = 2 * root + 2;
+
+			if (left < count && Comparator::impl(values[indices[largest]], values[indices[left]]))
+				largest = left;
+			if (right < count && Comparator::impl(values[indices[largest]], values[indices[right]]))
+				largest = right;
+
+			if (largest != root) {
+				std::swap(indices[root], indices[largest]);
+				heapify_indices<Comparator>(indices, count, largest, values);
+			}
+		}
+
+		NIHILUS_INLINE static uint64_t log2_floor(uint64_t n) {
+			uint64_t result = 0;
+			while (n >>= 1)
+				++result;
+			return result;
+		}
+
+		NIHILUS_INLINE static void rearrange_by_indices(value_type* values, uint64_t* indices, uint64_t count) {
+			for (uint64_t i = 0; i < count; ++i) {
+				if (indices[i] != i) {
+					value_type temp = std::move(values[i]);
+					uint64_t j		= i;
+
+					while (indices[j] != i) {
+						uint64_t next = indices[j];
+						values[j]	  = std::move(values[next]);
+						indices[j]	  = j;
+						j			  = next;
+					}
+
+					values[j]  = std::move(temp);
+					indices[j] = j;
+				}
+			}
+		}
+	};
+
+	template<core_base_creation_data_types value_type, sort_methods sort_method, uint64_t size_hint> struct sort<sort_method, value_type, size_hint> {
+		NIHILUS_INLINE static void impl(value_type* values, uint64_t count) {
+			if constexpr (sort_method == sort_methods::greater_than) {
+				using Comparator = greater_comparator<value_type>;
+
+				if (count > 64) {
+					index_sorter<value_type>::template sort_by_indices<Comparator>(values, count);
+				} else {
+					introsort<value_type>::template impl<Comparator>(values, count);
+				}
+			} else {
+				using Comparator = less_comparator<value_type>;
+
+				if (count > 64) {
+					index_sorter<value_type>::template sort_by_indices<Comparator>(values, count);
+				} else {
+					introsort<value_type>::template impl<Comparator>(values, count);
 				}
 			}
 		}
