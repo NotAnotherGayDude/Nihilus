@@ -38,14 +38,16 @@ namespace nihilus {
 				if (constructed) {
 					destroy();
 				}
-				value		= std::move(other.value);
-				constructed = true;
+				if (other.constructed) {
+					value = detail::move(other.value);
+					constructed = true;
+				}
 			}
 			return *this;
 		}
 
 		NIHILUS_INLINE optional(optional&& other) noexcept {
-			*this = std::move(other);
+			*this = detail::move(other);
 		}
 
 		NIHILUS_INLINE optional& operator=(const optional& other) noexcept {
@@ -53,8 +55,10 @@ namespace nihilus {
 				if (constructed) {
 					destroy();
 				}
-				value		= other.value;
-				constructed = true;
+				if (other.constructed) {
+					value		= other.value;
+					constructed = true;
+				}
 			}
 			return *this;
 		}
@@ -72,8 +76,8 @@ namespace nihilus {
 			return *this;
 		}
 
-		template<typename... value_types> NIHILUS_INLINE optional(value_types&&... args) noexcept {
-			*this = detail::forward<value_types...>(args...);
+		template<typename... value_types> NIHILUS_INLINE optional(value_types&&... args) noexcept : value{ std::forward<value_types>(args)... } {
+			constructed = true;
 		}
 
 		NIHILUS_INLINE pointer operator->() noexcept {
@@ -107,12 +111,14 @@ namespace nihilus {
 		NIHILUS_INLINE ~optional() noexcept = default;
 
 	  protected:
-		bool constructed{ true };
-		value_type value{};
+		bool constructed{ false };
+		value_type value;
 
 		NIHILUS_INLINE void destroy() noexcept {
-			value.~value_type();
-			constructed = false;
+			if (constructed) {
+				value.~value_type();
+				constructed = false;
+			}
 		}
 	};
 

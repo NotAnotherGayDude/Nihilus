@@ -20,5 +20,5 @@ RealTimeChris (Chris M.)
 /// index.hpp
 #pragma once
 
-#include <nihilus-incl/cuda/common.cuh>
+#include <nihilus-incl/cuda/common.hpp>
 #include <nihilus-incl/infra/harbinger.hpp>

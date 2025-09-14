@@ -55,139 +55,9 @@ namespace nihilus {
 	  public:
 		NIHILUS_INLINE explicit memory_mapped_file() noexcept = default;
 
-		NIHILUS_INLINE explicit memory_mapped_file(const std::string_view file_path_new, uint64_t offset = 0, uint64_t prefetch_bytes = 0, bool numa_aware = false)
-			: file_path(file_path_new), file_offset(offset) {
-			map_file(prefetch_bytes, numa_aware);
-			lock_memory();
-		}
-
-		NIHILUS_INLINE ~memory_mapped_file() {
-			unmap_file();
-		}
-
-		NIHILUS_INLINE memory_mapped_file(memory_mapped_file&& other) noexcept {
-			*this = detail::move(other);
-		}
-
-		NIHILUS_INLINE memory_mapped_file& operator=(memory_mapped_file&& other) noexcept {
-			if (this != &other) {
-				unmap_file();
-				std::swap(mapped_data, other.mapped_data);
-				std::swap(file_path, other.file_path);
-				std::swap(file_size, other.file_size);
-				std::swap(file_offset, other.file_offset);
-				std::swap(mapped_size, other.mapped_size);
-#if NIHILUS_CUDA_ENABLED
-				std::swap(is_pinned, other.is_pinned);
-				if constexpr (config.device_type == device_types::gpu) {
-					std::swap(transfer_stream, other.transfer_stream);
-				}
-#endif
+		NIHILUS_INLINE explicit memory_mapped_file(const std::string_view file_path_new, uint64_t file_offset = 0) {
+			const std::string_view file_pathstr(file_path_new);
 #if NIHILUS_PLATFORM_WINDOWS
-				std::swap(mapping_handle, other.mapping_handle);
-				std::swap(file_handle, other.file_handle);
-#else
-				std::swap(mapped_fragments, other.mapped_fragments);
-				std::swap(file_descriptor, other.file_descriptor);
-#endif
-			}
-			return *this;
-		}
-
-		memory_mapped_file(const memory_mapped_file&)			 = delete;
-		memory_mapped_file& operator=(const memory_mapped_file&) = delete;
-
-		NIHILUS_INLINE void* data() const noexcept {
-			return mapped_data;
-		}
-
-		NIHILUS_INLINE uint64_t size() const noexcept {
-			return mapped_size;
-		}
-
-		NIHILUS_INLINE uint64_t offset() const noexcept {
-			return file_offset;
-		}
-
-#if NIHILUS_CUDA_ENABLED
-		NIHILUS_INLINE cudaStream_t get_transfer_stream() const noexcept {
-			if constexpr (config.device_type == device_types::gpu) {
-				return transfer_stream;
-			} else {
-				return nullptr;
-			}
-		}
-#endif
-
-		NIHILUS_INLINE void unmap_file() {
-#if NIHILUS_CUDA_ENABLED
-			if (mapped_data && is_pinned) {
-				cudaHostUnregister(mapped_data);
-				is_pinned = false;
-			}
-			if constexpr (config.device_type == device_types::gpu) {
-				if (transfer_stream) {
-					cudaStreamDestroy(transfer_stream);
-					transfer_stream = nullptr;
-				}
-			}
-#endif
-
-#if NIHILUS_PLATFORM_WINDOWS
-			if (mapped_data) {
-				UnmapViewOfFile(mapped_data);
-				mapped_data = nullptr;
-			}
-
-			if (mapping_handle) {
-				CloseHandle(mapping_handle);
-				mapping_handle = nullptr;
-			}
-
-			if (file_handle != INVALID_HANDLE_VALUE) {
-				CloseHandle(file_handle);
-				file_handle = INVALID_HANDLE_VALUE;
-			}
-#else
-			for (const auto& frag: mapped_fragments) {
-				if (munmap(static_cast<uint8_t*>(mapped_data) + frag.first, frag.second - frag.first) != 0) {
-				}
-			}
-			mapped_fragments.clear();
-
-			if (file_descriptor != -1) {
-				close(file_descriptor);
-				file_descriptor = -1;
-			}
-#endif
-			file_size	= 0;
-			mapped_size = 0;
-			file_offset = 0;
-		}
-
-	  protected:
-		std::string_view file_path{};
-		uint64_t file_offset{};
-		uint64_t mapped_size{};
-		uint64_t file_size{};
-		void* mapped_data{};
-
-#if NIHILUS_CUDA_ENABLED
-		bool is_pinned{ false };
-		[[no_unique_address]] std::conditional_t<config.device_type == device_types::gpu, cudaStream_t, int8_t> transfer_stream{};
-#endif
-
-#if NIHILUS_PLATFORM_WINDOWS
-		HANDLE mapping_handle{};
-		HANDLE file_handle{};
-#else
-		aligned_vector<std::pair<uint64_t, uint64_t>> mapped_fragments{};
-		int32_t file_descriptor{};
-#endif
-
-		NIHILUS_INLINE void map_file([[maybe_unused]] uint64_t prefetch_bytes, [[maybe_unused]] bool numa_aware) {
-#if NIHILUS_PLATFORM_WINDOWS
-			const std::string_view file_pathstr(file_path);
 			if (file_pathstr.empty()) {
 				return;
 			}
@@ -200,7 +70,7 @@ namespace nihilus {
 				CloseHandle(file_handle);
 				throw std::runtime_error(std::string{ "Failed to get file size: " } + format_win_error(GetLastError()));
 			}
-			file_size = static_cast<uint64_t>(file_size_new.QuadPart);
+			uint64_t file_size = static_cast<uint64_t>(file_size_new.QuadPart);
 			if (file_size == 0) {
 				CloseHandle(file_handle);
 				throw std::runtime_error("Cannot map empty file");
@@ -240,7 +110,6 @@ namespace nihilus {
 				throw std::runtime_error("Memory mapping failed to achieve required SIMD alignment");
 			}
 #else
-			const std::string_view file_pathstr(file_path);
 			file_descriptor = open(file_pathstr.data(), O_RDONLY);
 			if (file_descriptor == -1) {
 				throw std::runtime_error("Failed to open file: " + std::string(std::strerror(errno)));
@@ -250,7 +119,7 @@ namespace nihilus {
 				close(file_descriptor);
 				throw std::runtime_error("Failed to get file statistics: " + std::string(std::strerror(errno)));
 			}
-			file_size = static_cast<uint64_t>(file_stat.st_size);
+			uint64_t file_size = static_cast<uint64_t>(file_stat.st_size);
 			if (file_size == 0) {
 				close(file_descriptor);
 				throw std::runtime_error("Cannot map empty file");
@@ -267,7 +136,7 @@ namespace nihilus {
 
 			int32_t flags = MAP_SHARED;
 
-	#ifdef __APPLE__
+	#if NIHILUS_PLATFORM_MAC
 			fcntl(file_descriptor, F_RDAHEAD, 1);
 	#else
 			posix_fadvise(file_descriptor, static_cast<int64_t>(aligned_offset), static_cast<int64_t>(mapped_size + offset_adjustment), POSIX_FADV_SEQUENTIAL);
@@ -289,21 +158,17 @@ namespace nihilus {
 				throw std::runtime_error("Memory mapping failed to achieve required SIMD alignment");
 			}
 
-	#ifdef __APPLE__
+	#if NIHILUS_PLATFORM_MAC
 			madvise(raw_mapped_data, aligned_map_size, MADV_SEQUENTIAL);
 	#endif
 
 			mapped_fragments.emplace_back(0, mapped_size);
 #endif
-		}
-
-		NIHILUS_INLINE void lock_memory() {
 #if NIHILUS_PLATFORM_WINDOWS
 			if (mapped_data && mapped_size > 0) {
 	#if NIHILUS_CUDA_ENABLED
 				cudaError_t result = cudaHostRegister(mapped_data, mapped_size, cudaHostRegisterReadOnly);
 				if (result == cudaSuccess) {
-					is_pinned = true;
 					if constexpr (config.device_type == device_types::gpu) {
 						cudaStreamCreateWithPriority(&transfer_stream, cudaStreamNonBlocking, 0);
 					}
@@ -313,14 +178,12 @@ namespace nihilus {
 	#else
 				VirtualLock(mapped_data, mapped_size);
 	#endif
-				SetProcessWorkingSetSize(GetCurrentProcess(), mapped_size * 2, mapped_size * 3);
 			}
 #else
 			if (mapped_data && mapped_size > 0) {
 	#if NIHILUS_CUDA_ENABLED
 				cudaError_t result = cudaHostRegister(mapped_data, mapped_size, cudaHostRegisterReadOnly);
 				if (result == cudaSuccess) {
-					is_pinned = true;
 					if constexpr (config.device_type == device_types::gpu) {
 						cudaStreamCreateWithPriority(&transfer_stream, cudaStreamNonBlocking, 0);
 					}
@@ -334,6 +197,97 @@ namespace nihilus {
 			}
 #endif
 		}
+
+		NIHILUS_INLINE memory_mapped_file(memory_mapped_file&& other) noexcept {
+			*this = detail::move(other);
+		}
+
+		NIHILUS_INLINE memory_mapped_file& operator=(memory_mapped_file&& other) noexcept {
+			if (this != &other) {
+				std::swap(mapped_data, other.mapped_data);
+				std::swap(mapped_size, other.mapped_size);
+#if NIHILUS_CUDA_ENABLED
+				std::swap(transfer_stream, other.transfer_stream);
+#endif
+#if NIHILUS_PLATFORM_WINDOWS
+				std::swap(mapping_handle, other.mapping_handle);
+				std::swap(file_handle, other.file_handle);
+#else
+				std::swap(mapped_fragments, other.mapped_fragments);
+				std::swap(file_descriptor, other.file_descriptor);
+#endif
+			}
+			return *this;
+		}
+
+		memory_mapped_file(const memory_mapped_file&)			 = delete;
+		memory_mapped_file& operator=(const memory_mapped_file&) = delete;
+
+		NIHILUS_INLINE void* data() const noexcept {
+			return mapped_data;
+		}
+
+		NIHILUS_INLINE uint64_t size() const noexcept {
+			return mapped_size;
+		}
+
+		NIHILUS_INLINE ~memory_mapped_file() {
+#if NIHILUS_CUDA_ENABLED
+			if (mapped_data) {
+				cudaHostUnregister(mapped_data);
+			}
+			if (transfer_stream) {
+				cudaStreamDestroy(transfer_stream);
+				transfer_stream = nullptr;
+			}
+#endif
+
+#if NIHILUS_PLATFORM_WINDOWS
+			if (mapped_data) {
+				UnmapViewOfFile(mapped_data);
+				mapped_data = nullptr;
+			}
+
+			if (mapping_handle) {
+				CloseHandle(mapping_handle);
+				mapping_handle = nullptr;
+			}
+
+			if (file_handle != INVALID_HANDLE_VALUE) {
+				CloseHandle(file_handle);
+				file_handle = INVALID_HANDLE_VALUE;
+			}
+#else
+			for (const auto& frag: mapped_fragments) {
+				if (munmap(static_cast<uint8_t*>(mapped_data) + frag.first, frag.second - frag.first) != 0) {
+				}
+			}
+			mapped_fragments.clear();
+
+			if (file_descriptor != -1) {
+				close(file_descriptor);
+				file_descriptor = -1;
+			}
+#endif
+			mapped_size = 0;
+		}
+
+	  protected:
+		uint64_t mapped_size{};
+		void* mapped_data{};
+
+#if NIHILUS_CUDA_ENABLED
+		[[no_unique_address]] std::conditional_t<config.device_type == device_types::gpu, cudaStream_t, int8_t> transfer_stream{};
+#endif
+
+#if NIHILUS_PLATFORM_WINDOWS
+		HANDLE mapping_handle{};
+		HANDLE file_handle{};
+#else
+		aligned_vector<std::pair<uint64_t, uint64_t>> mapped_fragments{};
+		int32_t file_descriptor{};
+#endif
+
 	};
 
 }

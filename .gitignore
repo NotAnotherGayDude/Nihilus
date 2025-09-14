@@ -33,12 +33,4 @@
 .vs/
 build/
 out/
-build-arm64-*
-build-x64-*
-Tensor-Data.txt
-cmake/detection/Build-Arch/
-cmake/detection/Build-Arch-Cuda/
-cmake/detection/Build-Cpu-Properties/
-cmake/detection/Build-Gpu-Properties/
-cmake/detection/BuildFeatureTesterCpuProperties.bat
-/cmake/detection/BuildFeatureTesterGpuProperties.bat
+cmake/detection/Build*

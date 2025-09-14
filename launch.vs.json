@@ -5,8 +5,8 @@
     {
       "type": "default",
       "project": "CMakeLists.txt",
-      "projectTarget": "nihilus_performance.exe (tests\\vs-llama-dev\\nihilus_performance.exe)",
-      "name": "nihilus_performance.exe (tests\\vs-llama-dev\\nihilus_performance.exe)",
+      "projectTarget": "nihilus-main.exe (tests\\vs-llama-dev\\src\\nihilus-main.exe)",
+      "name": "nihilus-main.exe (tests\\vs-llama-dev\\src\\nihilus-main.exe)",
       "args": [
         "-m C:\\Users\\Chris\\source\\repos\\oi-engine\\models\\Meta-Llama-3.1-8B-Instruct-Q8_0.gguf -p \"What is the meaning of life?What is the meaning of life?What is the meaning of life?\" -s 0 -n 2048 -no-cnv -t 16 -b 512"
       ]
@@ -14,8 +14,8 @@
     {
       "type": "default",
       "project": "CMakeLists.txt",
-      "projectTarget": "nihilus_performance.exe (tests\\vs-llama-benchmark\\nihilus_performance.exe)",
-      "name": "nihilus_performance.exe (tests\\vs-llama-benchmark\\nihilus_performance.exe)",
+      "projectTarget": "nihilus-main.exe (tests\\vs-llama-benchmark\\src\\nihilus-main.exe)",
+      "name": "nihilus-main.exe (tests\\vs-llama-benchmark\\src\\nihilus-main.exe)",
       "args": [
         "-m C:\\Users\\Chris\\source\\repos\\oi-engine\\models\\Meta-Llama-3.1-8B-Instruct-Q8_0.gguf -p \"What is the meaning of life?What is the meaning of life?What is the meaning of life?\" -s 0 -n 2048 -no-cnv -t 16 -b 512"
       ]
@@ -23,26 +23,17 @@
     {
       "type": "default",
       "project": "CMakeLists.txt",
-      "projectTarget": "nihilus_performance.exe (tests\\nihilus-only\\nihilus_performance.exe)",
-      "name": "nihilus_performance.exe (tests\\nihilus-only\\nihilus_performance.exe)",
+      "projectTarget": "nihilus-main.exe (src\\nihilus-main.exe)",
+      "name": "nihilus-main.exe (src\\nihilus-main.exe)",
       "args": [
         "-m C:\\Users\\Chris\\source\\repos\\oi-engine\\models\\Meta-Llama-3.1-8B-Instruct-Q8_0.gguf -p \"What is the meaning of life?What is the meaning of life?What is the meaning of life?\" -s 0 -n 2048 -no-cnv -t 16 -b 512"
-      ]
-    },
-    { 
-      "type": "default",
-      "project": "CMakeLists.txt",
-      "projectTarget": "nihilus_performance.exe (tests\\vs-llama-cuda\\nihilus_performance.exe)",
-      "name": "nihilus_performance.exe (tests\\vs-llama-cuda\\nihilus_performance.exe)",
-      "args": [
-        "-m C:\\Users\\Chris\\source\\repos\\oi-engine\\models\\Meta-Llama-3.1-8B-Instruct-Q8_0.gguf -p \"What is the meaning of life?\" -s 0 -n 2048 -t 16 -ngl 35 -c 16384 -b 512"
       ]
     },
     {
       "type": "default",
       "project": "CMakeLists.txt",
-      "projectTarget": "nihilus_performance.exe (src\\nihilus-only-cuda\\nihilus_performance.exe)",
-      "name": "nihilus_performance.exe (src\\nihilus-only-cuda\\nihilus_performance.exe)",
+      "projectTarget": "nihilus-main.exe (src\\nihilus-cuda\\src\\nihilus-main.exe)",
+      "name": "nihilus-main.exe (src\\nihilus-cuda\\src\\nihilus-main.exe)",
       "args": [
         "-m C:\\Users\\Chris\\source\\repos\\oi-engine\\models\\Meta-Llama-3.1-8B-Instruct-Q8_0.gguf -p \"What is the meaning of life?What is the meaning of life?What is the meaning of life?\" -s 0 -n 2048 -no-cnv -c 16384 -b 512"
       ]

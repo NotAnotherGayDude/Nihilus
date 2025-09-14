@@ -22,7 +22,7 @@
       }
     },
     {
-      "name": "x64-debug-base",
+      "name": "debug-base",
       "hidden": true,
       "inherits": "${hostSystemName}-base",
       "cacheVariables": {
@@ -30,7 +30,7 @@
       }
     },
     {
-      "name": "x64-release-base",
+      "name": "release-base",
       "hidden": true,
       "inherits": "${hostSystemName}-base",
       "cacheVariables": {
@@ -38,38 +38,36 @@
       }
     },
     {
-      "name": "x64-release-nihilus-only",
-      "inherits": "x64-release-base",
+      "name": "release-nihilus-cpu",
+      "inherits": "release-base",
       "cacheVariables": {
-        "NIHILUS_ONLY": true
+        "NIHILUS_CPU": true
       }
     },
     {
-      "name": "x64-debug-nihilus-only",
-      "inherits": "x64-debug-base",
+      "name": "debug-nihilus-cpu",
+      "inherits": "debug-base",
       "cacheVariables": {
-        "NIHILUS_ONLY": true
+        "NIHILUS_CPU": true
       }
     },
     {
-      "name": "x64-release-nihilus-only-cuda",
-      "inherits": "x64-release-base",
+      "name": "release-nihilus-cuda",
+      "inherits": "release-base",
       "cacheVariables": {
-        "NIHILUS_ONLY_CUDA": true,
         "NIHILUS_CUDA_ENABLED": true
       }
     },
     {
-      "name": "x64-debug-nihilus-only-cuda",
-      "inherits": "x64-debug-base",
+      "name": "debug-nihilus-cuda",
+      "inherits": "debug-base",
       "cacheVariables": {
-        "NIHILUS_ONLY_CUDA": true,
         "NIHILUS_CUDA_ENABLED": true
       }
     },
     {
-      "name": "x64-debug-vs-llama-cuda",
-      "inherits": "x64-debug-base",
+      "name": "debug-vs-llama-cuda",
+      "inherits": "debug-base",
       "cacheVariables": {
         "VS_LLAMA_CUDA": true,
         "NIHILUS_CUDA_ENABLED": true,
@@ -79,8 +77,8 @@
       }
     },
     {
-      "name": "x64-release-vs-llama-cuda",
-      "inherits": "x64-release-base",
+      "name": "release-vs-llama-cuda",
+      "inherits": "release-base",
       "cacheVariables": {
         "VS_LLAMA_CUDA": true,
         "NIHILUS_CUDA_ENABLED": true,
@@ -90,8 +88,8 @@
       }
     },
     {
-      "name": "x64-debug-vs-llama-dev",
-      "inherits": "x64-debug-base",
+      "name": "debug-vs-llama-dev",
+      "inherits": "debug-base",
       "cacheVariables": {
         "LLAMA_CURL": "Off",
         "VS_LLAMA_DEV": true,
@@ -99,8 +97,8 @@
       }
     },
     {
-      "name": "x64-release-vs-llama-dev",
-      "inherits": "x64-release-base",
+      "name": "release-vs-llama-dev",
+      "inherits": "release-base",
       "cacheVariables": {
         "LLAMA_CURL": "Off",
         "VS_LLAMA_DEV": true,
@@ -108,16 +106,16 @@
       }
     },
     {
-      "name": "x64-debug-vs-llama-benchmark",
-      "inherits": "x64-debug-base",
+      "name": "debug-vs-llama-benchmark",
+      "inherits": "debug-base",
       "cacheVariables": {
         "LLAMA_CURL": "Off",
         "VS_LLAMA_BENCHMARK": true
       }
     },
     {
-      "name": "x64-release-vs-llama-benchmark",
-      "inherits": "x64-release-base",
+      "name": "release-vs-llama-benchmark",
+      "inherits": "release-base",
       "cacheVariables": {
         "LLAMA_CURL": "Off",
         "VS_LLAMA_BENCHMARK": true

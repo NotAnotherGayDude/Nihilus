@@ -20,18 +20,18 @@
 # 2025
 
 add_executable(
-	"nihilus_performance" 
+	"nihilus-main" 
 	"main${NIHILUS_MAIN_FILE_EXTENSION}"
 )
 
 target_link_libraries(
-	"nihilus_performance" PUBLIC 
+	"nihilus-main" PUBLIC 
 	nihilus::nihilus
 )
 
 install(
 	FILES 
-	"$<TARGET_FILE:nihilus_performance>"
+	"$<TARGET_FILE:nihilus-main>"
 	DESTINATION "bin"
 	OPTIONAL
 )

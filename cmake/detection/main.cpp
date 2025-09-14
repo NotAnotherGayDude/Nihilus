@@ -91,7 +91,7 @@ int32_t main() {
 		#if defined(__linux__)
 			#include <sys/auxv.h>
 			#include <asm/hwcap.h>
-		#elif defined(__APPLE__)
+		#elif defined(NIHILUS_PLATFORM_MAC)
 			#include <sys/sysctl.h>
 		#endif
 	#endif
@@ -284,14 +284,11 @@ inline size_t get_cache_size(cache_level level) {
 }
 
 int32_t main() {
-	const uint32_t thread_count = std::thread::hardware_concurrency();
-
+	const uint32_t thread_count	 = std::thread::hardware_concurrency();
 	const uint32_t supported_isa = detect_supported_architectures();
-
-	const size_t l1_cache_size = get_cache_size(cache_level::one);
-	const size_t l2_cache_size = get_cache_size(cache_level::two);
-	const size_t l3_cache_size = get_cache_size(cache_level::three);
-
+	const size_t l1_cache_size	 = get_cache_size(cache_level::one);
+	const size_t l2_cache_size	 = get_cache_size(cache_level::two);
+	const size_t l3_cache_size	 = get_cache_size(cache_level::three);
 	std::cout << "THREAD_COUNT=" << thread_count << std::endl;
 	std::cout << "INSTRUCTION_SET=" << supported_isa << std::endl;
 	std::cout << "HAS_AVX2=" << ((supported_isa & static_cast<uint32_t>(instruction_set::AVX2)) ? 1 : 0) << std::endl;
@@ -302,12 +299,10 @@ int32_t main() {
 	std::cout << "L2_CACHE_SIZE=" << l2_cache_size << std::endl;
 	std::cout << "L3_CACHE_SIZE=" << l3_cache_size << std::endl;
 	std::cout << "CPU_SUCCESS=1" << std::endl;
-
 	return 0;
 }
 #else
-	#include <thread>
-int32_t main() {
+int main() {
 	return -1;
 }
 #endif

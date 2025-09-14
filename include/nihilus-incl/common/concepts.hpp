@@ -208,4 +208,28 @@ namespace nihilus {
 	template<typename value_type>
 	concept not_pointer_types = !std::is_pointer_v<value_type>;
 
+	template<typename value_type>
+	concept dim01_types = requires() { detail::remove_cvref_t<value_type>::x; };
+
+	template<typename value_type>
+	concept dim02_types = requires() {
+		detail::remove_cvref_t<value_type>::x;
+		detail::remove_cvref_t<value_type>::y;
+	};
+
+	template<typename value_type>
+	concept dim03_types = requires() {
+		detail::remove_cvref_t<value_type>::x;
+		detail::remove_cvref_t<value_type>::y;
+		detail::remove_cvref_t<value_type>::z;
+	};
+
+	template<typename value_type>
+	concept dim04_types = requires() {
+		detail::remove_cvref_t<value_type>::x;
+		detail::remove_cvref_t<value_type>::y;
+		detail::remove_cvref_t<value_type>::z;
+		detail::remove_cvref_t<value_type>::w;
+	};
+
 }

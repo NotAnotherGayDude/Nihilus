@@ -20,7 +20,6 @@
 cmake_minimum_required(VERSION 3.28)
 
 set(PROJECT_NAME "nihilus")
-set(CMAKE_INSTALL_PREFIX "${CMAKE_SOURCE_DIR}/../Install")
 
 option(NIHILUS_DETECT_CPU_PROPERTIES "Override cpu-cache-size selection" OFF)
 
@@ -40,6 +39,7 @@ if (NIHILUS_CUDA_ENABLED)
         DESCRIPTION "Nihilus: You trained the model. Nihilus gives it a voice."
         LANGUAGES CUDA
     )
+    set(NIHILUS_COMPILER "${CMAKE_CUDA_COMPILER_ID}")
     set(NIHILUS_MAIN_FILE_EXTENSION ".cu")
 else()
     set(CMAKE_CXX_STANDARD 20)
@@ -50,28 +50,20 @@ else()
         DESCRIPTION "Nihilus: You trained the model. Nihilus gives it a voice."
         LANGUAGES CXX
     )
+    set(NIHILUS_COMPILER "${CMAKE_CXX_COMPILER_ID}")
     set(NIHILUS_MAIN_FILE_EXTENSION ".cpp")
 endif()
 
 include("cmake/detection/nihilus_detect_cpu_properties.cmake")
 
-add_library("${PROJECT_NAME}" INTERFACE)
+file(GLOB_RECURSE HEADERS "./include/*.hpp" "./include/*.cuh")
+
+add_library("${PROJECT_NAME}" INTERFACE "${HEADERS}")
 add_library("${PROJECT_NAME}::${PROJECT_NAME}" ALIAS "${PROJECT_NAME}")
 
 set_target_properties(
     "${PROJECT_NAME}" PROPERTIES
     OUTPUT_NAME "nihilus"
-    CXX_STANDARD_REQUIRED ON
-    CXX_EXTENSIONS OFF
-    CXX_VISIBILITY_PRESET hidden
-    VISIBILITY_INLINES_HIDDEN ON
-    INTERPROCEDURAL_OPTIMIZATION TRUE
-    POSITION_INDEPENDENT_CODE OFF
-    $<$<CXX_COMPILER_ID:MSVC>:
-        VS_GLOBAL_EnableCppCoreCheck true
-        VS_GLOBAL_CodeAnalysisRuleSet AllRules.ruleset
-        VS_GLOBAL_RunCodeAnalysis true
-    >
 )
 
 include("${CMAKE_SOURCE_DIR}/cmake/flags_and_options.cmake")
@@ -119,19 +111,17 @@ message(STATUS "==========================")
 message(STATUS "Version: ${PROJECT_VERSION}")
 message(STATUS "Max Thread Count: ${NIHILUS_THREAD_COUNT}")
 message(STATUS "Architecture: ${CMAKE_SYSTEM_PROCESSOR}")
-message(STATUS "Compiler: ${CMAKE_CXX_COMPILER_ID}")
-message(STATUS "CPU Variants: ${NIHILUS_SIMD_FLAGS}")
+message(STATUS "Compiler: ${NIHILUS_COMPILER}")
+message(STATUS "CPU Variants: ${NIHILUS_INSTRUCTION_SET_NAME}")
 
-if (VS_LLAMA_CLEAN)
+if (NIHILUS_CPU OR NIHILUS_CUDA_ENABLED)
+    add_subdirectory("./src")
+elseif (VS_LLAMA_CLEAN)
     add_subdirectory("./tests/vs-llama-clean")
 elseif (VS_LLAMA_DEV)
     add_subdirectory("./tests/vs-llama-dev")
 elseif (VS_LLAMA_BENCHMARK)
     add_subdirectory("./tests/vs-llama-benchmark")
-elseif (NIHILUS_ONLY)
-    add_subdirectory("./tests/nihilus-only")
-elseif (VS_LLAMA_CUDA)
+elseif(VS_LLAMA_CUDA)
     add_subdirectory("./tests/vs-llama-cuda")
-elseif (NIHILUS_ONLY_CUDA)
-    add_subdirectory("./src/nihilus-only-cuda")
 endif()

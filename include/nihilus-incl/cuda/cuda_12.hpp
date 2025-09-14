@@ -99,30 +99,6 @@ namespace nihilus {
 		block_dims.z = 1;
 	}
 
-	template<typename value_type>
-	concept dim01_types = requires() { detail::remove_cvref_t<value_type>::x; };
-
-	template<typename value_type>
-	concept dim02_types = requires() {
-		detail::remove_cvref_t<value_type>::x;
-		detail::remove_cvref_t<value_type>::y;
-	};
-
-	template<typename value_type>
-	concept dim03_types = requires() {
-		detail::remove_cvref_t<value_type>::x;
-		detail::remove_cvref_t<value_type>::y;
-		detail::remove_cvref_t<value_type>::z;
-	};
-
-	template<typename value_type>
-	concept dim04_types = requires() {
-		detail::remove_cvref_t<value_type>::x;
-		detail::remove_cvref_t<value_type>::y;
-		detail::remove_cvref_t<value_type>::z;
-		detail::remove_cvref_t<value_type>::w;
-	};
-
 	template<typename value_type> struct get_value_type {
 		NIHILUS_INLINE static constexpr auto impl() {
 			if constexpr (int8_types<value_type>) {

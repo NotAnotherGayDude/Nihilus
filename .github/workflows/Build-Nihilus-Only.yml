@@ -72,16 +72,16 @@ jobs:
     - name: Configure CMake (Ubuntu-Gcc)
       if: matrix.os == 'ubuntu-latest' && matrix.compiler == 'gcc'
       run: |
-        cmake -S . -B ./Build -DCMAKE_BUILD_TYPE=Release -DLLAMA_CURL=OFF -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=TRUE -DCMAKE_INSTALL_RPATH="@loader_path/../lib" -DNIHILUS_ONLY=TRUE -DGGML_METAL=OFF  -DCMAKE_CXX_COMPILER=/usr/bin/g++-14
+        cmake -S . -B ./Build -DCMAKE_BUILD_TYPE=Release -DLLAMA_CURL=OFF -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=TRUE -DCMAKE_INSTALL_RPATH="@loader_path/../lib" -DNIHILUS_CPU=TRUE -DGGML_METAL=OFF  -DCMAKE_CXX_COMPILER=/usr/bin/g++-14
     
     - name: Configure CMake (Ubuntu-Clang)
       if: matrix.os == 'ubuntu-latest' && matrix.compiler == 'clang'
       run: |
-        cmake -S . -B ./Build -DCMAKE_BUILD_TYPE=Release -DLLAMA_CURL=OFF -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=TRUE -DCMAKE_INSTALL_RPATH="@loader_path/../lib" -DNIHILUS_ONLY=TRUE -DGGML_METAL=OFF  -DCMAKE_CXX_COMPILER=/usr/bin/clang++-20
+        cmake -S . -B ./Build -DCMAKE_BUILD_TYPE=Release -DLLAMA_CURL=OFF -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=TRUE -DCMAKE_INSTALL_RPATH="@loader_path/../lib" -DNIHILUS_CPU=TRUE -DGGML_METAL=OFF  -DCMAKE_CXX_COMPILER=/usr/bin/clang++-20
 
     - name: Configure CMake
       run: |
-        cmake -S . -B ./Build -DCMAKE_BUILD_TYPE=Release -DLLAMA_CURL=OFF -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=TRUE -DCMAKE_INSTALL_RPATH="@loader_path/../lib" -DNIHILUS_ONLY=TRUE -DGGML_METAL=OFF 
+        cmake -S . -B ./Build -DCMAKE_BUILD_TYPE=Release -DLLAMA_CURL=OFF -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=TRUE -DCMAKE_INSTALL_RPATH="@loader_path/../lib" -DNIHILUS_CPU=TRUE -DGGML_METAL=OFF 
     
     - name: Build Project
       run: |
@@ -109,17 +109,17 @@ jobs:
       if: runner.os == 'macOS'
       run: |
         export DYLD_LIBRARY_PATH="${GITHUB_WORKSPACE}/../Install/lib:$DYLD_LIBRARY_PATH"
-        chmod +x "${GITHUB_WORKSPACE}/../Install/bin/nihilus_performance"
-        "${GITHUB_WORKSPACE}/../Install/bin/nihilus_performance" -m installed-to/Meta-Llama-3.1-8B-Instruct-Q8_0.gguf -p "What is the meaning of life?" -s 0 -n 8 -no-cnv -t 1 
+        chmod +x "/usr/local/bin/nihilus-main"
+        "/usr/local/bin/nihilus-main" -m installed-to/Meta-Llama-3.1-8B-Instruct-Q8_0.gguf -p "What is the meaning of life?" -s 0 -n 8 -no-cnv -t 1 
     
     - name: Set Library Path and Run Model (Linux)
       if: runner.os == 'Linux'
       run: |
         export LD_LIBRARY_PATH="${GITHUB_WORKSPACE}/../Install/lib:$LD_LIBRARY_PATH"
-        chmod +x "${GITHUB_WORKSPACE}/../Install/bin/nihilus_performance"
-        "${GITHUB_WORKSPACE}/../Install/bin/nihilus_performance" -m installed-to/Meta-Llama-3.1-8B-Instruct-Q8_0.gguf -p "What is the meaning of life?" -s 0 -n 8 -no-cnv -t 1 
+        chmod +x "/usr/local/bin/nihilus-main"
+        "/usr/local/bin/nihilus-main" -m installed-to/Meta-Llama-3.1-8B-Instruct-Q8_0.gguf -p "What is the meaning of life?" -s 0 -n 8 -no-cnv -t 1 
     
     - name: Run Model (Windows)
       if: runner.os == 'Windows'
       run: |
-        & "${env:GITHUB_WORKSPACE}\..\Install\bin\nihilus_performance.exe" -m installed-to/Meta-Llama-3.1-8B-Instruct-Q8_0.gguf -p "What is the meaning of life?" -s 0 -n 8 -no-cnv -t 1 
+        & "C:/Program Files (x86)/nihilus/bin/nihilus-main.exe" -m installed-to/Meta-Llama-3.1-8B-Instruct-Q8_0.gguf -p "What is the meaning of life?" -s 0 -n 8 -no-cnv -t 1 

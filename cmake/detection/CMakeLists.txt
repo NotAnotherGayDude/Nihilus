@@ -19,18 +19,13 @@
 
 cmake_minimum_required(VERSION 3.28)
 
-if(NIHILUS_DETECT_CPU_PROPERTIES)
-    project(
-        feature_detector 
-        VERSION "1.0.0"
-        LANGUAGES CXX 
-    )
-else()    
-    project(
-        feature_detector 
-        VERSION "1.0.0"
-        LANGUAGES CUDA
-    )
+project(
+    feature_detector 
+    VERSION "1.0.0"
+    LANGUAGES CXX
+)
+
+if(NIHILUS_DETECT_GPU_PROPERTIES)
     find_package(CUDAToolkit REQUIRED)
     set_property(GLOBAL PROPERTY CUDA_ARCHITECTURES native)
 endif()
@@ -40,8 +35,8 @@ add_executable(feature_detector main.cpp)
 include("${CMAKE_SOURCE_DIR}/../flags_and_options.cmake")
 
 if(NIHILUS_DETECT_CPU_PROPERTIES)
-    target_compile_definitions(feature_detector PUBLIC "NIHILUS_DETECT_CPU_PROPERTIES;${NIHILUS_PLATFORM_DEFINITIONS}")    
+    target_compile_definitions(feature_detector PUBLIC "NIHILUS_DETECT_CPU_PROPERTIES;${NIHILUS_COMPILE_DEFINITIONS}")    
 elseif(NIHILUS_DETECT_GPU_PROPERTIES)
     target_link_libraries(feature_detector PUBLIC CUDA::cudart)
-    target_compile_definitions(feature_detector PUBLIC "NIHILUS_DETECT_GPU_PROPERTIES;${NIHILUS_PLATFORM_DEFINITIONS}")
+    target_compile_definitions(feature_detector PUBLIC "NIHILUS_DETECT_GPU_PROPERTIES;${NIHILUS_COMPILE_DEFINITIONS}")
 endif()

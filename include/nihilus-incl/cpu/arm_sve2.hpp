@@ -23,9 +23,6 @@ RealTimeChris (Chris M.)
 #include <nihilus-incl/cpu/common.hpp>
 
 #if NIHILUS_SVE2
-
-	#include <arm_sve2.h>
-
 namespace nihilus {
 
 	template<typename output_type> NIHILUS_INLINE static constexpr int64_t calculate_chunk_count(output_type& output, uint64_t& chunk_size, int64_t thread_count) {

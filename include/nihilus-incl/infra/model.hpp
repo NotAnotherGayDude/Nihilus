@@ -107,9 +107,8 @@ namespace nihilus {
 
 			if constexpr (config_new.benchmark || config_new.dev) {
 				perf_base<config_new>::perf_stats.load_start = clock_type::now();
-			}
-			gguf_metadata<config_new> model_construction_data =
-				model_parser<config_new>::parse_model(params.model_file, data, metadata_memory, weight_memory, *static_cast<tokenizer_type*>(this));
+			}			
+			model_parser<config_new>::parse_model(params.model_file, data, metadata_memory, weight_memory, *static_cast<tokenizer_type*>(this));
 
 			if constexpr (config_new.benchmark || config_new.dev) {
 				auto load_end										 = clock_type::now();

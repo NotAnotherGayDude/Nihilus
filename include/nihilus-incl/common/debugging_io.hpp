@@ -29,7 +29,7 @@ RealTimeChris (Chris M.)
 #include <fstream>
 #include <string>
 
-#if defined(NIHILUS_DEV) && !defined(NDEBUG)
+#if defined(NIHILUS_DEV) && defined(_DEBUG2)
 
 	#include <jsonifier/Index.hpp>
 
