@@ -19,14 +19,14 @@
 
 set(NIHILUS_COMPILE_DEFINITIONS
     "NIHILUS_ARCH_X64=$<IF:$<OR:$<STREQUAL:${CMAKE_SYSTEM_PROCESSOR},x86_64>,$<STREQUAL:${CMAKE_SYSTEM_PROCESSOR},AMD64>>,1,0>"
-    "NIHILUS_ARCH_ARM64=$<IF:$<OR:$<STREQUAL:${CMAKE_SYSTEM_PROCESSOR},aarch64>,$<STREQUAL:${CMAKE_SYSTEM_PROCESSOR},ARM64>,$<STREQUAL:${CMAKE_SYSTEM_PROCESSOR},arm64>>,1,0>"    
-    "$<IF:$<PLATFORM_ID:Windows>,NIHILUS_PLATFORM_WINDOWS=1;NIHILUS_PLATFORM_MAC=0;NIHILUS_PLATFORM_LINUX=0,>"
-    "$<IF:$<PLATFORM_ID:Linux>,NIHILUS_PLATFORM_WINDOWS=0;NIHILUS_PLATFORM_MAC=0;NIHILUS_PLATFORM_LINUX=1,>"
-    "$<IF:$<PLATFORM_ID:Darwin>,NIHILUS_PLATFORM_WINDOWS=0;NIHILUS_PLATFORM_MAC=1;NIHILUS_PLATFORM_LINUX=0,>"    
-    "$<IF:$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>,NIHILUS_COMPILER_CLANG=1;NIHILUS_COMPILER_MSVC=0;NIHILUS_COMPILER_GNUCXX=0;NIHILUS_COMPILER_CUDA=0,>"
-    "$<IF:$<CXX_COMPILER_ID:MSVC>,NIHILUS_COMPILER_CLANG=0;NIHILUS_COMPILER_MSVC=1;NIHILUS_COMPILER_GNUCXX=0;NIHILUS_COMPILER_CUDA=0,>"
-    "$<IF:$<CXX_COMPILER_ID:GNU>,NIHILUS_COMPILER_CLANG=0;NIHILUS_COMPILER_MSVC=0;NIHILUS_COMPILER_GNUCXX=1;NIHILUS_COMPILER_CUDA=0,>"
-    "$<IF:$<CUDA_COMPILER_ID:NVIDIA>,NIHILUS_COMPILER_CLANG=0;NIHILUS_COMPILER_MSVC=0;NIHILUS_COMPILER_GNUCXX=0;NIHILUS_COMPILER_CUDA=1,>"
+    "NIHILUS_ARCH_ARM64=$<IF:$<OR:$<STREQUAL:${CMAKE_SYSTEM_PROCESSOR},aarch64>,$<STREQUAL:${CMAKE_SYSTEM_PROCESSOR},ARM64>,$<STREQUAL:${CMAKE_SYSTEM_PROCESSOR},arm64>>,1,0>"
+    "NIHILUS_COMPILER_CUDA=$<IF:$<CUDA_COMPILER_ID:NVIDIA>,1,0>"
+    "NIHILUS_PLATFORM_WINDOWS=$<IF:$<PLATFORM_ID:Windows>,1,0>"
+    "NIHILUS_PLATFORM_LINUX=$<IF:$<PLATFORM_ID:Linux>,1,0>"
+    "NIHILUS_PLATFORM_MAC=$<IF:$<PLATFORM_ID:Darwin>,1,0>"
+    "NIHILUS_COMPILER_CLANG=$<IF:$<OR:$<CXX_COMPILER_ID:Clang>,$<CXX_COMPILER_ID:AppleClang>>,1,0>>"
+    "NIHILUS_COMPILER_MSVC=$<IF:$<CXX_COMPILER_ID:MSVC>,1,0>"
+    "NIHILUS_COMPILER_GNUCXX=$<IF:$<CXX_COMPILER_ID:GNU>,1,0>"
     "$<$<CXX_COMPILER_ID:MSVC>:NOMINMAX;WIN32_LEAN_AND_MEAN>"
     "NIHILUS_CUDA_ENABLED=$<IF:$<CUDA_COMPILER_ID:NVIDIA>,1,0>"
     "NIHILUS_DEV=$<IF:$<CONFIG:Release>,0,1>"
@@ -40,9 +40,9 @@ if(MSVC OR NVCC)
 endif()
 
 set(NIHILUS_COMPILE_OPTIONS
-    "$<$<CXX_COMPILER_ID:Clang>:-O3;-flto=thin;-funroll-loops;-fvectorize;-fslp-vectorize;-finline-functions;-fomit-frame-pointer;-fmerge-all-constants;-ftemplate-depth=2048;-fconstexpr-depth=2048;-fconstexpr-steps=50000000;-ftemplate-backtrace-limit=0;-ffunction-sections;-fdata-sections;-falign-functions=32;-fno-math-errno;-ffp-contract=on;-fvisibility=hidden;-fvisibility-inlines-hidden;-fno-rtti;-fno-asynchronous-unwind-tables;-fno-unwind-tables;-fno-stack-protector;-fno-ident;-pipe;-fno-common;-fwrapv;-D_FORTIFY_SOURCE=0;-Weverything;-Wnon-virtual-dtor;-Wno-c++98-compat;-Wno-c++98-compat-pedantic;-Wno-unsafe-buffer-usage;-Wno-padded;-Wno-c++20-compat;-Wno-exit-time-destructors>"#;-Werror>"
-    "$<$<CXX_COMPILER_ID:AppleClang>:-O3;-flto=thin;-funroll-loops;-fvectorize;-fslp-vectorize;-finline-functions;-fomit-frame-pointer;-fmerge-all-constants;-ftemplate-depth=2048;-fconstexpr-depth=2048;-fconstexpr-steps=50000000;-ftemplate-backtrace-limit=0;-ffunction-sections;-fdata-sections;-falign-functions=32;-fno-math-errno;-ffp-contract=on;-fvisibility=hidden;-fvisibility-inlines-hidden;-fno-rtti;-fno-asynchronous-unwind-tables;-fno-unwind-tables;-fno-stack-protector;-fno-ident;-pipe;-fno-common;-fwrapv;-D_FORTIFY_SOURCE=0;-Weverything;-Wnon-virtual-dtor;-Wno-c++98-compat;-Wno-c++98-compat-pedantic;-Wno-unsafe-buffer-usage;-Wno-padded;-Wno-c++20-compat;-Wno-exit-time-destructors;-Wno-poison-system-directories>"#;-Werror>"
-    "$<$<CXX_COMPILER_ID:GNU>:-O3;-flto;-funroll-loops;-finline-functions;-fomit-frame-pointer;-fno-math-errno;-ftemplate-depth=2000;-fconstexpr-depth=2000;-fconstexpr-ops-limit=100000000;-fconstexpr-loop-limit=1000000;-falign-functions=32;-falign-loops=32;-fprefetch-loop-arrays;-ftree-vectorize;-fstrict-aliasing;-ffunction-sections;-fdata-sections;-fvisibility=hidden;-fvisibility-inlines-hidden;-fno-keep-inline-functions;-fno-ident;-fmerge-all-constants;-fno-stack-protector;-fno-rtti;-fgcse-after-reload;-ftree-loop-distribute-patterns;-fpredictive-commoning;-funswitch-loops;-ftree-loop-vectorize;-ftree-slp-vectorize;-Wall;-Wextra;-Wpedantic;-Wnon-virtual-dtor;-Wlogical-op;-Wduplicated-cond;-Wduplicated-branches;-Wnull-dereference;-Wdouble-promotion>"#;-Werror>"
+    "$<$<CXX_COMPILER_ID:Clang>:-O3;-funroll-loops;-fvectorize;-fslp-vectorize;-finline-functions;-fomit-frame-pointer;-fmerge-all-constants;-ftemplate-depth=2048;-fconstexpr-depth=2048;-fconstexpr-steps=50000000;-ftemplate-backtrace-limit=0;-ffunction-sections;-fdata-sections;-falign-functions=32;-fno-math-errno;-ffp-contract=on;-fvisibility=hidden;-fvisibility-inlines-hidden;-fno-rtti;-fno-asynchronous-unwind-tables;-fno-unwind-tables;-fno-stack-protector;-fno-ident;-pipe;-fno-common;-fwrapv;-D_FORTIFY_SOURCE=0;-Weverything;-Wnon-virtual-dtor;-Wno-c++98-compat;-Wno-c++98-compat-pedantic;-Wno-unsafe-buffer-usage;-Wno-padded;-Wno-c++20-compat;-Wno-exit-time-destructors>"#;-Werror>"
+    "$<$<CXX_COMPILER_ID:AppleClang>:-O3;-funroll-loops;-fvectorize;-fslp-vectorize;-finline-functions;-fomit-frame-pointer;-fmerge-all-constants;-ftemplate-depth=2048;-fconstexpr-depth=2048;-fconstexpr-steps=50000000;-ftemplate-backtrace-limit=0;-ffunction-sections;-fdata-sections;-falign-functions=32;-fno-math-errno;-ffp-contract=on;-fvisibility=hidden;-fvisibility-inlines-hidden;-fno-rtti;-fno-asynchronous-unwind-tables;-fno-unwind-tables;-fno-stack-protector;-fno-ident;-pipe;-fno-common;-fwrapv;-D_FORTIFY_SOURCE=0;-Weverything;-Wnon-virtual-dtor;-Wno-c++98-compat;-Wno-c++98-compat-pedantic;-Wno-unsafe-buffer-usage;-Wno-padded;-Wno-c++20-compat;-Wno-exit-time-destructors;-Wno-poison-system-directories>"#;-Werror>"
+    "$<$<CXX_COMPILER_ID:GNU>:-O3;;-funroll-loops;-finline-functions;-fomit-frame-pointer;-fno-math-errno;-ftemplate-depth=2000;-fconstexpr-depth=2000;-fconstexpr-ops-limit=100000000;-fconstexpr-loop-limit=1000000;-falign-functions=32;-falign-loops=32;-fprefetch-loop-arrays;-ftree-vectorize;-fstrict-aliasing;-ffunction-sections;-fdata-sections;-fvisibility=hidden;-fvisibility-inlines-hidden;-fno-keep-inline-functions;-fno-ident;-fmerge-all-constants;-fno-stack-protector;-fno-rtti;-fgcse-after-reload;-ftree-loop-distribute-patterns;-fpredictive-commoning;-funswitch-loops;-ftree-loop-vectorize;-ftree-slp-vectorize;-Wall;-Wextra;-Wpedantic;-Wnon-virtual-dtor;-Wlogical-op;-Wduplicated-cond;-Wduplicated-branches;-Wnull-dereference;-Wdouble-promotion>"#;-Werror>"
     "$<$<CXX_COMPILER_ID:MSVC>:/Ob3;/Ot;/Oy;/GT;/GL;/fp:precise;/Qpar;/constexpr:depth2048;/constexpr:backtrace0;/constexpr:steps2000000;/GS-;/Gy;/Gw;/Zc:inline;/Zc:throwingNew;/W4;/permissive-;/Zc:__cplusplus;/wd4820;/wd4324;/wd5002;/Zc:alignedNew;/Zc:auto;/Zc:forScope;/Zc:implicitNoexcept;/Zc:noexceptTypes;/Zc:referenceBinding;/Zc:rvalueCast;/Zc:sizedDealloc;/Zc:strictStrings;/Zc:ternary;/Zc:wchar_t>"#;/WX>"\
     "$<$<CUDA_COMPILER_ID:NVIDIA>:-O3;--fmad=false;--prec-div=true;--prec-sqrt=true;--restrict;--ftemplate-depth=2048;--extended-lambda>"
     "$<$<AND:$<CXX_COMPILER_ID:Clang>,$<PLATFORM_ID:Linux>>:-fno-plt;-fno-semantic-interposition>"
@@ -50,11 +50,11 @@ set(NIHILUS_COMPILE_OPTIONS
 )
 
 set(NIHILUS_LINK_OPTIONS
-    "$<$<AND:$<CXX_COMPILER_ID:Clang>,$<PLATFORM_ID:Darwin>>:-flto=thin;-Wl,-dead_strip;-Wl,-x;-Wl,-S>"
-    "$<$<AND:$<CXX_COMPILER_ID:AppleClang>,$<PLATFORM_ID:Darwin>>:-flto=thin;-Wl,-dead_strip;-Wl,-x;-Wl,-S>"
-    "$<$<AND:$<CXX_COMPILER_ID:GNU>,$<PLATFORM_ID:Darwin>>:-flto;-Wl,-dead_strip;-Wl,-x;-Wl,-S>"
-    "$<$<AND:$<CXX_COMPILER_ID:Clang>,$<PLATFORM_ID:Linux>>:-flto=thin;-Wl,--gc-sections;-Wl,--strip-all;-Wl,--build-id=none;-Wl,--hash-style=gnu;-Wl,-z,now;-Wl,-z,relro>"
-    "$<$<AND:$<CXX_COMPILER_ID:GNU>,$<PLATFORM_ID:Linux>>:-flto=auto;-Wl,--gc-sections;-Wl,--strip-all;-Wl,--as-needed;-Wl,-O3>"
-    "$<$<AND:$<CXX_COMPILER_ID:MSVC>,$<PLATFORM_ID:Windows>>:/LTCG;/DYNAMICBASE:NO;/OPT:REF;/OPT:ICF;/INCREMENTAL:NO;/MACHINE:X64>"
+    "$<$<AND:$<CXX_COMPILER_ID:Clang>,$<PLATFORM_ID:Darwin>>:-Wl,-dead_strip;-Wl,-x;-Wl,-S>"
+    "$<$<AND:$<CXX_COMPILER_ID:AppleClang>,$<PLATFORM_ID:Darwin>>:-Wl,-dead_strip;-Wl,-x;-Wl,-S>"
+    "$<$<AND:$<CXX_COMPILER_ID:GNU>,$<PLATFORM_ID:Darwin>>:-Wl,-dead_strip;-Wl,-x;-Wl,-S>"
+    "$<$<AND:$<CXX_COMPILER_ID:Clang>,$<PLATFORM_ID:Linux>>:-Wl,--gc-sections;-Wl,--strip-all;-Wl,--build-id=none;-Wl,--hash-style=gnu;-Wl,-z,now;-Wl,-z,relro>"
+    "$<$<AND:$<CXX_COMPILER_ID:GNU>,$<PLATFORM_ID:Linux>>:-Wl,--gc-sections;-Wl,--strip-all;-Wl,--as-needed;-Wl,-O3>"
+    "$<$<AND:$<CXX_COMPILER_ID:MSVC>,$<PLATFORM_ID:Windows>>:/DYNAMICBASE:NO;/OPT:REF;/OPT:ICF;/INCREMENTAL:NO;/MACHINE:X64>"
     #"$<$<CUDA_COMPILER_ID:NVIDIA>:-Xlinker=-O3>"
 )

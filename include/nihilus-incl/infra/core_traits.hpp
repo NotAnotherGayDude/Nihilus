@@ -64,6 +64,7 @@ namespace nihilus {
 
 	template<integral_or_enum_types auto index, typename derived_type_new> struct core_elem_base {
 		using derived_type = derived_type_new;
+		mutable uint64_t total_required_bytes_rt{};
 
 		NIHILUS_INLINE constexpr decltype(auto) operator[](tag<index>) & noexcept {
 			return *static_cast<derived_type*>(this);

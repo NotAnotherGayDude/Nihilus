@@ -22,7 +22,7 @@ RealTimeChris (Chris M.)
 
 #include <nihilus-incl/common/kernel_traits.hpp>
 #include <nihilus-incl/cpu/nihilus_cpu_properties.hpp>
-#include <nihilus-incl/cuda/common.hpp>
+#include <nihilus-incl/cuda/common.cuh>
 #include <nihilus-incl/common/common.hpp>
 
 namespace nihilus {

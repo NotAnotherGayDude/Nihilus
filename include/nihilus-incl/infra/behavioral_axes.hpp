@@ -21,6 +21,7 @@ RealTimeChris (Chris M.)
 #pragma once
 
 #include <nihilus-incl/infra/monolithic_dispatcher.hpp>
+#include <nihilus-incl/common/type_traits.hpp>
 #include <nihilus-incl/cpu/memory_buffer.hpp>
 #include <nihilus-incl/common/common.hpp>
 #include <nihilus-incl/common/tuple.hpp>
@@ -201,8 +202,10 @@ namespace nihilus {
 			return runtime_dims_t<base_type>;
 		}
 
-		NIHILUS_INLINE static void impl(base_type& parse_core, uint64_t runtime_dimension) {
-			parse_core.get_mutable_dim() = runtime_dimension;
+		NIHILUS_INLINE static void impl(base_type& parse_core, uint64_t runtime_dimension, uint64_t& total_required_bytes) {
+			parse_core.get_mutable_dim()	   = runtime_dimension;
+			parse_core.total_required_bytes_rt = type_traits<typename base_type::output_type>::total_byte_size(parse_core.get_array_rt());
+			total_required_bytes += parse_core.total_required_bytes_rt;
 		}
 	};
 
@@ -218,7 +221,9 @@ namespace nihilus {
 		}
 
 		NIHILUS_INLINE static void impl(base_type& parse_core, uint64_t runtime_dimension) {
-			parse_core.values.template impl<dim_updater_impl>(runtime_dimension);
+			uint64_t total_required_bytes{};
+			parse_core.values.template impl<dim_updater_impl>(runtime_dimension, total_required_bytes);
+			parse_core.total_required_bytes_rt = total_required_bytes;
 		}
 	};
 

@@ -18,17 +18,17 @@ RealTimeChris (Chris M.)
 2025
 */
 
-#pragma once
-
 #if NIHILUS_CUDA_ENABLED
 
-	#include <cuda_runtime.h>
-	#include <cuda.h>
-	#include <nihilus-incl/cuda/nihilus_gpu_properties.hpp>
-	#include <nihilus-incl/common/array.hpp>
-	#include <nihilus-incl/infra/core_bases.hpp>
-	#include <nihilus-incl/common/config.hpp>
-	#include <nihilus-incl/cuda/cuda_12.hpp>
+#pragma once
+
+#include <cuda_runtime.h>
+#include <cuda.h>
+#include <nihilus-incl/cuda/nihilus_gpu_properties.hpp>
+#include <nihilus-incl/common/array.hpp>
+#include <nihilus-incl/infra/core_bases.hpp>
+#include <nihilus-incl/common/config.hpp>
+#include <nihilus-incl/cuda/cuda_12.cuh>
 
 namespace nihilus {
 
@@ -90,9 +90,9 @@ namespace nihilus {
 	template<const model_config& config>
 		requires(config.device_type == device_types::gpu)
 	struct memory_buffer<config> {
-		using value_type   = uint8_t;
-		using pointer	   = value_type*;
-		using size_type	   = uint64_t;
+		using value_type = uint8_t;
+		using pointer	 = value_type*;
+		using size_type	 = uint64_t;
 
 		NIHILUS_INLINE memory_buffer() noexcept								   = default;
 		NIHILUS_INLINE memory_buffer& operator=(const memory_buffer&) noexcept = delete;

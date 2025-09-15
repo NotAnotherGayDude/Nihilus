@@ -31,9 +31,7 @@ RealTimeChris (Chris M.)
 #include <latch>
 #include <cmath>
 
-namespace nihilus {
-
-	
+namespace nihilus {	
 
 	template<const model_config& config_new> struct config_holder {
 		static constexpr const model_config& config{ config_new };

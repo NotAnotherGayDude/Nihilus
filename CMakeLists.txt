@@ -39,7 +39,7 @@ if (NIHILUS_CUDA_ENABLED)
         DESCRIPTION "Nihilus: You trained the model. Nihilus gives it a voice."
         LANGUAGES CUDA
     )
-    set(NIHILUS_COMPILER "${CMAKE_CUDA_COMPILER_ID}")
+    set(NIHILUS_COMPILER_ID "${CMAKE_CUDA_COMPILER_ID}")
     set(NIHILUS_MAIN_FILE_EXTENSION ".cu")
 else()
     set(CMAKE_CXX_STANDARD 20)
@@ -50,7 +50,7 @@ else()
         DESCRIPTION "Nihilus: You trained the model. Nihilus gives it a voice."
         LANGUAGES CXX
     )
-    set(NIHILUS_COMPILER "${CMAKE_CXX_COMPILER_ID}")
+    set(NIHILUS_COMPILER_ID "${CMAKE_CXX_COMPILER_ID}")
     set(NIHILUS_MAIN_FILE_EXTENSION ".cpp")
 endif()
 
@@ -64,6 +64,15 @@ add_library("${PROJECT_NAME}::${PROJECT_NAME}" ALIAS "${PROJECT_NAME}")
 set_target_properties(
     "${PROJECT_NAME}" PROPERTIES
     OUTPUT_NAME "nihilus"
+    CXX_VISIBILITY_PRESET hidden
+    VISIBILITY_INLINES_HIDDEN ON
+    INTERPROCEDURAL_OPTIMIZATION TRUE
+    POSITION_INDEPENDENT_CODE OFF
+    $<$<CXX_COMPILER_ID:MSVC>:
+        VS_GLOBAL_EnableCppCoreCheck true
+        VS_GLOBAL_CodeAnalysisRuleSet AllRules.ruleset
+        VS_GLOBAL_RunCodeAnalysis true
+    >
 )
 
 include("${CMAKE_SOURCE_DIR}/cmake/flags_and_options.cmake")
@@ -111,7 +120,7 @@ message(STATUS "==========================")
 message(STATUS "Version: ${PROJECT_VERSION}")
 message(STATUS "Max Thread Count: ${NIHILUS_THREAD_COUNT}")
 message(STATUS "Architecture: ${CMAKE_SYSTEM_PROCESSOR}")
-message(STATUS "Compiler: ${NIHILUS_COMPILER}")
+message(STATUS "Compiler: ${NIHILUS_COMPILER_ID}")
 message(STATUS "CPU Variants: ${NIHILUS_INSTRUCTION_SET_NAME}")
 
 if (NIHILUS_CPU OR NIHILUS_CUDA_ENABLED)

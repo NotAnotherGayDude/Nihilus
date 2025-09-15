@@ -38,20 +38,6 @@
       }
     },
     {
-      "name": "release-nihilus-cpu",
-      "inherits": "release-base",
-      "cacheVariables": {
-        "NIHILUS_CPU": true
-      }
-    },
-    {
-      "name": "debug-nihilus-cpu",
-      "inherits": "debug-base",
-      "cacheVariables": {
-        "NIHILUS_CPU": true
-      }
-    },
-    {
       "name": "release-nihilus-cuda",
       "inherits": "release-base",
       "cacheVariables": {
@@ -63,6 +49,20 @@
       "inherits": "debug-base",
       "cacheVariables": {
         "NIHILUS_CUDA_ENABLED": true
+      }
+    },
+    {
+      "name": "release-nihilus-cpu",
+      "inherits": "release-base",
+      "cacheVariables": {
+        "NIHILUS_CPU": true
+      }
+    },
+    {
+      "name": "debug-nihilus-cpu",
+      "inherits": "debug-base",
+      "cacheVariables": {
+        "NIHILUS_CPU": true
       }
     },
     {

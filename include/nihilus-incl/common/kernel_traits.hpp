@@ -126,6 +126,7 @@ namespace nihilus {
 		static constexpr uint64_t dim01{ dim01_new };
 		static constexpr uint64_t dim02{ dim02_new };
 		static constexpr uint64_t dim03{ dim03_new };
+		mutable uint64_t total_required_bytes{};
 
 		NIHILUS_INLINE static constexpr array<uint64_t, 4> get_array() {
 			return { { dim00_new, dim01_new, dim02_new, dim03_new } };
@@ -138,6 +139,7 @@ namespace nihilus {
 		static constexpr uint64_t dim01{ dim01_new };
 		static constexpr uint64_t dim02{ dim02_new };
 		static constexpr uint64_t dim03{ dim03_new };
+		mutable uint64_t total_required_bytes{};
 
 		NIHILUS_INLINE static constexpr array<uint64_t, 4> get_array() {
 			return { { dim00_new, dim01_new, dim02_new, dim03_new } };
@@ -150,6 +152,7 @@ namespace nihilus {
 		static constexpr uint64_t dim01{ dim01_new };
 		static constexpr uint64_t dim02{ dim02_new };
 		static constexpr uint64_t dim03{ dim03_new };
+		mutable uint64_t total_required_bytes{};
 
 		const uint64_t* dims[4]{ &dim00, &dim01, &dim02, &dim03 };
 
@@ -172,6 +175,7 @@ namespace nihilus {
 		mutable uint64_t dim01{ dim01_new };
 		static constexpr uint64_t dim02{ dim02_new };
 		static constexpr uint64_t dim03{ dim03_new };
+		mutable uint64_t total_required_bytes{};
 
 		const uint64_t* dims[4]{ &dim00, &dim01, &dim02, &dim03 };
 
@@ -194,6 +198,7 @@ namespace nihilus {
 		static constexpr uint64_t dim01{ dim01_new };
 		mutable uint64_t dim02{ dim02_new };
 		static constexpr uint64_t dim03{ dim03_new };
+		mutable uint64_t total_required_bytes{};
 
 		const uint64_t* dims[4]{ &dim00, &dim01, &dim02, &dim03 };
 
