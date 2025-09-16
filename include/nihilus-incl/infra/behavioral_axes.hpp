@@ -91,7 +91,7 @@ namespace nihilus {
 			}
 			if constexpr (current_index > 0) {
 				for (size_t x = 0; x < current_index; ++x) {
-					if (values.footprints[x].is_active && values.footprints[x].depth <= threshold) {
+					if (values.footprints[x].is_active && values.footprints[x].depth <= threshold && values.footprints[x].depth != std::numeric_limits<uint64_t>::max() ) {
 						values.footprints[x].is_active = false;
 						values.currently_allocated_bytes -= values.footprints[x].total_required_bytes;
 					}

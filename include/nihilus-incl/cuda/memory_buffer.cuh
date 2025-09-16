@@ -55,9 +55,9 @@ namespace nihilus {
 		}
 		template<pointer_types value_type> NIHILUS_INLINE static void device_to_host(const value_type* src, value_type* dst, uint64_t count) noexcept {
 			if constexpr (config.dev) {
-				auto result = cudaMemcpy(static_cast<void*>(dst), static_cast<const void*>(src), sizeof(value_type) * count, cudaMemcpyDeviceToHost);
-				if (result != cudaError::cudaSuccess) {
-					log<log_levels::error>(std::string{ "Failed to copy from device to host (pointer types): " } + cudaGetErrorString(result));
+				if (cudaError_t err = cudaMemcpy(static_cast<void*>(dst), static_cast<const void*>(src), sizeof(value_type) * count, cudaMemcpyHostToDevice); err != cudaSuccess) {
+					static constexpr auto location = std::source_location::current();
+					nihilus_exception<config, "Failed to copy from device to host (pointer types): ", location>::impl(cudaGetErrorString(err));
 				}
 			} else {
 				cudaMemcpy(static_cast<void*>(dst), static_cast<const void*>(src), sizeof(value_type) * count, cudaMemcpyDeviceToHost);
@@ -65,9 +65,9 @@ namespace nihilus {
 		}
 		template<not_pointer_types value_type> NIHILUS_INLINE static void device_to_host(const value_type* src, value_type& dst) noexcept {
 			if constexpr (config.dev) {
-				auto result = cudaMemcpy(&dst, src, sizeof(value_type), cudaMemcpyDeviceToHost);
-				if (result != cudaError::cudaSuccess) {
-					log<log_levels::error>(std::string{ "Failed to copy from device to host: " } + cudaGetErrorString(result));
+				if (cudaError_t err = cudaMemcpy(dst, &src, sizeof(value_type), cudaMemcpyHostToDevice); err != cudaSuccess) {
+					static constexpr auto location = std::source_location::current();
+					nihilus_exception<config, "Failed to copy from device to host: ", location>::impl(cudaGetErrorString(err));
 				}
 			} else {
 				cudaMemcpy(&dst, src, sizeof(value_type), cudaMemcpyDeviceToHost);

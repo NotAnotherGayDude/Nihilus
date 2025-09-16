@@ -21,23 +21,18 @@ RealTimeChris (Chris M.)
 
 #if NIHILUS_CUDA_ENABLED
 
-#pragma once
+	#pragma once
 
-#include <nihilus-incl/infra/core_bases.hpp>
-#include <nihilus-incl/common/common.hpp>
-#include <nihilus-incl/common/utility.hpp>
-#include <nihilus-incl/common/type_traits.hpp>
-#include <nihilus-incl/infra/core_traits.hpp>
-#include <cuda_runtime.h>
-#include <cuda_fp16.h>
+	#include <nihilus-incl/infra/core_bases.hpp>
+	#include <nihilus-incl/common/common.hpp>
+	#include <nihilus-incl/common/utility.hpp>
+	#include <nihilus-incl/common/type_traits.hpp>
+	#include <nihilus-incl/infra/core_traits.hpp>
+	#include <cuda_runtime.h>
+	#include <cuda_fp16.h>
 
 namespace nihilus {
 
-	template<core_types kernel_type> struct kernel_scaling_factors {
-		static constexpr float memory_bound_factor	= 1.0f;
-		static constexpr float compute_bound_factor = 1.0f;
-	};
-	
 	struct cuda_launch_params {
 		uint64_t block_chunk_size;
 		uint64_t grid_chunk_size;
@@ -89,9 +84,13 @@ namespace nihilus {
 		return arg;
 	}
 
+	enum class get_value_type_errors {
+		invalid_type,
+	};
+
 	template<typename value_type> struct get_value_type {
-		template<typename... value_types> NIHILUS_INLINE static constexpr auto impl(value_types&&... args) {
-			if constexpr (int8_types<value_type>) {
+		template<typename... value_types> NIHILUS_INLINE __device__ static constexpr auto impl(value_types&&... args) {
+			if constexpr (int8_cuda_types<value_type>) {
 				if constexpr (dim01_types<value_type>) {
 					return make_char1(forward_device<value_types>(args)...);
 				} else if constexpr (dim02_types<value_type>) {
@@ -101,7 +100,7 @@ namespace nihilus {
 				} else if constexpr (dim04_types<value_type>) {
 					return make_char4(forward_device<value_types>(args)...);
 				}
-			} else if constexpr (int16_types<value_type>) {
+			} else if constexpr (int16_cuda_types<value_type>) {
 				if constexpr (dim01_types<value_type>) {
 					return make_short1(forward_device<value_types>(args)...);
 				} else if constexpr (dim02_types<value_type>) {
@@ -111,7 +110,7 @@ namespace nihilus {
 				} else if constexpr (dim04_types<value_type>) {
 					return make_short4(forward_device<value_types>(args)...);
 				}
-			} else if constexpr (int32_types<value_type>) {
+			} else if constexpr (int32_cuda_types<value_type>) {
 				if constexpr (dim01_types<value_type>) {
 					return make_int1(forward_device<value_types>(args)...);
 				} else if constexpr (dim02_types<value_type>) {
@@ -121,7 +120,57 @@ namespace nihilus {
 				} else if constexpr (dim04_types<value_type>) {
 					return make_int4(forward_device<value_types>(args)...);
 				}
-			} else if constexpr (float_types<value_type>) {
+			} else if constexpr (int64_cuda_types<value_type>) {
+				if constexpr (dim01_types<value_type>) {
+					return make_long1(forward_device<value_types>(args)...);
+				} else if constexpr (dim02_types<value_type>) {
+					return make_long2(forward_device<value_types>(args)...);
+				} else if constexpr (dim03_types<value_type>) {
+					return make_long3(forward_device<value_types>(args)...);
+				} else if constexpr (dim04_types<value_type>) {
+					return make_long4(forward_device<value_types>(args)...);
+				}
+			} else if constexpr (uint8_cuda_types<value_type>) {
+				if constexpr (dim01_types<value_type>) {
+					return make_uchar1(forward_device<value_types>(args)...);
+				} else if constexpr (dim02_types<value_type>) {
+					return make_uchar2(forward_device<value_types>(args)...);
+				} else if constexpr (dim03_types<value_type>) {
+					return make_uchar3(forward_device<value_types>(args)...);
+				} else if constexpr (dim04_types<value_type>) {
+					return make_uchar4(forward_device<value_types>(args)...);
+				}
+			} else if constexpr (uint16_cuda_types<value_type>) {
+				if constexpr (dim01_types<value_type>) {
+					return make_ushort1(forward_device<value_types>(args)...);
+				} else if constexpr (dim02_types<value_type>) {
+					return make_ushort2(forward_device<value_types>(args)...);
+				} else if constexpr (dim03_types<value_type>) {
+					return make_ushort3(forward_device<value_types>(args)...);
+				} else if constexpr (dim04_types<value_type>) {
+					return make_ushort4(forward_device<value_types>(args)...);
+				}
+			} else if constexpr (uint32_cuda_types<value_type>) {
+				if constexpr (dim01_types<value_type>) {
+					return make_uint1(forward_device<value_types>(args)...);
+				} else if constexpr (dim02_types<value_type>) {
+					return make_uint2(forward_device<value_types>(args)...);
+				} else if constexpr (dim03_types<value_type>) {
+					return make_uint3(forward_device<value_types>(args)...);
+				} else if constexpr (dim04_types<value_type>) {
+					return make_uint4(forward_device<value_types>(args)...);
+				}
+			} else if constexpr (uint64_cuda_types<value_type>) {
+				if constexpr (dim01_types<value_type>) {
+					return make_ulong1(forward_device<value_types>(args)...);
+				} else if constexpr (dim02_types<value_type>) {
+					return make_ulong2(forward_device<value_types>(args)...);
+				} else if constexpr (dim03_types<value_type>) {
+					return make_ulong3(forward_device<value_types>(args)...);
+				} else if constexpr (dim04_types<value_type>) {
+					return make_ulong4(forward_device<value_types>(args)...);
+				}
+			} else if constexpr (float32_cuda_types<value_type>) {
 				if constexpr (dim01_types<value_type>) {
 					return make_float1(forward_device<value_types>(args)...);
 				} else if constexpr (dim02_types<value_type>) {
@@ -131,6 +180,18 @@ namespace nihilus {
 				} else if constexpr (dim04_types<value_type>) {
 					return make_float4(forward_device<value_types>(args)...);
 				}
+			} else if constexpr (float64_cuda_types<value_type>) {
+				if constexpr (dim01_types<value_type>) {
+					return make_double1(forward_device<value_types>(args)...);
+				} else if constexpr (dim02_types<value_type>) {
+					return make_double2(forward_device<value_types>(args)...);
+				} else if constexpr (dim03_types<value_type>) {
+					return make_double3(forward_device<value_types>(args)...);
+				} else if constexpr (dim04_types<value_type>) {
+					return make_double4(forward_device<value_types>(args)...);
+				}
+			} else {
+				static_assert(static_assert_printer<false, get_value_type_errors::invalid_type, value_type>::impl);
 			}
 		}
 	};
@@ -142,93 +203,57 @@ namespace nihilus {
 		div,
 	};
 
-	template<binary_op_types binary_op_type> struct binary_op_base;
+	template<binary_op_types binary_op_type> struct binary_op_core;
 
-	template<> struct binary_op_base<binary_op_types::add> {
+	template<> struct binary_op_core<binary_op_types::add> {
 		template<typename value_type01, detail::convertible_to<value_type01> value_type02>
-		NIHILUS_INLINE static __device__ value_type01 impl_one(value_type01 val01, value_type02 val02) {
-			return val01 + val02;
-		}
-
-		template<typename value_type01, detail::convertible_to<value_type01> value_type02>
-		NIHILUS_INLINE static __device__ value_type01 impl_two(value_type01 val01, value_type02 val02) {
-			return get_value_type<value_type01>::impl(val01.x + val02.x, val01.y + val02.y);
-		}
-
-		template<typename value_type01, detail::convertible_to<value_type01> value_type02>
-		NIHILUS_INLINE static __device__ value_type01 impl_three(value_type01 val01, value_type02 val02) {
-			return get_value_type<value_type01>::impl(val01.x + val02.x, val01.y + val02.y, val01.z + val02.z);
-		}
-
-		template<typename value_type01, detail::convertible_to<value_type01> value_type02>
-		NIHILUS_INLINE static __device__ value_type01 impl_four(value_type01 val01, value_type02 val02) {
-			return get_value_type<value_type01>::impl(val01.x + val02.x, val01.y + val02.y, val01.z + val02.z, val01.w + val02.w);
+		NIHILUS_INLINE static __device__ value_type01 impl(value_type01 val01, value_type02 val02) {
+			return val01 + static_cast<value_type01>(val02);
 		}
 	};
 
-	template<> struct binary_op_base<binary_op_types::mul> {
+	template<> struct binary_op_core<binary_op_types::sub> {
 		template<typename value_type01, detail::convertible_to<value_type01> value_type02>
-		NIHILUS_INLINE static __device__ value_type01 impl_one(value_type01 val01, value_type02 val02) {
-			return val01 * val02;
-		}
-
-		template<typename value_type01, detail::convertible_to<value_type01> value_type02>
-		NIHILUS_INLINE static __device__ value_type01 impl_two(value_type01 val01, value_type02 val02) {
-			return get_value_type<value_type01>::impl(val01.x * val02.x, val01.y * val02.y);
-		}
-
-		template<typename value_type01, detail::convertible_to<value_type01> value_type02>
-		NIHILUS_INLINE static __device__ value_type01 impl_three(value_type01 val01, value_type02 val02) {
-			return get_value_type<value_type01>::impl(val01.x * val02.x, val01.y * val02.y, val01.z * val02.z);
-		}
-
-		template<typename value_type01, detail::convertible_to<value_type01> value_type02>
-		NIHILUS_INLINE static __device__ value_type01 impl_four(value_type01 val01, value_type02 val02) {
-			return get_value_type<value_type01>::impl(val01.x * val02.x, val01.y * val02.y, val01.z * val02.z, val01.w * val02.w);
+		NIHILUS_INLINE static __device__ value_type01 impl(value_type01 val01, value_type02 val02) {
+			return val01 - static_cast<value_type01>(val02);
 		}
 	};
 
-	template<> struct binary_op_base<binary_op_types::sub> {
+	template<> struct binary_op_core<binary_op_types::mul> {
 		template<typename value_type01, detail::convertible_to<value_type01> value_type02>
-		NIHILUS_INLINE static __device__ value_type01 impl_one(value_type01 val01, value_type02 val02) {
-			return val01 - val02;
-		}
-
-		template<typename value_type01, detail::convertible_to<value_type01> value_type02>
-		NIHILUS_INLINE static __device__ value_type01 impl_two(value_type01 val01, value_type02 val02) {
-			return get_value_type<value_type01>::impl(val01.x - val02.x, val01.y - val02.y);
-		}
-
-		template<typename value_type01, detail::convertible_to<value_type01> value_type02>
-		NIHILUS_INLINE static __device__ value_type01 impl_three(value_type01 val01, value_type02 val02) {
-			return get_value_type<value_type01>::impl(val01.x - val02.x, val01.y - val02.y, val01.z - val02.z);
-		}
-
-		template<typename value_type01, detail::convertible_to<value_type01> value_type02>
-		NIHILUS_INLINE static __device__ value_type01 impl_four(value_type01 val01, value_type02 val02) {
-			return get_value_type<value_type01>::impl(val01.x - val02.x, val01.y - val02.y, val01.z - val02.z, val01.w - val02.w);
+		NIHILUS_INLINE static __device__ value_type01 impl(value_type01 val01, value_type02 val02) {
+			return val01 * static_cast<value_type01>(val02);
 		}
 	};
 
-	template<> struct binary_op_base<binary_op_types::div> {
+	template<> struct binary_op_core<binary_op_types::div> {
+		template<typename value_type01, detail::convertible_to<value_type01> value_type02>
+		NIHILUS_INLINE static __device__ value_type01 impl(value_type01 val01, value_type02 val02) {
+			return val01 / static_cast<value_type01>(val02);
+		}
+	};
+
+	template<binary_op_types binary_op_type> struct binary_op_base {
+		using op_core_type = binary_op_core<binary_op_type>;
 		template<typename value_type01, detail::convertible_to<value_type01> value_type02>
 		NIHILUS_INLINE static __device__ value_type01 impl_one(value_type01 val01, value_type02 val02) {
-			return val01 / val02;
+			return op_core_type::impl(val01, val02);
 		}
 
 		template<typename value_type01, detail::convertible_to<value_type01> value_type02>
 		NIHILUS_INLINE static __device__ value_type01 impl_two(value_type01 val01, value_type02 val02) {
-			return get_value_type<value_type01>::impl(val01.x / val02.x, val01.y / val02.y);
+			return get_value_type<value_type01>::impl(op_core_type::impl(val01.x, val02.x), op_core_type::impl(val01.y, val02.y));
 		}
 
 		template<typename value_type01, detail::convertible_to<value_type01> value_type02>
 		NIHILUS_INLINE static __device__ value_type01 impl_three(value_type01 val01, value_type02 val02) {
-			return get_value_type<value_type01>::impl(val01.x / val02.x, val01.y / val02.y, val01.z / val02.z);
+			return get_value_type<value_type01>::impl(op_core_type::impl(val01.x, val02.x), op_core_type::impl(val01.y, val02.y), op_core_type::impl(val01.z, val02.z));
 		}
 
 		template<typename value_type01, detail::convertible_to<value_type01> value_type02>
 		NIHILUS_INLINE static __device__ value_type01 impl_four(value_type01 val01, value_type02 val02) {
-			return get_value_type<value_type01>::impl(val01.x / val02.x, val01.y / val02.y, val01.z / val02.z, val01.w / val02.w);
+			return get_value_type<value_type01>::impl(op_core_type::impl(val01.x, val02.x), op_core_type::impl(val01.y, val02.y), op_core_type::impl(val01.z, val02.z),
+				op_core_type::impl(val01.w, val02.w));
 		}
 	};
 
@@ -260,35 +285,49 @@ namespace nihilus {
 
 	template<typename core_traits_type> __global__ void token_embeddings_prompt_eval_time(uint64_t sequence_length, core_traits_type* params) {
 		static constexpr uint64_t embedding_length	   = core_traits_type::mt::embedding_length;
-		static constexpr uint64_t block_size_q8		   = 32;
-		static constexpr uint64_t blocks_per_embedding = (embedding_length + block_size_q8 - 1) / block_size_q8;
+		static constexpr uint64_t block_size		   = core_traits_type::prof::weight_type::quant_count;
+		static constexpr uint64_t blocks_per_embedding = (embedding_length + block_size - 1) / block_size;
 		auto& get_rows_op							   = get_core<token_embedding_types, token_embedding_types::get_rows>(params->values);
 		auto& weights_core							   = get_adjacent_value_device<core_traits_type::config, core_types::weights>(*params);
 		auto& inputs_core							   = get_adjacent_value_device<core_traits_type::config, core_types::global_inputs>(*params);
 		auto& token_embd_op							   = get_core<weight_types, weight_types::token_embd>(weights_core.values);
 		auto& inp_tokens_op							   = get_core<global_input_types, global_input_types::inp_tokens>(inputs_core.values);
-		
-		const auto* __restrict__ weight_data		   = token_embd_op.data;
-		const auto* __restrict__ token_ids			   = inp_tokens_op.data;
-		auto* __restrict__ output_data				   = get_rows_op.data;
-		const uint64_t thread_id	 = blockIdx.x * blockDim.x + threadIdx.x;
-		const uint64_t total_threads = gridDim.x * blockDim.x;
+
+		const auto* __restrict__ weight_data = token_embd_op.data;
+		const auto* __restrict__ token_ids	 = inp_tokens_op.data;
+		auto* output_data					 = get_rows_op.data;
+		const uint64_t thread_id			 = blockIdx.x * blockDim.x + threadIdx.x;
+		const uint64_t total_threads		 = gridDim.x * blockDim.x;
 
 		for (uint64_t token_idx = thread_id; token_idx < sequence_length; token_idx += total_threads) {
 			const int32_t token_id			 = token_ids[token_idx];
 			const auto* __restrict__ src_row = weight_data + (static_cast<uint64_t>(token_id) * blocks_per_embedding);
-			auto* __restrict__ dst_row		 = output_data + (token_idx * embedding_length);
-			
-			for (uint64_t block_idx = 0; block_idx < blocks_per_embedding; ++block_idx) {
-				const block_q8_0<half>& block		 = src_row[block_idx];
-				const float scale					 = __half2float(block.d);
-				const int8_t* __restrict__ quantized = block.qs;
-				const uint64_t base_offset			 = block_idx * block_size_q8;
+			auto* dst_row					 = output_data + (token_idx * embedding_length);
 
-	#pragma unroll
-				for (uint64_t j = 0; j < block_size_q8; ++j) {
+			for (uint64_t block_idx = 0; block_idx < blocks_per_embedding; ++block_idx) {
+				const typename core_traits_type::prof::weight_type& block							   = src_row[block_idx];
+				const typename core_traits_type::prof::compute_type scale							   = __half2float(block.d);
+				const typename core_traits_type::prof::weight_type::quant_type* __restrict__ quantized = block.qs;
+				const uint64_t base_offset															   = block_idx * block_size;
+				constexpr uint64_t vec4_count														   = block_size / 4;
+				constexpr uint64_t remainder														   = block_size % 4;
+				for (uint64_t vec_idx = 0; vec_idx < vec4_count; ++vec_idx) {
+					const uint64_t elem_idx = vec_idx * 4;
+					if (base_offset + elem_idx + 3 < embedding_length) {
+						const float4 quant_vec = make_float4(static_cast<float>(quantized[elem_idx]), static_cast<float>(quantized[elem_idx + 1]),
+							static_cast<float>(quantized[elem_idx + 2]), static_cast<float>(quantized[elem_idx + 3]));
+						const float4 scale_vec = make_float4(scale, scale, scale, scale);
+
+						const float4 result = binary_op<binary_op_types::mul>::impl(scale_vec, quant_vec);
+
+						*reinterpret_cast<float4*>(dst_row + (base_offset + elem_idx)) = result;
+					}
+				}
+
+				for (uint64_t j = vec4_count * 4; j < block_size; ++j) {
 					if (base_offset + j < embedding_length) {
-						dst_row[base_offset + j] = scale * static_cast<float>(quantized[j]);
+						const float quant_val	 = static_cast<float>(quantized[j]);
+						dst_row[base_offset + j] = binary_op<binary_op_types::mul>::impl(scale, quant_val);
 					}
 				}
 			}
@@ -298,18 +337,9 @@ namespace nihilus {
 	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::gpu, 4, core_types::token_embeddings, processing_phases::prompt_eval_time> {
 		NIHILUS_INLINE static void impl(core_traits_type& params) {
-			const uint64_t metadata_offset = static_cast<get_core_bases_t<config, core_types>*>(&params)->metadata_offset;
-			auto& get_rows_op	= params.values.template get_core<token_embedding_types, token_embedding_types::get_rows>();
-			auto& weights_core	= get_adjacent_value<core_traits_type::config, core_types::weights>::impl(params);
-			auto& inputs_core	= get_adjacent_value<core_traits_type::config, core_types::global_inputs>::impl(params);
-			auto& token_embd_op = weights_core.values.template get_core<weight_types, weight_types::token_embd>();
-			auto& inp_tokens_op = inputs_core.values.template get_core<global_input_types, global_input_types::inp_tokens>();
+			auto& get_rows_op = params.values.template get_core<token_embedding_types, token_embedding_types::get_rows>();
 
-			const uint64_t sequence_length		 = inp_tokens_op.get_mutable_dim();
-
-			static constexpr model_arches model_arch{ core_traits_type::config.model_arch };
-			static constexpr model_sizes model_size{ core_traits_type::config.model_size };
-			static constexpr model_generations model_generation{ core_traits_type::config.model_generation };
+			const uint64_t sequence_length = get_rows_op.get_mutable_dim();
 
 			cuda_launch_params launch_params = calculate_gpu_launch_params<typename core_traits_type::token_embeddings_type, core_types::token_embeddings>(get_rows_op);
 
@@ -323,11 +353,13 @@ namespace nihilus {
 				}
 			}
 
-			using core_bases_type = get_core_bases_t<config, core_types>;
+			using core_bases_type				   = get_core_bases_t<config, core_types>;
 			core_bases_type* device_core_bases_ptr = static_cast<core_bases_type*>(&params)->data_ptr;
 
 			if (sequence_length > 0) {
 				token_embeddings_prompt_eval_time<core_traits_type><<<actual_blocks, launch_params.threads_per_block>>>(sequence_length, device_core_bases_ptr);
+
+				cudaDeviceSynchronize();
 
 				if constexpr (config.dev) {
 					if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
@@ -336,8 +368,6 @@ namespace nihilus {
 					}
 				}
 			}
-
-			cudaDeviceSynchronize();
 
 			if constexpr (config.dev) {
 				if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
@@ -348,119 +378,260 @@ namespace nihilus {
 		}
 	};
 
-	template<typename core_traits_type> __global__ void token_embeddings_eval_time_optimized(core_traits_type& params) {
+	template<typename core_traits_type> __global__ void token_embeddings_eval_time(uint64_t sequence_length, core_traits_type* params) {
 		static constexpr uint64_t embedding_length	   = core_traits_type::mt::embedding_length;
-		auto& get_rows_op							   = get_core<token_embedding_types, token_embedding_types::get_rows>(params.values);
-		auto& weights_core							   = get_adjacent_value_device<core_traits_type::config, core_types::weights>(params);
-		auto& inputs_core							   = get_adjacent_value_device<core_traits_type::config, core_types::global_inputs>(params);
-		auto& token_embd_op							   = get_core<weight_types, weight_types::token_embd>(weights_core.values);
-		auto& inp_tokens_op							   = get_core<global_input_types, global_input_types::inp_tokens>(inputs_core.values);
-		const auto* __restrict__ weight_data		   = token_embd_op.data;
-		const auto* __restrict__ token_ids			   = inp_tokens_op.data;
-		auto* __restrict__ output_data				   = get_rows_op.data;
+		static constexpr uint64_t block_size		   = core_traits_type::prof::weight_type::quant_count;
+		static constexpr uint64_t blocks_per_embedding = (embedding_length + block_size - 1) / block_size;
+
+		auto& get_rows_op	= get_core<token_embedding_types, token_embedding_types::get_rows>(params->values);
+		auto& weights_core	= get_adjacent_value_device<core_traits_type::config, core_types::weights>(*params);
+		auto& inputs_core	= get_adjacent_value_device<core_traits_type::config, core_types::global_inputs>(*params);
+		auto& token_embd_op = get_core<weight_types, weight_types::token_embd>(weights_core.values);
+		auto& inp_tokens_op = get_core<global_input_types, global_input_types::inp_tokens>(inputs_core.values);
+
+		const auto* __restrict__ weight_data = token_embd_op.data;
+		const auto* __restrict__ token_ids	 = inp_tokens_op.data;
+		auto* output_data					 = get_rows_op.data;
+
+		const int32_t token_id			 = token_ids[sequence_length - 1];
+		const auto* __restrict__ src_row = weight_data + (static_cast<uint64_t>(token_id) * blocks_per_embedding);
+
+		const uint64_t thread_id	 = blockIdx.x * blockDim.x + threadIdx.x;
+		const uint64_t total_threads = gridDim.x * blockDim.x;
+
+		for (uint64_t element_idx = thread_id; element_idx < embedding_length; element_idx += total_threads) {
+			const uint64_t block_idx		= element_idx / block_size;
+			const uint64_t element_in_block = element_idx % block_size;
+
+			const typename core_traits_type::prof::weight_type& block							   = src_row[block_idx];
+			const typename core_traits_type::prof::compute_type scale							   = __half2float(block.d);
+			const typename core_traits_type::prof::weight_type::quant_type* __restrict__ quantized = block.qs;
+
+			output_data[element_idx] = scale * static_cast<typename core_traits_type::prof::compute_type>(quantized[element_in_block]);
+		}
 	}
 
 	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::gpu, 4, core_types::token_embeddings, processing_phases::eval_time> {
 		NIHILUS_INLINE static void impl(core_traits_type& params) {
-			auto& get_rows_op	= params.values.template get_core<token_embedding_types, token_embedding_types::get_rows>();
-			auto& weights_core	= get_adjacent_value<core_traits_type::config, core_types::weights>::impl(params);
-			auto& inputs_core	= get_adjacent_value<core_traits_type::config, core_types::global_inputs>::impl(params);
-			auto& token_embd_op = weights_core.values.template get_core<weight_types, weight_types::token_embd>();
-			auto& inp_tokens_op = inputs_core.values.template get_core<global_input_types, global_input_types::inp_tokens>();
+			auto& get_rows_op = params.values.template get_core<token_embedding_types, token_embedding_types::get_rows>();
 
-			static constexpr kernel_type_profiles kernel_type_profile{ core_traits_type::config.kernel_type_profile };
-			static constexpr model_arches model_arch{ core_traits_type::config.model_arch };
-			static constexpr model_sizes model_size{ core_traits_type::config.model_size };
-			static constexpr model_generations model_generation{ core_traits_type::config.model_generation };
+			const uint64_t sequence_length = get_rows_op.get_mutable_dim();
 
-			constexpr uint64_t embedding_length		= model_traits<model_arch, model_size, model_generation>::embedding_length;
-			constexpr uint64_t blocks_per_embedding = embedding_length / 32;
+			cuda_launch_params launch_params = calculate_gpu_launch_params<typename core_traits_type::token_embeddings_type, core_types::token_embeddings>(get_rows_op);
 
-			const uint64_t threads = 256;
-			const uint64_t blocks  = min(static_cast<uint64_t>(8), (blocks_per_embedding + 3) / 4);
+			const uint64_t max_threads_needed = sequence_length;
+			const uint64_t actual_blocks = detail::min(launch_params.blocks_per_grid, (max_threads_needed + launch_params.threads_per_block - 1) / launch_params.threads_per_block);
 
-			token_embeddings_eval_time_optimized<<<blocks, threads>>>(params);
 			if constexpr (config.dev) {
-				cudaError_t err = cudaGetLastError();
-				if (err != cudaSuccess) {
+				if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
 					static constexpr auto location = std::source_location::current();
 					nihilus_exception<config, "Cuda Error: ", location>::impl(cudaGetErrorString(err));
 				}
 			}
 
-			cudaDeviceSynchronize();
+			using core_bases_type				   = get_core_bases_t<config, core_types>;
+			core_bases_type* device_core_bases_ptr = static_cast<core_bases_type*>(&params)->data_ptr;
+
+			if (sequence_length > 0) {
+				token_embeddings_eval_time<core_traits_type><<<actual_blocks, launch_params.threads_per_block>>>(sequence_length, device_core_bases_ptr);
+
+				cudaDeviceSynchronize();
+
+				if constexpr (config.dev) {
+					if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
+						static constexpr auto location = std::source_location::current();
+						nihilus_exception<config, "Cuda Kernel Launch Error: ", location>::impl(cudaGetErrorString(err));
+					}
+				}
+			}
+
+			if constexpr (config.dev) {
+				if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
+					static constexpr auto location = std::source_location::current();
+					nihilus_exception<config, "Cuda Synchronization Error: ", location>::impl(cudaGetErrorString(err));
+				}
+			}
 		}
 	};
 
-	template<const model_config& config, typename core_traits_type>
-	struct kernel_dispatcher_impl<config, core_traits_type, device_types::gpu, 4, core_types::mega_qkv_prep_and_cache_publish, processing_phases::eval_time> {
-		NIHILUS_INLINE static void process_chunk(core_traits_type& params, int64_t current_chunk, int64_t current_block) {
-		}
+	template<uint64_t index, typename core_traits_type> using get_qkv_type = std::conditional_t<index == 0, typename core_traits_type::q_mul_mat_trait,
+		std::conditional_t<index == 1, typename core_traits_type::k_mul_mat_trait, typename core_traits_type::v_mul_mat_trait>>;
 
-		NIHILUS_INLINE static void impl(core_traits_type& params, int64_t current_block) {
-		}
-	};
+	template<uint64_t index, typename core_traits_type> __global__ void mega_qkv_prep_and_cache_publish_prompt_eval_time(uint64_t sequence_length, core_traits_type* params) {
+		static constexpr uint64_t embedding_length	   = core_traits_type::mt::embedding_length;
+		using qkv_type								   = get_qkv_type<index, core_traits_type>;
+		auto& q_out_op								   = get_core<mega_qkv_prep_and_cache_publish_types, mega_qkv_prep_and_cache_publish_types::q_out>(params->values);
+		auto& weights_core							   = get_adjacent_value_device<core_traits_type::config, core_types::weights>(*params);
+	}
+
+	template<uint64_t index, typename core_traits_type>
+		requires(index == 1)
+	__global__ void mega_qkv_prep_and_cache_publish_prompt_eval_time(uint64_t sequence_length, core_traits_type* params) {
+		static constexpr uint64_t embedding_length	   = core_traits_type::mt::embedding_length;
+		using qkv_type								   = get_qkv_type<index, core_traits_type>;
+		auto& q_out_op								   = get_core<mega_qkv_prep_and_cache_publish_types, mega_qkv_prep_and_cache_publish_types::q_out>(params->values);
+		auto& weights_core							   = get_adjacent_value_device<core_traits_type::config, core_types::weights>(*params);
+	}
+
+	template<uint64_t index, typename core_traits_type>
+		requires(index == 2)
+	__global__ void mega_qkv_prep_and_cache_publish_prompt_eval_time<2, core_traits_type>(uint64_t sequence_length, core_traits_type* params) {
+		static constexpr uint64_t embedding_length	   = core_traits_type::mt::embedding_length;
+		using qkv_type								   = get_qkv_type<index, core_traits_type>;
+		auto& q_out_op								   = get_core<mega_qkv_prep_and_cache_publish_types, mega_qkv_prep_and_cache_publish_types::q_out>(params->values);
+		auto& weights_core							   = get_adjacent_value_device<core_traits_type::config, core_types::weights>(*params);
+	}
 
 	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::gpu, 4, core_types::mega_qkv_prep_and_cache_publish, processing_phases::prompt_eval_time> {
-		NIHILUS_INLINE static void process_chunk(core_traits_type& params, int64_t current_chunk, int64_t current_block) {
-		}
+		NIHILUS_INLINE static void impl(core_traits_type& params, int64_t current_block) {
+			auto& q_out_op = params.values.template get_core<mega_qkv_prep_and_cache_publish_types, mega_qkv_prep_and_cache_publish_types::q_out>();
 
+			const uint64_t sequence_length = q_out_op.get_mutable_dim();
+
+			cuda_launch_params launch_params = calculate_gpu_launch_params<typename core_traits_type::q_out_type, core_types::mega_qkv_prep_and_cache_publish>(q_out_op);
+
+			const uint64_t max_threads_needed = sequence_length;
+			const uint64_t actual_blocks = detail::min(launch_params.blocks_per_grid, (max_threads_needed + launch_params.threads_per_block - 1) / launch_params.threads_per_block);
+
+			if constexpr (config.dev) {
+				if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
+					static constexpr auto location = std::source_location::current();
+					nihilus_exception<config, "Cuda Error: ", location>::impl(cudaGetErrorString(err));
+				}
+			}
+
+			using core_bases_type				   = get_core_bases_t<config, core_types>;
+			core_bases_type* device_core_bases_ptr = static_cast<core_bases_type*>(&params)->data_ptr;
+
+			if (sequence_length > 0) {
+				mega_qkv_prep_and_cache_publish_prompt_eval_time<0, core_traits_type><<<actual_blocks, launch_params.threads_per_block>>>(sequence_length, device_core_bases_ptr);
+				mega_qkv_prep_and_cache_publish_prompt_eval_time<1, core_traits_type><<<actual_blocks, launch_params.threads_per_block>>>(sequence_length, device_core_bases_ptr);
+				mega_qkv_prep_and_cache_publish_prompt_eval_time<2, core_traits_type><<<actual_blocks, launch_params.threads_per_block>>>(sequence_length, device_core_bases_ptr);
+
+				cudaDeviceSynchronize();
+
+				if constexpr (config.dev) {
+					if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
+						static constexpr auto location = std::source_location::current();
+						nihilus_exception<config, "Cuda Kernel Launch Error: ", location>::impl(cudaGetErrorString(err));
+					}
+				}
+			}
+
+			if constexpr (config.dev) {
+				if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
+					static constexpr auto location = std::source_location::current();
+					nihilus_exception<config, "Cuda Synchronization Error: ", location>::impl(cudaGetErrorString(err));
+				}
+			}
+		}
+	};
+
+	template<uint64_t index, typename core_traits_type> __global__ void mega_qkv_prep_and_cache_publish_eval_time(uint64_t sequence_length, core_traits_type* params) {
+		static constexpr uint64_t embedding_length = core_traits_type::mt::embedding_length;
+		using qkv_type							   = get_qkv_type<index, core_traits_type>;
+		auto& q_out_op							   = get_core<mega_qkv_prep_and_cache_publish_types, mega_qkv_prep_and_cache_publish_types::q_out>(params->values);
+		auto& weights_core						   = get_adjacent_value_device<core_traits_type::config, core_types::weights>(*params);
+	}
+
+	template<uint64_t index, typename core_traits_type>
+		requires(index == 1)
+	__global__ void mega_qkv_prep_and_cache_publish_eval_time(uint64_t sequence_length, core_traits_type* params) {
+		static constexpr uint64_t embedding_length = core_traits_type::mt::embedding_length;
+		using qkv_type							   = get_qkv_type<index, core_traits_type>;
+		auto& q_out_op							   = get_core<mega_qkv_prep_and_cache_publish_types, mega_qkv_prep_and_cache_publish_types::q_out>(params->values);
+		auto& weights_core						   = get_adjacent_value_device<core_traits_type::config, core_types::weights>(*params);
+	}
+
+	template<uint64_t index, typename core_traits_type>
+		requires(index == 2)
+	__global__ void mega_qkv_prep_and_cache_publish_eval_time<2, core_traits_type>(uint64_t sequence_length, core_traits_type* params) {
+		static constexpr uint64_t embedding_length = core_traits_type::mt::embedding_length;
+		using qkv_type							   = get_qkv_type<index, core_traits_type>;
+		auto& q_out_op							   = get_core<mega_qkv_prep_and_cache_publish_types, mega_qkv_prep_and_cache_publish_types::q_out>(params->values);
+		auto& weights_core						   = get_adjacent_value_device<core_traits_type::config, core_types::weights>(*params);
+	}
+
+	template<const model_config& config, typename core_traits_type>
+	struct kernel_dispatcher_impl<config, core_traits_type, device_types::gpu, 4, core_types::mega_qkv_prep_and_cache_publish, processing_phases::eval_time> {
+		NIHILUS_INLINE static void impl(core_traits_type& params, int64_t current_block) {
+			auto& q_out_op = params.values.template get_core<mega_qkv_prep_and_cache_publish_types, mega_qkv_prep_and_cache_publish_types::q_out>();
+
+			const uint64_t sequence_length = q_out_op.get_mutable_dim();
+
+			cuda_launch_params launch_params = calculate_gpu_launch_params<typename core_traits_type::q_out_type, core_types::mega_qkv_prep_and_cache_publish>(q_out_op);
+
+			const uint64_t max_threads_needed = sequence_length;
+			const uint64_t actual_blocks = detail::min(launch_params.blocks_per_grid, (max_threads_needed + launch_params.threads_per_block - 1) / launch_params.threads_per_block);
+
+			if constexpr (config.dev) {
+				if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
+					static constexpr auto location = std::source_location::current();
+					nihilus_exception<config, "Cuda Error: ", location>::impl(cudaGetErrorString(err));
+				}
+			}
+
+			using core_bases_type				   = get_core_bases_t<config, core_types>;
+			core_bases_type* device_core_bases_ptr = static_cast<core_bases_type*>(&params)->data_ptr;
+
+			if (sequence_length > 0) {
+				mega_qkv_prep_and_cache_publish_eval_time<0, core_traits_type><<<actual_blocks, launch_params.threads_per_block>>>(sequence_length, device_core_bases_ptr);
+				mega_qkv_prep_and_cache_publish_eval_time<1, core_traits_type><<<actual_blocks, launch_params.threads_per_block>>>(sequence_length, device_core_bases_ptr);
+				mega_qkv_prep_and_cache_publish_eval_time<2, core_traits_type><<<actual_blocks, launch_params.threads_per_block>>>(sequence_length, device_core_bases_ptr);
+
+				cudaDeviceSynchronize();
+
+				if constexpr (config.dev) {
+					if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
+						static constexpr auto location = std::source_location::current();
+						nihilus_exception<config, "Cuda Kernel Launch Error: ", location>::impl(cudaGetErrorString(err));
+					}
+				}
+			}
+
+			if constexpr (config.dev) {
+				if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
+					static constexpr auto location = std::source_location::current();
+					nihilus_exception<config, "Cuda Synchronization Error: ", location>::impl(cudaGetErrorString(err));
+				}
+			}
+		}
+	};
+
+	template<const model_config& config, typename core_traits_type>
+	struct kernel_dispatcher_impl<config, core_traits_type, device_types::gpu, 4, core_types::mega_attention_apply, processing_phases::prompt_eval_time> {
 		NIHILUS_INLINE static void impl(core_traits_type& params, int64_t current_block) {
 		}
 	};
 
 	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::gpu, 4, core_types::mega_attention_apply, processing_phases::eval_time> {
-		NIHILUS_INLINE static void process_chunk(core_traits_type& params, int64_t current_chunk) {
-			// PROCESS DATA.
-		}
-		NIHILUS_INLINE static void impl(core_traits_type& params, int64_t current_block) {
-		}
-	};
-
-	template<const model_config& config, typename core_traits_type>
-	struct kernel_dispatcher_impl<config, core_traits_type, device_types::gpu, 4, core_types::mega_attention_apply, processing_phases::prompt_eval_time> {
-		NIHILUS_INLINE static void process_chunk(core_traits_type& params, int64_t current_chunk) {
-			// PROCESS DATA.
-		}
-		NIHILUS_INLINE static void impl(core_traits_type& params, int64_t current_block) {
-		}
-	};
-
-	template<const model_config& config, typename core_traits_type>
-	struct kernel_dispatcher_impl<config, core_traits_type, device_types::gpu, 4, core_types::mega_ffn, processing_phases::eval_time> {
-		NIHILUS_INLINE static void process_chunk(core_traits_type& params, int64_t current_chunk) {
-			// PROCESS DATA.
-		}
 		NIHILUS_INLINE static void impl(core_traits_type& params, int64_t current_block) {
 		}
 	};
 
 	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::gpu, 4, core_types::mega_ffn, processing_phases::prompt_eval_time> {
-		NIHILUS_INLINE static void process_chunk(core_traits_type& params, int64_t current_chunk) {
-			// PROCESS DATA.
-		}
 		NIHILUS_INLINE static void impl(core_traits_type& params, int64_t current_block) {
 		}
 	};
 
 	template<const model_config& config, typename core_traits_type>
-	struct kernel_dispatcher_impl<config, core_traits_type, device_types::gpu, 4, core_types::final_norm_and_sampling, processing_phases::eval_time> {
-		NIHILUS_INLINE static void process_chunk(core_traits_type& params, int64_t current_chunk) {
-			// PROCESS DATA.
-		}
-		NIHILUS_INLINE static void impl(core_traits_type& params) {
+	struct kernel_dispatcher_impl<config, core_traits_type, device_types::gpu, 4, core_types::mega_ffn, processing_phases::eval_time> {
+		NIHILUS_INLINE static void impl(core_traits_type& params, int64_t current_block) {
 		}
 	};
 
 	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::gpu, 4, core_types::final_norm_and_sampling, processing_phases::prompt_eval_time> {
-		NIHILUS_INLINE static void process_chunk(core_traits_type& params, int64_t current_chunk) {
-			// PROCESS DATA.
+		NIHILUS_INLINE static void impl(core_traits_type& params) {
 		}
+	};
+
+	template<const model_config& config, typename core_traits_type>
+	struct kernel_dispatcher_impl<config, core_traits_type, device_types::gpu, 4, core_types::final_norm_and_sampling, processing_phases::eval_time> {
 		NIHILUS_INLINE static void impl(core_traits_type& params) {
 		}
 	};

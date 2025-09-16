@@ -753,7 +753,8 @@ namespace nihilus {
 
 	template<const model_config& config, core_types core_type> struct core_traits {};
 
-	template<const model_config& config, composite_kernel_types kernel_type_new, typename output_type_new, typename... input_kernel_traits_types> struct composite_kernel_traits {
+	template<const model_config& config, composite_kernel_types kernel_type_new, typename output_type_new, typename... input_kernel_traits_types> struct composite_kernel_traits
+		: public std::tuple_element_t<sizeof...(input_kernel_traits_types) - 1, std::tuple<input_kernel_traits_types...>>::dims_type {
 		using output_type									= output_type_new;
 		static constexpr composite_kernel_types kernel_type = kernel_type_new;
 

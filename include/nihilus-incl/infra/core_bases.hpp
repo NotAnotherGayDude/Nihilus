@@ -51,7 +51,6 @@ namespace nihilus {
 
 		template<enum_types enum_type, enum_type enum_value> using core_base_type = decltype(get_core_static<enum_type, enum_value>());
 
-		uint64_t metadata_offset{};
 		core_bases* data_ptr{};
 
 	  protected:
@@ -89,9 +88,9 @@ namespace nihilus {
 		parse_core.values.template impl<memory_mapper_impl>(plan, memory_buffer, internal_offset);
 		if constexpr (static_cast<uint64_t>(base_type::core_type) == static_cast<uint64_t>(core_types::count) - 1 && config.device_type == device_types::gpu) {
 			static_cast<get_core_bases_t<config, core_types>*>(&parse_core)->data_ptr =
-				static_cast<get_core_bases_t<config, core_types>*>(memory_buffer.claim_memory(static_cast<get_core_bases_t<config, core_types>*>(&parse_core)->metadata_offset));
-			memory_transfer<config>::host_to_device(static_cast<get_core_bases_t<config, core_types>*>(&parse_core),
-				static_cast<get_core_bases_t<config, core_types>*>(&parse_core)->data_ptr, 1);
+				static_cast<get_core_bases_t<config, core_types>*>(memory_buffer.claim_memory(plan.metadata_offset));
+			memory_transfer<config>::host_to_device(*static_cast<get_core_bases_t<config, core_types>*>(&parse_core),
+				static_cast<get_core_bases_t<config, core_types>*>(&parse_core)->data_ptr);
 		}
 		if constexpr (config.dev) {
 #if NIHILUS_CUDA_ENABLED

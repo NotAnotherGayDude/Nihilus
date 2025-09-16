@@ -36,6 +36,9 @@ namespace nihilus {
 	using token	   = int32_t;
 
 	template<typename half_type> struct block_q8_0 {
+		static constexpr uint64_t quant_count{ Q_SIZE };
+		using scale_type = half_type;
+		using quant_type = int8_t;
 		half_type d;
 		int8_t qs[Q_SIZE];
 	};

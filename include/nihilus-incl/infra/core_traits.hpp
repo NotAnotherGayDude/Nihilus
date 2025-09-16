@@ -28,7 +28,6 @@ RealTimeChris (Chris M.)
 #include <nihilus-incl/common/common.hpp>
 #include <nihilus-incl/common/array.hpp>
 #include <nihilus-incl/common/tuple.hpp>
-#include <latch>
 
 namespace nihilus {
 
@@ -126,7 +125,7 @@ namespace nihilus {
 	template<const model_config& config_new> struct core_traits<config_new, core_types::weights>
 		: public core_elem_base<core_types::weights, core_traits<config_new, core_types::weights>> {
 		static constexpr core_types core_type{ core_types::weights };
-		static constexpr uint64_t depth{ 0 };
+		static constexpr uint64_t depth{ std::numeric_limits<uint64_t>::max() };
 		using attn_q_weight_kernel_traits =
 			kernel_traits<config_new, core_trait_dims<model_traits_type<config_new>::embedding_length, model_traits_type<config_new>::embedding_length, 1, 1>, kernel_types::none,
 				typename kernel_type_profile_traits<config_new.kernel_type_profile>::weight_type>;
@@ -394,11 +393,13 @@ namespace nihilus {
 			kv_store_t, v_transpose_trait, v_cache_window_view_trait>;
 
 		using mega_qkv_composite_traits = composite_kernel_traits<config_new, composite_kernel_types::mega_qkv_prep_and_cache, compute_t, rms_norm_trait, mul_trait,
-			q_mul_mat_trait, q_reshape_trait, q_rope_trait, k_mul_mat_trait, k_reshape_trait, k_rope_trait, k_cache_window_view_trait, k_cache_store_trait, v_mul_mat_trait,
-			v_transpose_trait, v_cache_window_view_trait, v_cache_store_trait>;
+			k_mul_mat_trait, k_reshape_trait, k_rope_trait, k_cache_window_view_trait, k_cache_store_trait, v_mul_mat_trait, v_transpose_trait, v_cache_window_view_trait,
+			v_cache_store_trait, q_mul_mat_trait, q_reshape_trait, q_rope_trait>;
 
 		using q_out_type = op_traits<config_new, core_types::mega_qkv_prep_and_cache_publish, mega_qkv_prep_and_cache_publish_types::q_out,
-			composite_kernel_types::mega_qkv_prep_and_cache, data_strategy_types::global, allocation_strategy_types::alloc, mega_qkv_composite_traits>;
+			composite_kernel_types::mega_qkv_prep_and_cache, data_strategy_types::global, allocation_strategy_types::alloc, mega_qkv_composite_traits, rms_norm_trait, mul_trait,
+			k_mul_mat_trait, k_reshape_trait, k_rope_trait, k_cache_window_view_trait, k_cache_store_trait, v_mul_mat_trait, v_transpose_trait, v_cache_window_view_trait,
+			v_cache_store_trait, q_mul_mat_trait, q_reshape_trait, q_rope_trait>;
 
 		using composite_ops = get_core_base_t<config_new, q_out_type>;
 

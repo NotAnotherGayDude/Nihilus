@@ -66,6 +66,46 @@ namespace nihilus {
 	concept float64_types = float_types<value_type> && sizeof(detail::remove_cvref_t<value_type>) == 8;
 
 	template<typename value_type>
+	concept uint_cuda_types = std::is_unsigned_v<decltype(detail::remove_cvref_t<value_type>::x)> && std::is_integral_v<decltype(detail::remove_cvref_t<value_type>::x)>;
+
+	template<typename value_type>
+	concept int_cuda_types =
+		std::is_signed_v<decltype(detail::remove_cvref_t<value_type>::x)> && std::is_integral_v<decltype(detail::remove_cvref_t<value_type>::x)> && !uint_cuda_types<value_type>;
+
+	template<typename value_type>
+	concept int8_cuda_types = int_cuda_types<decltype(detail::remove_cvref_t<value_type>::x)> && sizeof(decltype(detail::remove_cvref_t<value_type>::x)) == 1;
+
+	template<typename value_type>
+	concept int16_cuda_types = int_cuda_types<decltype(detail::remove_cvref_t<value_type>::x)> && sizeof(decltype(detail::remove_cvref_t<value_type>::x)) == 2;
+
+	template<typename value_type>
+	concept int32_cuda_types = int_cuda_types<decltype(detail::remove_cvref_t<value_type>::x)> && sizeof(decltype(detail::remove_cvref_t<value_type>::x)) == 4;
+
+	template<typename value_type>
+	concept int64_cuda_types = int_cuda_types<decltype(detail::remove_cvref_t<value_type>::x)> && sizeof(decltype(detail::remove_cvref_t<value_type>::x)) == 8;
+
+	template<typename value_type>
+	concept uint8_cuda_types = uint_cuda_types<decltype(detail::remove_cvref_t<value_type>::x)> && sizeof(decltype(detail::remove_cvref_t<value_type>::x)) == 1;
+
+	template<typename value_type>
+	concept uint16_cuda_types = uint_cuda_types<decltype(detail::remove_cvref_t<value_type>::x)> && sizeof(decltype(detail::remove_cvref_t<value_type>::x)) == 2;
+
+	template<typename value_type>
+	concept uint32_cuda_types = uint_cuda_types<decltype(detail::remove_cvref_t<value_type>::x)> && sizeof(decltype(detail::remove_cvref_t<value_type>::x)) == 4;
+
+	template<typename value_type>
+	concept uint64_cuda_types = uint_cuda_types<decltype(detail::remove_cvref_t<value_type>::x)> && sizeof(decltype(detail::remove_cvref_t<value_type>::x)) == 8;
+
+	template<typename value_type>
+	concept float_cuda_types = std::floating_point<decltype(detail::remove_cvref_t<value_type>::x)>;
+
+	template<typename value_type>
+	concept float32_cuda_types = float_cuda_types<value_type> && sizeof(decltype(detail::remove_cvref_t<value_type>::x)) == 4;
+
+	template<typename value_type>
+	concept float64_cuda_types = float_cuda_types<value_type> && sizeof(decltype(detail::remove_cvref_t<value_type>::x)) == 8;
+
+	template<typename value_type>
 	concept has_size_types = requires(detail::remove_cvref_t<value_type> value) {
 		{ value.size() } -> std::same_as<typename detail::remove_cvref_t<value_type>::size_type>;
 	};
@@ -209,27 +249,15 @@ namespace nihilus {
 	concept not_pointer_types = !std::is_pointer_v<value_type>;
 
 	template<typename value_type>
-	concept dim01_types = requires() { detail::remove_cvref_t<value_type>::x; };
+	concept dim04_types = requires() { detail::remove_cvref_t<value_type>::w; };
 
 	template<typename value_type>
-	concept dim02_types = requires() {
-		detail::remove_cvref_t<value_type>::x;
-		detail::remove_cvref_t<value_type>::y;
-	};
+	concept dim03_types = requires() { detail::remove_cvref_t<value_type>::z; } && !dim04_types<value_type>;
 
 	template<typename value_type>
-	concept dim03_types = requires() {
-		detail::remove_cvref_t<value_type>::x;
-		detail::remove_cvref_t<value_type>::y;
-		detail::remove_cvref_t<value_type>::z;
-	};
+	concept dim02_types = requires() { detail::remove_cvref_t<value_type>::y; } && !dim03_types<value_type> && !dim04_types<value_type>;
 
 	template<typename value_type>
-	concept dim04_types = requires() {
-		detail::remove_cvref_t<value_type>::x;
-		detail::remove_cvref_t<value_type>::y;
-		detail::remove_cvref_t<value_type>::z;
-		detail::remove_cvref_t<value_type>::w;
-	};
+	concept dim01_types = requires() { detail::remove_cvref_t<value_type>::x; } && !dim02_types<value_type> && !dim03_types<value_type> && !dim04_types<value_type>;
 
 }
