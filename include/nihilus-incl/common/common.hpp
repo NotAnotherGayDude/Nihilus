@@ -629,7 +629,7 @@ namespace nihilus {
 		count,
 	};
 
-	enum class norm_types : uint8_t {
+	enum class rms_norm_types : uint8_t {
 		rms_standard,
 		rms_parallel,
 		rms_grouped,
@@ -810,7 +810,7 @@ namespace nihilus {
 		count,
 	};
 
-	enum class model_format {
+	enum class model_formats {
 		nh_void,
 		gguf,
 		count,

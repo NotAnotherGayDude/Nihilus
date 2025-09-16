@@ -258,12 +258,19 @@ namespace nihilus {
 		return *static_cast<derived_type*>(static_cast<core_bases_type*>(&parse_core));
 	}
 
-	template<typename core_traits_type> __global__ void token_embeddings_prompt_eval_time(uint64_t sequence_length, const block_q8_0<half>* __restrict__ weight_data,
-		const int32_t* __restrict__ token_ids, float* __restrict__ output_data) {
+	template<typename core_traits_type> __global__ void token_embeddings_prompt_eval_time(uint64_t sequence_length, core_traits_type* params) {
 		static constexpr uint64_t embedding_length	   = core_traits_type::mt::embedding_length;
 		static constexpr uint64_t block_size_q8		   = 32;
 		static constexpr uint64_t blocks_per_embedding = (embedding_length + block_size_q8 - 1) / block_size_q8;
-
+		auto& get_rows_op							   = get_core<token_embedding_types, token_embedding_types::get_rows>(params->values);
+		auto& weights_core							   = get_adjacent_value_device<core_traits_type::config, core_types::weights>(*params);
+		auto& inputs_core							   = get_adjacent_value_device<core_traits_type::config, core_types::global_inputs>(*params);
+		auto& token_embd_op							   = get_core<weight_types, weight_types::token_embd>(weights_core.values);
+		auto& inp_tokens_op							   = get_core<global_input_types, global_input_types::inp_tokens>(inputs_core.values);
+		
+		const auto* __restrict__ weight_data		   = token_embd_op.data;
+		const auto* __restrict__ token_ids			   = inp_tokens_op.data;
+		auto* __restrict__ output_data				   = get_rows_op.data;
 		const uint64_t thread_id	 = blockIdx.x * blockDim.x + threadIdx.x;
 		const uint64_t total_threads = gridDim.x * blockDim.x;
 
@@ -271,7 +278,7 @@ namespace nihilus {
 			const int32_t token_id			 = token_ids[token_idx];
 			const auto* __restrict__ src_row = weight_data + (static_cast<uint64_t>(token_id) * blocks_per_embedding);
 			auto* __restrict__ dst_row		 = output_data + (token_idx * embedding_length);
-
+			
 			for (uint64_t block_idx = 0; block_idx < blocks_per_embedding; ++block_idx) {
 				const block_q8_0<half>& block		 = src_row[block_idx];
 				const float scale					 = __half2float(block.d);
@@ -291,18 +298,16 @@ namespace nihilus {
 	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::gpu, 4, core_types::token_embeddings, processing_phases::prompt_eval_time> {
 		NIHILUS_INLINE static void impl(core_traits_type& params) {
+			const uint64_t metadata_offset = static_cast<get_core_bases_t<config, core_types>*>(&params)->metadata_offset;
 			auto& get_rows_op	= params.values.template get_core<token_embedding_types, token_embedding_types::get_rows>();
 			auto& weights_core	= get_adjacent_value<core_traits_type::config, core_types::weights>::impl(params);
 			auto& inputs_core	= get_adjacent_value<core_traits_type::config, core_types::global_inputs>::impl(params);
 			auto& token_embd_op = weights_core.values.template get_core<weight_types, weight_types::token_embd>();
 			auto& inp_tokens_op = inputs_core.values.template get_core<global_input_types, global_input_types::inp_tokens>();
 
-			const auto* __restrict__ weight_data = token_embd_op.data;
-			const auto* __restrict__ token_ids	 = inp_tokens_op.data;
-			auto* __restrict__ output_data		 = get_rows_op.data;
 			const uint64_t sequence_length		 = inp_tokens_op.get_mutable_dim();
 
-			static constexpr model_arches model_arch{ core_traits_type::config.arch };
+			static constexpr model_arches model_arch{ core_traits_type::config.model_arch };
 			static constexpr model_sizes model_size{ core_traits_type::config.model_size };
 			static constexpr model_generations model_generation{ core_traits_type::config.model_generation };
 
@@ -312,21 +317,22 @@ namespace nihilus {
 			const uint64_t actual_blocks = detail::min(launch_params.blocks_per_grid, (max_threads_needed + launch_params.threads_per_block - 1) / launch_params.threads_per_block);
 
 			if constexpr (config.dev) {
-				cudaError_t err = cudaGetLastError();
-				if (err != cudaSuccess) {
+				if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
 					static constexpr auto location = std::source_location::current();
 					nihilus_exception<config, "Cuda Error: ", location>::impl(cudaGetErrorString(err));
 				}
 			}
 
+			using core_bases_type = get_core_bases_t<config, core_types>;
+			core_bases_type* device_core_bases_ptr = static_cast<core_bases_type*>(&params)->data_ptr;
+
 			if (sequence_length > 0) {
-				token_embeddings_prompt_eval_time<core_traits_type><<<actual_blocks, launch_params.threads_per_block>>>(sequence_length, weight_data, token_ids, output_data);
+				token_embeddings_prompt_eval_time<core_traits_type><<<actual_blocks, launch_params.threads_per_block>>>(sequence_length, device_core_bases_ptr);
 
 				if constexpr (config.dev) {
-					cudaError_t kernel_err = cudaGetLastError();
-					if (kernel_err != cudaSuccess) {
+					if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
 						static constexpr auto location = std::source_location::current();
-						nihilus_exception<config, "Cuda Kernel Launch Error: ", location>::impl(cudaGetErrorString(kernel_err));
+						nihilus_exception<config, "Cuda Kernel Launch Error: ", location>::impl(cudaGetErrorString(err));
 					}
 				}
 			}
@@ -334,10 +340,9 @@ namespace nihilus {
 			cudaDeviceSynchronize();
 
 			if constexpr (config.dev) {
-				cudaError_t sync_err = cudaGetLastError();
-				if (sync_err != cudaSuccess) {
+				if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
 					static constexpr auto location = std::source_location::current();
-					nihilus_exception<config, "Cuda Synchronization Error: ", location>::impl(cudaGetErrorString(sync_err));
+					nihilus_exception<config, "Cuda Synchronization Error: ", location>::impl(cudaGetErrorString(err));
 				}
 			}
 		}
@@ -364,8 +369,8 @@ namespace nihilus {
 			auto& token_embd_op = weights_core.values.template get_core<weight_types, weight_types::token_embd>();
 			auto& inp_tokens_op = inputs_core.values.template get_core<global_input_types, global_input_types::inp_tokens>();
 
-			static constexpr kernel_type_profiles kernel_type_profile{ core_traits_type::config.kernel_profile };
-			static constexpr model_arches model_arch{ core_traits_type::config.arch };
+			static constexpr kernel_type_profiles kernel_type_profile{ core_traits_type::config.kernel_type_profile };
+			static constexpr model_arches model_arch{ core_traits_type::config.model_arch };
 			static constexpr model_sizes model_size{ core_traits_type::config.model_size };
 			static constexpr model_generations model_generation{ core_traits_type::config.model_generation };
 

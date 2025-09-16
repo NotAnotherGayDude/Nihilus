@@ -31,54 +31,54 @@ RealTimeChris (Chris M.)
 #include <latch>
 #include <cmath>
 
-namespace nihilus {	
+namespace nihilus {
 
 	struct model_config {
 		model_generations model_generation{};
 		model_sizes model_size{};
-		kernel_type_profiles kernel_profile{};
-		model_arches arch{};
+		kernel_type_profiles kernel_type_profile{};
+		model_arches model_arch{};
 		bool exceptions{};
 		uint64_t default_max_sequence_length{};
 		uint64_t default_batch_size{};
-		kv_cache_strategies cache_strategy{};
+		kv_cache_strategies kv_cache_strategy{};
 		bool use_gradient_checkpointing{};
-		rope_scaling_types rope_scaling{};
+		rope_scaling_types rope_scaling_type{};
 		tokenizer_pre_types tokenizer_pre_type{};
 		uint64_t kv_cache_block_size{};
 		bool use_rotary_embeddings{};
 		bool use_flash_attention{};
-		norm_types rms_norm_type{};
+		rms_norm_types rms_norm_type{};
 		tokenizer_types tokenizer_type{};
 		device_types device_type{};
-		model_format format{};
+		model_formats model_format{};
 		float norm_epsilon{};
 		bool benchmark{};
 		bool dev{};
 	};
 
 	template<const model_config& config> struct model_config_type {
-		static constexpr model_generations model_generation		= config.model_generation;
-		static constexpr model_sizes model_size					= config.model_size;
-		static constexpr kernel_type_profiles kernel_profile	= config.kernel_profile;
-		static constexpr model_arches arch						= config.arch;
-		static constexpr bool exceptions						= config.exceptions;
-		static constexpr uint64_t default_max_sequence_length	= config.default_max_sequence_length;
-		static constexpr uint64_t default_batch_size			= config.default_batch_size;
-		static constexpr kv_cache_strategies cache_strategy		= config.cache_strategy;
-		static constexpr bool use_gradient_checkpointing		= config.use_gradient_checkpointing;
-		static constexpr rope_scaling_types rope_scaling		= config.rope_scaling;
-		static constexpr tokenizer_pre_types tokenizer_pre_type = config.tokenizer_pre_type;
-		static constexpr uint64_t kv_cache_block_size			= config.kv_cache_block_size;
-		static constexpr bool use_rotary_embeddings				= config.use_rotary_embeddings;
-		static constexpr bool use_flash_attention				= config.use_flash_attention;
-		static constexpr norm_types rms_norm_type				= config.rms_norm_type;
-		static constexpr tokenizer_types tokenizer_type			= config.tokenizer_type;
-		static constexpr device_types device_type				= config.device_type;
-		static constexpr model_format format					= config.format;
-		static constexpr float norm_epsilon						= config.norm_epsilon;
-		static constexpr bool benchmark							= config.benchmark;
-		static constexpr bool dev								= config.dev;
+		static constexpr model_generations model_generation		  = config.model_generation;
+		static constexpr model_sizes model_size					  = config.model_size;
+		static constexpr kernel_type_profiles kernel_type_profile = config.kernel_type_profile;
+		static constexpr model_arches model_arch				  = config.model_arch;
+		static constexpr bool exceptions						  = config.exceptions;
+		static constexpr uint64_t default_max_sequence_length	  = config.default_max_sequence_length;
+		static constexpr uint64_t default_batch_size			  = config.default_batch_size;
+		static constexpr kv_cache_strategies kv_cache_strategy	  = config.kv_cache_strategy;
+		static constexpr bool use_gradient_checkpointing		  = config.use_gradient_checkpointing;
+		static constexpr rope_scaling_types rope_scaling_type	  = config.rope_scaling_type;
+		static constexpr tokenizer_pre_types tokenizer_pre_type	  = config.tokenizer_pre_type;
+		static constexpr uint64_t kv_cache_block_size			  = config.kv_cache_block_size;
+		static constexpr bool use_rotary_embeddings				  = config.use_rotary_embeddings;
+		static constexpr bool use_flash_attention				  = config.use_flash_attention;
+		static constexpr rms_norm_types rms_norm_type			  = config.rms_norm_type;
+		static constexpr tokenizer_types tokenizer_type			  = config.tokenizer_type;
+		static constexpr device_types device_type				  = config.device_type;
+		static constexpr model_formats format					  = config.model_format;
+		static constexpr float norm_epsilon						  = config.norm_epsilon;
+		static constexpr bool benchmark							  = config.benchmark;
+		static constexpr bool dev								  = config.dev;
 
 		NIHILUS_INLINE static constexpr model_config get_config() {
 			return config;

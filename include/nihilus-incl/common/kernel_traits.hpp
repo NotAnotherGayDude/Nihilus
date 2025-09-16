@@ -116,7 +116,7 @@ namespace nihilus {
 		eval_time,
 	};
 
-	template<const model_config& config_new> using model_traits_type = model_traits<config_new.arch, config_new.model_size, config_new.model_generation>;
+	template<const model_config& config_new> using model_traits_type = model_traits<config_new.model_arch, config_new.model_size, config_new.model_generation>;
 
 	template<size_t... indices> struct core_trait_dims;
 

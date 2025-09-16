@@ -26,10 +26,10 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-	template<model_arches arch, model_sizes model_size, model_generations model_generation> struct model_traits;
+	template<model_arches model_arch, model_sizes model_size, model_generations model_generation> struct model_traits;
 
 	template<> struct model_traits<model_arches::llama, model_sizes::llm_8B, model_generations::v3_1> {
-		static constexpr auto arch{ model_arches::llama };
+		static constexpr auto model_arch{ model_arches::llama };
 		static constexpr auto model_generation{ model_generations::v3_1 };
 		static constexpr auto model_size{ model_sizes::llm_8B };
 		static constexpr float layer_norm_rms_epsilon	  = 1e-5f;
@@ -46,7 +46,7 @@ namespace nihilus {
 	};
 
 	template<> struct model_traits<model_arches::llama, model_sizes::llm_3B, model_generations::v3_2> {
-		static constexpr auto arch{ model_arches::llama };
+		static constexpr auto model_arch{ model_arches::llama };
 		static constexpr auto model_generation{ model_generations::v3_2 };
 		static constexpr auto model_size{ model_sizes::llm_3B };
 		static constexpr float layer_norm_rms_epsilon	  = 1e-5f;

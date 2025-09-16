@@ -62,6 +62,26 @@ namespace nihilus {
 		array<output_type*, model_traits_type<config_new>::block_count> data{};
 	};
 
+	template<const model_config& config_new, core_types core_type> struct sync_base {};
+
+	template<const model_config& config_new, core_types core_type>
+		requires(config_new.device_type == device_types::cpu && core_type != core_types::token_embeddings && core_type != core_types::final_norm_and_sampling)
+	struct sync_base<config_new, core_type> {
+		array<atomic_flag_wrapper<int64_t>, model_traits_type<config_new>::block_count> current_chunk_prompt_eval{};
+		array<atomic_flag_wrapper<int64_t>, model_traits_type<config_new>::block_count> current_chunk_eval{};
+		array<atomic_flag_wrapper<int64_t>, model_traits_type<config_new>::block_count> latch_prompt_eval{};
+		array<atomic_flag_wrapper<int64_t>, model_traits_type<config_new>::block_count> latch_eval{};
+	};
+
+	template<const model_config& config_new, core_types core_type>
+		requires(config_new.device_type == device_types::cpu && core_type == core_types::token_embeddings || core_type == core_types::final_norm_and_sampling)
+	struct sync_base<config_new, core_type> {
+		atomic_flag_wrapper<int64_t> current_chunk_prompt_eval{};
+		atomic_flag_wrapper<int64_t> current_chunk_eval{};
+		atomic_flag_wrapper<int64_t> latch_prompt_eval{};
+		atomic_flag_wrapper<int64_t> latch_eval{};
+	};
+
 	template<integral_or_enum_types auto index, typename derived_type_new> struct core_elem_base {
 		using derived_type = derived_type_new;
 		mutable uint64_t total_required_bytes_rt{};
@@ -109,51 +129,51 @@ namespace nihilus {
 		static constexpr uint64_t depth{ 0 };
 		using attn_q_weight_kernel_traits =
 			kernel_traits<config_new, core_trait_dims<model_traits_type<config_new>::embedding_length, model_traits_type<config_new>::embedding_length, 1, 1>, kernel_types::none,
-				typename kernel_type_profile_traits<config_new.kernel_profile>::weight_type>;
+				typename kernel_type_profile_traits<config_new.kernel_type_profile>::weight_type>;
 
 		using attn_k_weight_kernel_traits =
 			kernel_traits<config_new, core_trait_dims<model_traits_type<config_new>::embedding_length, model_traits_type<config_new>::n_embd_kv_gqa, 1, 1>, kernel_types::none,
-				typename kernel_type_profile_traits<config_new.kernel_profile>::weight_type>;
+				typename kernel_type_profile_traits<config_new.kernel_type_profile>::weight_type>;
 
 		using attn_v_weight_kernel_traits =
 			kernel_traits<config_new, core_trait_dims<model_traits_type<config_new>::embedding_length, model_traits_type<config_new>::n_embd_kv_gqa, 1, 1>, kernel_types::none,
-				typename kernel_type_profile_traits<config_new.kernel_profile>::weight_type>;
+				typename kernel_type_profile_traits<config_new.kernel_type_profile>::weight_type>;
 
 		using attn_output_weight_kernel_traits =
 			kernel_traits<config_new, core_trait_dims<model_traits_type<config_new>::embedding_length, model_traits_type<config_new>::embedding_length, 1, 1>, kernel_types::none,
-				typename kernel_type_profile_traits<config_new.kernel_profile>::weight_type>;
+				typename kernel_type_profile_traits<config_new.kernel_type_profile>::weight_type>;
 
 		using attn_norm_weight_kernel_traits = kernel_traits<config_new, core_trait_dims<model_traits_type<config_new>::embedding_length, 1, 1, 1>, kernel_types::none,
-			typename kernel_type_profile_traits<config_new.kernel_profile>::norm_type>;
+			typename kernel_type_profile_traits<config_new.kernel_type_profile>::norm_type>;
 
 		using ffn_gate_weight_kernel_traits =
 			kernel_traits<config_new, core_trait_dims<model_traits_type<config_new>::embedding_length, model_traits_type<config_new>::feed_forward_length, 1, 1>,
-				kernel_types::none, typename kernel_type_profile_traits<config_new.kernel_profile>::weight_type>;
+				kernel_types::none, typename kernel_type_profile_traits<config_new.kernel_type_profile>::weight_type>;
 
 		using ffn_up_weight_kernel_traits =
 			kernel_traits<config_new, core_trait_dims<model_traits_type<config_new>::embedding_length, model_traits_type<config_new>::feed_forward_length, 1, 1>,
-				kernel_types::none, typename kernel_type_profile_traits<config_new.kernel_profile>::weight_type>;
+				kernel_types::none, typename kernel_type_profile_traits<config_new.kernel_type_profile>::weight_type>;
 
 		using ffn_down_weight_kernel_traits =
 			kernel_traits<config_new, core_trait_dims<model_traits_type<config_new>::feed_forward_length, model_traits_type<config_new>::embedding_length, 1, 1>,
-				kernel_types::none, typename kernel_type_profile_traits<config_new.kernel_profile>::weight_type>;
+				kernel_types::none, typename kernel_type_profile_traits<config_new.kernel_type_profile>::weight_type>;
 
 		using ffn_norm_weight_kernel_traits = kernel_traits<config_new, core_trait_dims<model_traits_type<config_new>::embedding_length, 1, 1, 1>, kernel_types::none,
-			typename kernel_type_profile_traits<config_new.kernel_profile>::norm_type>;
+			typename kernel_type_profile_traits<config_new.kernel_type_profile>::norm_type>;
 
 		using token_embd_weight_kernel_traits =
 			kernel_traits<config_new, core_trait_dims<model_traits_type<config_new>::embedding_length, model_traits_type<config_new>::vocab_size, 1, 1>, kernel_types::none,
-				typename kernel_type_profile_traits<config_new.kernel_profile>::weight_type>;
+				typename kernel_type_profile_traits<config_new.kernel_type_profile>::weight_type>;
 
 		using rope_freqs_weight_kernel_traits = kernel_traits<config_new, core_trait_dims<model_traits_type<config_new>::rope_dimension_count / 2, 1, 1, 1>, kernel_types::none,
-			typename kernel_type_profile_traits<config_new.kernel_profile>::norm_type>;
+			typename kernel_type_profile_traits<config_new.kernel_type_profile>::norm_type>;
 
 		using output_norm_weight_kernel_traits = kernel_traits<config_new, core_trait_dims<model_traits_type<config_new>::embedding_length, 1, 1, 1>, kernel_types::none,
-			typename kernel_type_profile_traits<config_new.kernel_profile>::norm_type>;
+			typename kernel_type_profile_traits<config_new.kernel_type_profile>::norm_type>;
 
 		using output_weight_kernel_traits =
 			kernel_traits<config_new, core_trait_dims<model_traits_type<config_new>::embedding_length, model_traits_type<config_new>::vocab_size, 1, 1>, kernel_types::none,
-				typename kernel_type_profile_traits<config_new.kernel_profile>::weight_type>;
+				typename kernel_type_profile_traits<config_new.kernel_type_profile>::weight_type>;
 
 		using attn_q_weight_type	  = op_traits<config_new, core_types::weights, weight_types::attn_q, composite_kernel_types::none, data_strategy_types::per_block,
 				 allocation_strategy_type<config_new.device_type>, attn_q_weight_kernel_traits>;
@@ -202,7 +222,7 @@ namespace nihilus {
 		static constexpr uint64_t depth{ 0 };
 		using enum_type = global_input_types;
 		using mt		= model_traits_type<config_new>;
-		using prof		= kernel_type_profile_traits<config_new.kernel_profile>;
+		using prof		= kernel_type_profile_traits<config_new.kernel_type_profile>;
 
 		using inp_tokens_kernel_traits =
 			kernel_traits<config_new, core_trait_dims<config_new.default_max_sequence_length, 1, 1, 1, 0>, kernel_types::none, typename prof::input_token_type>;
@@ -281,13 +301,13 @@ namespace nihilus {
 	};
 
 	template<const model_config& config_new> struct core_traits<config_new, core_types::token_embeddings>
-		: public core_elem_base<core_types::token_embeddings, core_traits<config_new, core_types::token_embeddings>> {
+		: public core_elem_base<core_types::token_embeddings, core_traits<config_new, core_types::token_embeddings>>, public sync_base<config_new, core_types::token_embeddings> {
 		static constexpr core_types core_type{ core_types::token_embeddings };
 		static constexpr const model_config& config{ config_new };
 		static constexpr uint64_t depth{ core_traits<config_new, static_cast<core_types>(static_cast<uint64_t>(core_types::token_embeddings) - 1)>::depth + 1 };
 		using enum_type	 = mega_qkv_prep_and_cache_publish_types;
 		using mt		 = model_traits_type<config_new>;
-		using prof		 = kernel_type_profile_traits<config_new.kernel_profile>;
+		using prof		 = kernel_type_profile_traits<config_new.kernel_type_profile>;
 		using compute_t	 = typename prof::compute_type;
 		using kv_store_t = typename prof::kv_cache_type;
 
@@ -295,7 +315,7 @@ namespace nihilus {
 		using input_02_type = typename core_traits<config_new, core_types::global_inputs>::inp_tokens_type;
 
 		using input_embedding_kernel_traits = kernel_traits<config_new, get_new_dims_new_2_t<kernel_types::get_rows, input_01_type, input_02_type>, kernel_types::get_rows,
-			typename kernel_type_profile_traits<config_new.kernel_profile>::compute_type, input_01_type, input_02_type>;
+			typename kernel_type_profile_traits<config_new.kernel_type_profile>::compute_type, input_01_type, input_02_type>;
 
 		using token_embeddings_type = op_traits<config_new, core_types::token_embeddings, token_embedding_types::get_rows, composite_kernel_types::get_rows,
 			data_strategy_types::global, allocation_strategy_types::alloc, input_embedding_kernel_traits>;
@@ -304,23 +324,19 @@ namespace nihilus {
 
 		composite_ops values{};
 
-		atomic_flag_wrapper<int64_t> current_chunk_prompt_eval{};
-		atomic_flag_wrapper<int64_t> current_chunk_eval{};
-		atomic_flag_wrapper<int64_t> latch_prompt_eval{};
-		atomic_flag_wrapper<int64_t> latch_eval{};
-
 		static constexpr uint64_t total_required_bytes{ token_embeddings_type::total_required_bytes };
 		static constexpr bool has_total_required_bytes{ true };
 	};
 
 	template<const model_config& config_new> struct core_traits<config_new, core_types::mega_qkv_prep_and_cache_publish>
-		: public core_elem_base<core_types::mega_qkv_prep_and_cache_publish, core_traits<config_new, core_types::mega_qkv_prep_and_cache_publish>> {
+		: public core_elem_base<core_types::mega_qkv_prep_and_cache_publish, core_traits<config_new, core_types::mega_qkv_prep_and_cache_publish>>,
+		  public sync_base<config_new, core_types::mega_qkv_prep_and_cache_publish> {
 		static constexpr core_types core_type{ core_types::mega_qkv_prep_and_cache_publish };
 		static constexpr const model_config& config{ config_new };
 		static constexpr uint64_t depth{ core_traits<config_new, static_cast<core_types>(static_cast<uint64_t>(core_types::mega_qkv_prep_and_cache_publish) - 1)>::depth + 1 };
 		using enum_type	 = mega_qkv_prep_and_cache_publish_types;
 		using mt		 = model_traits_type<config_new>;
-		using prof		 = kernel_type_profile_traits<config_new.kernel_profile>;
+		using prof		 = kernel_type_profile_traits<config_new.kernel_type_profile>;
 		using compute_t	 = typename prof::compute_type;
 		using kv_store_t = typename prof::kv_cache_type;
 
@@ -387,23 +403,20 @@ namespace nihilus {
 		using composite_ops = get_core_base_t<config_new, q_out_type>;
 
 		composite_ops values{};
-		array<atomic_flag_wrapper<int64_t>, mt::block_count> current_chunk_prompt_eval{};
-		array<atomic_flag_wrapper<int64_t>, mt::block_count> current_chunk_eval{};
-		array<atomic_flag_wrapper<int64_t>, mt::block_count> latch_prompt_eval{};
-		array<atomic_flag_wrapper<int64_t>, mt::block_count> latch_eval{};
 
 		static constexpr uint64_t total_required_bytes{ q_out_type::total_required_bytes };
 		static constexpr bool has_total_required_bytes{ true };
 	};
 
 	template<const model_config& config_new> struct core_traits<config_new, core_types::mega_attention_apply>
-		: public core_elem_base<core_types::mega_attention_apply, core_traits<config_new, core_types::mega_attention_apply>> {
+		: public core_elem_base<core_types::mega_attention_apply, core_traits<config_new, core_types::mega_attention_apply>>,
+		  public sync_base<config_new, core_types::mega_attention_apply> {
 		static constexpr core_types core_type{ core_types::mega_attention_apply };
 		static constexpr const model_config& config{ config_new };
 		static constexpr uint64_t depth{ core_traits<config_new, static_cast<core_types>(static_cast<uint64_t>(core_types::mega_attention_apply) - 1)>::depth + 1 };
 		using enum_type	 = mega_attention_apply_types;
 		using mt		 = model_traits_type<config_new>;
-		using prof		 = kernel_type_profile_traits<config_new.kernel_profile>;
+		using prof		 = kernel_type_profile_traits<config_new.kernel_type_profile>;
 		using compute_t	 = typename prof::compute_type;
 		using kv_store_t = typename prof::kv_cache_type;
 
@@ -449,23 +462,19 @@ namespace nihilus {
 
 		using composite_ops = get_core_base_t<config_new, ffn_inp_type>;
 		composite_ops values{};
-		array<atomic_flag_wrapper<int64_t>, mt::block_count> current_chunk_prompt_eval{};
-		array<atomic_flag_wrapper<int64_t>, mt::block_count> current_chunk_eval{};
-		array<atomic_flag_wrapper<int64_t>, mt::block_count> latch_prompt_eval{};
-		array<atomic_flag_wrapper<int64_t>, mt::block_count> latch_eval{};
 
 		static constexpr uint64_t total_required_bytes{ ffn_inp_type::total_required_bytes };
 		static constexpr bool has_total_required_bytes{ true };
 	};
 
 	template<const model_config& config_new> struct core_traits<config_new, core_types::mega_ffn>
-		: public core_elem_base<core_types::mega_ffn, core_traits<config_new, core_types::mega_ffn>> {
+		: public core_elem_base<core_types::mega_ffn, core_traits<config_new, core_types::mega_ffn>>, public sync_base<config_new, core_types::mega_ffn> {
 		static constexpr core_types core_type{ core_types::mega_ffn };
 		static constexpr const model_config& config{ config_new };
 		static constexpr uint64_t depth{ core_traits<config_new, static_cast<core_types>(static_cast<uint64_t>(core_types::mega_ffn) - 1)>::depth + 1 };
 		using enum_type = mega_ffn_types;
 		using mt		= model_traits_type<config_new>;
-		using prof		= kernel_type_profile_traits<config_new.kernel_profile>;
+		using prof		= kernel_type_profile_traits<config_new.kernel_type_profile>;
 		using compute_t = typename prof::compute_type;
 
 		using ffn_inp_input_dims = core_trait_dims<mt::embedding_length, config_new.default_max_sequence_length, 1, 1, 0>;
@@ -506,23 +515,20 @@ namespace nihilus {
 
 		using composite_ops = get_core_base_t<config_new, l_out_type>;
 		composite_ops values{};
-		array<atomic_flag_wrapper<int64_t>, mt::block_count> current_chunk_prompt_eval{};
-		array<atomic_flag_wrapper<int64_t>, mt::block_count> current_chunk_eval{};
-		array<atomic_flag_wrapper<int64_t>, mt::block_count> latch_prompt_eval{};
-		array<atomic_flag_wrapper<int64_t>, mt::block_count> latch_eval{};
 
 		static constexpr uint64_t total_required_bytes{ l_out_type::total_required_bytes };
 		static constexpr bool has_total_required_bytes{ true };
 	};
 
 	template<const model_config& config_new> struct core_traits<config_new, core_types::final_norm_and_sampling>
-		: public core_elem_base<core_types::final_norm_and_sampling, core_traits<config_new, core_types::final_norm_and_sampling>> {
+		: public core_elem_base<core_types::final_norm_and_sampling, core_traits<config_new, core_types::final_norm_and_sampling>>,
+		  public sync_base<config_new, core_types::final_norm_and_sampling> {
 		static constexpr core_types core_type{ core_types::final_norm_and_sampling };
 		static constexpr const model_config& config{ config_new };
 		static constexpr uint64_t depth{ core_traits<config_new, static_cast<core_types>(static_cast<uint64_t>(core_types::final_norm_and_sampling) - 1)>::depth + 1 };
 		using enum_type = final_norm_and_sampling_types;
 		using mt		= model_traits_type<config_new>;
-		using prof		= kernel_type_profile_traits<config_new.kernel_profile>;
+		using prof		= kernel_type_profile_traits<config_new.kernel_type_profile>;
 		using compute_t = typename prof::compute_type;
 
 		using l_out_input_dims	 = core_trait_dims<mt::embedding_length, config_new.default_max_sequence_length, 1, 1, 0>;
@@ -591,10 +597,6 @@ namespace nihilus {
 
 		using composite_ops = get_core_base_t<config_new, result_token_id_type>;
 		composite_ops values{};
-		atomic_flag_wrapper<int64_t> current_chunk_prompt_eval{};
-		atomic_flag_wrapper<int64_t> current_chunk_eval{};
-		atomic_flag_wrapper<int64_t> latch_prompt_eval{};
-		atomic_flag_wrapper<int64_t> latch_eval{};
 
 		static constexpr uint64_t total_required_bytes{ result_token_id_type::total_required_bytes };
 		static constexpr bool has_total_required_bytes{ true };

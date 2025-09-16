@@ -56,10 +56,11 @@ namespace nihilus {
 		bool is_active{};
 	};
 
-	struct memory_plan_new {
+	struct memory_plan {
 		array<core_traits_memory_footprint, core_types::count> footprints{};
-		uint64_t currently_allocated_bytes = 0;
-		uint64_t peak_allocated_bytes	   = 0;
+		uint64_t currently_allocated_bytes{};
+		uint64_t peak_allocated_bytes{};
+		uint64_t metadata_offset{};
 	};
 
 	template<device_types device_type> constexpr uint64_t base_index{ [] {
@@ -70,7 +71,7 @@ namespace nihilus {
 		}
 	}() };
 
-	template<const model_config& config, uint64_t current_index = base_index<config.device_type>> consteval memory_plan_new get_memory_plan(memory_plan_new values = {}) {
+	template<const model_config& config, uint64_t current_index = base_index<config.device_type>> consteval memory_plan get_memory_plan(memory_plan values = {}) {
 		constexpr uint64_t max_index{ static_cast<uint64_t>(core_types::count) };
 		if constexpr (current_index == base_index<config.device_type>) {
 			values.currently_allocated_bytes = 0;
@@ -115,7 +116,7 @@ namespace nihilus {
 		NIHILUS_INLINE static constexpr bool filter() {
 			return has_total_required_bytes_types<base_derived_type>;
 		}
-		NIHILUS_INLINE static void impl(base_derived_type& core_traits, const memory_plan_new& plan, memory_buffer<config>& memory_buffer, uint64_t& internal_offset) {
+		NIHILUS_INLINE static void impl(base_derived_type& core_traits, const memory_plan& plan, memory_buffer<config>& memory_buffer, uint64_t& internal_offset) {
 			using data_type = detail::remove_cvref_t<decltype(core_traits.data)>;
 			if constexpr (array_types<data_type>) {
 				using data_type_new = typename data_type::value_type;
@@ -143,10 +144,7 @@ namespace nihilus {
 			return base_type::has_total_required_bytes;
 		}
 
-		NIHILUS_INLINE static void impl(base_type& parse_core, const memory_plan_new& plan, memory_buffer<config>& memory_buffer) {
-			uint64_t internal_offset{};
-			parse_core.values.template impl<memory_mapper_impl>(plan, memory_buffer, internal_offset);
-		}
+		NIHILUS_INLINE static void impl(base_type& parse_core, const memory_plan& plan, memory_buffer<config>& memory_buffer);
 	};
 
 	template<const model_config& config, typename base_type_new> struct tensor_debugger {

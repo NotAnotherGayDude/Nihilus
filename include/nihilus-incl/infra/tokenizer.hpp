@@ -28,7 +28,7 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-	template<model_arches arch> struct tokenizer_parameters;
+	template<model_arches model_arch> struct tokenizer_parameters;
 
 	template<> struct tokenizer_parameters<model_arches::llama> {
 		std::unordered_map<std::string_view, token> tokens{};
@@ -44,7 +44,7 @@ namespace nihilus {
 		int32_t id{};
 	};
 
-	template<model_config config, model_arches arch, tokenizer_types> struct tokenizer;
+	template<model_config config, model_arches model_arch, tokenizer_types> struct tokenizer;
 
 	struct nihilus_symbol {
 		const char* text{};
@@ -137,9 +137,9 @@ namespace nihilus {
 	};
 
 	template<model_config config, tokenizer_types tokenizer_type> struct tokenizer<config, model_arches::llama, tokenizer_type>
-		: public tokenizer_parameters<model_arches::llama>, public tokenizer_traits<config.arch, tokenizer_type, config.tokenizer_pre_type> {
-		using model_traits_type		= model_traits<config.arch, config.model_size, config.model_generation>;
-		using tokenizer_traits_type = tokenizer_traits<config.arch, config.tokenizer_type, config.tokenizer_pre_type>;
+		: public tokenizer_parameters<model_arches::llama>, public tokenizer_traits<config.model_arch, tokenizer_type, config.tokenizer_pre_type> {
+		using model_traits_type		= model_traits<config.model_arch, config.model_size, config.model_generation>;
+		using tokenizer_traits_type = tokenizer_traits<config.model_arch, config.tokenizer_type, config.tokenizer_pre_type>;
 
 		NIHILUS_INLINE tokenizer() noexcept {
 			candidate_tokens.reserve(32768);

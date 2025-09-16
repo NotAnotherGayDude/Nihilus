@@ -32,9 +32,9 @@ namespace nihilus {
 	template<model_config config> struct model_serializer_impl {};
 
 	template<model_config config>
-		requires((config.arch == model_arches::llama) && (config.format == model_format::gguf))
+		requires((config.model_arch == model_arches::llama) && (config.model_format == model_formats::gguf))
 	struct model_serializer_impl<config> {
-		using model_traits_type = model_traits<config.arch, config.model_size, config.model_generation>;
+		using model_traits_type = model_traits<config.model_arch, config.model_size, config.model_generation>;
 		static_assert((std::endian::native == std::endian::little), "Sorry, but big-endian is not yet supported by the library");
 		template<typename tokenizer_type> NIHILUS_INLINE static gguf_metadata<config> parse_model(array<array<void*, model_traits_type::block_count>, core_types::count>& data,
 			memory_mapped_file<config>* memory_file, tokenizer_type& tokenizer) {

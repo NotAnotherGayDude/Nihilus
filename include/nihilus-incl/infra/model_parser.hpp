@@ -387,8 +387,8 @@ namespace nihilus {
 
 	template<model_config config> struct gguf_metadata : public metadata_base,
 														 public tokenizer_base<config.tokenizer_type>,
-														 public model_traits<config.arch, config.model_size, config.model_generation>,
-														 public tokenizer_traits<config.arch, config.tokenizer_type, config.tokenizer_pre_type> {};
+														 public model_traits<config.model_arch, config.model_size, config.model_generation>,
+														 public tokenizer_traits<config.model_arch, config.tokenizer_type, config.tokenizer_pre_type> {};
 
 	template<model_config config> struct parse_core<gguf_metadata<config>> {
 		using value_type				  = gguf_metadata<config>;
@@ -578,7 +578,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_arches arch> struct string_to_op_type;
+	template<model_arches model_arch> struct string_to_op_type;
 
 	template<> struct string_to_op_type<model_arches::llama> {
 		NIHILUS_INLINE static weight_types impl(std::string_view input) noexcept {
@@ -760,7 +760,7 @@ namespace nihilus {
 		NIHILUS_INLINE static core_base_creation_data gather_value(stream_iterator<config>& input) {
 			core_base_creation_data value{};
 			std::string_view name{ value_reader<config, std::string_view>::gather_value(input) };
-			value.op_type					  = string_to_op_type<config.arch>::impl(name);
+			value.op_type					  = string_to_op_type<config.model_arch>::impl(name);
 			value.n_dimensions				  = value_reader<config, uint32_t>::gather_value(input);
 			value.layer_number				  = extract_layer_number(name);
 			constexpr uint32_t MAX_DIMENSIONS = 4;
@@ -799,9 +799,9 @@ namespace nihilus {
 	template<model_config config> struct model_parser_impl {};
 
 	template<model_config config>
-		requires((config.arch == model_arches::llama) && (config.format == model_format::gguf))
+		requires((config.model_arch == model_arches::llama) && (config.model_format == model_formats::gguf))
 	struct model_parser_impl<config> {
-		using model_traits_type = model_traits<config.arch, config.model_size, config.model_generation>;
+		using model_traits_type = model_traits<config.model_arch, config.model_size, config.model_generation>;
 		static_assert((std::endian::native == std::endian::little), "Sorry, but big-endian is not yet supported by the library");
 		template<typename tokenizer_type> NIHILUS_INLINE static gguf_metadata<config> parse_model(std::string_view model_path,
 			array<array<void*, model_traits_type::block_count>, weight_types::count>& data, optional<memory_mapped_file<config>>& metadata_file,
@@ -844,7 +844,7 @@ namespace nihilus {
 	};
 
 	template<model_config config> struct model_parser {
-		using model_traits_type = model_traits<config.arch, config.model_size, config.model_generation>;
+		using model_traits_type = model_traits<config.model_arch, config.model_size, config.model_generation>;
 
 		template<typename tokenizer_type> NIHILUS_INLINE static gguf_metadata<config> parse_model(std::string_view model_path,
 			array<array<void*, model_traits_type::block_count>, weight_types::count>& data, optional<memory_mapped_file<config>>& metadata_file,

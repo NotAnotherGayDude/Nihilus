@@ -46,7 +46,7 @@ namespace nihilus {
 		using size_type			= size_type_new;
 	};
 
-	template<kernel_type_profiles kernel_profile> struct kernel_type_profile_traits;
+	template<kernel_type_profiles kernel_type_profile> struct kernel_type_profile_traits;
 
 	template<> struct kernel_type_profile_traits<kernel_type_profiles::q8_gqa> : public kernel_type_profile_traits_impl<block_q8_0<half>,// weight_type
 																					 half,// activation_type

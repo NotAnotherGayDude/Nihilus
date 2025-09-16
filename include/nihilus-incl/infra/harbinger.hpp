@@ -27,13 +27,13 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-	NIHILUS_INLINE static consteval auto generate_model_config(model_generations model_generation, model_sizes model_size, kernel_type_profiles kernel_profile, model_arches arch,
+	NIHILUS_INLINE static consteval auto generate_model_config(model_generations model_generation, model_sizes model_size, kernel_type_profiles kernel_type_profile, model_arches model_arch,
 		device_types device_type_new = device_types::cpu, bool benchmark = false, bool dev = false, uint64_t default_max_sequence_length = 1024, bool exceptions = false,
-		uint64_t default_batch_size = 512, kv_cache_strategies cache_strategy = kv_cache_strategies::paged, bool use_gradient_checkpointing = false,
+		uint64_t default_batch_size = 512, kv_cache_strategies kv_cache_strategy = kv_cache_strategies::paged, bool use_gradient_checkpointing = false,
 		rope_scaling_types rope_scaling = rope_scaling_types::linear, tokenizer_pre_types tokenizer_pre_type = tokenizer_pre_types::llama3, uint64_t kv_cache_block_size = 16,
-		bool use_rotary_embeddings = true, bool use_flash_attention = true, norm_types rms_norm_type = norm_types::rms_standard,
-		tokenizer_types tokenizer_type = tokenizer_types::bpe, model_format format = model_format::gguf, float norm_epsilon = 1e-6f) {
-		model_config config{ model_generation, model_size, kernel_profile, arch, exceptions, default_max_sequence_length, default_batch_size, cache_strategy,
+		bool use_rotary_embeddings = true, bool use_flash_attention = true, rms_norm_types rms_norm_type = rms_norm_types::rms_standard,
+		tokenizer_types tokenizer_type = tokenizer_types::bpe, model_formats format = model_formats::gguf, float norm_epsilon = 1e-6f) {
+		model_config config{ model_generation, model_size, kernel_type_profile, model_arch, exceptions, default_max_sequence_length, default_batch_size, kv_cache_strategy,
 			use_gradient_checkpointing, rope_scaling, tokenizer_pre_type, kv_cache_block_size, use_rotary_embeddings, use_flash_attention, rms_norm_type, tokenizer_type,
 			device_type_new, format, norm_epsilon, benchmark, dev };
 		return config;
@@ -49,13 +49,13 @@ namespace nihilus {
 		return config;
 	}
 
-	NIHILUS_INLINE static consteval auto update_model_config_kernel_profile(model_config config, kernel_type_profiles kernel_profile) {
-		config.kernel_profile = kernel_profile;
+	NIHILUS_INLINE static consteval auto update_model_config_kernel_profile(model_config config, kernel_type_profiles kernel_type_profile) {
+		config.kernel_type_profile = kernel_type_profile;
 		return config;
 	}
 
-	NIHILUS_INLINE static consteval auto update_model_config_arch(model_config config, model_arches arch) {
-		config.arch = arch;
+	NIHILUS_INLINE static consteval auto update_model_config_arch(model_config config, model_arches model_arch) {
+		config.model_arch = model_arch;
 		return config;
 	}
 
@@ -64,8 +64,8 @@ namespace nihilus {
 		return config;
 	}
 
-	NIHILUS_INLINE static consteval auto update_model_config_cache_strategy(model_config config, kv_cache_strategies cache_strategy) {
-		config.cache_strategy = cache_strategy;
+	NIHILUS_INLINE static consteval auto update_model_config_cache_strategy(model_config config, kv_cache_strategies kv_cache_strategy) {
+		config.kv_cache_strategy = kv_cache_strategy;
 		return config;
 	}
 
@@ -74,8 +74,8 @@ namespace nihilus {
 		return config;
 	}
 
-	NIHILUS_INLINE static consteval auto update_model_config_rope_scaling(model_config config, rope_scaling_types rope_scaling) {
-		config.rope_scaling = rope_scaling;
+	NIHILUS_INLINE static consteval auto update_model_config_rope_scaling(model_config config, rope_scaling_types rope_scaling_type) {
+		config.rope_scaling_type = rope_scaling_type;
 		return config;
 	}
 
@@ -99,7 +99,7 @@ namespace nihilus {
 		return config;
 	}
 
-	NIHILUS_INLINE static consteval auto update_model_config_rms_norm_type(model_config config, norm_types rms_norm_type) {
+	NIHILUS_INLINE static consteval auto update_model_config_rms_norm_type(model_config config, rms_norm_types rms_norm_type) {
 		config.rms_norm_type = rms_norm_type;
 		return config;
 	}
@@ -109,8 +109,8 @@ namespace nihilus {
 		return config;
 	}
 
-	NIHILUS_INLINE static consteval auto update_model_config_format(model_config config, model_format format) {
-		config.format = format;
+	NIHILUS_INLINE static consteval auto update_model_config_format(model_config config, model_formats format) {
+		config.model_format = format;
 		return config;
 	}
 

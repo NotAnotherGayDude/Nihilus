@@ -38,21 +38,20 @@ namespace nihilus {
 		}
 		model_config config{};
 		virtual bool process_input(std::string_view params) = 0;
-		virtual bool process_input() = 0;
+		virtual bool process_input()						= 0;
 		virtual ~model_base();
 	};
 
 	model_base::~model_base() {};
 
-	template<const model_config& config_new> struct model
-		: public input_collector<config_new>,
-		  public thread_pool<config_new>,
-		  public model_base,
-		  public tokenizer<config_new, model_traits<config_new.arch, config_new.model_size, config_new.model_generation>::arch, config_new.tokenizer_type> {
+	template<const model_config& config_new> struct model : public input_collector<config_new>,
+															public thread_pool<config_new>,
+															public model_base,
+															public tokenizer<config_new, config_new.model_arch, config_new.tokenizer_type> {
 		using thread_pool_type		 = thread_pool<config_new>;
 		using core_bases_type		 = get_core_bases_t<config_new, core_types>;
 		using core_bases_traits_type = core_bases_traits<config_new>;
-		using tokenizer_type		 = tokenizer<config_new, config_new.arch, config_new.tokenizer_type>;
+		using tokenizer_type		 = tokenizer<config_new, config_new.model_arch, config_new.tokenizer_type>;
 
 		NIHILUS_INLINE model() noexcept = default;
 
@@ -107,7 +106,7 @@ namespace nihilus {
 
 			if constexpr (config_new.benchmark || config_new.dev) {
 				perf_base<config_new>::perf_stats.load_start = clock_type::now();
-			}			
+			}
 			model_parser<config_new>::parse_model(params.model_file, data, metadata_memory, weight_memory, *static_cast<tokenizer_type*>(this));
 
 			if constexpr (config_new.benchmark || config_new.dev) {
