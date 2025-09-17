@@ -265,7 +265,7 @@ namespace nihilus {
 		}
 
 		NIHILUS_INLINE static void impl(base_type& parse_core, int64_t thread_count) {
-			if constexpr (config.dev) {
+			if constexpr (config.dev && config.device_type != device_types::gpu) {
 				std::stringstream stream{};
 				stream << "[DEBUG] Thread (ID: " << std::this_thread::get_id() << ") " << " [STARTING] a barrier with " << thread_count
 					   << " expected threads, for Op: " << base_type::core_type << std::endl;
@@ -277,7 +277,7 @@ namespace nihilus {
 				kernel_dispatcher<config, processing_phase, base_type>::impl(parse_core, thread_count);
 			}
 
-			if constexpr (config.dev) {
+			if constexpr (config.dev && config.device_type != device_types::gpu) {
 				std::stringstream stream{};
 				stream << "[DEBUG] Thread (ID: " << std::this_thread::get_id() << ") " << " [FINISHED] a barrier with " << thread_count
 					   << " expected threads, for Op: " << base_type::core_type << std::endl;
@@ -299,7 +299,7 @@ namespace nihilus {
 		}
 
 		NIHILUS_INLINE static void impl(base_type& parse_core, int64_t current_block, int64_t thread_count) {
-			if constexpr (config.dev) {
+			if constexpr (config.dev && config.device_type != device_types::gpu) {
 				std::stringstream stream{};
 				stream << "[DEBUG] Thread (ID: " << std::this_thread::get_id() << ") " << " [STARTING] a barrier with " << thread_count
 					   << " expected threads, for Op: " << base_type::core_type << ", for [BLOCK]: " << current_block << std::endl;
@@ -311,7 +311,7 @@ namespace nihilus {
 				kernel_dispatcher<config, processing_phase, base_type>::impl(parse_core, thread_count, current_block);
 			}
 
-			if constexpr (config.dev) {
+			if constexpr (config.dev && config.device_type != device_types::gpu) {
 				std::stringstream stream{};
 				stream << "[DEBUG] Thread (ID: " << std::this_thread::get_id() << ") " << " [FINISHED] a barrier with " << thread_count
 					   << " expected threads, for Op: " << base_type::core_type << ", for [BLOCK]: " << current_block << std::endl;
@@ -332,7 +332,7 @@ namespace nihilus {
 		}
 
 		NIHILUS_INLINE static void impl(base_type& parse_core, int64_t thread_count) {
-			if constexpr (config.dev) {
+			if constexpr (config.dev && config.device_type != device_types::gpu) {
 				std::stringstream stream{};
 				stream << "[DEBUG] Thread (ID: " << std::this_thread::get_id() << ") " << " [STARTING] a barrier with " << thread_count
 					   << " expected threads, for Op: " << base_type::core_type << std::endl;
@@ -343,7 +343,7 @@ namespace nihilus {
 			} else {
 				kernel_dispatcher<config, processing_phase, base_type>::impl(parse_core, thread_count);
 			}
-			if constexpr (config.dev) {
+			if constexpr (config.dev && config.device_type != device_types::gpu) {
 				std::stringstream stream{};
 				stream << "[DEBUG] Thread (ID: " << std::this_thread::get_id() << ") " << " [FINISHED] a barrier with " << thread_count
 					   << " expected threads, for Op: " << base_type::core_type << std::endl;
