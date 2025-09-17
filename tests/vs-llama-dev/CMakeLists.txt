@@ -57,6 +57,7 @@ add_subdirectory("./common")
 target_link_libraries(
 	"nihilus_performance" PUBLIC 
 	nihilus::nihilus llama common BenchmarkSuite::BenchmarkSuite ggml ggml-cpu
+	Jsonifier::Jsonifier
 )
 
 target_compile_options(

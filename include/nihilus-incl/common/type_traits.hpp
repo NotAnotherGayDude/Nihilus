@@ -118,61 +118,45 @@ namespace nihilus {
 		}
 	};
 
-	template<> struct type_traits<int8_t> : public type_traits_base<type_traits<int8_t>>, public get_dynamic_type_traits<type_traits<int8_t>> {
-		using value_type = int8_t;
-		using quant_type = int8_t;
+	template<integral8_types value_type_new> struct type_traits<value_type_new> : public type_traits_base<type_traits<value_type_new>>,
+																			  public get_dynamic_type_traits<type_traits<value_type_new>> {
+		using value_type = value_type_new;
+		using quant_type = value_type;
 		inline static constexpr data_types type{ data_types::i8 };
-		inline static constexpr uint64_t type_size{ sizeof(int8_t) };
+		inline static constexpr uint64_t type_size{ sizeof(value_type) };
 		inline static constexpr bool is_quantized{ false };
 		inline static constexpr uint64_t block_size{ 1 };
 		inline static constexpr uint64_t n_rows{ 1 };
 	};
 
-	template<> struct type_traits<int32_t> : public type_traits_base<type_traits<int32_t>>, public get_dynamic_type_traits<type_traits<int32_t>> {
-		using value_type = int32_t;
-		using quant_type = int32_t;
+	template<integral16_types value_type_new> struct type_traits<value_type_new> : public type_traits_base<type_traits<value_type_new>>,
+																			  public get_dynamic_type_traits<type_traits<value_type_new>> {
+		using value_type = value_type_new;
+		using quant_type = value_type;
+		inline static constexpr data_types type{ data_types::i16 };
+		inline static constexpr uint64_t type_size{ sizeof(value_type) };
+		inline static constexpr bool is_quantized{ false };
+		inline static constexpr uint64_t block_size{ 1 };
+		inline static constexpr uint64_t n_rows{ 1 };
+	};
+
+	template<integral32_types value_type_new> struct type_traits<value_type_new> : public type_traits_base<type_traits<value_type_new>>,
+																			  public get_dynamic_type_traits<type_traits<value_type_new>> {
+		using value_type = value_type_new;
+		using quant_type = value_type;
 		inline static constexpr data_types type{ data_types::i32 };
-		inline static constexpr uint64_t type_size{ sizeof(int32_t) };
+		inline static constexpr uint64_t type_size{ sizeof(value_type) };
 		inline static constexpr bool is_quantized{ false };
 		inline static constexpr uint64_t block_size{ 1 };
 		inline static constexpr uint64_t n_rows{ 1 };
 	};
 
-	template<> struct type_traits<int64_t> : public type_traits_base<type_traits<int64_t>>, public get_dynamic_type_traits<type_traits<int64_t>> {
-		using value_type = int64_t;
-		using quant_type = int64_t;
+	template<integral64_types value_type_new> struct type_traits<value_type_new> : public type_traits_base<type_traits<value_type_new>>,
+																			  public get_dynamic_type_traits<type_traits<value_type_new>> {
+		using value_type = value_type_new;
+		using quant_type = value_type;
 		inline static constexpr data_types type{ data_types::i64 };
-		inline static constexpr uint64_t type_size{ sizeof(int64_t) };
-		inline static constexpr bool is_quantized{ false };
-		inline static constexpr uint64_t block_size{ 1 };
-		inline static constexpr uint64_t n_rows{ 1 };
-	};
-
-	template<> struct type_traits<uint8_t> : public type_traits_base<type_traits<uint8_t>>, public get_dynamic_type_traits<type_traits<uint8_t>> {
-		using value_type = uint8_t;
-		using quant_type = uint8_t;
-		inline static constexpr data_types type{ data_types::i8 };
-		inline static constexpr uint64_t type_size{ sizeof(uint8_t) };
-		inline static constexpr bool is_quantized{ false };
-		inline static constexpr uint64_t block_size{ 1 };
-		inline static constexpr uint64_t n_rows{ 1 };
-	};
-
-	template<> struct type_traits<uint32_t> : public type_traits_base<type_traits<uint32_t>>, public get_dynamic_type_traits<type_traits<uint32_t>> {
-		using value_type = uint32_t;
-		using quant_type = uint32_t;
-		inline static constexpr data_types type{ data_types::i32 };
-		inline static constexpr uint64_t type_size{ sizeof(uint32_t) };
-		inline static constexpr bool is_quantized{ false };
-		inline static constexpr uint64_t block_size{ 1 };
-		inline static constexpr uint64_t n_rows{ 1 };
-	};
-
-	template<> struct type_traits<uint64_t> : public type_traits_base<type_traits<uint64_t>>, public get_dynamic_type_traits<type_traits<uint64_t>> {
-		using value_type = uint64_t;
-		using quant_type = uint64_t;
-		inline static constexpr data_types type{ data_types::i64 };
-		inline static constexpr uint64_t type_size{ sizeof(uint64_t) };
+		inline static constexpr uint64_t type_size{ sizeof(value_type) };
 		inline static constexpr bool is_quantized{ false };
 		inline static constexpr uint64_t block_size{ 1 };
 		inline static constexpr uint64_t n_rows{ 1 };
@@ -193,16 +177,6 @@ namespace nihilus {
 		using quant_type = double;
 		inline static constexpr data_types type{ data_types::f64 };
 		inline static constexpr uint64_t type_size{ sizeof(double) };
-		inline static constexpr bool is_quantized{ false };
-		inline static constexpr uint64_t block_size{ 1 };
-		inline static constexpr uint64_t n_rows{ 1 };
-	};
-
-	template<> struct type_traits<int16_t> : public type_traits_base<type_traits<int16_t>>, public get_dynamic_type_traits<type_traits<int16_t>> {
-		using value_type = fp16_t;
-		using quant_type = fp16_t;
-		inline static constexpr data_types type{ data_types::f16 };
-		inline static constexpr uint64_t type_size{ sizeof(fp16_t) };
 		inline static constexpr bool is_quantized{ false };
 		inline static constexpr uint64_t block_size{ 1 };
 		inline static constexpr uint64_t n_rows{ 1 };

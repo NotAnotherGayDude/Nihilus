@@ -819,7 +819,7 @@ static common_chat_params common_chat_params_init_generic(const common_chat_temp
         "Respond in JSON format, either with `tool_call` (a request to call tools) or with `response` reply to the user's request");
 
     data.prompt = apply(tmpl, tweaked_messages, inputs.tools.empty() ? json() : inputs.tools, inputs.add_generation_prompt);
-    data.model_format = COMMON_CHAT_FORMAT_GENERIC;
+    data.format = COMMON_CHAT_FORMAT_GENERIC;
     return data;
 }
 static void common_chat_parse_generic(common_chat_msg_parser & builder) {
@@ -891,7 +891,7 @@ static common_chat_params common_chat_params_init_mistral_nemo(const common_chat
         "[TOOL_CALLS]",
     };
     data.prompt = apply(tmpl, inputs.messages, inputs.tools.empty() ? json() : inputs.tools, inputs.add_generation_prompt);
-    data.model_format = COMMON_CHAT_FORMAT_MISTRAL_NEMO;
+    data.format = COMMON_CHAT_FORMAT_MISTRAL_NEMO;
     return data;
 }
 static void common_chat_parse_mistral_nemo(common_chat_msg_parser & builder) {
@@ -916,7 +916,7 @@ static common_chat_params common_chat_params_init_command_r7b(const common_chat_
         }
     }
     data.prompt = apply(tmpl, adjusted_messages, inputs.tools.empty() ? json() : inputs.tools, inputs.add_generation_prompt, {});
-    data.model_format = COMMON_CHAT_FORMAT_COMMAND_R7B;
+    data.format = COMMON_CHAT_FORMAT_COMMAND_R7B;
     if (string_ends_with(data.prompt, "<|START_THINKING|>")) {
         data.thinking_forced_open = true;
     }
@@ -1096,11 +1096,11 @@ static common_chat_params common_chat_params_init_llama_3_x(const common_chat_te
             builder.add_rule("root", string_join(tool_rules, " | "));
             data.additional_stops.push_back("<|eom_id|>");
         });
-        data.model_format = allow_python_tag_builtin_tools && !builtin_tools.empty()
+        data.format = allow_python_tag_builtin_tools && !builtin_tools.empty()
             ? COMMON_CHAT_FORMAT_LLAMA_3_X_WITH_BUILTIN_TOOLS
             : COMMON_CHAT_FORMAT_LLAMA_3_X;
     } else {
-        data.model_format = COMMON_CHAT_FORMAT_CONTENT_ONLY;
+        data.format = COMMON_CHAT_FORMAT_CONTENT_ONLY;
     }
     data.prompt = apply(tmpl, inputs.messages, inputs.tools.empty() ? json() : inputs.tools, inputs.add_generation_prompt, {
         {"date_string", format_time(inputs.now, "%d %b %Y")},
@@ -1184,7 +1184,7 @@ static common_chat_params common_chat_params_init_deepseek_r1(const common_chat_
             "$1<｜tool▁calls▁end｜><｜end▁of▁sentence｜>$2");
     }
     data.prompt = prompt;
-    data.model_format = COMMON_CHAT_FORMAT_DEEPSEEK_R1;
+    data.format = COMMON_CHAT_FORMAT_DEEPSEEK_R1;
     if (string_ends_with(data.prompt, "<think>\n")) {
         data.thinking_forced_open = true;
     }
@@ -1287,9 +1287,9 @@ static common_chat_params common_chat_params_init_firefunction_v2(const common_c
         data.preserved_tokens = {
             " functools[",
         };
-        data.model_format = COMMON_CHAT_FORMAT_FIREFUNCTION_V2;
+        data.format = COMMON_CHAT_FORMAT_FIREFUNCTION_V2;
     } else {
-        data.model_format = COMMON_CHAT_FORMAT_CONTENT_ONLY;
+        data.format = COMMON_CHAT_FORMAT_CONTENT_ONLY;
     }
     return data;
 }
@@ -1304,7 +1304,7 @@ static common_chat_params common_chat_params_init_functionary_v3_2(const common_
     // If the function is python, we also allow raw python code (if the line after `python\n` doesn't start w/ opening `{`), which the model seems to prefer for multiline code.
     common_chat_params data;
     data.prompt = apply(tmpl, inputs.messages, inputs.tools.empty() ? json() : inputs.tools, inputs.add_generation_prompt);
-    data.model_format = COMMON_CHAT_FORMAT_FUNCTIONARY_V3_2;
+    data.format = COMMON_CHAT_FORMAT_FUNCTIONARY_V3_2;
     if (inputs.tools.is_array() && !inputs.tools.empty()) {
         data.grammar_lazy = inputs.tool_choice != COMMON_CHAT_TOOL_CHOICE_REQUIRED;
         data.grammar = build_grammar([&](const common_grammar_builder & builder) {
@@ -1425,9 +1425,9 @@ static common_chat_params common_chat_params_init_functionary_v3_1_llama_3_1(con
             builder.add_rule("root", inputs.parallel_tool_calls ? "(" + tool_call + ")+" : tool_call);
             data.grammar_triggers.push_back({COMMON_GRAMMAR_TRIGGER_TYPE_WORD, "<function="});
         });
-        data.model_format = COMMON_CHAT_FORMAT_FUNCTIONARY_V3_1_LLAMA_3_1;
+        data.format = COMMON_CHAT_FORMAT_FUNCTIONARY_V3_1_LLAMA_3_1;
     } else {
-        data.model_format = COMMON_CHAT_FORMAT_CONTENT_ONLY;
+        data.format = COMMON_CHAT_FORMAT_CONTENT_ONLY;
     }
 
     data.prompt = apply(tmpl, inputs.messages, inputs.tools.empty() ? json() : inputs.tools, inputs.add_generation_prompt);
@@ -1461,7 +1461,7 @@ static common_chat_params common_chat_params_init_hermes_2_pro(const common_chat
     common_chat_params data;
 
     data.prompt = apply(tmpl, inputs.messages, inputs.tools.empty() ? json() : inputs.tools, inputs.add_generation_prompt);
-    data.model_format = COMMON_CHAT_FORMAT_HERMES_2_PRO;
+    data.format = COMMON_CHAT_FORMAT_HERMES_2_PRO;
     if (string_ends_with(data.prompt, "<think>\n")) {
         data.thinking_forced_open = true;
     }
@@ -1642,7 +1642,7 @@ static void common_chat_parse_hermes_2_pro(common_chat_msg_parser & builder) {
 static common_chat_params common_chat_params_init_without_tools(const common_chat_template & tmpl, const struct templates_params & inputs) {
     common_chat_params data;
     data.prompt = apply(tmpl, inputs.messages, inputs.tools.empty() ? json() : inputs.tools, inputs.add_generation_prompt);
-    data.model_format = COMMON_CHAT_FORMAT_CONTENT_ONLY;
+    data.format = COMMON_CHAT_FORMAT_CONTENT_ONLY;
     data.grammar_lazy = false;
     if (!inputs.json_schema.is_null()) {
         if (!inputs.grammar.empty()) {
@@ -1866,7 +1866,7 @@ static void common_chat_parse(common_chat_msg_parser & builder, common_chat_form
 common_chat_msg common_chat_parse(const std::string & input, bool is_partial, const common_chat_syntax & syntax) {
     common_chat_msg_parser builder(input, is_partial, syntax);
     try {
-        common_chat_parse(builder, syntax.model_format);
+        common_chat_parse(builder, syntax.format);
     } catch (const common_chat_msg_partial_exception & ex) {
         LOG_DBG("Partial parse: %s\n", ex.what());
         if (!is_partial) {

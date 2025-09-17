@@ -58,7 +58,7 @@ namespace nihilus {
 
 	template<sort_methods sort_method, typename value_type> struct sort;
 
-	template<typename value_type> struct sort<sort_methods::greater_than,value_type> {
+	template<typename value_type> struct sort<sort_methods::greater_than, value_type> {
 		NIHILUS_INLINE static void impl(value_type* values, uint64_t count) {
 			for (uint64_t i = 0; i < count - 1; ++i) {
 				uint64_t min_idx = i;
@@ -381,16 +381,38 @@ namespace nihilus {
 	}
 
 	enum class data_types : uint64_t {
-		f32	  = 0,
-		f16	  = 1,
-		q8_0  = 8,
-		i8	  = 24,
-		i16	  = 25,
-		i32	  = 26,
-		i64	  = 27,
-		f64	  = 28,
-		bf16  = 30,
-		count = 39,
+		f32		= 0,
+		f16		= 1,
+		q4_0	= 2,
+		q4_1	= 3,
+		q5_0	= 6,
+		q5_1	= 7,
+		q8_0	= 8,
+		q8_1	= 9,
+		q2_k	= 10,
+		q3_k	= 11,
+		q4_k	= 12,
+		q5_k	= 13,
+		q6_k	= 14,
+		q8_k	= 15,
+		iq2_xxs = 16,
+		iq2_xs	= 17,
+		iq3_xxs = 18,
+		iq1_s	= 19,
+		iq4_nl	= 20,
+		iq3_s	= 21,
+		iq2_s	= 22,
+		iq4_xs	= 23,
+		i8		= 24,
+		i16		= 25,
+		i32		= 26,
+		i64		= 27,
+		f64		= 28,
+		iq1_m	= 29,
+		bf16	= 30,
+		tq1_0	= 34,
+		tq2_0	= 35,
+		count	= 39,
 	};
 
 	enum class core_types : uint8_t {

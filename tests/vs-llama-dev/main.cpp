@@ -6,7 +6,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
-
+#include <jsonifier/Index.hpp>
 #include <BnchSwt/BenchmarkSuite.hpp>
 #include <../src/llama-context.h>
 #include <nihilus>
