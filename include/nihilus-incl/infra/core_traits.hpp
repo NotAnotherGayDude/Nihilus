@@ -73,7 +73,7 @@ namespace nihilus {
 	};
 
 	template<const model_config& config_new, core_types core_type>
-		requires(config_new.device_type == device_types::cpu && core_type == core_types::token_embeddings || core_type == core_types::final_norm_and_sampling)
+		requires(config_new.device_type == device_types::cpu && (core_type == core_types::token_embeddings || core_type == core_types::final_norm_and_sampling))
 	struct sync_base<config_new, core_type> {
 		atomic_flag_wrapper<int64_t> current_chunk_prompt_eval{};
 		atomic_flag_wrapper<int64_t> current_chunk_eval{};
