@@ -119,7 +119,7 @@ namespace nihilus {
 	};
 
 	template<integral8_types value_type_new> struct type_traits<value_type_new> : public type_traits_base<type_traits<value_type_new>>,
-																			  public get_dynamic_type_traits<type_traits<value_type_new>> {
+																				  public get_dynamic_type_traits<type_traits<value_type_new>> {
 		using value_type = value_type_new;
 		using quant_type = value_type;
 		inline static constexpr data_types type{ data_types::i8 };
@@ -130,7 +130,7 @@ namespace nihilus {
 	};
 
 	template<integral16_types value_type_new> struct type_traits<value_type_new> : public type_traits_base<type_traits<value_type_new>>,
-																			  public get_dynamic_type_traits<type_traits<value_type_new>> {
+																				   public get_dynamic_type_traits<type_traits<value_type_new>> {
 		using value_type = value_type_new;
 		using quant_type = value_type;
 		inline static constexpr data_types type{ data_types::i16 };
@@ -141,7 +141,7 @@ namespace nihilus {
 	};
 
 	template<integral32_types value_type_new> struct type_traits<value_type_new> : public type_traits_base<type_traits<value_type_new>>,
-																			  public get_dynamic_type_traits<type_traits<value_type_new>> {
+																				   public get_dynamic_type_traits<type_traits<value_type_new>> {
 		using value_type = value_type_new;
 		using quant_type = value_type;
 		inline static constexpr data_types type{ data_types::i32 };
@@ -152,7 +152,7 @@ namespace nihilus {
 	};
 
 	template<integral64_types value_type_new> struct type_traits<value_type_new> : public type_traits_base<type_traits<value_type_new>>,
-																			  public get_dynamic_type_traits<type_traits<value_type_new>> {
+																				   public get_dynamic_type_traits<type_traits<value_type_new>> {
 		using value_type = value_type_new;
 		using quant_type = value_type;
 		inline static constexpr data_types type{ data_types::i64 };

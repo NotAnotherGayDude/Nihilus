@@ -876,7 +876,7 @@ namespace nihilus {
 	template<typename value_type>
 	concept has_mutable_dims = requires(detail::remove_cvref_t<value_type> value) { value.get_mutable_dim(); };
 	template<model_config config> struct tensor_debugger_impl {
-		template<typename tensor_type> static void impl(tensor_type& , uint64_t , uint64_t , uint64_t ) {
+		template<typename tensor_type> static void impl(tensor_type&, uint64_t, uint64_t, uint64_t) {
 			return;
 		}
 	};

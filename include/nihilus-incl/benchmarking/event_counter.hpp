@@ -28,7 +28,7 @@ RealTimeChris (Chris M.)
 #include <optional>
 #include <chrono>
 
-namespace nihilus::benchmarking {	
+namespace nihilus::benchmarking {
 
 	using event_collector = event_collector_type<event_count>;
 

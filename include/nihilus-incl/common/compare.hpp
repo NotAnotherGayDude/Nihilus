@@ -169,7 +169,7 @@ namespace nihilus {
 		requires(string.size() == 16)
 	struct string_literal_comparitor<string> {
 		inline static constexpr auto new_literal{ string };
-		NIHILUS_ALIGN(64) inline static constexpr auto values_new{ pack_values<new_literal>() };
+		NIHILUS_ALIGN(64) inline static constexpr auto values_new { pack_values<new_literal>() };
 		NIHILUS_INLINE static bool impl(const char* str) noexcept {
 			NIHILUS_ALIGN(64) char values_to_load[16];
 			memcpy_wrapper(values_to_load, str, 16);
@@ -201,7 +201,7 @@ namespace nihilus {
 		requires(string.size() == 32)
 	struct string_literal_comparitor<string> {
 		inline static constexpr auto new_literal{ string };
-		NIHILUS_ALIGN(64) inline static constexpr auto values_new{ pack_values<new_literal>() };
+		NIHILUS_ALIGN(64) inline static constexpr auto values_new { pack_values<new_literal>() };
 		NIHILUS_INLINE static bool impl(const char* str) noexcept {
 			NIHILUS_ALIGN(64) char values_to_load[32];
 			memcpy_wrapper(values_to_load, str, 32);
@@ -235,7 +235,7 @@ namespace nihilus {
 		requires(string.size() == 64)
 	struct string_literal_comparitor<string> {
 		inline static constexpr auto new_literal{ string };
-		NIHILUS_ALIGN(64) inline static constexpr auto values_new{ pack_values<new_literal>() };
+		NIHILUS_ALIGN(64) inline static constexpr auto values_new { pack_values<new_literal>() };
 		NIHILUS_INLINE static bool impl(const char* str) noexcept {
 			NIHILUS_ALIGN(64) char values_to_load[64];
 			memcpy_wrapper(values_to_load, str, 64);

@@ -30,6 +30,12 @@ target_link_libraries(
     "$<$<TARGET_EXISTS:CUDA::cudart>:CUDA::cudart>"
 )
 
+target_compile_options(
+	"nihilus-main" PUBLIC 
+	"$<$<CXX_COMPILER_ID:AppleClang>:-march=native>"
+	"$<$<CXX_COMPILER_ID:Clang>:-march=native>"
+)
+
 install(
 	FILES 
 	"$<TARGET_FILE:nihilus-main>"

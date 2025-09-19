@@ -21,6 +21,7 @@ RealTimeChris (Chris M.)
 
 #include <nihilus-incl/common/string_literal.hpp>
 #include <nihilus-incl/benchmarking/event_count.hpp>
+#include <nihilus-incl/common/vector.hpp>
 #include <optional>
 #include <iomanip>
 #include <cstdint>
@@ -51,7 +52,7 @@ namespace nihilus::benchmarking {
 	};
 
 	NIHILUS_INLINE static double calculate_throughput_mbps(double nanoseconds, double byes_processed) {
-		constexpr double bytes_per_mb		= 1024.0 * 1024.0;
+		constexpr double bytes_per_mb	= 1024.0 * 1024.0;
 		constexpr double nanosPerSecond = 1e9;
 		double megabytes				= byes_processed / bytes_per_mb;
 		double seconds					= nanoseconds / nanosPerSecond;

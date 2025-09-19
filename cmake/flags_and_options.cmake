@@ -18,9 +18,9 @@
 # */
 
 set(NIHILUS_COMPILE_DEFINITIONS
+    "NIHILUS_COMPILER_CUDA=$<IF:$<CUDA_COMPILER_ID:NVIDIA>,1,0>"
     "NIHILUS_ARCH_X64=$<IF:$<OR:$<STREQUAL:${CMAKE_SYSTEM_PROCESSOR},x86_64>,$<STREQUAL:${CMAKE_SYSTEM_PROCESSOR},AMD64>>,1,0>"
     "NIHILUS_ARCH_ARM64=$<IF:$<OR:$<STREQUAL:${CMAKE_SYSTEM_PROCESSOR},aarch64>,$<STREQUAL:${CMAKE_SYSTEM_PROCESSOR},ARM64>,$<STREQUAL:${CMAKE_SYSTEM_PROCESSOR},arm64>>,1,0>"
-    "NIHILUS_COMPILER_CUDA=$<IF:$<CUDA_COMPILER_ID:NVIDIA>,1,0>"
     "NIHILUS_PLATFORM_WINDOWS=$<IF:$<PLATFORM_ID:Windows>,1,0>"
     "NIHILUS_PLATFORM_LINUX=$<IF:$<PLATFORM_ID:Linux>,1,0>"
     "NIHILUS_PLATFORM_MAC=$<IF:$<PLATFORM_ID:Darwin>,1,0>"
@@ -56,4 +56,5 @@ set(NIHILUS_LINK_OPTIONS
     "$<$<AND:$<CXX_COMPILER_ID:Clang>,$<PLATFORM_ID:Linux>>:-Wl,--gc-sections;-Wl,--strip-all;-Wl,--build-id=none;-Wl,--hash-style=gnu;-Wl,-z,now;-Wl,-z,relro>"
     "$<$<AND:$<CXX_COMPILER_ID:GNU>,$<PLATFORM_ID:Linux>>:-Wl,--gc-sections;-Wl,--strip-all;-Wl,--as-needed;-Wl,-O3>"
     "$<$<AND:$<CXX_COMPILER_ID:MSVC>,$<PLATFORM_ID:Windows>>:/DYNAMICBASE:NO;/OPT:REF;/OPT:ICF;/INCREMENTAL:NO;/MACHINE:X64>"
+    "$<$<CUDA_COMPILER_ID:NVIDIA>:-lcudart_static;-lcublas_static;-lculibos;-lcudart;-lrt;-ldl;-lpthread;--relocatable-device-code=false>"
 )

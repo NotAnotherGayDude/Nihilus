@@ -153,9 +153,6 @@ namespace nihilus {
 			return get_value_as_uint(get_current_time()) - get_value_as_uint(start_time_units.load(std::memory_order_acquire));
 		}
 
-		NIHILUS_INLINE constexpr ~stop_watch() {
-		}
-
 	  protected:
 		std::atomic<time_type> total_time_units{};
 		std::atomic<time_type> start_time_units{};
@@ -335,7 +332,7 @@ namespace nihilus {
 	};
 
 	template<printable_enum_types auto current_index> consteval std::string_view get_enum_name() {
-#if NIHILUS_COMPILER_MSVC || NIHILUS_COMPILER_CUDA
+#if NIHILUS_COMPILER_MSVC || (defined(NIHILUS_COMPILER_CUDA) && NIHILUS_COMPILER_CUDA)
 		alignas(64) constexpr static_aligned_const<const char*> pretty_function_tail[]{ { ">(void)" } };
 #else
 		alignas(64) constexpr static_aligned_const<const char*> pretty_function_tail[]{ { "]" } };

@@ -23,7 +23,7 @@ RealTimeChris (Chris M.)
 #include <nihilus-incl/common/config.hpp>
 #include <new>
 
-namespace detail {
+namespace nihilus::detail {
 
 	template<typename value_type>
 	concept r_value_reference_types = std::is_rvalue_reference_v<value_type>;
@@ -83,15 +83,15 @@ namespace detail {
 		return val01 < static_cast<remove_cvref_t<value_01_type>>(val02) ? val01 : static_cast<remove_cvref_t<value_01_type>>(val02);
 	}
 
-	template<typename value_type> NIHILUS_INLINE constexpr value_type&& forward(value_type& arg) noexcept {
+	template<typename value_type> NIHILUS_INLINE constexpr decltype(auto) forward(value_type& arg) noexcept {
 		return static_cast<value_type&&>(arg);
 	}
 
-	template<r_value_reference_types value_type> NIHILUS_INLINE constexpr value_type forward(value_type arg) noexcept {
-		return arg;
+	template<typename value_type> NIHILUS_INLINE constexpr decltype(auto) forward(value_type&& arg) noexcept {
+		return static_cast<value_type&&>(arg);
 	}
 
-	template<typename value_type> NIHILUS_INLINE constexpr remove_cvref_t<value_type>&& move(value_type&& arg) noexcept {
+	template<typename value_type> NIHILUS_INLINE constexpr decltype(auto) move(value_type&& arg) noexcept {
 		return static_cast<std::remove_reference_t<value_type>&&>(arg);
 	}
 

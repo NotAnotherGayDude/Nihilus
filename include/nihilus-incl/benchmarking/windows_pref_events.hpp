@@ -28,14 +28,14 @@ RealTimeChris (Chris M.)
 
 namespace nihilus::benchmarking {
 
-	template<typename event_count> struct event_collector_type : std::vector<event_count> {
+	template<typename event_count> struct event_collector_type : aligned_vector<event_count> {
 		using duration_type = decltype(clock_type::now());
 		duration_type clock_start{};
 		int64_t current_index{};
 		uint64_t cycle_start{};
 		bool started{};
 
-		NIHILUS_INLINE event_collector_type() : std::vector<event_count>{} {};
+		NIHILUS_INLINE event_collector_type() : aligned_vector<event_count>{} {};
 
 		NIHILUS_INLINE void reset() {
 			started		  = false;
@@ -53,7 +53,7 @@ namespace nihilus::benchmarking {
 		}
 
 		NIHILUS_INLINE performance_metrics operator*() {
-			return collect_metrics(std::span<event_count>{ std::vector<event_count>::data(), std::vector<event_count>::size() }, current_index);
+			return collect_metrics(std::span<event_count>{ aligned_vector<event_count>::data(), aligned_vector<event_count>::size() }, current_index);
 		}
 
 		NIHILUS_INLINE void end(uint64_t bytes_processed) {
@@ -62,12 +62,12 @@ namespace nihilus::benchmarking {
 			}
 			volatile uint64_t cycleEnd = __rdtsc();
 			const auto endClock		   = clock_type::now();
-			if (std::vector<event_count>::size() < current_index + 1) {
-				std::vector<event_count>::emplace_back();
+			if (aligned_vector<event_count>::size() < current_index + 1) {
+				aligned_vector<event_count>::emplace_back();
 			}
-			std::vector<event_count>::operator[](current_index).cycles_val.emplace(cycleEnd - cycle_start);
-			std::vector<event_count>::operator[](current_index).elapsed = endClock - clock_start;
-			std::vector<event_count>::operator[](current_index).bytes_processed_val.emplace(bytes_processed);
+			aligned_vector<event_count>::operator[](current_index).cycles_val.emplace(cycleEnd - cycle_start);
+			aligned_vector<event_count>::operator[](current_index).elapsed = endClock - clock_start;
+			aligned_vector<event_count>::operator[](current_index).bytes_processed_val.emplace(bytes_processed);
 			++current_index;
 			return;
 		}

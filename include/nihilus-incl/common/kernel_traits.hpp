@@ -220,7 +220,8 @@ namespace nihilus {
 
 	enum class get_new_dims_errors { unknown_kernel_type };
 
-	template<const model_config&, typename core_traits_type, device_types devive_type, uint64_t, core_types core_type, processing_phases processing_phase> struct kernel_dispatcher_impl;
+	template<const model_config&, typename core_traits_type, device_types devive_type, uint64_t, core_types core_type, processing_phases processing_phase>
+	struct kernel_dispatcher_impl;
 
 	template<const model_config& config, typename dims_type, kernel_types kernel_type, typename output_type_new, typename... operand_types> struct kernel_traits;
 

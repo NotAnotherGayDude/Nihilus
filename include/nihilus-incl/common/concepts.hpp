@@ -80,14 +80,15 @@ namespace nihilus {
 	template<typename value_type>
 	concept float64_types = float_types<value_type> && sizeof(detail::remove_cvref_t<value_type>) == 8;
 
-	template<typename value_type> using x_type = decltype(detail::remove_cvref_t<value_type>::x);
+	template<typename value_type> using base_type = std::remove_cvref_t<value_type>;
+
+	template<typename value_type> using x_type = decltype(base_type<value_type>::x);
 
 	template<typename value_type>
 	concept uint_cuda_types = std::is_unsigned_v<x_type<value_type>> && std::is_integral_v<x_type<value_type>>;
 
 	template<typename value_type>
-	concept int_cuda_types =
-		std::is_signed_v<x_type<value_type>> && std::is_integral_v<x_type<value_type>> && !uint_cuda_types<value_type>;
+	concept int_cuda_types = std::is_signed_v<x_type<value_type>> && std::is_integral_v<x_type<value_type>> && !uint_cuda_types<value_type>;
 
 	template<typename value_type>
 	concept int8_cuda_types = int_cuda_types<x_type<value_type>> && sizeof(x_type<value_type>) == 1;
@@ -260,18 +261,23 @@ namespace nihilus {
 	concept pointer_types = std::is_pointer_v<value_type>;
 
 	template<typename value_type>
-	concept not_pointer_types = !std::is_pointer_v<value_type>;
+	concept not_pointer_types = !std::is_pointer_v<value_type>;	
 
 	template<typename value_type>
-	concept dim04_types = requires() { detail::remove_cvref_t<value_type>::w; };
+	concept dim04_types = requires() { base_type<value_type>::w; };
 
 	template<typename value_type>
-	concept dim03_types = requires() { detail::remove_cvref_t<value_type>::z; } && !dim04_types<value_type>;
+	concept dim03_types = requires() { base_type<value_type>::z; } && !dim04_types<value_type>;
 
 	template<typename value_type>
-	concept dim02_types = requires() { detail::remove_cvref_t<value_type>::y; } && !dim03_types<value_type> && !dim04_types<value_type>;
+	concept dim02_types = requires() { base_type<value_type>::y; } && !dim03_types<value_type> && !dim04_types<value_type>;
 
 	template<typename value_type>
-	concept dim01_types = requires() { detail::remove_cvref_t<value_type>::x; } && !dim02_types<value_type> && !dim03_types<value_type> && !dim04_types<value_type>;
+	concept dim01_types = requires() { base_type<value_type>::x; } && !dim02_types<value_type> && !dim03_types<value_type> && !dim04_types<value_type>;
+
+	template<typename value_type>
+	concept dim_types = requires() { base_type<value_type>::x; };
+
+	template<integral_or_enum_types auto index> using tag = std::integral_constant<uint64_t, static_cast<uint64_t>(index)>;
 
 }

@@ -33,6 +33,55 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
+	enum class scale_directions {
+		up,
+		down,
+		scaled_separately,
+	};
+
+	struct scaling_results {
+		scale_directions scale_direction{};
+		uint32_t value_or_ratio01{};
+		uint32_t value_or_ratio02{};
+	};
+
+	template<uint32_t dim_00> NIHILUS_INLINE scaling_results conver_dimensions(uint32_t x2) {
+		uint64_t initial_product = static_cast<uint64_t>(dim_00) * x2;
+
+		if (initial_product <= gpu_properties::optimal_block_size) {
+			double max_scale_factor = std::sqrt(static_cast<double>(gpu_properties::optimal_block_size) / initial_product);
+			uint32_t n				= static_cast<uint32_t>(std::floor(max_scale_factor));
+			return { scale_directions::up, static_cast<uint32_t>(n * dim_00), static_cast<uint32_t>(n * x2) };
+		} else {
+			double divisor_double	= std::sqrt(static_cast<double>(initial_product) / gpu_properties::optimal_block_size);
+			uint32_t single_divisor = static_cast<uint32_t>(std::ceil(divisor_double));
+
+			if (single_divisor > 0 && (dim_00 % single_divisor == 0) && (x2 % single_divisor == 0) && (dim_00 / single_divisor >= 1) && (x2 / single_divisor >= 1)) {
+				return { scale_directions::down, static_cast<uint32_t>(single_divisor), 0 };
+			} else {
+				double required_divisor_product = static_cast<double>(initial_product) / gpu_properties::optimal_block_size;
+
+				for (uint32_t d1 = 1; d1 <= dim_00; ++d1) {
+					if (dim_00 % d1 != 0)
+						continue;
+
+					double d2_double	 = required_divisor_product / d1;
+					uint32_t d2_required = static_cast<uint32_t>(std::ceil(d2_double));
+
+					if (d2_required > x2)
+						continue;
+					if (x2 % d2_required != 0)
+						continue;
+
+					if ((dim_00 / d1) >= 1 && (x2 / d2_required) >= 1) {
+						return { scale_directions::scaled_separately, static_cast<uint32_t>(d1), static_cast<uint32_t>(d2_required) };
+					}
+				}
+				return { scale_directions::scaled_separately, 0, 0 };
+			}
+		}
+	}
+
 	struct cuda_launch_params {
 		uint64_t block_chunk_size;
 		uint64_t grid_chunk_size;
@@ -76,12 +125,12 @@ namespace nihilus {
 		return params;
 	}
 
-	template<typename value_type> NIHILUS_INLINE __device__ constexpr value_type&& forward_device(value_type& arg) noexcept {
+	template<typename value_type> NIHILUS_INLINE __device__ constexpr decltype(auto) device_forward(value_type&& arg) noexcept {
 		return static_cast<value_type&&>(arg);
 	}
 
-	template<detail::r_value_reference_types value_type> __device__ NIHILUS_INLINE constexpr value_type forward_device(value_type arg) noexcept {
-		return arg;
+	template<typename value_type> NIHILUS_INLINE __device__  constexpr decltype(auto) device_forward(value_type& arg) noexcept {
+		return static_cast<value_type&&>(arg);
 	}
 
 	enum class get_value_type_errors {
@@ -89,231 +138,301 @@ namespace nihilus {
 	};
 
 	template<typename value_type> struct get_value_type {
-		template<typename... value_types> NIHILUS_INLINE __device__ static constexpr auto impl(value_types&&... args) {
-			static_assert(static_assert_printer<false, get_value_type_errors::invalid_type, value_type>::impl);
-		}
+		template<typename... value_types> NIHILUS_INLINE __device__ static constexpr decltype(auto) impl(value_types&&... args) = delete;
 	};
 
 	template<int8_cuda_types value_type> struct get_value_type<value_type> {
-		template<typename... value_types> NIHILUS_INLINE __device__ static constexpr auto impl(value_types&&... args) {
+		template<typename... value_types> NIHILUS_INLINE __device__ static constexpr decltype(auto) impl(value_types&&... args) {
 			if constexpr (dim01_types<value_type>) {
-				return make_char1(forward_device<value_types>(args)...);
+				return make_char1(device_forward<value_types>(args)...);
 			} else if constexpr (dim02_types<value_type>) {
-				return make_char2(forward_device<value_types>(args)...);
+				return make_char2(device_forward<value_types>(args)...);
 			} else if constexpr (dim03_types<value_type>) {
-				return make_char3(forward_device<value_types>(args)...);
+				return make_char3(device_forward<value_types>(args)...);
 			} else if constexpr (dim04_types<value_type>) {
-				return make_char4(forward_device<value_types>(args)...);
+				return make_char4(device_forward<value_types>(args)...);
 			}
 		}
 	};
 
 	template<int16_cuda_types value_type> struct get_value_type<value_type> {
-		template<typename... value_types> NIHILUS_INLINE __device__ static constexpr auto impl(value_types&&... args) {
+		template<typename... value_types> NIHILUS_INLINE __device__ static constexpr decltype(auto) impl(value_types&&... args) {
 			if constexpr (dim01_types<value_type>) {
-				return make_short1(forward_device<value_types>(args)...);
+				return make_short1(device_forward<value_types>(args)...);
 			} else if constexpr (dim02_types<value_type>) {
-				return make_short2(forward_device<value_types>(args)...);
+				return make_short2(device_forward<value_types>(args)...);
 			} else if constexpr (dim03_types<value_type>) {
-				return make_short3(forward_device<value_types>(args)...);
+				return make_short3(device_forward<value_types>(args)...);
 			} else if constexpr (dim04_types<value_type>) {
-				return make_short4(forward_device<value_types>(args)...);
+				return make_short4(device_forward<value_types>(args)...);
 			}
 		}
 	};
 
 	template<int32_cuda_types value_type> struct get_value_type<value_type> {
-		template<typename... value_types> NIHILUS_INLINE __device__ static constexpr auto impl(value_types&&... args) {
+		template<typename... value_types> NIHILUS_INLINE __device__ static constexpr decltype(auto) impl(value_types&&... args) {
 			if constexpr (dim01_types<value_type>) {
-				return make_int1(forward_device<value_types>(args)...);
+				return make_int1(device_forward<value_types>(args)...);
 			} else if constexpr (dim02_types<value_type>) {
-				return make_int2(forward_device<value_types>(args)...);
+				return make_int2(device_forward<value_types>(args)...);
 			} else if constexpr (dim03_types<value_type>) {
-				return make_int3(forward_device<value_types>(args)...);
+				return make_int3(device_forward<value_types>(args)...);
 			} else if constexpr (dim04_types<value_type>) {
-				return make_int4(forward_device<value_types>(args)...);
+				return make_int4(device_forward<value_types>(args)...);
 			}
 		}
 	};
 
 	template<int64_cuda_types value_type> struct get_value_type<value_type> {
-		template<typename... value_types> NIHILUS_INLINE __device__ static constexpr auto impl(value_types&&... args) {
+		template<typename... value_types> NIHILUS_INLINE __device__ static constexpr decltype(auto) impl(value_types&&... args) {
 			if constexpr (dim01_types<value_type>) {
-				return make_long1(forward_device<value_types>(args)...);
+				return make_long1(device_forward<value_types>(args)...);
 			} else if constexpr (dim02_types<value_type>) {
-				return make_long2(forward_device<value_types>(args)...);
+				return make_long2(device_forward<value_types>(args)...);
 			} else if constexpr (dim03_types<value_type>) {
-				return make_long3(forward_device<value_types>(args)...);
+				return make_long3(device_forward<value_types>(args)...);
 			} else if constexpr (dim04_types<value_type>) {
-				return make_long4(forward_device<value_types>(args)...);
+				return make_long4(device_forward<value_types>(args)...);
 			}
 		}
 	};
 
 	template<uint8_cuda_types value_type> struct get_value_type<value_type> {
-		template<typename... value_types> NIHILUS_INLINE __device__ static constexpr auto impl(value_types&&... args) {
+		template<typename... value_types> NIHILUS_INLINE __device__ static constexpr decltype(auto) impl(value_types&&... args) {
 			if constexpr (dim01_types<value_type>) {
-				return make_uchar1(forward_device<value_types>(args)...);
+				return make_uchar1(device_forward<value_types>(args)...);
 			} else if constexpr (dim02_types<value_type>) {
-				return make_uchar2(forward_device<value_types>(args)...);
+				return make_uchar2(device_forward<value_types>(args)...);
 			} else if constexpr (dim03_types<value_type>) {
-				return make_uchar3(forward_device<value_types>(args)...);
+				return make_uchar3(device_forward<value_types>(args)...);
 			} else if constexpr (dim04_types<value_type>) {
-				return make_uchar4(forward_device<value_types>(args)...);
+				return make_uchar4(device_forward<value_types>(args)...);
 			}
 		}
 	};
 
 	template<uint16_cuda_types value_type> struct get_value_type<value_type> {
-		template<typename... value_types> NIHILUS_INLINE __device__ static constexpr auto impl(value_types&&... args) {
+		template<typename... value_types> NIHILUS_INLINE __device__ static constexpr decltype(auto) impl(value_types&&... args) {
 			if constexpr (dim01_types<value_type>) {
-				return make_ushort1(forward_device<value_types>(args)...);
+				return make_ushort1(device_forward<value_types>(args)...);
 			} else if constexpr (dim02_types<value_type>) {
-				return make_ushort2(forward_device<value_types>(args)...);
+				return make_ushort2(device_forward<value_types>(args)...);
 			} else if constexpr (dim03_types<value_type>) {
-				return make_ushort3(forward_device<value_types>(args)...);
+				return make_ushort3(device_forward<value_types>(args)...);
 			} else if constexpr (dim04_types<value_type>) {
-				return make_ushort4(forward_device<value_types>(args)...);
+				return make_ushort4(device_forward<value_types>(args)...);
 			}
 		}
 	};
 
 	template<uint32_cuda_types value_type> struct get_value_type<value_type> {
-		template<typename... value_types> NIHILUS_INLINE __device__ static constexpr auto impl(value_types&&... args) {
+		template<typename... value_types> NIHILUS_INLINE __device__ static constexpr decltype(auto) impl(value_types&&... args) {
 			if constexpr (dim01_types<value_type>) {
-				return make_uint1(forward_device<value_types>(args)...);
+				return make_uint1(device_forward<value_types>(args)...);
 			} else if constexpr (dim02_types<value_type>) {
-				return make_uint2(forward_device<value_types>(args)...);
+				return make_uint2(device_forward<value_types>(args)...);
 			} else if constexpr (dim03_types<value_type>) {
-				return make_uint3(forward_device<value_types>(args)...);
+				return make_uint3(device_forward<value_types>(args)...);
 			} else if constexpr (dim04_types<value_type>) {
-				return make_uint4(forward_device<value_types>(args)...);
+				return make_uint4(device_forward<value_types>(args)...);
 			}
 		}
 	};
 
 	template<uint64_cuda_types value_type> struct get_value_type<value_type> {
-		template<typename... value_types> NIHILUS_INLINE __device__ static constexpr auto impl(value_types&&... args) {
+		template<typename... value_types> NIHILUS_INLINE __device__ static constexpr decltype(auto) impl(value_types&&... args) {
 			if constexpr (dim01_types<value_type>) {
-				return make_ulong1(forward_device<value_types>(args)...);
+				return make_ulong1(device_forward<value_types>(args)...);
 			} else if constexpr (dim02_types<value_type>) {
-				return make_ulong2(forward_device<value_types>(args)...);
+				return make_ulong2(device_forward<value_types>(args)...);
 			} else if constexpr (dim03_types<value_type>) {
-				return make_ulong3(forward_device<value_types>(args)...);
+				return make_ulong3(device_forward<value_types>(args)...);
 			} else if constexpr (dim04_types<value_type>) {
-				return make_ulong4(forward_device<value_types>(args)...);
+				return make_ulong4(device_forward<value_types>(args)...);
 			}
 		}
 	};
 
 	template<float32_cuda_types value_type> struct get_value_type<value_type> {
-		template<typename... value_types> NIHILUS_INLINE __device__ static constexpr auto impl(value_types&&... args) {
+		template<typename... value_types> NIHILUS_INLINE __device__ static constexpr decltype(auto) impl(value_types&&... args) {
 			if constexpr (dim01_types<value_type>) {
-				return make_float1(forward_device<value_types>(args)...);
+				return make_float1(device_forward<value_types>(args)...);
 			} else if constexpr (dim02_types<value_type>) {
-				return make_float2(forward_device<value_types>(args)...);
+				return make_float2(device_forward<value_types>(args)...);
 			} else if constexpr (dim03_types<value_type>) {
-				return make_float3(forward_device<value_types>(args)...);
+				return make_float3(device_forward<value_types>(args)...);
 			} else if constexpr (dim04_types<value_type>) {
-				return make_float4(forward_device<value_types>(args)...);
+				return make_float4(device_forward<value_types>(args)...);
 			}
 		}
 	};
 
 	template<float64_cuda_types value_type> struct get_value_type<value_type> {
-		template<typename... value_types> NIHILUS_INLINE __device__ static constexpr auto impl(value_types&&... args) {
+		template<typename... value_types> NIHILUS_INLINE __device__ static constexpr decltype(auto) impl(value_types&&... args) {
 			if constexpr (dim01_types<value_type>) {
-				return make_double1(forward_device<value_types>(args)...);
+				return make_double1(device_forward<value_types>(args)...);
 			} else if constexpr (dim02_types<value_type>) {
-				return make_double2(forward_device<value_types>(args)...);
+				return make_double2(device_forward<value_types>(args)...);
 			} else if constexpr (dim03_types<value_type>) {
-				return make_double3(forward_device<value_types>(args)...);
+				return make_double3(device_forward<value_types>(args)...);
 			} else if constexpr (dim04_types<value_type>) {
-				return make_double4(forward_device<value_types>(args)...);
+				return make_double4(device_forward<value_types>(args)...);
 			}
 		}
 	};
 
 	enum class binary_op_types {
 		add,
-		sub,
 		mul,
+		sub,
 		div,
 	};
 
 	template<binary_op_types> struct binary_op_core;
 
 	template<> struct binary_op_core<binary_op_types::add> {
-		template<typename value_type01, detail::convertible_to<value_type01> value_type02>
-		NIHILUS_INLINE static __device__ value_type01 impl(value_type01&& val01, value_type02&& val02) {
-			return val01 + static_cast<value_type01>(val02);
+		template<typename value_type01, typename value_type02> NIHILUS_INLINE static __device__ decltype(auto) impl(value_type01&& val01, value_type02&& val02) {
+			return device_forward<value_type01>(val01) + static_cast<base_type<value_type01>>(device_forward<value_type02>(val02));
 		}
-	};
 
-	template<> struct binary_op_core<binary_op_types::sub> {
-		template<typename value_type01, detail::convertible_to<value_type01> value_type02>
-		NIHILUS_INLINE static __device__ value_type01 impl(value_type01&& val01, value_type02&& val02) {
-			return val01 - static_cast<value_type01>(val02);
+		template<typename value_type01, typename value_type02> NIHILUS_INLINE static __device__ void impl_in_place(value_type01& val01, value_type02&& val02) {
+			val01 += static_cast<base_type<value_type01>>(device_forward<value_type02>(val02));
 		}
 	};
 
 	template<> struct binary_op_core<binary_op_types::mul> {
-		template<typename value_type01, detail::convertible_to<value_type01> value_type02>
-		NIHILUS_INLINE static __device__ value_type01 impl(value_type01&& val01, value_type02&& val02) {
-			return val01 * static_cast<value_type01>(val02);
+		template<typename value_type01, typename value_type02> NIHILUS_INLINE static __device__ decltype(auto) impl(value_type01&& val01, value_type02&& val02) {
+			return device_forward<value_type01>(val01) * static_cast<base_type<value_type01>>(device_forward<value_type02>(val02));
+		}
+
+		template<typename value_type01, typename value_type02> NIHILUS_INLINE static __device__ void impl_in_place(value_type01& val01, value_type02&& val02) {
+			val01 *= static_cast<base_type<value_type01>>(device_forward<value_type02>(val02));
+		}
+	};
+
+	template<> struct binary_op_core<binary_op_types::sub> {
+		template<typename value_type01, typename value_type02> NIHILUS_INLINE static __device__ decltype(auto) impl(value_type01&& val01, value_type02&& val02) {
+			return device_forward<value_type01>(val01) - static_cast<base_type<value_type01>>(device_forward<value_type02>(val02));
+		}
+
+		template<typename value_type01, typename value_type02> NIHILUS_INLINE static __device__ void impl_in_place(value_type01& val01, value_type02&& val02) {
+			val01 -= static_cast<base_type<value_type01>>(device_forward<value_type02>(val02));
 		}
 	};
 
 	template<> struct binary_op_core<binary_op_types::div> {
-		template<typename value_type01, detail::convertible_to<value_type01> value_type02>
-		NIHILUS_INLINE static __device__ value_type01 impl(value_type01&& val01, value_type02&& val02) {
-			return val01 / static_cast<value_type01>(val02);
+		template<typename value_type01, typename value_type02> NIHILUS_INLINE static __device__ decltype(auto) impl(value_type01&& val01, value_type02&& val02) {
+			return device_forward<value_type01>(val01) / static_cast<base_type<value_type01>>(device_forward<value_type02>(val02));
+		}
+
+		template<typename value_type01, typename value_type02> NIHILUS_INLINE static __device__ void impl_in_place(value_type01& val01, value_type02&& val02) {
+			val01 /= static_cast<base_type<value_type01>>(device_forward<value_type02>(val02));
 		}
 	};
 
-	template<binary_op_types binary_op_type> struct binary_op_base {
-		using op_core_type = binary_op_core<binary_op_type>;
-		template<typename value_type01, detail::convertible_to<value_type01> value_type02>
-		NIHILUS_INLINE static __device__ value_type01 impl_one(value_type01&& val01, value_type02&& val02) {
-			return get_value_type<value_type01>::impl(op_core_type::impl(forward_device<value_type01>(val01).x, forward_device<value_type02>(val02).x));
+	template<typename value_type, binary_op_types binary_op_type> struct binary_op_base;
+
+	template<dim01_types value_type, binary_op_types binary_op_type> struct binary_op_base<value_type, binary_op_type> {
+		template<typename value_type01, typename value_type02> NIHILUS_INLINE static __device__ decltype(auto) impl(value_type01&& val01, value_type02&& val02) {
+			using op_core_type = binary_op_core<binary_op_type>;
+			return get_value_type<value_type01>::impl(op_core_type::impl(device_forward<value_type01>(val01).x, device_forward<value_type02>(val02).x));
 		}
 
-		template<typename value_type01, detail::convertible_to<value_type01> value_type02>
-		NIHILUS_INLINE static __device__ value_type01 impl_two(value_type01&& val01, value_type02&& val02) {
-			return get_value_type<value_type01>::impl(op_core_type::impl(forward_device<value_type01>(val01).x, forward_device<value_type02>(val02).x),
-				op_core_type::impl(forward_device<value_type01>(val01).y, forward_device<value_type02>(val02).y));
+		template<typename value_type01, typename value_type02> NIHILUS_INLINE static __device__ void impl_in_place(value_type01& val01, value_type02&& val02) {
+			using op_core_type = binary_op_core<binary_op_type>;
+			op_core_type::impl_in_place(val01.x, device_forward<value_type02>(val02).x);
+		}
+	};
+
+	template<dim02_types value_type, binary_op_types binary_op_type> struct binary_op_base<value_type, binary_op_type> {
+		template<typename value_type01, typename value_type02> NIHILUS_INLINE static __device__ decltype(auto) impl(value_type01&& val01, value_type02&& val02) {
+			using op_core_type = binary_op_core<binary_op_type>;
+			return get_value_type<value_type01>::impl(op_core_type::impl(device_forward<value_type01>(val01).x, device_forward<value_type02>(val02).x),
+				op_core_type::impl(device_forward<value_type01>(val01).y, device_forward<value_type02>(val02).y));
 		}
 
-		template<typename value_type01, detail::convertible_to<value_type01> value_type02>
-		NIHILUS_INLINE static __device__ value_type01 impl_three(value_type01&& val01, value_type02&& val02) {
-			return get_value_type<value_type01>::impl(op_core_type::impl(forward_device<value_type01>(val01).x, forward_device<value_type02>(val02).x),
-				op_core_type::impl(forward_device<value_type01>(val01).y, forward_device<value_type02>(val02).y),
-				op_core_type::impl(forward_device<value_type01>(val01).z, forward_device<value_type02>(val02).z));
+		template<typename value_type01, typename value_type02> NIHILUS_INLINE static __device__ void impl_in_place(value_type01& val01, value_type02&& val02) {
+			using op_core_type = binary_op_core<binary_op_type>;
+			op_core_type::impl_in_place(val01.x, device_forward<value_type02>(val02).x);
+			op_core_type::impl_in_place(val01.y, device_forward<value_type02>(val02).y);
+		}
+	};
+
+	template<dim03_types value_type, binary_op_types binary_op_type> struct binary_op_base<value_type, binary_op_type> {
+		template<typename value_type01, typename value_type02> NIHILUS_INLINE static __device__ decltype(auto) impl(value_type01&& val01, value_type02&& val02) {
+			using op_core_type = binary_op_core<binary_op_type>;
+			return get_value_type<value_type01>::impl(op_core_type::impl(device_forward<value_type01>(val01).x, device_forward<value_type02>(val02).x),
+				op_core_type::impl(device_forward<value_type01>(val01).y, device_forward<value_type02>(val02).y),
+				op_core_type::impl(device_forward<value_type01>(val01).z, device_forward<value_type02>(val02).z));
 		}
 
-		template<typename value_type01, detail::convertible_to<value_type01> value_type02>
-		NIHILUS_INLINE static __device__ value_type01 impl_four(value_type01&& val01, value_type02&& val02) {
-			return get_value_type<value_type01>::impl(op_core_type::impl(forward_device<value_type01>(val01).x, forward_device<value_type02>(val02).x),
-				op_core_type::impl(forward_device<value_type01>(val01).y, forward_device<value_type02>(val02).y),
-				op_core_type::impl(forward_device<value_type01>(val01).z, forward_device<value_type02>(val02).z),
-				op_core_type::impl(forward_device<value_type01>(val01).w, forward_device<value_type02>(val02).w));
+		template<typename value_type01, typename value_type02> NIHILUS_INLINE static __device__ void impl_in_place(value_type01& val01, value_type02&& val02) {
+			using op_core_type = binary_op_core<binary_op_type>;
+			op_core_type::impl_in_place(val01.x, device_forward<value_type02>(val02).x);
+			op_core_type::impl_in_place(val01.y, device_forward<value_type02>(val02).y);
+			op_core_type::impl_in_place(val01.z, device_forward<value_type02>(val02).z);
+		}
+	};
+
+	template<dim04_types value_type, binary_op_types binary_op_type> struct binary_op_base<value_type, binary_op_type> {
+		template<typename value_type01, typename value_type02> NIHILUS_INLINE static __device__ decltype(auto) impl(value_type01&& val01, value_type02&& val02) {
+			using op_core_type = binary_op_core<binary_op_type>;
+			return get_value_type<value_type01>::impl(op_core_type::impl(device_forward<value_type01>(val01).x, device_forward<value_type02>(val02).x),
+				op_core_type::impl(device_forward<value_type01>(val01).y, device_forward<value_type02>(val02).y),
+				op_core_type::impl(device_forward<value_type01>(val01).z, device_forward<value_type02>(val02).z),
+				op_core_type::impl(device_forward<value_type01>(val01).w, device_forward<value_type02>(val02).w));
+		}
+
+		template<typename value_type01, typename value_type02> NIHILUS_INLINE static __device__ void impl_in_place(value_type01& val01, value_type02&& val02) {
+			using op_core_type = binary_op_core<binary_op_type>;
+			op_core_type::impl_in_place(val01.x, device_forward<value_type02>(val02).x);
+			op_core_type::impl_in_place(val01.y, device_forward<value_type02>(val02).y);
+			op_core_type::impl_in_place(val01.z, device_forward<value_type02>(val02).z);
+			op_core_type::impl_in_place(val01.w, device_forward<value_type02>(val02).w);
 		}
 	};
 
 	template<binary_op_types binary_op_type> struct binary_op {
-		template<typename value_type01, detail::convertible_to<value_type01> value_type02>
-		NIHILUS_INLINE static __device__ value_type01 impl(value_type01&& val01, value_type02&& val02) {
-			if constexpr (dim04_types<value_type01>) {
-				return binary_op_base<binary_op_type>::impl_four(forward_device<value_type01>(val01), forward_device<value_type02>(val02));
-			} else if constexpr (dim03_types<value_type01>) {
-				return binary_op_base<binary_op_type>::impl_three(forward_device<value_type01>(val01), forward_device<value_type02>(val02));
-			} else if constexpr (dim02_types<value_type01>) {
-				return binary_op_base<binary_op_type>::impl_two(forward_device<value_type01>(val01), forward_device<value_type02>(val02));
-			} else {
-				return binary_op_base<binary_op_type>::impl_one(forward_device<value_type01>(val01), forward_device<value_type02>(val02));
-			}
+		template<typename value_type01, typename value_type02> NIHILUS_INLINE static __device__ decltype(auto) impl(value_type01&& val01, value_type02&& val02) {
+			return binary_op_base<value_type01, binary_op_type>::impl(device_forward<value_type01>(val01), device_forward<value_type02>(val02));
+		}
+
+		template<typename value_type01, typename value_type02> NIHILUS_INLINE static __device__ decltype(auto) impl_in_place(value_type01& val01, value_type02&& val02) {
+			return binary_op_base<value_type01, binary_op_type>::impl_in_place(val01, device_forward<value_type02>(val02));
 		}
 	};
+
+	template<dim_types value_type01, dim_types value_type02> NIHILUS_INLINE __device__ decltype(auto) operator+=(value_type01& val01, value_type02&& val02) {
+		return binary_op<binary_op_types::add>::impl_in_place(val01, device_forward<value_type02>(val02));
+	}
+
+	template<dim_types value_type01, dim_types value_type02> NIHILUS_INLINE __device__ decltype(auto) operator+(value_type01&& val01, value_type02&& val02) {
+		return binary_op<binary_op_types::add>::impl(device_forward<value_type01>(val01), device_forward<value_type02>(val02));
+	}
+
+	template<dim_types value_type01, dim_types value_type02> NIHILUS_INLINE __device__ decltype(auto) operator*=(value_type01& val01, value_type02&& val02) {
+		return binary_op<binary_op_types::mul>::impl_in_place(val01, device_forward<value_type02>(val02));
+	}
+
+	template<dim_types value_type01, dim_types value_type02> NIHILUS_INLINE __device__ decltype(auto) operator*(value_type01&& val01, value_type02&& val02) {
+		return binary_op<binary_op_types::mul>::impl(device_forward<value_type01>(val01), device_forward<value_type02>(val02));
+	}
+
+	template<dim_types value_type01, dim_types value_type02> NIHILUS_INLINE __device__ decltype(auto) operator-=(value_type01& val01, value_type02&& val02) {
+		return binary_op<binary_op_types::sub>::impl_in_place(val01, device_forward<value_type02>(val02));
+	}
+
+	template<dim_types value_type01, dim_types value_type02> NIHILUS_INLINE __device__ decltype(auto) operator-(value_type01&& val01, value_type02&& val02) {
+		return binary_op<binary_op_types::sub>::impl(device_forward<value_type01>(val01), device_forward<value_type02>(val02));
+	}
+
+	template<dim_types value_type01, dim_types value_type02> NIHILUS_INLINE __device__ decltype(auto) operator/=(value_type01& val01, value_type02&& val02) {
+		return binary_op<binary_op_types::div>::impl_in_place(val01, device_forward<value_type02>(val02));
+	}
+
+	template<dim_types value_type01, dim_types value_type02> NIHILUS_INLINE __device__ decltype(auto) operator/(value_type01&& val01, value_type02&& val02) {
+		return binary_op<binary_op_types::div>::impl(device_forward<value_type01>(val01), device_forward<value_type02>(val02));
+	}
 
 	template<enum_types enum_type, enum_type enum_value, typename core_bases_type> NIHILUS_INLINE __device__ decltype(auto) get_core(core_bases_type& core_bases) noexcept {
 		return *static_cast<std::remove_cvref_t<typename core_bases_type::template core_base_type<enum_type, enum_value>>*>(&core_bases);

@@ -68,15 +68,35 @@ jobs:
         echo "==============================================="
         cat .github/Prixonian_Kinematics.md || echo "❌ Prixonian scroll not found. The build shall proceed... unblessed."
         echo "==============================================="
+
+    - name: Configure CMake (Ubuntu-Gcc)
+      if: matrix.os == 'ubuntu-latest' && matrix.compiler == 'gcc'
+      run: |
+        cmake -S . -B ./Build -DCMAKE_BUILD_TYPE=Release -DLLAMA_CURL=OFF -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=TRUE -DCMAKE_INSTALL_RPATH="@loader_path/../lib" -DVS_LLAMA_BENCHMARK=TRUE -DGGML_METAL=OFF  -DCMAKE_CXX_COMPILER=/usr/bin/g++-14
     
+    - name: Configure CMake (Ubuntu-Clang)
+      if: matrix.os == 'ubuntu-latest' && matrix.compiler == 'clang'
+      run: |
+        cmake -S . -B ./Build -DCMAKE_BUILD_TYPE=Release -DLLAMA_CURL=OFF -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=TRUE -DCMAKE_INSTALL_RPATH="@loader_path/../lib" -DVS_LLAMA_BENCHMARK=TRUE -DGGML_METAL=OFF  -DCMAKE_CXX_COMPILER=/usr/bin/clang++-20
+
     - name: Configure CMake
       run: |
         cmake -S . -B ./Build -DCMAKE_BUILD_TYPE=Release -DLLAMA_CURL=OFF -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=TRUE -DCMAKE_INSTALL_RPATH="@loader_path/../lib" -DVS_LLAMA_BENCHMARK=TRUE -DGGML_METAL=OFF 
     
     - name: Build Project
+      if: matrix.os != 'windows-latest'
+      run: |
+        sudo cmake --build ./Build --config=Release -v
+
+    - name: Build Project
       run: |
         cmake --build ./Build --config=Release -v
     
+    - name: Install Project
+      if: matrix.os != 'windows-latest'
+      run: |
+        sudo cmake --install ./Build --config=Release -v
+
     - name: Install Project
       run: |
         cmake --install ./Build --config=Release -v

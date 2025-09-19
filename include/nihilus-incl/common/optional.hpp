@@ -39,7 +39,7 @@ namespace nihilus {
 					destroy();
 				}
 				if (other.constructed) {
-					value = detail::move(other.value);
+					value		= detail::move(other.value);
 					constructed = true;
 				}
 			}

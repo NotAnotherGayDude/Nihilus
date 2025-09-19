@@ -20,16 +20,16 @@ RealTimeChris (Chris M.)
 
 #if NIHILUS_CUDA_ENABLED
 
-#pragma once
+	#pragma once
 
-#include <cuda_runtime.h>
-#include <cuda.h>
-#include <nihilus-incl/cuda/nihilus_gpu_properties.hpp>
-#include <nihilus-incl/common/array.hpp>
-#include <nihilus-incl/infra/core_bases.hpp>
-#include <nihilus-incl/common/config.hpp>
-#include <nihilus-incl/cuda/memory_buffer.cuh>
-#include <nihilus-incl/cuda/cuda_12.cuh>
+	#include <cuda_runtime.h>
+	#include <cuda.h>
+	#include <nihilus-incl/cuda/nihilus_gpu_properties.hpp>
+	#include <nihilus-incl/common/array.hpp>
+	#include <nihilus-incl/infra/core_bases.hpp>
+	#include <nihilus-incl/common/config.hpp>
+	#include <nihilus-incl/cuda/memory_buffer.cuh>
+	#include <nihilus-incl/cuda/cuda_12.cuh>
 
 namespace nihilus {
 

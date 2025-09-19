@@ -22,6 +22,7 @@ RealTimeChris (Chris M.)
 
 #include <nihilus-incl/common/allocator.hpp>
 #include <nihilus-incl/common/iterator.hpp>
+#include <nihilus-incl/common/concepts.hpp>
 #include <algorithm>
 #include <stdexcept>
 
@@ -40,7 +41,7 @@ namespace nihilus {
 		using reverse_iterator		 = std::reverse_iterator<iterator>;
 		using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 		using allocator_type		 = allocator<value_type>;
-		using allocator_traits	 = std::allocator_traits<allocator_type>;
+		using allocator_traits		 = std::allocator_traits<allocator_type>;
 
 		NIHILUS_INLINE aligned_vector() noexcept = default;
 
@@ -77,7 +78,9 @@ namespace nihilus {
 		{
 			reserve(other.capacity_val);
 			size_val = other.size_val;
-			std::uninitialized_copy_n(other.data(), other.size(), data_val);
+			if (data_val) {
+				std::uninitialized_copy_n(other.data(), other.size(), data_val);
+			}
 		}
 
 		NIHILUS_INLINE constexpr aligned_vector& operator=(aligned_vector&& other)
@@ -101,7 +104,9 @@ namespace nihilus {
 		{
 			reserve(values.size());
 			size_val = values.size();
-			std::uninitialized_copy_n(values.begin(), size_val, data_val);
+			if (data_val) {
+				std::uninitialized_copy_n(values.begin(), size_val, data_val);
+			}
 		}
 
 		NIHILUS_INLINE constexpr iterator begin() noexcept {
@@ -153,9 +158,13 @@ namespace nihilus {
 				reserve(detail::max(size_val * 2, size_val + 1));
 			}
 			if constexpr (sizeof...(value_type_newer) > 0) {
-				allocator_traits::construct(*this, data_val + size_val, std::forward<value_type_newer>(value_new)...);
+				if (data_val) {
+					allocator_traits::construct(*this, data_val + size_val, std::forward<value_type_newer>(value_new)...);
+				}
 			} else {
-				allocator_traits::construct(*this, data_val + size_val, value_type{});
+				if (data_val) {
+					allocator_traits::construct(*this, data_val + size_val, value_type{});
+				}
 			}
 			++size_val;
 			return iterator{ data_val + size_val - 1 };
@@ -186,7 +195,9 @@ namespace nihilus {
 		NIHILUS_INLINE void resize(size_type size_new) noexcept {
 			if NIHILUS_LIKELY (size_new > size_val) {
 				reserve(size_new);
-				std::uninitialized_value_construct_n(data_val + size_val, size_new - size_val);
+				if (data_val) {
+					std::uninitialized_value_construct_n(data_val + size_val, size_new - size_val);
+				}
 				size_val = size_new;
 			} else if NIHILUS_UNLIKELY (size_new < size_val) {
 				std::destroy(data_val + size_new, data_val + size_val);
@@ -227,19 +238,19 @@ namespace nihilus {
 			return data_val[static_cast<uint64_t>(position)];
 		}
 
-		template<integral_or_enum_types index_type> NIHILUS_INLINE constexpr reference operator[](index_type position) noexcept {
+		template<integral_or_enum_types index_type> constexpr reference operator[](index_type position) noexcept {
 			return data_val[static_cast<uint64_t>(position)];
 		}
 
-		template<integral_or_enum_types index_type> NIHILUS_INLINE constexpr const_reference operator[](index_type position) const noexcept {
+		template<integral_or_enum_types index_type> constexpr const_reference operator[](index_type position) const noexcept {
 			return data_val[static_cast<uint64_t>(position)];
 		}
 
-		template<uint64_t index> NIHILUS_INLINE constexpr reference operator[](tag<index> index_new) {
+		template<uint64_t index> NIHILUS_INLINE reference operator[](tag<index> index_new) {
 			return data_val[index_new];
 		}
 
-		template<uint64_t index> NIHILUS_INLINE constexpr const_reference operator[](tag<index> index_new) const {
+		template<uint64_t index> NIHILUS_INLINE const_reference operator[](tag<index> index_new) const {
 			return data_val[index_new];
 		}
 

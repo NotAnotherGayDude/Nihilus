@@ -63,7 +63,7 @@ namespace nihilus {
 			log<log_levels::error>(new_string);
 			std::exit(-1);
 		}
-		nihilus_exception() = delete;	
+		nihilus_exception() = delete;
 	};
 
 	template<auto config, string_literal error_type, const std::source_location& source_info>

@@ -33,8 +33,6 @@ namespace nihilus {
 		invalid_index_type,
 	};
 
-	template<integral_or_enum_types auto index> using tag = std::integral_constant<uint64_t, static_cast<uint64_t>(index)>;
-
 	template<typename value_type_new, integral_or_enum_types auto size_new> struct alignas(64) array {
 	  public:
 		static_assert(integral_or_enum_types<decltype(size_new)>, "Sorry, but the size val passed to array must be integral or enum!");

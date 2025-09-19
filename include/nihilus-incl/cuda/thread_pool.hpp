@@ -22,14 +22,14 @@ RealTimeChris (Chris M.)
 
 #if NIHILUS_CUDA_ENABLED
 
-#include <nihilus-incl/infra/monolithic_dispatcher.hpp>
-#include <nihilus-incl/cpu/nihilus_cpu_properties.hpp>
-#include <nihilus-incl/infra/core_bases.hpp>
-#include <nihilus-incl/common/common.hpp>
-#include <nihilus-incl/common/tuple.hpp>
-#include <atomic>
-#include <thread>
-#include <latch>
+	#include <nihilus-incl/infra/monolithic_dispatcher.hpp>
+	#include <nihilus-incl/cpu/nihilus_cpu_properties.hpp>
+	#include <nihilus-incl/infra/core_bases.hpp>
+	#include <nihilus-incl/common/common.hpp>
+	#include <nihilus-incl/common/tuple.hpp>
+	#include <atomic>
+	#include <thread>
+	#include <latch>
 
 namespace nihilus {
 
@@ -41,14 +41,14 @@ namespace nihilus {
 		NIHILUS_INLINE thread_pool& operator=(const thread_pool&) noexcept = delete;
 		NIHILUS_INLINE thread_pool(const thread_pool&) noexcept			   = delete;
 
-		NIHILUS_INLINE thread_pool(int64_t) {}
+		NIHILUS_INLINE thread_pool(int64_t) {
+		}
 
 		template<processing_phases processing_phase, size_t... indices> NIHILUS_INLINE void execute_blocks(std::index_sequence<indices...>) {
 			(core_bases_type::template impl_thread<per_block_thread_function, processing_phase>(static_cast<int64_t>(indices), 1), ...);
 		}
 
-		template<processing_phases phase_new>
-		NIHILUS_INLINE void thread_function() {
+		template<processing_phases phase_new> NIHILUS_INLINE void thread_function() {
 			core_bases_type::template impl_thread<global_input_thread_function, phase_new>(1);
 			execute_blocks<phase_new>(std::make_index_sequence<static_cast<size_t>(model_traits_type<config>::block_count)>{});
 			core_bases_type::template impl_thread<global_output_thread_function, phase_new>(1);

@@ -41,15 +41,15 @@ namespace nihilus::benchmarking {
 
 	class linux_events {
 	  protected:
-		std::vector<uint64_t> temp_result_vec{};
-		std::vector<uint64_t> ids{};
+		aligned_vector<uint64_t> temp_result_vec{};
+		aligned_vector<uint64_t> ids{};
 		perf_event_attr attribs{};
 		size_t num_events{};
 		bool working{};
 		int32_t fd{};
 
 	  public:
-		NIHILUS_INLINE explicit linux_events(std::vector<int32_t> config_vec) : working(true) {
+		NIHILUS_INLINE explicit linux_events(aligned_vector<int32_t> config_vec) : working(true) {
 			memset(&attribs, 0, sizeof(attribs));
 			attribs.type		   = PERF_TYPE_HARDWARE;
 			attribs.size		   = sizeof(attribs);
@@ -101,7 +101,7 @@ namespace nihilus::benchmarking {
 			}
 		}
 
-		NIHILUS_INLINE void end(std::vector<uint64_t>& results) {
+		NIHILUS_INLINE void end(aligned_vector<uint64_t>& results) {
 			if (fd != -1) {
 				if (ioctl(fd, PERF_EVENT_IOC_DISABLE, PERF_IOC_FLAG_GROUP) == -1) {
 					reportError("ioctl(PERF_EVENT_IOC_DISABLE)");
@@ -132,36 +132,36 @@ namespace nihilus::benchmarking {
 		}
 	};
 
-	template<typename event_count> struct event_collector_type : public linux_events, public std::vector<event_count> {
+	template<typename event_count> struct event_collector_type : public linux_events, public aligned_vector<event_count> {
 		using duration_type = decltype(clock_type::now());
-		std::vector<uint64_t> results{};
+		aligned_vector<uint64_t> results{};
 		volatile uint64_t cycle_start{};
 		duration_type clock_start{};
 		int64_t current_index{};
 		bool started{};
 
 		NIHILUS_INLINE event_collector_type()
-			: linux_events{ std::vector<int32_t>{ PERF_COUNT_HW_CPU_CYCLES, PERF_COUNT_HW_INSTRUCTIONS, PERF_COUNT_HW_BRANCH_INSTRUCTIONS, PERF_COUNT_HW_BRANCH_MISSES,
+			: linux_events{ aligned_vector<int32_t>{ PERF_COUNT_HW_CPU_CYCLES, PERF_COUNT_HW_INSTRUCTIONS, PERF_COUNT_HW_BRANCH_INSTRUCTIONS, PERF_COUNT_HW_BRANCH_MISSES,
 				  PERF_COUNT_HW_CACHE_REFERENCES, PERF_COUNT_HW_CACHE_MISSES } },
-			  std::vector<event_count>{} {
+			  aligned_vector<event_count>{} {
 		}
 
 		NIHILUS_INLINE void reset() {
 			started		  = false;
 			current_index = 0;
-			std::vector<event_count>::clear();
+			aligned_vector<event_count>::clear();
 		}
 
 		NIHILUS_INLINE operator bool() {
 			return started;
 		}
 
-		NIHILUS_INLINE bool hasEvents() {
+		NIHILUS_INLINE bool has_events() {
 			return linux_events::isWorking();
 		}
 
 		NIHILUS_INLINE void start() {
-			if (hasEvents()) {
+			if (has_events()) {
 				linux_events::run();
 			}
 			clock_start = clock_type::now();
@@ -169,7 +169,7 @@ namespace nihilus::benchmarking {
 		}
 
 		NIHILUS_INLINE performance_metrics operator*() {
-			return collect_metrics(std::span<event_count>{ std::vector<event_count>::data(), std::vector<event_count>::size() }, std::vector<event_count>::size());
+			return collect_metrics(std::span<event_count>{ aligned_vector<event_count>::data(), aligned_vector<event_count>::size() }, aligned_vector<event_count>::size());
 		}
 
 		NIHILUS_INLINE void end(uint64_t bytes_processed) {
@@ -179,21 +179,21 @@ namespace nihilus::benchmarking {
 			volatile uint64_t cycleEnd = rdtsc();
 			const auto endClock		   = clock_type::now();
 
-			std::vector<event_count>::emplace_back();
-			std::vector<event_count>::operator[](current_index).cycles_val.emplace(cycleEnd - cycle_start);
-			std::vector<event_count>::operator[](current_index).elapsed = endClock - clock_start;
-			std::vector<event_count>::operator[](current_index).bytes_processed_val.emplace(bytes_processed);
+			aligned_vector<event_count>::emplace_back();
+			aligned_vector<event_count>::operator[](current_index).cycles_val.emplace(cycleEnd - cycle_start);
+			aligned_vector<event_count>::operator[](current_index).elapsed = endClock - clock_start;
+			aligned_vector<event_count>::operator[](current_index).bytes_processed_val.emplace(bytes_processed);
 
-			if (hasEvents()) {
+			if (has_events()) {
 				if (results.size() != linux_events::temp_result_vec.size()) {
 					results.resize(linux_events::temp_result_vec.size());
 				}
 				linux_events::end(results);
-				std::vector<event_count>::operator[](current_index).instructions_val.emplace(results[1]);
-				std::vector<event_count>::operator[](current_index).branches_val.emplace(results[2]);
-				std::vector<event_count>::operator[](current_index).branch_misses_val.emplace(results[3]);
-				std::vector<event_count>::operator[](current_index).cache_references_val.emplace(results[4]);
-				std::vector<event_count>::operator[](current_index).cache_misses_val.emplace(results[5]);
+				aligned_vector<event_count>::operator[](current_index).instructions_val.emplace(results[1]);
+				aligned_vector<event_count>::operator[](current_index).branches_val.emplace(results[2]);
+				aligned_vector<event_count>::operator[](current_index).branch_misses_val.emplace(results[3]);
+				aligned_vector<event_count>::operator[](current_index).cache_references_val.emplace(results[4]);
+				aligned_vector<event_count>::operator[](current_index).cache_misses_val.emplace(results[5]);
 			}
 			++current_index;
 		}
