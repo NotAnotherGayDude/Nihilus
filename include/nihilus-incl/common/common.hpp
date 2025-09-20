@@ -462,6 +462,12 @@ namespace nihilus {
 		count,
 	};
 
+	enum class user_input_types {
+		direct_string,
+		cin,
+		managed,
+	};
+
 	enum class weight_types : uint8_t {
 		attn_q,
 		attn_k,

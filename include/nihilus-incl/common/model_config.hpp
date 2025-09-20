@@ -42,6 +42,7 @@ namespace nihilus {
 		uint64_t default_max_sequence_length{};
 		uint64_t default_batch_size{};
 		kv_cache_strategies kv_cache_strategy{};
+		user_input_types user_input_type{};
 		bool use_gradient_checkpointing{};
 		rope_scaling_types rope_scaling_type{};
 		tokenizer_pre_types tokenizer_pre_type{};

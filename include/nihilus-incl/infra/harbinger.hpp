@@ -27,15 +27,16 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-	NIHILUS_INLINE static consteval auto generate_model_config(model_generations model_generation, model_sizes model_size, kernel_type_profiles kernel_type_profile, model_arches model_arch,
-		device_types device_type_new = device_types::cpu, bool benchmark = false, bool dev = false, uint64_t default_max_sequence_length = 1024, bool exceptions = false,
-		uint64_t default_batch_size = 512, kv_cache_strategies kv_cache_strategy = kv_cache_strategies::paged, bool use_gradient_checkpointing = false,
-		rope_scaling_types rope_scaling = rope_scaling_types::linear, tokenizer_pre_types tokenizer_pre_type = tokenizer_pre_types::llama3, uint64_t kv_cache_block_size = 16,
-		bool use_rotary_embeddings = true, bool use_flash_attention = true, rms_norm_types rms_norm_type = rms_norm_types::rms_standard,
-		tokenizer_types tokenizer_type = tokenizer_types::bpe, model_formats format = model_formats::gguf, float norm_epsilon = 1e-6f) {
+	NIHILUS_INLINE static consteval auto generate_model_config(model_generations model_generation, model_sizes model_size, kernel_type_profiles kernel_type_profile,
+		model_arches model_arch, device_types device_type_new = device_types::cpu, bool benchmark = false, bool dev = false, uint64_t default_max_sequence_length = 1024,
+		bool exceptions = false, uint64_t default_batch_size = 512, kv_cache_strategies kv_cache_strategy = kv_cache_strategies::paged,
+		user_input_types user_input_type = user_input_types::cin, bool use_gradient_checkpointing = false, rope_scaling_types rope_scaling = rope_scaling_types::linear,
+		tokenizer_pre_types tokenizer_pre_type = tokenizer_pre_types::llama3, uint64_t kv_cache_block_size = 16, bool use_rotary_embeddings = true, bool use_flash_attention = true,
+		rms_norm_types rms_norm_type = rms_norm_types::rms_standard, tokenizer_types tokenizer_type = tokenizer_types::bpe, model_formats format = model_formats::gguf,
+		float norm_epsilon = 1e-6f) {
 		model_config config{ model_generation, model_size, kernel_type_profile, model_arch, exceptions, default_max_sequence_length, default_batch_size, kv_cache_strategy,
-			use_gradient_checkpointing, rope_scaling, tokenizer_pre_type, kv_cache_block_size, use_rotary_embeddings, use_flash_attention, rms_norm_type, tokenizer_type,
-			device_type_new, format, norm_epsilon, benchmark, dev };
+			user_input_type, use_gradient_checkpointing, rope_scaling, tokenizer_pre_type, kv_cache_block_size, use_rotary_embeddings, use_flash_attention, rms_norm_type,
+			tokenizer_type, device_type_new, format, norm_epsilon, benchmark, dev };
 		return config;
 	}
 
