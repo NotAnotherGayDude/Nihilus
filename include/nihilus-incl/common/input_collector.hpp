@@ -76,5 +76,60 @@ namespace nihilus {
 		}
 	};
 
+	template<model_config config>
+		requires(config.user_input_type == user_input_types::managed)
+	struct input_collector<config> {
+	  protected:
+		aligned_vector<char> buffer;
+		size_t current_length = 0;
+		atomic_flag_wrapper<uint64_t> in_signal{};
+		atomic_flag_wrapper<uint64_t> out_signal{};
+
+	  public:
+		NIHILUS_INLINE input_collector() {
+			buffer.resize(config.default_max_sequence_length);
+			terminate();
+		}
+
+		NIHILUS_INLINE void clear() noexcept {
+			current_length = 0;
+			terminate();
+		}
+
+		NIHILUS_INLINE void terminate() noexcept {
+			if (current_length < config.default_max_sequence_length) {
+				buffer[current_length] = '\0';
+			}
+		}
+
+		NIHILUS_INLINE uint64_t remaining_length() noexcept {
+			return (config.default_max_sequence_length - current_length) - 1;
+		}
+
+		NIHILUS_INLINE uint64_t write_input(const char* string, uint64_t length) noexcept {
+			if (in_signal.test() != 1) {
+				return 0;
+			}
+			uint64_t remaining_length_val{ remaining_length() };
+			uint64_t written_bytes = length > remaining_length_val ? remaining_length_val : length;
+			std::memcpy(buffer.data() + current_length, string, written_bytes);
+			current_length += written_bytes;
+			terminate();
+			in_signal.clear();
+			in_signal.notify_one();
+			return length;
+		}
+
+		NIHILUS_INLINE std::string_view read_multiline() noexcept {
+			if (in_signal.test() == 1) {
+				in_signal.wait();
+			}
+			std::string_view string{ buffer.data(), current_length };
+			clear();
+			in_signal.test_and_set();
+			return string;
+		}
+	};
+
 
 }

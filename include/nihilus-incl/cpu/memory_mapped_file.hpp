@@ -34,7 +34,7 @@ namespace nihilus {
 	NIHILUS_INLINE static std::string format_win_error(DWORD error_code) {
 		LPSTR buffer = nullptr;
 		DWORD size	 = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, error_code,
-			  MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), reinterpret_cast<LPSTR>(&buffer), 0, nullptr);
+			  MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), std::bit_cast<LPSTR>(&buffer), 0, nullptr);
 
 		if (!size || !buffer) {
 			return "Unknown Win32 error: " + std::to_string(error_code);
@@ -103,7 +103,7 @@ namespace nihilus {
 				nihilus_exception<config, "Failed to map view of file", location>::impl(format_win_error(GetLastError()));
 			}
 			mapped_data = static_cast<uint8_t*>(raw_mapped_data) + offset_adjustment;
-			if (reinterpret_cast<std::uintptr_t>(mapped_data) % 32 != 0) {
+			if (std::bit_cast<std::uintptr_t>(mapped_data) % 32 != 0) {
 				UnmapViewOfFile(raw_mapped_data);
 				CloseHandle(mapping_handle);
 				CloseHandle(file_handle);
@@ -152,7 +152,7 @@ namespace nihilus {
 				nihilus_exception<config, "Failed to memory map file", location>::impl(std::string(std::strerror(errno)));
 			}
 			mapped_data = static_cast<uint8_t*>(raw_mapped_data) + offset_adjustment;
-			if (reinterpret_cast<std::uintptr_t>(mapped_data) % 32 != 0) {
+			if (std::bit_cast<std::uintptr_t>(mapped_data) % 32 != 0) {
 				munmap(raw_mapped_data, aligned_map_size);
 				close(file_descriptor);
 				static constexpr auto location = std::source_location::current();

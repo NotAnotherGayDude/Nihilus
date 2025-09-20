@@ -241,7 +241,7 @@ namespace nihilus {
 			memcpy_wrapper(values_to_load, str, 64);
 			const nihilus_simd_int_512 data1{ gather_values<nihilus_simd_int_512_t>(values_to_load) };
 			const nihilus_simd_int_512 data2{ gather_values<nihilus_simd_int_512_t>(values_new.data()) };
-			return !opTest(opXor(data1, data2));
+			return !opTest<nihilus_simd_int_512_t>(opXor<nihilus_simd_int_512_t, nihilus_simd_int_512_t>(data1, data2));
 		}
 	};
 #endif

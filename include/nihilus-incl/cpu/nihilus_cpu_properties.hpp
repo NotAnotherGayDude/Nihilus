@@ -26,10 +26,6 @@ namespace nihilus {
 	struct cpu_properties {
 	  protected:
 		static constexpr static_aligned_const thread_count_raw{ 32ull };
-		static constexpr static_aligned_const has_avx2_raw{ 1ull };
-		static constexpr static_aligned_const has_avx512_raw{ 0ull };
-		static constexpr static_aligned_const has_neon_raw{ 0ull };
-		static constexpr static_aligned_const has_sve2_raw{ 0ull };
 		static constexpr static_aligned_const l1_cache_size_raw{ 49152ull };
 		static constexpr static_aligned_const l2_cache_size_raw{ 2097152ull };
 		static constexpr static_aligned_const l3_cache_size_raw{ 37748736ull };
@@ -38,10 +34,6 @@ namespace nihilus {
 		
 	  public:
 		static constexpr const uint64_t& thread_count{ *thread_count_raw };
-		static constexpr const uint64_t& has_avx2{ *has_avx2_raw };
-		static constexpr const uint64_t& has_avx512{ *has_avx512_raw };
-		static constexpr const uint64_t& has_neon{ *has_neon_raw };
-		static constexpr const uint64_t& has_sve2{ *has_sve2_raw };
 		static constexpr const uint64_t& l1_cache_size{ *l1_cache_size_raw };
 		static constexpr const uint64_t& l2_cache_size{ *l2_cache_size_raw };
 		static constexpr const uint64_t& l3_cache_size{ *l3_cache_size_raw };

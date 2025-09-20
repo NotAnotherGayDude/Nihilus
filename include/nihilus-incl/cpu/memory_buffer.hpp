@@ -110,8 +110,8 @@ namespace nihilus {
 		}
 
 	  protected:
-		value_type* data_val{};
 		size_type size_val{};
+		pointer data_val{};
 
 		NIHILUS_INLINE void clear() noexcept {
 			if (data_val) {

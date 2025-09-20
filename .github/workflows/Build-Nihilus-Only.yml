@@ -72,16 +72,22 @@ jobs:
     - name: Configure CMake (Ubuntu-Gcc)
       if: matrix.os == 'ubuntu-latest' && matrix.compiler == 'gcc'
       run: |
-        cmake -S . -B ./Build -DCMAKE_BUILD_TYPE=Release -DLLAMA_CURL=OFF -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=TRUE -DCMAKE_INSTALL_RPATH="@loader_path/../lib" -DNIHILUS_CPU=TRUE -DGGML_METAL=OFF  -DCMAKE_CXX_COMPILER=/usr/bin/g++-14
+        cmake -S . -B ./Build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=TRUE -DCMAKE_INSTALL_RPATH="@loader_path/../lib" -DNIHILUS_CPU=TRUE -DCMAKE_CXX_COMPILER=/usr/bin/g++-14
     
     - name: Configure CMake (Ubuntu-Clang)
       if: matrix.os == 'ubuntu-latest' && matrix.compiler == 'clang'
       run: |
-        cmake -S . -B ./Build -DCMAKE_BUILD_TYPE=Release -DLLAMA_CURL=OFF -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=TRUE -DCMAKE_INSTALL_RPATH="@loader_path/../lib" -DNIHILUS_CPU=TRUE -DGGML_METAL=OFF  -DCMAKE_CXX_COMPILER=/usr/bin/clang++-20
+        cmake -S . -B ./Build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=TRUE -DCMAKE_INSTALL_RPATH="@loader_path/../lib" -DNIHILUS_CPU=TRUE -DCMAKE_CXX_COMPILER=/usr/bin/clang++-20
 
     - name: Configure CMake
+      if: matrix.os == 'macos-latest'
       run: |
-        cmake -S . -B ./Build -DCMAKE_BUILD_TYPE=Release -DLLAMA_CURL=OFF -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=TRUE -DCMAKE_INSTALL_RPATH="@loader_path/../lib" -DNIHILUS_CPU=TRUE -DGGML_METAL=OFF 
+        cmake -S . -B ./Build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=TRUE -DCMAKE_INSTALL_RPATH="@loader_path/../lib" -DNIHILUS_CPU=TRUE  
+
+    - name: Configure CMake
+      if: matrix.os == 'windows-latest'
+      run: |
+        cmake -S . -B ./Build -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=TRUE -DCMAKE_INSTALL_RPATH="@loader_path/../lib" -DNIHILUS_CPU=TRUE  
     
     - name: Build Project
       run: |

@@ -144,7 +144,7 @@ namespace nihilus {
 		}
 
 		uint32_t result = sign | exp | frac;
-		return *reinterpret_cast<float*>(&result);
+		return *static_cast<float*>(&result);
 	}
 
 	void print_typed_data(std::ostream& stream, const uint8_t* data, uint64_t size, data_types type, int64_t offending_index = 0) {
@@ -157,7 +157,7 @@ namespace nihilus {
 
 		switch (static_cast<uint64_t>(type)) {
 			case static_cast<uint64_t>(data_types::f32): {
-				const float* values = reinterpret_cast<const float*>(data);
+				const float* values = static_cast<const float*>(data);
 				size_t count		= detail::min(size / sizeof(float), 8);
 				for (size_t i = offending_index; i < offending_index + count; ++i) {
 					if (i > offending_index)
@@ -168,7 +168,7 @@ namespace nihilus {
 			}
 
 			case static_cast<uint64_t>(data_types::f16): {
-				const uint16_t* values = reinterpret_cast<const uint16_t*>(data);
+				const uint16_t* values = static_cast<const uint16_t*>(data);
 				size_t count		   = detail::min(size / sizeof(uint16_t), 8);
 				for (size_t i = offending_index; i < offending_index + count; ++i) {
 					if (i > offending_index)
@@ -179,7 +179,7 @@ namespace nihilus {
 			}
 
 			case static_cast<uint64_t>(data_types::q8_0): {
-				const uint8_t* values = reinterpret_cast<const uint8_t*>(data);
+				const uint8_t* values = static_cast<const uint8_t*>(data);
 				size_t count		  = detail::min(size, 8);
 				for (size_t i = offending_index; i < offending_index + count; ++i) {
 					if (i > offending_index)
@@ -190,7 +190,7 @@ namespace nihilus {
 			}
 
 			case static_cast<uint64_t>(data_types::i8): {
-				const int8_t* values = reinterpret_cast<const int8_t*>(data);
+				const int8_t* values = static_cast<const int8_t*>(data);
 				size_t count		 = detail::min(size, 8);
 				for (size_t i = offending_index; i < offending_index + count; ++i) {
 					if (i > offending_index)
@@ -201,7 +201,7 @@ namespace nihilus {
 			}
 
 			case static_cast<uint64_t>(data_types::i16): {
-				const int16_t* values = reinterpret_cast<const int16_t*>(data);
+				const int16_t* values = static_cast<const int16_t*>(data);
 				size_t count		  = detail::min(size / 2, 8);
 				for (size_t i = offending_index; i < offending_index + count; ++i) {
 					if (i > offending_index)
@@ -212,7 +212,7 @@ namespace nihilus {
 			}
 
 			case static_cast<uint64_t>(data_types::i32): {
-				const int32_t* values = reinterpret_cast<const int32_t*>(data);
+				const int32_t* values = static_cast<const int32_t*>(data);
 				size_t count		  = detail::min(size / 4, 8);
 				for (size_t i = offending_index; i < offending_index + count; ++i) {
 					if (i > offending_index)
@@ -223,7 +223,7 @@ namespace nihilus {
 			}
 
 			case static_cast<uint64_t>(data_types::i64): {
-				const int64_t* values = reinterpret_cast<const int64_t*>(data);
+				const int64_t* values = static_cast<const int64_t*>(data);
 				size_t count		  = detail::min(size / 8, 8);
 				for (size_t i = offending_index; i < offending_index + count; ++i) {
 					if (i > offending_index)
@@ -234,7 +234,7 @@ namespace nihilus {
 			}
 
 			case static_cast<uint64_t>(data_types::f64): {
-				const double* values = reinterpret_cast<const double*>(data);
+				const double* values = static_cast<const double*>(data);
 				size_t count		 = detail::min(size / 8, 8);
 				for (size_t i = offending_index; i < offending_index + count; ++i) {
 					if (i > offending_index)
@@ -262,7 +262,7 @@ namespace nihilus {
 
 		switch (static_cast<uint64_t>(type)) {
 			case static_cast<uint64_t>(data_types::f32): {
-				const float* values = reinterpret_cast<const float*>(data.data());
+				const float* values = static_cast<const float*>(data.data());
 				size_t count		= detail::min(data.size() / sizeof(uint16_t), 8);
 				for (size_t i = offending_index; i < offending_index + count; ++i) {
 					if (i > offending_index)// Only print comma after the first element of this range
@@ -274,7 +274,7 @@ namespace nihilus {
 			}
 
 			case static_cast<uint64_t>(data_types::f16): {
-				const uint16_t* values = reinterpret_cast<const uint16_t*>(data.data());
+				const uint16_t* values = static_cast<const uint16_t*>(data.data());
 				size_t count		   = detail::min(data.size() / sizeof(uint16_t), 8);
 				for (size_t i = offending_index; i < offending_index + count; ++i) {
 					if (i > offending_index)// Only print comma after the first element of this range
@@ -285,7 +285,7 @@ namespace nihilus {
 			}
 
 			case static_cast<uint64_t>(data_types::q8_0): {
-				const uint8_t* values = reinterpret_cast<const uint8_t*>(data.data());
+				const uint8_t* values = static_cast<const uint8_t*>(data.data());
 				size_t count		  = detail::min(data.size(), 8);
 				for (size_t i = offending_index; i < offending_index + count; ++i) {
 					if (i > offending_index)// Only print comma after the first element of this range
@@ -296,7 +296,7 @@ namespace nihilus {
 			}
 
 			case static_cast<uint64_t>(data_types::i8): {
-				const int8_t* values = reinterpret_cast<const int8_t*>(data.data());
+				const int8_t* values = static_cast<const int8_t*>(data.data());
 				size_t count		 = detail::min(data.size(), 8);
 				for (size_t i = offending_index; i < offending_index + count; ++i) {
 					if (i > offending_index)// Only print comma after the first element of this range
@@ -307,7 +307,7 @@ namespace nihilus {
 			}
 
 			case static_cast<uint64_t>(data_types::i16): {
-				const int16_t* values = reinterpret_cast<const int16_t*>(data.data());
+				const int16_t* values = static_cast<const int16_t*>(data.data());
 				size_t count		  = detail::min(data.size() / 2, 8);
 				for (size_t i = offending_index; i < offending_index + count; ++i) {
 					if (i > offending_index)// Only print comma after the first element of this range
@@ -318,7 +318,7 @@ namespace nihilus {
 			}
 
 			case static_cast<uint64_t>(data_types::i32): {
-				const int32_t* values = reinterpret_cast<const int32_t*>(data.data());
+				const int32_t* values = static_cast<const int32_t*>(data.data());
 				size_t count		  = detail::min(data.size() / 4, 8);
 				for (size_t i = offending_index; i < offending_index + count; ++i) {
 					if (i > offending_index)// Only print comma after the first element of this range
@@ -329,7 +329,7 @@ namespace nihilus {
 			}
 
 			case static_cast<uint64_t>(data_types::i64): {
-				const int64_t* values = reinterpret_cast<const int64_t*>(data.data());
+				const int64_t* values = static_cast<const int64_t*>(data.data());
 				size_t count		  = detail::min(data.size() / 8, 8);
 				for (size_t i = offending_index; i < offending_index + count; ++i) {
 					if (i > offending_index)// Only print comma after the first element of this range
@@ -340,7 +340,7 @@ namespace nihilus {
 			}
 
 			case static_cast<uint64_t>(data_types::f64): {
-				const double* values = reinterpret_cast<const double*>(data.data());
+				const double* values = static_cast<const double*>(data.data());
 				size_t count		 = detail::min(data.size() / 8, 8);
 				for (size_t i = offending_index; i < count; ++i) {
 					if (i > offending_index)// Only print comma after the first element of this range
@@ -638,8 +638,8 @@ namespace nihilus {
 
 			switch (static_cast<uint64_t>(type)) {
 				case static_cast<uint64_t>(data_types::f32): {
-					const float* vals1 = reinterpret_cast<const float*>(data1.data);
-					const float* vals2 = reinterpret_cast<const float*>(data2.data.data());
+					const float* vals1 = static_cast<const float*>(data1.data);
+					const float* vals2 = static_cast<const float*>(data2.data.data());
 					size_t count	   = data2.data.size() / sizeof(float);
 					for (size_t i = 0; i < count; ++i) {
 						double diff = fabs(static_cast<double>(vals1[i]) - static_cast<double>(vals2[i]));
@@ -670,8 +670,8 @@ namespace nihilus {
 				}
 
 				case static_cast<uint64_t>(data_types::f16): {
-					const uint16_t* vals1 = reinterpret_cast<const uint16_t*>(data1.data);
-					const uint16_t* vals2 = reinterpret_cast<const uint16_t*>(data2.data.data());
+					const uint16_t* vals1 = static_cast<const uint16_t*>(data1.data);
+					const uint16_t* vals2 = static_cast<const uint16_t*>(data2.data.data());
 					size_t count		  = data1.byte_size / sizeof(uint16_t);
 
 					for (size_t i = 0; i < count; ++i) {
@@ -698,8 +698,8 @@ namespace nihilus {
 				}
 
 				case static_cast<uint64_t>(data_types::f64): {
-					const double* vals1 = reinterpret_cast<const double*>(data1.data);
-					const double* vals2 = reinterpret_cast<const double*>(data2.data.data());
+					const double* vals1 = static_cast<const double*>(data1.data);
+					const double* vals2 = static_cast<const double*>(data2.data.data());
 					size_t count		= data1.byte_size / sizeof(double);
 
 					for (size_t i = 0; i < count; ++i) {

@@ -60,15 +60,15 @@ int32_t main() {
 
 	return 0;
 }
-#elif defined(NIHILUS_DETECT_CPU_PROPERTIES) 
-	#include<cstring>
+#elif defined(NIHILUS_DETECT_CPU_PROPERTIES)
+	#include <cstring>
 	#include <cstdint>
 	#include <cstdlib>
 	#include <iostream>
 	#include <thread>
 	#include <vector>
 
-	#if defined(_MSC_VER)
+	#if NIHILUS_COMPILER_MSVC
 		#include <intrin.h>
 	#elif defined(HAVE_GCC_GET_CPUID) && defined(USE_GCC_GET_CPUID)
 		#include <cpuid.h>
@@ -87,11 +87,11 @@ int32_t main() {
 		#include <string>
 	#endif
 
-	#if defined(__aarch64__) || defined(_M_ARM64) || defined(_M_ARM64EC)
-		#if defined(__linux__)
+	#if NIHILUS_ARCH_ARM64
+		#if NIHILUS_PLATFORM_LINUX
 			#include <sys/auxv.h>
 			#include <asm/hwcap.h>
-		#elif defined(NIHILUS_PLATFORM_MAC)
+		#elif NIHILUS_PLATFORM_MAC
 			#include <sys/sysctl.h>
 		#endif
 	#endif
@@ -110,11 +110,11 @@ enum class cache_level {
 	three = 3,
 };
 
-	#if defined(__aarch64__) || defined(_M_ARM64) || defined(_M_ARM64EC)
+	#if NIHILUS_ARCH_ARM64
 inline static uint32_t detect_supported_architectures() {
 	uint32_t host_isa = static_cast<uint32_t>(instruction_set::NEON);
 
-		#if defined(__linux__)
+		#if NIHILUS_PLATFORM_LINUX
 	unsigned long hwcap = getauxval(AT_HWCAP);
 	if (hwcap & HWCAP_SVE) {
 		host_isa |= static_cast<uint32_t>(instruction_set::SVE2);
@@ -124,7 +124,7 @@ inline static uint32_t detect_supported_architectures() {
 	return host_isa;
 }
 
-	#elif defined(__x86_64__) || defined(_M_AMD64)
+	#elif NIHILUS_ARCH_X64
 static constexpr uint32_t cpuid_avx2_bit	 = 1ul << 5;
 static constexpr uint32_t cpuid_avx512_bit	 = 1ul << 16;
 static constexpr uint64_t cpuid_avx256_saved = 1ull << 2;
@@ -132,7 +132,7 @@ static constexpr uint64_t cpuid_avx512_saved = 7ull << 5;
 static constexpr uint32_t cpuid_osx_save	 = (1ul << 26) | (1ul << 27);
 
 inline static void cpuid(uint32_t* eax, uint32_t* ebx, uint32_t* ecx, uint32_t* edx) {
-		#if defined(_MSC_VER)
+		#if NIHILUS_COMPILER_MSVC
 	int32_t cpu_info[4];
 	__cpuidex(cpu_info, *eax, *ecx);
 	*eax = cpu_info[0];
@@ -153,7 +153,7 @@ inline static void cpuid(uint32_t* eax, uint32_t* ebx, uint32_t* ecx, uint32_t* 
 }
 
 inline static uint64_t xgetbv() {
-		#if defined(_MSC_VER)
+		#if NIHILUS_COMPILER_MSVC
 	return _xgetbv(0);
 		#else
 	uint32_t eax, edx;
@@ -261,7 +261,7 @@ inline size_t get_cache_size(cache_level level) {
 	}
 
 	#elif NIHILUS_PLATFORM_MAC
-	auto get_cache_size = [](const std::string& cacheType) {
+	auto get_cache_size_for_mac = [](const std::string& cacheType) {
 		size_t cacheSize		= 0;
 		size_t size				= sizeof(cacheSize);
 		std::string sysctlQuery = "hw." + cacheType + "cachesize";
@@ -272,11 +272,11 @@ inline size_t get_cache_size(cache_level level) {
 	};
 
 	if (level == cache_level::one) {
-		return get_cache_size("l1d");
+		return get_cache_size_for_mac("l1d");
 	} else if (level == cache_level::two) {
-		return get_cache_size("l2");
+		return get_cache_size_for_mac("l2");
 	} else {
-		return get_cache_size("l3");
+		return get_cache_size_for_mac("l3");
 	}
 	#endif
 

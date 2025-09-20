@@ -17,16 +17,16 @@
 # 2025
 # */
 
-if (UNIX OR APPLE)
+if(UNIX OR APPLE)
     file(WRITE "${CMAKE_SOURCE_DIR}/cmake/detection/BuildFeatureTesterCpuProperties.sh" "#!/bin/bash\n"
-        "\"${CMAKE_COMMAND}\" -S ./ -B ./Build-Cpu-Properties -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DNIHILUS_DETECT_CPU_PROPERTIES=TRUE\n"
+        "\"${CMAKE_COMMAND}\" -S ./ -B ./Build-Cpu-Properties -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=\"${CMAKE_CXX_COMPILER}\" -DNIHILUS_DETECT_CPU_PROPERTIES=TRUE\n"
         "\"${CMAKE_COMMAND}\" --build ./Build-Cpu-Properties --config=Release"
     )
     execute_process(
-        COMMAND chmod +x "${CMAKE_SOURCE_DIR}/cmake/detection/BuildFeatureTesterCpuProperties.sh"
+        COMMAND "chmod" "+x" "${CMAKE_SOURCE_DIR}/cmake/detection/BuildFeatureTesterCpuProperties.sh"
         RESULT_VARIABLE CHMOD_RESULT
     )
-    if(NOT ${CHMOD_RESULT} EQUAL 0)
+    if(NOT "${CHMOD_RESULT}" EQUAL 0)
         message(FATAL_ERROR "Failed to set executable permissions for BuildFeatureTesterCpuProperties.sh")
     endif()
     execute_process(
@@ -35,7 +35,8 @@ if (UNIX OR APPLE)
     )
     set(FEATURE_TESTER_FILE "${CMAKE_SOURCE_DIR}/cmake/detection/Build-Cpu-Properties/feature_detector")
 elseif(WIN32)
-    file(WRITE "${CMAKE_SOURCE_DIR}/cmake/detection/BuildFeatureTesterCpuProperties.bat" "\"${CMAKE_COMMAND}\" -S ./ -B ./Build-Cpu-Properties -DCMAKE_BUILD_TYPE=Release  -DNIHILUS_DETECT_CPU_PROPERTIES=TRUE\n"
+    file(WRITE "${CMAKE_SOURCE_DIR}/cmake/detection/BuildFeatureTesterCpuProperties.bat" 
+        "\"${CMAKE_COMMAND}\" -S ./ -B ./Build-Cpu-Properties -DNIHILUS_DETECT_CPU_PROPERTIES=TRUE\n"
         "\"${CMAKE_COMMAND}\" --build ./Build-Cpu-Properties --config=Release"
     )
     execute_process(
@@ -63,7 +64,7 @@ message(STATUS "CPU detector exit code: ${FEATURE_TESTER_EXIT_CODE}")
 message(STATUS "CPU detector output: '${CPU_PROPERTIES_OUTPUT}'")
 message(STATUS "CPU detector error: '${FEATURE_TESTER_ERROR}'")
 
-if(FEATURE_TESTER_EXIT_CODE EQUAL 0 AND CPU_PROPERTIES_OUTPUT MATCHES "CPU_SUCCESS=1")
+if("${FEATURE_TESTER_EXIT_CODE}" EQUAL 0 AND "${CPU_PROPERTIES_OUTPUT}" MATCHES "CPU_SUCCESS=1")
     string(REGEX MATCH "THREAD_COUNT=([0-9]+)" _ "${CPU_PROPERTIES_OUTPUT}")
     if(NOT DEFINED NIHILUS_THREAD_COUNT)
         set(NIHILUS_THREAD_COUNT "${CMAKE_MATCH_1}" CACHE STRING "CPU thread count" FORCE)
@@ -146,25 +147,25 @@ else()
 endif()
 
 if(NOT DEFINED NIHILUS_CPU_ARCH_INDEX)
-    if(NIHILUS_HAS_AVX512)
+    if("${NIHILUS_HAS_AVX512}")
         set(NIHILUS_CPU_ARCH_INDEX "2" CACHE STRING "CPU architecture index - AVX512" FORCE)
         set(NIHILUS_CPU_ALIGNMENT "64" CACHE STRING "CPU Alignment" FORCE)
-        set(NIHILUS_SIMD_FLAGS "$<IF:$<CUDA_COMPILER_ID:NVIDIA>,,$<IF:$<CXX_COMPILER_ID:MSVC>,/model_arch:AVX512,-mavx512f;-mfma;-mavx2;-mavx;-mlzcnt;-mpopcnt;-mbmi;-mbmi2;-msse4.2;-mf16c>>" CACHE STRING "SIMD flags" FORCE)
+        set(NIHILUS_SIMD_FLAGS "$<IF:$<CUDA_COMPILER_ID:NVIDIA>,,$<IF:$<CXX_COMPILER_ID:MSVC>,/arch:AVX512,-mavx512f;-mfma;-mavx2;-mavx;-mlzcnt;-mpopcnt;-mbmi;-mbmi2;-msse4.2;-mf16c>>" CACHE STRING "SIMD flags" FORCE)
         set(NIHILUS_SIMD_DEFINITIONS "NIHILUS_SVE2=0;NIHILUS_AVX512=1;NIHILUS_AVX2=0;NIHILUS_NEON=0" CACHE STRING "SIMD definitions" FORCE)
         set(NIHILUS_INSTRUCTION_SET_NAME "AVX512" CACHE STRING "Instruction set name" FORCE)
-    elseif(NIHILUS_HAS_AVX2)
+    elseif("${NIHILUS_HAS_AVX2}")
         set(NIHILUS_CPU_ARCH_INDEX "1" CACHE STRING "CPU architecture index - AVX2" FORCE)
         set(NIHILUS_CPU_ALIGNMENT "32" CACHE STRING "CPU Alignment" FORCE)        
         set(NIHILUS_SIMD_FLAGS "$<IF:$<CUDA_COMPILER_ID:NVIDIA>,,$<IF:$<CXX_COMPILER_ID:MSVC>,/arch:AVX2,-mavx2;-mfma;-mavx;-mlzcnt;-mpopcnt;-mbmi;-mbmi2;-msse4.2;-mf16c>>" CACHE STRING "SIMD flags" FORCE)
         set(NIHILUS_SIMD_DEFINITIONS "NIHILUS_SVE2=0;NIHILUS_AVX512=0;NIHILUS_AVX2=1;NIHILUS_NEON=0" CACHE STRING "SIMD definitions" FORCE)
         set(NIHILUS_INSTRUCTION_SET_NAME "AVX2" CACHE STRING "Instruction set name" FORCE)
-    elseif(NIHILUS_HAS_SVE2)
+    elseif("${NIHILUS_HAS_SVE2}")
         set(NIHILUS_CPU_ARCH_INDEX "2" CACHE STRING "CPU architecture index - SVE2" FORCE)
         set(NIHILUS_CPU_ALIGNMENT "64" CACHE STRING "CPU Alignment" FORCE)
         set(NIHILUS_SIMD_FLAGS "$<IF:$<CUDA_COMPILER_ID:NVIDIA>,,$<IF:$<CXX_COMPILER_ID:MSVC>,,-march=armv8-a+sve;-msve-vector-bits=scalable;-march=armv8-a+sve+sve2>>" CACHE STRING "SIMD flags" FORCE)
         set(NIHILUS_SIMD_DEFINITIONS "NIHILUS_SVE2=1;NIHILUS_AVX512=0;NIHILUS_AVX2=0;NIHILUS_NEON=0" CACHE STRING "SIMD definitions" FORCE)
         set(NIHILUS_INSTRUCTION_SET_NAME "SVE2" CACHE STRING "Instruction set name" FORCE)
-    elseif(NIHILUS_HAS_NEON)
+    elseif("${NIHILUS_HAS_NEON}")
         set(NIHILUS_CPU_ARCH_INDEX "1" CACHE STRING "CPU architecture index - NEON" FORCE)
         set(NIHILUS_CPU_ALIGNMENT "16" CACHE STRING "CPU Alignment" FORCE)
         set(NIHILUS_SIMD_FLAGS "$<IF:$<CUDA_COMPILER_ID:NVIDIA>,,$<IF:$<CXX_COMPILER_ID:MSVC>,,-march=armv8-a>>" CACHE STRING "SIMD flags" FORCE)
@@ -179,7 +180,7 @@ if(NOT DEFINED NIHILUS_CPU_ARCH_INDEX)
     endif()
 endif()
 
-message(STATUS "CPU Configuration: ${NIHILUS_THREAD_COUNT} threads, L1: ${NIHILUS_CPU_L1_CACHE_SIZE}B, model_arch index: ${NIHILUS_CPU_ARCH_INDEX}")
+message(STATUS "CPU Configuration: ${NIHILUS_THREAD_COUNT} threads, L1: ${NIHILUS_CPU_L1_CACHE_SIZE}B, arch index: ${NIHILUS_CPU_ARCH_INDEX}")
 
 configure_file(
     "${CMAKE_SOURCE_DIR}/cmake/detection/nihilus_cpu_properties.hpp.in"

@@ -26,7 +26,7 @@ add_executable(
 
 target_link_libraries(
 	"nihilus-main" PUBLIC 
-	nihilus::nihilus 
+	"nihilus::nihilus"
     "$<$<TARGET_EXISTS:CUDA::cudart>:CUDA::cudart>"
 )
 

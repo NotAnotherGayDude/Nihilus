@@ -1,32 +1,32 @@
 # Copyright (c) 2025 RealTimeChris (Chris M.)
-# 
+# 
 # This file is part of software offered under a restricted-use license to a designated Licensee,
 # whose identity is confirmed in writing by the Author.
-# 
+# 
 # License Terms (Summary):
 # - Exclusive, non-transferable license for internal use only.
 # - Redistribution, sublicensing, or public disclosure is prohibited without written consent.
 # - Full ownership remains with the Author.
 # - License may terminate if unused for [X months], if materially breached, or by mutual agreement.
 # - No warranty is provided, express or implied.
-# 
+# 
 # Full license terms are provided in the LICENSE file distributed with this software.
-# 
+# 
 # Signed,
 # RealTimeChris (Chris M.)
 # 2025
 # */
 
-if (UNIX OR APPLE)
+if(UNIX OR APPLE)
     file(WRITE "${CMAKE_SOURCE_DIR}/cmake/detection/BuildFeatureTesterGpuProperties.sh" "#!/bin/bash\n"
-        "\"${CMAKE_COMMAND}\" -S ./ -B ./Build-Gpu-Properties -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER} -DNIHILUS_DETECT_GPU_PROPERTIES=TRUE\n"
+        "\"${CMAKE_COMMAND}\" -S ./ -B ./Build-Gpu-Properties -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=\"${CMAKE_CXX_COMPILER}\" -DNIHILUS_DETECT_GPU_PROPERTIES=TRUE\n"
         "\"${CMAKE_COMMAND}\" --build ./Build-Gpu-Properties --config=Release"
     )
     execute_process(
-        COMMAND chmod +x "${CMAKE_SOURCE_DIR}/cmake/detection/BuildFeatureTesterGpuProperties.sh"
+        COMMAND "chmod" "+x" "${CMAKE_SOURCE_DIR}/cmake/detection/BuildFeatureTesterGpuProperties.sh"
         RESULT_VARIABLE CHMOD_RESULT
     )
-    if(NOT ${CHMOD_RESULT} EQUAL 0)
+    if(NOT "${CHMOD_RESULT}" EQUAL 0)
         message(FATAL_ERROR "Failed to set executable permissions for BuildFeatureTesterGpuProperties.sh")
     endif()
     execute_process(
@@ -35,7 +35,7 @@ if (UNIX OR APPLE)
     )
     set(FEATURE_TESTER_FILE "${CMAKE_SOURCE_DIR}/cmake/detection/Build-Gpu-Properties/feature_detector")
 elseif(WIN32)
-    file(WRITE "${CMAKE_SOURCE_DIR}/cmake/detection/BuildFeatureTesterGpuProperties.bat" "\"${CMAKE_COMMAND}\" -S ./ -B ./Build-Gpu-Properties -DCMAKE_BUILD_TYPE=Release  -DNIHILUS_DETECT_GPU_PROPERTIES=TRUE\n"
+    file(WRITE "${CMAKE_SOURCE_DIR}/cmake/detection/BuildFeatureTesterGpuProperties.bat" "\"${CMAKE_COMMAND}\" -S ./ -B ./Build-Gpu-Properties -DNIHILUS_DETECT_GPU_PROPERTIES=TRUE\n"
         "\"${CMAKE_COMMAND}\" --build ./Build-Gpu-Properties --config=Release"
     )
     execute_process(
@@ -59,7 +59,7 @@ if(NOT DEFINED NIHILUS_SM_COUNT OR
     )
 endif()
     
-if(FEATURE_TESTER_EXIT_CODE EQUAL 0 AND GPU_PROPERTIES_OUTPUT MATCHES "GPU_SUCCESS=1")
+if("${FEATURE_TESTER_EXIT_CODE}" EQUAL 0 AND "${GPU_PROPERTIES_OUTPUT}" MATCHES "GPU_SUCCESS=1")
     string(REGEX MATCH "SM_COUNT=([0-9]+)" _ "${GPU_PROPERTIES_OUTPUT}")
     if(NOT DEFINED NIHILUS_SM_COUNT)
         set(NIHILUS_SM_COUNT "${CMAKE_MATCH_1}" CACHE STRING "GPU SM count" FORCE)

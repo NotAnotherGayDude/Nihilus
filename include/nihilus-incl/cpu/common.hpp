@@ -59,78 +59,68 @@ namespace nihilus {
 #if NIHILUS_AVX512
 	using nihilus_simd_int_128 = __m128i;
 	struct nihilus_simd_int_128_t {
-		using type = __m128i;
+		using type = nihilus_simd_int_128;
 	};
 	using nihilus_simd_int_256 = __m256i;
 	struct nihilus_simd_int_256_t {
-		using type = __m256i;
+		using type = nihilus_simd_int_256;
 	};
 	using nihilus_simd_int_512 = __m512i;
 	struct nihilus_simd_int_512_t {
-		using type = __m512i;
+		using type = nihilus_simd_int_512;
 	};
-	using nihilus_simd_int_t		  = __m256i;
-	using nihilus_string_parsing_type = uint64_t;
 #elif NIHILUS_AVX2
 	using nihilus_simd_int_128 = __m128i;
 	struct nihilus_simd_int_128_t {
-		using type = __m128i;
+		using type = nihilus_simd_int_128;
 	};
 	using nihilus_simd_int_256 = __m256i;
 	struct nihilus_simd_int_256_t {
-		using type = __m256i;
+		using type = nihilus_simd_int_256;
 	};
 	using nihilus_simd_int_512 = __m512i;
 	struct nihilus_simd_int_512_t {
-		using type = __m512i;
+		using type = nihilus_simd_int_512;
 	};
-	using nihilus_simd_int			  = __m256i;
-	using nihilus_string_parsing_type = uint32_t;
 #elif NIHILUS_NEON
 	using nihilus_simd_int_128 = uint8x16_t;
 	struct nihilus_simd_int_128_t {
-		using type = uint8x16_t;
+		using type = nihilus_simd_int_128;
 	};
 	using nihilus_simd_int_256 = uint32_t;
 	struct nihilus_simd_int_256_t {
-		using type = uint32_t;
+		using type = nihilus_simd_int_256;
 	};
 	using nihilus_simd_int_512 = uint64_t;
 	struct nihilus_simd_int_512_t {
-		using type = uint64_t;
+		using type = nihilus_simd_int_512;
 	};
-	using nihilus_simd_int_t		  = uint8x16_t;
-	using nihilus_string_parsing_type = uint16_t;
 #elif NIHILUS_SVE
 	using nihilus_simd_int_128 = svint8_t;
 	struct nihilus_simd_int_128_t {
-		using type = svint8_t;
+		using type = nihilus_simd_int_128;
 	};
 	using nihilus_simd_int_256 = svint16_t;
 	struct nihilus_simd_int_256_t {
-		using type = svint16_t;
+		using type = nihilus_simd_int_256;
 	};
 	using nihilus_simd_int_512 = svint32_t;
 	struct nihilus_simd_int_512_t {
-		using type = svint32_t;
+		using type = nihilus_simd_int_512;
 	};
-	using nihilus_simd_int_t		  = svint16_t;
-	using nihilus_string_parsing_type = uint64_t;
 #else
 	using nihilus_simd_int_128 = m128x;
 	struct nihilus_simd_int_128_t {
-		using type = m128x;
+		using type = nihilus_simd_int_128;
 	};
 	using nihilus_simd_int_256 = uint32_t;
 	struct nihilus_simd_int_256_t {
-		using type = uint32_t;
+		using type = nihilus_simd_int_256;
 	};
 	using nihilus_simd_int_512 = uint64_t;
 	struct nihilus_simd_int_512_t {
-		using type = uint64_t;
+		using type = nihilus_simd_int_512;
 	};
-	using nihilus_simd_int_t		  = m128x;
-	using nihilus_string_parsing_type = uint16_t;
 
 #endif
 
@@ -235,7 +225,7 @@ namespace nihilus {
 	}
 
 	template<nihilus_simd_512_types simd_int_t01> NIHILUS_INLINE static auto opTest(const typename simd_int_t01::type& value) noexcept {
-		return !_mm512_test_epi64_mask(value, value);
+		return !_mm512_testn_epi64_mask(value, value);
 	}
 
 #endif
@@ -395,7 +385,8 @@ namespace nihilus {
 		return returnValues;
 	}
 
-	template<typename simd_int_t01, typename simd_int_t02> NIHILUS_INLINE m128x mm128XorSi128(const simd_int_t01& valOne, const simd_int_t02& valTwo) noexcept {
+	template<typename simd_int_t01, typename simd_int_t02>
+	NIHILUS_INLINE m128x mm128XorSi128(const typename simd_int_t01::type& valOne, const typename simd_int_t02::type& valTwo) noexcept {
 		m128x value{};
 		std::copy(valOne.m128x_uint64, valOne.m128x_uint64 + 2, value.m128x_uint64);
 		value.m128x_uint64[0] ^= valTwo.m128x_uint64[0];
@@ -403,7 +394,8 @@ namespace nihilus {
 		return value;
 	}
 
-	template<typename simd_int_t01, typename simd_int_t02> NIHILUS_INLINE bool mm128TestzSi128(simd_int_t01& valOneNew, simd_int_t02& valTwo) noexcept {
+	template<typename simd_int_t01, typename simd_int_t02>
+	NIHILUS_INLINE bool mm128TestzSi128(typename simd_int_t01::type& valOneNew, typename simd_int_t02::type& valTwo) noexcept {
 		detail::remove_const_t<simd_int_t01> valOne{ valOneNew };
 		valOne.m128x_uint64[0] &= valTwo.m128x_uint64[0];
 		valOne.m128x_uint64[1] &= valTwo.m128x_uint64[1];

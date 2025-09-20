@@ -2871,8 +2871,8 @@ namespace nihilus {
 			const __m256 scale_vec = _mm256_set1_ps(scale);
 
 			for (uint64_t i = 0; i < 64ULL; i += 32ULL) {
-				_mm_prefetch(reinterpret_cast<const char*>(x + i + 64ULL), _MM_HINT_T0);
-				_mm_prefetch(reinterpret_cast<const char*>(z + i + 64ULL), _MM_HINT_T0);
+				_mm_prefetch(static_cast<const char*>(x + i + 64ULL), _MM_HINT_T0);
+				_mm_prefetch(static_cast<const char*>(z + i + 64ULL), _MM_HINT_T0);
 
 				__m256 ax0 = _mm256_load_ps(x + i);
 				__m256 ax1 = _mm256_load_ps(x + i + 8ULL);
@@ -2911,8 +2911,8 @@ namespace nihilus {
 			uint64_t i					 = 0;
 
 			for (; i < np; i += 64ULL) {
-				_mm_prefetch(reinterpret_cast<const char*>(x + i + 128ULL), _MM_HINT_T0);
-				_mm_prefetch(reinterpret_cast<const char*>(z + i + 128ULL), _MM_HINT_T0);
+				_mm_prefetch(static_cast<const char*>(x + i + 128ULL), _MM_HINT_T0);
+				_mm_prefetch(static_cast<const char*>(z + i + 128ULL), _MM_HINT_T0);
 
 				for (uint64_t j = 0; j < 64ULL; j += 32ULL) {
 					__m256 ax0 = _mm256_load_ps(x + i + j);
@@ -3143,7 +3143,7 @@ namespace nihilus {
 			const float block_scale	 = w_scales[w_offset / Q_SIZE];
 			const __m128 w_scale_vec = _mm_set1_ps(block_scale);
 
-			__m128i q8_weights		   = _mm_loadl_epi64(reinterpret_cast<const __m128i*>(&w_quants[w_offset]));
+			__m128i q8_weights		   = _mm_loadl_epi64(static_cast<const __m128i*>(&w_quants[w_offset]));
 			__m128i q8_weights_128	   = _mm_cvtepi8_epi32(q8_weights);
 			__m128 dequantized_weights = _mm_cvtepi32_ps(q8_weights_128);
 			dequantized_weights		   = _mm_mul_ps(dequantized_weights, w_scale_vec);
@@ -3183,7 +3183,7 @@ namespace nihilus {
 			const float block_scale	 = w_scales[w_offset / Q_SIZE];
 			const __m256 w_scale_vec = _mm256_set1_ps(block_scale);
 
-			__m128i q8_weights		   = _mm_loadl_epi64(reinterpret_cast<const __m128i*>(&w_quants[w_offset]));
+			__m128i q8_weights		   = _mm_loadl_epi64(static_cast<const __m128i*>(&w_quants[w_offset]));
 			__m256i q8_weights_256	   = _mm256_cvtepi8_epi32(q8_weights);
 			__m256 dequantized_weights = _mm256_cvtepi32_ps(q8_weights_256);
 			dequantized_weights		   = _mm256_mul_ps(dequantized_weights, w_scale_vec);
@@ -3228,12 +3228,12 @@ namespace nihilus {
 			const float block_scale	 = w_scales[w_offset / Q_SIZE];
 			const __m256 w_scale_vec = _mm256_set1_ps(block_scale);
 
-			__m128i q8_weights0			= _mm_loadl_epi64(reinterpret_cast<const __m128i*>(&w_quants[w_offset]));
+			__m128i q8_weights0			= _mm_loadl_epi64(static_cast<const __m128i*>(&w_quants[w_offset]));
 			__m256i q8_weights0_256		= _mm256_cvtepi8_epi32(q8_weights0);
 			__m256 dequantized_weights0 = _mm256_cvtepi32_ps(q8_weights0_256);
 			dequantized_weights0		= _mm256_mul_ps(dequantized_weights0, w_scale_vec);
 
-			__m128i q8_weights1			= _mm_loadl_epi64(reinterpret_cast<const __m128i*>(&w_quants[w_offset + 8]));
+			__m128i q8_weights1			= _mm_loadl_epi64(static_cast<const __m128i*>(&w_quants[w_offset + 8]));
 			__m256i q8_weights1_256		= _mm256_cvtepi8_epi32(q8_weights1);
 			__m256 dequantized_weights1 = _mm256_cvtepi32_ps(q8_weights1_256);
 			dequantized_weights1		= _mm256_mul_ps(dequantized_weights1, w_scale_vec);
@@ -3276,7 +3276,7 @@ namespace nihilus {
 
 				__m256 normalized = _mm256_mul_ps(added, scale_vec);
 
-				__m128i q8_weights		   = _mm_loadl_epi64(reinterpret_cast<const __m128i*>(&w_quants[w_offset + i]));
+				__m128i q8_weights		   = _mm_loadl_epi64(static_cast<const __m128i*>(&w_quants[w_offset + i]));
 				__m256i q8_weights_256	   = _mm256_cvtepi8_epi32(q8_weights);
 				__m256 dequantized_weights = _mm256_cvtepi32_ps(q8_weights_256);
 				dequantized_weights		   = _mm256_mul_ps(dequantized_weights, w_scale_vec);
@@ -3309,9 +3309,9 @@ namespace nihilus {
 			const __m256 scale_vec = _mm256_set1_ps(scale);
 
 			for (uint64_t i = 0; i < 64; i += Q_SIZE) {
-				_mm_prefetch(reinterpret_cast<const char*>(x + i + 64), _MM_HINT_T0);
-				_mm_prefetch(reinterpret_cast<const char*>(z + i + 64), _MM_HINT_T0);
-				_mm_prefetch(reinterpret_cast<const char*>(&w_quants[w_offset + i + 64]), _MM_HINT_T0);
+				_mm_prefetch(static_cast<const char*>(x + i + 64), _MM_HINT_T0);
+				_mm_prefetch(static_cast<const char*>(z + i + 64), _MM_HINT_T0);
+				_mm_prefetch(static_cast<const char*>(&w_quants[w_offset + i + 64]), _MM_HINT_T0);
 
 				const float block_scale	 = w_scales[(w_offset + i) / Q_SIZE];
 				const __m256 w_scale_vec = _mm256_set1_ps(block_scale);
@@ -3325,7 +3325,7 @@ namespace nihilus {
 
 					__m256 normalized = _mm256_mul_ps(added, scale_vec);
 
-					__m128i q8_weights		   = _mm_loadl_epi64(reinterpret_cast<const __m128i*>(&w_quants[w_offset + idx]));
+					__m128i q8_weights		   = _mm_loadl_epi64(static_cast<const __m128i*>(&w_quants[w_offset + idx]));
 					__m256i q8_weights_256	   = _mm256_cvtepi8_epi32(q8_weights);
 					__m256 dequantized_weights = _mm256_cvtepi32_ps(q8_weights_256);
 					dequantized_weights		   = _mm256_mul_ps(dequantized_weights, w_scale_vec);
@@ -3347,9 +3347,9 @@ namespace nihilus {
 			uint64_t i					 = 0;
 
 			for (; i < np; i += 64) {
-				_mm_prefetch(reinterpret_cast<const char*>(x + i + 128), _MM_HINT_T0);
-				_mm_prefetch(reinterpret_cast<const char*>(z + i + 128), _MM_HINT_T0);
-				_mm_prefetch(reinterpret_cast<const char*>(&w_quants[w_offset + i + 128]), _MM_HINT_T0);
+				_mm_prefetch(static_cast<const char*>(x + i + 128), _MM_HINT_T0);
+				_mm_prefetch(static_cast<const char*>(z + i + 128), _MM_HINT_T0);
+				_mm_prefetch(static_cast<const char*>(&w_quants[w_offset + i + 128]), _MM_HINT_T0);
 
 				for (uint64_t j = 0; j < 64; j += Q_SIZE) {
 					const uint64_t block_idx = (w_offset + i + j) / Q_SIZE;
@@ -3365,7 +3365,7 @@ namespace nihilus {
 
 						__m256 normalized = _mm256_mul_ps(added, scale_vec);
 
-						__m128i q8_weights		   = _mm_loadl_epi64(reinterpret_cast<const __m128i*>(&w_quants[w_offset + idx]));
+						__m128i q8_weights		   = _mm_loadl_epi64(static_cast<const __m128i*>(&w_quants[w_offset + idx]));
 						__m256i q8_weights_256	   = _mm256_cvtepi8_epi32(q8_weights);
 						__m256 dequantized_weights = _mm256_cvtepi32_ps(q8_weights_256);
 						dequantized_weights		   = _mm256_mul_ps(dequantized_weights, w_scale_vec);
@@ -3491,7 +3491,7 @@ namespace nihilus {
 					for (uint64_t block_idx = 0; block_idx < ne00 / Q_SIZE; ++block_idx) {
 						w_scales[block_idx] = static_cast<float>(src2_ptr[block_idx].d);
 					}
-					const int8_t* w_quants = reinterpret_cast<const int8_t*>(&src2_ptr[0].qs[0]);
+					const int8_t* w_quants = static_cast<const int8_t*>(&src2_ptr[0].qs[0]);
 
 					if constexpr (ne10 == ne00 && ne20 == ne00) {
 						const uint64_t nr0 = ne00 >> log2_ne10;
@@ -3541,7 +3541,7 @@ namespace nihilus {
 					for (uint64_t block_idx = 0; block_idx < ne00 / Q_SIZE; ++block_idx) {
 						w_scales[block_idx] = static_cast<float>(src2_ptr[block_idx].d);
 					}
-					const int8_t* w_quants = reinterpret_cast<const int8_t*>(&src2_ptr[0].qs[0]);
+					const int8_t* w_quants = static_cast<const int8_t*>(&src2_ptr[0].qs[0]);
 
 					if constexpr (ne10 == ne00 && ne20 == ne00) {
 						const uint64_t nr0 = ne00 / ne10;
@@ -3769,8 +3769,8 @@ namespace nihilus {
 			const __m256 scale_vec = _mm256_set1_ps(scale);
 
 			for (uint64_t i = 0; i < 64ULL; i += 32ULL) {
-				_mm_prefetch(reinterpret_cast<const char*>(x + i + 64ULL), _MM_HINT_T0);
-				_mm_prefetch(reinterpret_cast<const char*>(z + i + 64ULL), _MM_HINT_T0);
+				_mm_prefetch(static_cast<const char*>(x + i + 64ULL), _MM_HINT_T0);
+				_mm_prefetch(static_cast<const char*>(z + i + 64ULL), _MM_HINT_T0);
 
 				__m256 ax0 = _mm256_load_ps(x + i);
 				__m256 ax1 = _mm256_load_ps(x + i + 8ULL);
@@ -3809,8 +3809,8 @@ namespace nihilus {
 			uint64_t i					 = 0;
 
 			for (; i < np; i += 64ULL) {
-				_mm_prefetch(reinterpret_cast<const char*>(x + i + 128ULL), _MM_HINT_T0);
-				_mm_prefetch(reinterpret_cast<const char*>(z + i + 128ULL), _MM_HINT_T0);
+				_mm_prefetch(static_cast<const char*>(x + i + 128ULL), _MM_HINT_T0);
+				_mm_prefetch(static_cast<const char*>(z + i + 128ULL), _MM_HINT_T0);
 
 				for (uint64_t j = 0; j < 64ULL; j += 32ULL) {
 					__m256 ax0 = _mm256_load_ps(x + i + j);
@@ -4091,8 +4091,8 @@ namespace nihilus {
 	struct vec_mul_f32<size_new> {
 		NIHILUS_INLINE static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z) {
 			for (uint64_t i = 0; i < 64ULL; i += 32ULL) {
-				_mm_prefetch(reinterpret_cast<const char*>(x + i + 64ULL), _MM_HINT_T0);
-				_mm_prefetch(reinterpret_cast<const char*>(z + i + 64ULL), _MM_HINT_T0);
+				_mm_prefetch(static_cast<const char*>(x + i + 64ULL), _MM_HINT_T0);
+				_mm_prefetch(static_cast<const char*>(z + i + 64ULL), _MM_HINT_T0);
 
 				__m256 ax0 = _mm256_load_ps(x + i);
 				__m256 ax1 = _mm256_load_ps(x + i + 8ULL);
@@ -4125,8 +4125,8 @@ namespace nihilus {
 			uint64_t i		  = 0;
 
 			for (; i < np; i += 64ULL) {
-				_mm_prefetch(reinterpret_cast<const char*>(x + i + 128ULL), _MM_HINT_T0);
-				_mm_prefetch(reinterpret_cast<const char*>(z + i + 128ULL), _MM_HINT_T0);
+				_mm_prefetch(static_cast<const char*>(x + i + 128ULL), _MM_HINT_T0);
+				_mm_prefetch(static_cast<const char*>(z + i + 128ULL), _MM_HINT_T0);
 
 				for (uint64_t j = 0; j < 64ULL; j += 32ULL) {
 					__m256 ax0 = _mm256_load_ps(x + i + j);
@@ -4643,8 +4643,8 @@ namespace nihilus {
 			__m256 acc3							 = _mm256_setzero_ps();
 
 			for (uint64_t ib = 0; ib < 16; ib += 4) {
-				_mm_prefetch(reinterpret_cast<const char*>(&x[ib + 8]), _MM_HINT_T0);
-				_mm_prefetch(reinterpret_cast<const char*>(&y[ib + 8]), _MM_HINT_T0);
+				_mm_prefetch(static_cast<const char*>(&x[ib + 8]), _MM_HINT_T0);
+				_mm_prefetch(static_cast<const char*>(&y[ib + 8]), _MM_HINT_T0);
 
 				const __m256 d0 = _mm256_set1_ps(fp16_to_fp32(x[ib].d) * fp16_to_fp32(y[ib].d));
 				const __m256 d1 = _mm256_set1_ps(fp16_to_fp32(x[ib + 1].d) * fp16_to_fp32(y[ib + 1].d));
@@ -4836,8 +4836,8 @@ namespace nihilus {
 			uint64_t i					 = 0;
 
 			for (; i < np; i += Q_SIZE) {
-				_mm_prefetch(reinterpret_cast<const char*>(x + i + Q_SIZE), _MM_HINT_T0);
-				_mm_prefetch(reinterpret_cast<const char*>(&y_blocks[(block_offset + i + Q_SIZE) / Q_SIZE]), _MM_HINT_T0);
+				_mm_prefetch(static_cast<const char*>(x + i + Q_SIZE), _MM_HINT_T0);
+				_mm_prefetch(static_cast<const char*>(&y_blocks[(block_offset + i + Q_SIZE) / Q_SIZE]), _MM_HINT_T0);
 				sum += vec_dot_q8_f32<Q_SIZE>::impl(x + i, y_blocks, block_offset + i);
 			}
 
@@ -5389,7 +5389,7 @@ namespace nihilus {
 			for (uint64_t block_idx = 0; block_idx < num_blocks; ++block_idx) {
 				w_scales[block_idx] = static_cast<float>(src2_data[block_idx].d);
 			}
-			const int8_t* w_quants = reinterpret_cast<const int8_t*>(&src2_data[0].qs[0]);
+			const int8_t* w_quants = static_cast<const int8_t*>(&src2_data[0].qs[0]);
 
 			if constexpr (ne10 == ne00 && ne20 == ne00) {
 				vec_add_rms_norm_mul_q8_f32<ne00>::impl(output.data, input01.data, input02.data, scale, w_scales, w_quants, 0);

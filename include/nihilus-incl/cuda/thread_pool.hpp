@@ -55,7 +55,6 @@ namespace nihilus {
 		}
 
 		template<processing_phases phase_new> NIHILUS_INLINE void execute_tasks(uint64_t runtime_dimensions_new) {
-			core_bases_type::template impl<sync_resetter>(1);
 			core_bases_type::template impl<dim_updater>(runtime_dimensions_new);
 			thread_function<phase_new>();
 			if constexpr (config.dev) {
