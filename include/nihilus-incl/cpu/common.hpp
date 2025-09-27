@@ -56,7 +56,7 @@ namespace nihilus {
 #endif
 	};
 
-#if NIHILUS_AVX512
+#if NIHILUS_AVX512 | NIHILUS_AVX2
 	using nihilus_simd_int_128 = __m128i;
 	struct nihilus_simd_int_128_t {
 		using type = nihilus_simd_int_128;
@@ -69,19 +69,7 @@ namespace nihilus {
 	struct nihilus_simd_int_512_t {
 		using type = nihilus_simd_int_512;
 	};
-#elif NIHILUS_AVX2
-	using nihilus_simd_int_128 = __m128i;
-	struct nihilus_simd_int_128_t {
-		using type = nihilus_simd_int_128;
-	};
-	using nihilus_simd_int_256 = __m256i;
-	struct nihilus_simd_int_256_t {
-		using type = nihilus_simd_int_256;
-	};
-	using nihilus_simd_int_512 = __m512i;
-	struct nihilus_simd_int_512_t {
-		using type = nihilus_simd_int_512;
-	};
+
 #elif NIHILUS_NEON
 	using nihilus_simd_int_128 = uint8x16_t;
 	struct nihilus_simd_int_128_t {
@@ -95,7 +83,7 @@ namespace nihilus {
 	struct nihilus_simd_int_512_t {
 		using type = nihilus_simd_int_512;
 	};
-#elif NIHILUS_SVE
+#elif NIHILUS_SVE2
 	using nihilus_simd_int_128 = svint8_t;
 	struct nihilus_simd_int_128_t {
 		using type = nihilus_simd_int_128;
@@ -145,44 +133,14 @@ namespace nihilus {
 		return count;
 	}
 
-#if NIHILUS_AVX512 || NIHILUS_AVX2
+#if NIHILUS_AVX512 | NIHILUS_AVX2
 
 	NIHILUS_INLINE static half fp32_to_fp16(float f) {
 		return static_cast<half>(_mm_extract_epi16(_mm_cvtps_ph(_mm_set_ss(f), _MM_FROUND_TO_NEAREST_INT), 0));
 	}
 
-	NIHILUS_INLINE float sqrtf_fast(float x) {
-		return _mm_cvtss_f32(_mm_sqrt_ss(_mm_set_ss(x)));
-	}
-
 	NIHILUS_INLINE static float fp16_to_fp32(half h) {
 		return _mm_cvtss_f32(_mm_cvtph_ps(_mm_cvtsi32_si128(h)));
-	}
-
-	#define blsr(value) _blsr_u64(value)
-
-	NIHILUS_INLINE static uint32_t lzcnt(const uint32_t value) noexcept {
-		return _lzcnt_u32(value);
-	}
-
-	NIHILUS_INLINE static uint64_t lzcnt(const uint64_t value) noexcept {
-		return _lzcnt_u64(value);
-	}
-
-	template<uint16_types value_type> NIHILUS_INLINE static value_type tzcnt(const value_type value) noexcept {
-	#if NIHILUS_PLATFORM_LINUX
-		return __tzcnt_u16(value);
-	#else
-		return _tzcnt_u16(value);
-	#endif
-	}
-
-	template<uint32_types value_type> NIHILUS_INLINE static value_type tzcnt(const value_type value) noexcept {
-		return _tzcnt_u32(value);
-	}
-
-	template<uint64_types value_type> NIHILUS_INLINE static value_type tzcnt(const value_type value) noexcept {
-		return _tzcnt_u64(value);
 	}
 
 	template<nihilus_simd_128_types nihilus_simd_int_types_new> NIHILUS_INLINE static auto gather_values(const void* str) noexcept {
@@ -244,32 +202,6 @@ namespace nihilus {
 		return vgetq_lane_f32(vcvt_f32_f16(vreinterpret_f16_s16(vdup_n_s16(h))), 0);
 	}
 
-	#define blsr(value) (value & (value - 1))
-
-	template<uint16_types value_type> NIHILUS_INLINE value_type tzcnt(value_type value) noexcept {
-		if (value != 0) {
-			return __builtin_ctz(value);
-		} else {
-			return sizeof(value_type) * 8;
-		}
-	}
-
-	template<uint32_types value_type> NIHILUS_INLINE value_type tzcnt(value_type value) noexcept {
-		if (value != 0) {
-			return __builtin_ctz(value);
-		} else {
-			return sizeof(value_type) * 8;
-		}
-	}
-
-	template<uint64_types value_type> NIHILUS_INLINE value_type tzcnt(value_type value) noexcept {
-		if (value != 0) {
-			return __builtin_ctzll(value);
-		} else {
-			return sizeof(value_type) * 8;
-		}
-	}
-
 	template<nihilus_simd_128_types nihilus_simd_int_types_new> NIHILUS_INLINE static auto gather_values(const void* str) noexcept {
 		return vld1q_u8(static_cast<const uint8_t*>(str));
 	}
@@ -297,25 +229,6 @@ namespace nihilus {
 
 	NIHILUS_INLINE static float fp16_to_fp32(half h) {
 		return svextract_f32(svcvt_f32_f16_z(svptrue_b16(), svreinterpret_f16_u16(svdup_n_u16(h))), 0);
-	}
-
-	#define blsr(value) __builtin_aarch64_rbitl(__builtin_clzl(__builtin_aarch64_rbitl(value) | 1))
-
-	NIHILUS_INLINE static uint32_t lzcnt(const uint32_t value) noexcept {
-		return __builtin_clz(value);
-	}
-	NIHILUS_INLINE static uint64_t lzcnt(const uint64_t value) noexcept {
-		return __builtin_clzl(value);
-	}
-
-	template<uint16_types value_type> NIHILUS_INLINE static value_type tzcnt(const value_type value) noexcept {
-		return __builtin_ctz(value);
-	}
-	template<uint32_types value_type> NIHILUS_INLINE static value_type tzcnt(const value_type value) noexcept {
-		return __builtin_ctz(value);
-	}
-	template<uint64_types value_type> NIHILUS_INLINE static value_type tzcnt(const value_type value) noexcept {
-		return __builtin_ctzl(value);
 	}
 
 	template<nihilus_simd_128_types nihilus_simd_int_types_new> NIHILUS_INLINE static auto gather_values(const void* str) noexcept {
@@ -353,80 +266,39 @@ namespace nihilus {
 
 #endif
 
-#if !NIHILUS_AVX512 && !NIHILUS_AVX2 && !NIHILUS_NEON && !NIHILUS_SVE2
+#if !NIHILUS_AVX512 & !NIHILUS_AVX2 & !NIHILUS_SVE2 & !NIHILUS_NEON
 
-	template<uint_types value_type> NIHILUS_INLINE static constexpr value_type lzcnt(const value_type value) noexcept {
-		if (value == 0) {
-			return sizeof(value_type) * 8;
-		}
-
-		value_type count{};
-		value_type mask{ static_cast<value_type>(1) << (std::numeric_limits<value_type>::digits - 1) };
-
-		while ((value & mask) == 0) {
-			++count;
-			mask >>= 1;
-		}
-
-		return count;
-	}
-
-	template<typename value_type>
-		requires(sizeof(value_type) == 8)
-	NIHILUS_INLINE m128x mm128LoadUSi128(const value_type* ptr) noexcept {
-		m128x returnValues{};
-		returnValues.m128x_uint64[0] = ptr[0];
-		returnValues.m128x_uint64[1] = ptr[1];
-		return returnValues;
-	}
-
-	NIHILUS_INLINE m128x mm128LoadUSi128(const m128x* ptr) noexcept {
-		m128x returnValues{ *ptr };
-		return returnValues;
-	}
-
-	template<typename simd_int_t01, typename simd_int_t02>
-	NIHILUS_INLINE m128x mm128XorSi128(const typename simd_int_t01::type& valOne, const typename simd_int_t02::type& valTwo) noexcept {
-		m128x value{};
-		std::copy(valOne.m128x_uint64, valOne.m128x_uint64 + 2, value.m128x_uint64);
-		value.m128x_uint64[0] ^= valTwo.m128x_uint64[0];
-		value.m128x_uint64[1] ^= valTwo.m128x_uint64[1];
-		return value;
-	}
-
-	template<typename simd_int_t01, typename simd_int_t02>
-	NIHILUS_INLINE bool mm128TestzSi128(typename simd_int_t01::type& valOneNew, typename simd_int_t02::type& valTwo) noexcept {
-		detail::remove_const_t<simd_int_t01> valOne{ valOneNew };
-		valOne.m128x_uint64[0] &= valTwo.m128x_uint64[0];
-		valOne.m128x_uint64[1] &= valTwo.m128x_uint64[1];
-		return valOne.m128x_uint64[0] == 0 && valOne.m128x_uint64[1] == 0;
-	}
-
-	template<nihilus_simd_128_types simd_int_t01> NIHILUS_INLINE static auto opTest(const typename simd_int_t01::type& value) noexcept {
-		return !mm128TestzSi128(value, value);
+	template<nihilus_simd_128_types nihilus_simd_int_types_new> NIHILUS_INLINE static auto gather_values(const void* str) noexcept {
+		m128x return_value{};
+		return_value.m128x_int8[0] = static_cast<const int8_t*>(str)[0];
+		return_value.m128x_int8[1]	= static_cast<const int8_t*>(str)[1];
+		return_value.m128x_int8[2]	= static_cast<const int8_t*>(str)[2];
+		return_value.m128x_int8[3]	= static_cast<const int8_t*>(str)[3];
+		return_value.m128x_int8[4]	= static_cast<const int8_t*>(str)[4];
+		return_value.m128x_int8[5]	= static_cast<const int8_t*>(str)[5];
+		return_value.m128x_int8[6]	= static_cast<const int8_t*>(str)[6];
+		return_value.m128x_int8[7]	= static_cast<const int8_t*>(str)[7];
+		return_value.m128x_int8[8]	= static_cast<const int8_t*>(str)[8];
+		return_value.m128x_int8[9]	= static_cast<const int8_t*>(str)[9];
+		return_value.m128x_int8[10] = static_cast<const int8_t*>(str)[10];
+		return_value.m128x_int8[11] = static_cast<const int8_t*>(str)[11];
+		return_value.m128x_int8[12] = static_cast<const int8_t*>(str)[12];
+		return_value.m128x_int8[13] = static_cast<const int8_t*>(str)[13];
+		return_value.m128x_int8[14] = static_cast<const int8_t*>(str)[14];
+		return_value.m128x_int8[15] = static_cast<const int8_t*>(str)[15];
+		return return_value;
 	}
 
 	template<nihilus_simd_128_types simd_int_t01, nihilus_simd_128_types simd_int_t02>
 	NIHILUS_INLINE static auto opXor(const typename simd_int_t01::type& value, const typename simd_int_t02::type& other) noexcept {
-		return mm128XorSi128(value, other);
-	}
+		m128x result{};
+		result.m128x_uint64[0] = value.m128x_uint64[0] ^ other.m128x_uint64[0];
+		result.m128x_uint64[1] = value.m128x_uint64[1] ^ other.m128x_uint64[1];
+		return result;
+	}	
 
-	template<nihilus_simd_128_types nihilus_simd_int_types_new> NIHILUS_INLINE static auto gather_values(const void* str) noexcept {
-		return mm128LoadUSi128(static_cast<const m128x*>(str));
-	}
-
-	template<uint_types value_type> NIHILUS_INLINE static value_type tzcnt(value_type value) noexcept {
-		if (value == 0) {
-			return sizeof(value_type) * 8;
-		}
-
-		value_type count{};
-		while ((value & 1) == 0) {
-			value >>= 1;
-			++count;
-		}
-
-		return count;
+	template<nihilus_simd_128_types simd_int_t01> NIHILUS_INLINE static bool opTest(const typename simd_int_t01::type& value) noexcept {
+		return (value.m128x_uint64[0] != 0) || (value.m128x_uint64[1] != 0);
 	}
 
 	NIHILUS_INLINE static half fp32_to_fp16(float f) {

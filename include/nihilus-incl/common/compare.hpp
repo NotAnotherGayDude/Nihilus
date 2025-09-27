@@ -53,9 +53,9 @@ namespace nihilus {
 	}
 
 	template<uint64_t size> static constexpr uint64_t get_packing_size() {
-		if constexpr (size >= 64) {
+		if constexpr (size >= 64 && (NIHILUS_AVX512 | NIHILUS_SVE2)) {
 			return 64;
-		} else if constexpr (size >= 32) {
+		} else if constexpr (size >= 32 && (NIHILUS_AVX2 | NIHILUS_AVX512 | NIHILUS_SVE2)) {
 			return 32;
 		} else {
 			return 16;
@@ -65,7 +65,7 @@ namespace nihilus {
 	template<string_literal string>
 		requires(string.size() > 8)
 	static constexpr auto pack_values() {
-		NIHILUS_ALIGN(64) array<uint64_t, get_packing_size<string.size()>() / sizeof(uint64_t)> out{};
+		NIHILUS_ALIGN(64) array<uint64_t, get_packing_size<string.size()>() / sizeof(uint64_t) + 1> out{};
 		for (uint64_t i = 0; i < string.size() && i < get_packing_size<string.size()>(); ++i) {
 			out[i / 8] |= static_cast<uint64_t>(static_cast<unsigned char>(string[i])) << ((i % 8) * 8);
 		}
@@ -96,11 +96,11 @@ namespace nihilus {
 
 	static constexpr auto get_offset_into_literal_size(uint64_t inputSize) noexcept {
 		if (inputSize >= 64 && (NIHILUS_AVX512 | NIHILUS_SVE2)) {
-			return 64;
+			return 64ull;
 		} else if (inputSize >= 32 && (NIHILUS_AVX2 | NIHILUS_AVX512 | NIHILUS_SVE2)) {
-			return 32;
+			return 32ull;
 		} else {
-			return 16;
+			return 16ull;
 		}
 	}
 
@@ -172,14 +172,14 @@ namespace nihilus {
 		NIHILUS_ALIGN(64) inline static constexpr auto values_new { pack_values<new_literal>() };
 		NIHILUS_INLINE static bool impl(const char* str) noexcept {
 			NIHILUS_ALIGN(64) char values_to_load[16];
-			memcpy_wrapper(values_to_load, str, 16);
+			constexpr_memcpy<16>(values_to_load, str);
 			const nihilus_simd_int_128 data1{ gather_values<nihilus_simd_int_128_t>(values_to_load) };
 			const nihilus_simd_int_128 data2{ gather_values<nihilus_simd_int_128_t>(values_new.data()) };
 			return !opTest<nihilus_simd_int_128_t>(opXor<nihilus_simd_int_128_t, nihilus_simd_int_128_t>(data1, data2));
 		}
 	};
 
-#if NIHILUS_AVX2 || NIHILUS_AVX512 || NIHILUS_SVE2
+#if NIHILUS_AVX2 | NIHILUS_AVX512 | NIHILUS_SVE2
 
 	template<string_literal string>
 		requires(string.size() > 16 && string.size() < 32)
@@ -204,7 +204,7 @@ namespace nihilus {
 		NIHILUS_ALIGN(64) inline static constexpr auto values_new { pack_values<new_literal>() };
 		NIHILUS_INLINE static bool impl(const char* str) noexcept {
 			NIHILUS_ALIGN(64) char values_to_load[32];
-			memcpy_wrapper(values_to_load, str, 32);
+			constexpr_memcpy<32>(values_to_load, str);
 			const nihilus_simd_int_256 data1{ gather_values<nihilus_simd_int_256_t>(values_to_load) };
 			const nihilus_simd_int_256 data2{ gather_values<nihilus_simd_int_256_t>(values_new.data()) };
 			return !opTest<nihilus_simd_int_256_t>(opXor<nihilus_simd_int_256_t, nihilus_simd_int_256_t>(data1, data2));
@@ -213,7 +213,7 @@ namespace nihilus {
 
 #endif
 
-#if NIHILUS_AVX512 || NIHILUS_SVE2
+#if NIHILUS_AVX512 | NIHILUS_SVE2
 
 	template<string_literal string>
 		requires(string.size() > 32 && string.size() < 64)
@@ -238,7 +238,7 @@ namespace nihilus {
 		NIHILUS_ALIGN(64) inline static constexpr auto values_new { pack_values<new_literal>() };
 		NIHILUS_INLINE static bool impl(const char* str) noexcept {
 			NIHILUS_ALIGN(64) char values_to_load[64];
-			memcpy_wrapper(values_to_load, str, 64);
+			constexpr_memcpy<64>(values_to_load, str);
 			const nihilus_simd_int_512 data1{ gather_values<nihilus_simd_int_512_t>(values_to_load) };
 			const nihilus_simd_int_512 data2{ gather_values<nihilus_simd_int_512_t>(values_new.data()) };
 			return !opTest<nihilus_simd_int_512_t>(opXor<nihilus_simd_int_512_t, nihilus_simd_int_512_t>(data1, data2));

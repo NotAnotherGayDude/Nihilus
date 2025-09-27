@@ -118,6 +118,13 @@ namespace nihilus {
 		alignas(64) value_type values[size_val]{};
 	};
 
+	template<uint64_t length> constexpr auto create_string_from_literal(const char (&string)[length]) {
+		char string_new[length]{};
+		std::copy(string, string + length, string_new);
+		string_literal<length> return_value{ static_cast<const char*>(string_new) };
+		return return_value;
+	}
+
 	template<uint64_t size> string_literal(char (&)[size]) -> string_literal<size>;
 
 	inline static constexpr uint64_t count_digits(int64_t number) noexcept {

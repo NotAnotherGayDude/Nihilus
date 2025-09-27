@@ -51,6 +51,19 @@ namespace nihilus {
 #endif
 	}
 
+	NIHILUS_INLINE static uint64_t get_time_based_seed() {
+		if constexpr (std::is_same_v<std::chrono::duration<uint64_t, std::nano>, clock_type::duration>) {
+			return static_cast<uint64_t>(std::chrono::high_resolution_clock::now().time_since_epoch().count());
+		} else {
+			return static_cast<uint64_t>(
+				std::chrono::duration_cast<std::chrono::duration<uint64_t, std::nano>>(std::chrono::high_resolution_clock::now().time_since_epoch()).count());
+		}
+	}
+
+	struct time_based_seed {
+		inline static const uint64_t seed{ get_time_based_seed() };
+	};
+
 	enum class sort_methods {
 		less_than,
 		greater_than,

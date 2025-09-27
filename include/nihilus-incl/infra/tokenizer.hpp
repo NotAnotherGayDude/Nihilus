@@ -206,20 +206,48 @@ namespace nihilus {
 		}
 
 		struct nihilus_rng {
-			uint64_t state{};
+			uint64_t state[4]{};
 
-			NIHILUS_INLINE nihilus_rng(uint64_t seed = 0) : state(seed == 0 ? static_cast<uint64_t>(clock_type::now().time_since_epoch().count()) : seed) {
+			constexpr nihilus_rng() noexcept {
+				auto x   = time_based_seed::seed >> 12ull;
+				auto x01 = x ^ x << 25ull;
+				auto x02 = x01 ^ x01 >> 27ull;
+				uint64_t s		   = x02 * 0x2545F4914F6CDD1Dull;
+				for (uint64_t y = 0; y < 4; ++y) {
+					state[y] = splitmix64(s);
+				}
 			}
 
-			NIHILUS_INLINE uint64_t next() {
-				state ^= state << 13;
-				state ^= state >> 7;
-				state ^= state << 17;
-				return state;
+			constexpr uint64_t next() noexcept {
+				const uint64_t result = rotl(state[1ull] * 5ull, 7ull) * 9ull;
+				const uint64_t t	  = state[1ull] << 17ull;
+
+				state[2ull] ^= state[0ull];
+				state[3ull] ^= state[1ull];
+				state[1ull] ^= state[2ull];
+				state[0ull] ^= state[3ull];
+
+				state[2ull] ^= t;
+
+				state[3ull] = rotl(state[3ull], 45ull);
+
+				return result;
 			}
 
 			NIHILUS_INLINE float next_float() {
-				return static_cast<float>(next()) / static_cast<float>(UINT64_MAX);
+				return static_cast<float>(next()) / static_cast<float>(std::numeric_limits<uint64_t>::max());
+			}
+
+		  protected:
+			constexpr uint64_t rotl(const uint64_t x, const uint64_t k) const noexcept {
+				return (x << k) | (x >> (64ull - k));
+			}
+
+			constexpr uint64_t splitmix64(uint64_t& seed64) const noexcept {
+				uint64_t result = seed64 += 0x9E3779B97F4A7C15ull;
+				result			= (result ^ (result >> 30ull)) * 0xBF58476D1CE4E5B9ull;
+				result			= (result ^ (result >> 27ull)) * 0x94D049BB133111EBull;
+				return result ^ (result >> 31ull);
 			}
 		};
 

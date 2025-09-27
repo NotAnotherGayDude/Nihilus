@@ -307,8 +307,8 @@ namespace nihilus {
 		NIHILUS_INLINE static value_type gather_value(stream_iterator<config>& input) {
 			value_reader<config, gguf_metadata_value_type>::gather_value(input);
 			uint64_t length{ value_reader<config, uint64_t>::gather_value(input) };
-			constexpr uint64_t MAX_ARRAY_LENGTH = 1024 * 1024;
-			if (length > MAX_ARRAY_LENGTH) {
+			constexpr uint64_t max_array_length = 1024 * 1024;
+			if (length > max_array_length) {
 				static constexpr auto location = std::source_location::current();
 				nihilus_exception<config, "Sorry, but that index is out of range!", location>::impl();
 			}
@@ -327,8 +327,8 @@ namespace nihilus {
 		NIHILUS_INLINE static value_type gather_value(stream_iterator<config>& input) {
 			value_reader<config, gguf_metadata_value_type>::gather_value(input);
 			uint64_t length{ value_reader<config, uint64_t>::gather_value(input) };
-			constexpr uint64_t MAX_ARRAY_LENGTH = 1024 * 1024;
-			if (length > MAX_ARRAY_LENGTH) {
+			constexpr uint64_t max_array_length = 1024 * 1024;
+			if (length > max_array_length) {
 				static constexpr auto location = std::source_location::current();
 				nihilus_exception<config, "Array length exceeds maximum allowed size!", location>::impl();
 			}
@@ -520,8 +520,8 @@ namespace nihilus {
 				}
 				uint64_t array_length = input.template read<uint64_t>();
 
-				constexpr uint64_t MAX_ARRAY_LENGTH = 1024 * 1024;
-				if (array_length > MAX_ARRAY_LENGTH) {
+				constexpr uint64_t max_array_length = 1024 * 1024;
+				if (array_length > max_array_length) {
 					static constexpr auto location = std::source_location::current();
 					nihilus_exception<config, "Array length exceeds maximum allowed size during skip!", location>::impl();
 					return;
@@ -552,14 +552,14 @@ namespace nihilus {
 			value.tensor_count		= value_reader<config, uint64_t>::gather_value(input);
 			value.metadata_kv_count = value_reader<config, uint64_t>::gather_value(input);
 
-			static constexpr uint64_t MAX_TENSOR_COUNT	 = 100000;
-			static constexpr uint64_t MAX_METADATA_COUNT = 10000;
+			static constexpr uint64_t max_tensor_count	 = 100000;
+			static constexpr uint64_t max_metadata_count = 10000;
 
-			if (value.tensor_count > MAX_TENSOR_COUNT) {
+			if (value.tensor_count > max_tensor_count) {
 				static constexpr auto location = std::source_location::current();
 				nihilus_exception<config, "Tensor count exceeds reasonable maximum!", location>::impl();
 			}
-			if (value.metadata_kv_count > MAX_METADATA_COUNT) {
+			if (value.metadata_kv_count > max_metadata_count) {
 				static constexpr auto location = std::source_location::current();
 				nihilus_exception<config, "Metadata count exceeds reasonable maximum!", location>::impl();
 			}
@@ -578,9 +578,11 @@ namespace nihilus {
 		}
 	};
 
-	template<model_arches model_arch> struct string_to_op_type;
+	template<model_config config> struct string_to_op_type;
 
-	template<> struct string_to_op_type<model_arches::llama> {
+	template<model_config config>
+		requires(config.model_arch == model_arches::llama)
+	struct string_to_op_type<config> {
 		NIHILUS_INLINE static weight_types impl(std::string_view input) noexcept {
 			if (string_literal_comparitor<"token_embd.weight">::impl(input.data())) {
 				return weight_types::token_embd;
@@ -637,6 +639,8 @@ namespace nihilus {
 				}
 			}
 
+			static constexpr auto location = std::source_location::current();
+			nihilus_exception<config, "Incorrect op type!", location>::impl();
 			return weight_types::count;
 		}
 	};
@@ -760,7 +764,7 @@ namespace nihilus {
 		NIHILUS_INLINE static core_base_creation_data gather_value(stream_iterator<config>& input) {
 			core_base_creation_data value{};
 			std::string_view name{ value_reader<config, std::string_view>::gather_value(input) };
-			value.op_type					  = string_to_op_type<config.model_arch>::impl(name);
+			value.op_type					  = string_to_op_type<config>::impl(name);
 			value.n_dimensions				  = value_reader<config, uint32_t>::gather_value(input);
 			value.layer_number				  = extract_layer_number(name);
 			constexpr uint32_t MAX_DIMENSIONS = 4;

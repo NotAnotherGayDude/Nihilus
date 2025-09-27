@@ -103,10 +103,6 @@ namespace nihilus {
 		}() };
 	};
 
-	enum class memcpy_error {
-		too_many_bytes,
-	};
-
 	template<uint64_t byte_count, typename value_type01, typename value_type02> NIHILUS_INLINE void constexpr_memcpy(value_type02* dst, const value_type01* src) {
 		std::memcpy(static_cast<void*>(dst), static_cast<const void*>(src), byte_count);
 	}
