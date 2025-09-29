@@ -21,6 +21,7 @@ RealTimeChris (Chris M.)
 
 #include <nihilus-incl/common/common.hpp>
 #include <nihilus-incl/common/model_config.hpp>
+#include <nihilus-incl/common/exception.hpp>
 #include <unordered_set>
 #include <variant>
 #include <fstream>

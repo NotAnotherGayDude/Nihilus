@@ -445,8 +445,6 @@ namespace nihilus {
 		return *static_cast<derived_type*>(static_cast<core_bases_type*>(&parse_core));
 	}
 
-	template<typename core_traits_type> struct kernel_data_ptrs;
-
 	template<typename core_traits_type> __global__ void token_embeddings_prompt_eval_time(uint64_t sequence_length, typename core_traits_type::kernel_data_ptrs params) {
 		static constexpr uint64_t embedding_length	   = core_traits_type::mt::embedding_length;
 		static constexpr uint64_t block_size		   = core_traits_type::prof::weight_type::quant_count;
@@ -499,7 +497,7 @@ namespace nihilus {
 
 			params.data_ptrs.set_ptrs(output_data, weight_data, token_ids);
 
-			if constexpr (config.dev) {
+			if constexpr (config.dev ) {
 				if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
 					static constexpr auto location = std::source_location::current();
 					nihilus_exception<config, "Cuda Error: ", location>::impl(cudaGetErrorString(err));
@@ -521,7 +519,7 @@ namespace nihilus {
 
 				token_embeddings_prompt_eval_time<core_traits_type><<<blocks_per_grid, threads_per_block>>>(sequence_length, params.data_ptrs);
 
-				if constexpr (config.dev) {
+				if constexpr (config.dev ) {
 					if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
 						static constexpr auto location = std::source_location::current();
 						nihilus_exception<config, "Cuda Kernel Launch Error: ", location>::impl(cudaGetErrorString(err));
@@ -530,7 +528,7 @@ namespace nihilus {
 
 				cudaDeviceSynchronize();
 
-				if constexpr (config.dev) {
+				if constexpr (config.dev ) {
 					if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
 						static constexpr auto location = std::source_location::current();
 						nihilus_exception<config, "Cuda Synchronization Error: ", location>::impl(cudaGetErrorString(err));
@@ -583,7 +581,7 @@ namespace nihilus {
 
 			params.data_ptrs.set_ptrs(output_data, weight_data, token_ids);
 
-			if constexpr (config.dev) {
+			if constexpr (config.dev ) {
 				if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
 					static constexpr auto location = std::source_location::current();
 					nihilus_exception<config, "Cuda Error: ", location>::impl(cudaGetErrorString(err));
@@ -597,7 +595,7 @@ namespace nihilus {
 
 			token_embeddings_eval_time<core_traits_type><<<blocks_per_grid, threads_per_block>>>(sequence_length, params.data_ptrs);
 
-			if constexpr (config.dev) {
+			if constexpr (config.dev ) {
 				if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
 					static constexpr auto location = std::source_location::current();
 					nihilus_exception<config, "Cuda Kernel Launch Error: ", location>::impl(cudaGetErrorString(err));
@@ -606,7 +604,7 @@ namespace nihilus {
 
 			cudaDeviceSynchronize();
 
-			if constexpr (config.dev) {
+			if constexpr (config.dev ) {
 				if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
 					static constexpr auto location = std::source_location::current();
 					nihilus_exception<config, "Cuda Synchronization Error: ", location>::impl(cudaGetErrorString(err));
@@ -845,7 +843,7 @@ namespace nihilus {
 			const uint64_t max_threads_needed = sequence_length;
 			const uint64_t actual_blocks = detail::min(launch_params.blocks_per_grid, (max_threads_needed + launch_params.threads_per_block - 1) / launch_params.threads_per_block);
 
-			if constexpr (config.dev) {
+			if constexpr (config.dev ) {
 				if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
 					static constexpr auto location = std::source_location::current();
 					nihilus_exception<config, "Cuda Error: ", location>::impl(cudaGetErrorString(err));
@@ -855,7 +853,7 @@ namespace nihilus {
 			if (sequence_length > 0) {
 				mega_qkv_prep_and_cache_publish_prompt_eval_time<core_traits_type><<<actual_blocks, launch_params.threads_per_block>>>(sequence_length, params.data_ptrs);
 
-				if constexpr (config.dev) {
+				if constexpr (config.dev ) {
 					if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
 						static constexpr auto location = std::source_location::current();
 						nihilus_exception<config, "Cuda Kernel Launch Error: ", location>::impl(cudaGetErrorString(err));
@@ -864,7 +862,7 @@ namespace nihilus {
 
 				cudaDeviceSynchronize();
 
-				if constexpr (config.dev) {
+				if constexpr (config.dev ) {
 					if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
 						static constexpr auto location = std::source_location::current();
 						nihilus_exception<config, "Cuda Synchronization Error: ", location>::impl(cudaGetErrorString(err));
@@ -1116,7 +1114,7 @@ namespace nihilus {
 			const uint64_t max_threads_needed = n_head * rope_dim + n_head_kv * rope_dim * 2;
 			const uint64_t actual_blocks = detail::min(launch_params.blocks_per_grid, (max_threads_needed + launch_params.threads_per_block - 1) / launch_params.threads_per_block);
 
-			if constexpr (config.dev) {
+			if constexpr (config.dev ) {
 				if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
 					static constexpr auto location = std::source_location::current();
 					nihilus_exception<config, "Cuda Error: ", location>::impl(cudaGetErrorString(err));
@@ -1125,7 +1123,7 @@ namespace nihilus {
 
 			mega_qkv_prep_and_cache_publish_eval_time<core_traits_type><<<actual_blocks, launch_params.threads_per_block>>>(sequence_length, params.data_ptrs);
 
-			if constexpr (config.dev) {
+			if constexpr (config.dev ) {
 				if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
 					static constexpr auto location = std::source_location::current();
 					nihilus_exception<config, "Cuda Kernel Launch Error: ", location>::impl(cudaGetErrorString(err));
@@ -1134,7 +1132,7 @@ namespace nihilus {
 
 			cudaDeviceSynchronize();
 
-			if constexpr (config.dev) {
+			if constexpr (config.dev ) {
 				if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
 					static constexpr auto location = std::source_location::current();
 					nihilus_exception<config, "Cuda Synchronization Error: ", location>::impl(cudaGetErrorString(err));

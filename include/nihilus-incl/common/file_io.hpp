@@ -21,6 +21,7 @@ RealTimeChris (Chris M.)
 #pragma once
 
 #include <nihilus-incl/common/model_config.hpp>
+#include <nihilus-incl/common/exception.hpp>
 #include <filesystem>
 #include <iostream>
 #include <fstream>

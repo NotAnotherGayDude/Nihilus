@@ -23,6 +23,7 @@ RealTimeChris (Chris M.)
 #include <nihilus-incl/common/string_literal.hpp>
 #include <nihilus-incl/common/config.hpp>
 #include <nihilus-incl/common/utility.hpp>
+#include <nihilus-incl/common/model_config.hpp>
 #include <type_traits>
 #include <iostream>
 #include <concepts>

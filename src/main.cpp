@@ -412,8 +412,8 @@ int32_t main(int32_t argc, char** argv) {
 	std::cout << "Read bytes (Nihilus): " << result02.read_bytes << std::endl;
 	std::cout << "Written bytes (Nihilus): " << result02.written_bytes << std::endl;
 	static constexpr auto model_config_00 = nihilus::generate_model_config(nihilus::model_generations::v3_1, nihilus::model_sizes::llm_8B, nihilus::kernel_type_profiles::q8_gqa,
-		nihilus::model_arches::llama, nihilus::device_types::cpu, true, NIHILUS_DEV, 1024, true);
-	static constexpr auto model_config_01 = update_model_config_benchmark(model_config_00, true);
+		nihilus::model_arches::llama, nihilus::device_types::cpu);
+	static constexpr auto model_config_01 = nihilus::update_model_config<nihilus::model_config_types::benchmark>(model_config_00, true);
 	cli_params cli_args			   = harbinger<model_config_01>::parse_cli_arguments(argc, argv);
 	auto model_new_01{ harbinger<model_config_01>::parse_model_graph_data(cli_args) };
 	while (model_new_01->process_input(cli_args.prompt)) {

@@ -144,7 +144,7 @@ namespace nihilus {
 			thread_count = thread_count_new;
 			threads.resize(static_cast<uint64_t>(thread_count));
 			thread_latch.init(static_cast<typename main_gate_latch::value_type>(thread_count_new));
-			if constexpr (config.benchmark) {
+			if constexpr (config.benchmark ) {
 				perf_base<config>::perf_stats.runtime_dimensions.resize(static_cast<uint64_t>(thread_count));
 			}
 
@@ -182,7 +182,7 @@ namespace nihilus {
 			processing_phase.store(phase_new);
 			core_bases_type::template impl<sync_resetter>(thread_count);
 			core_bases_type::template impl<dim_updater>(runtime_dimensions_new);
-			if constexpr (config.benchmark) {
+			if constexpr (config.benchmark ) {
 				for (uint64_t x = 0; x < threads.size(); ++x) {
 					perf_base<config>::perf_stats.runtime_dimensions[x] = runtime_dimensions_new;
 				}

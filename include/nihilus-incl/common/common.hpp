@@ -23,7 +23,6 @@ RealTimeChris (Chris M.)
 #include <nihilus-incl/benchmarking/event_counter.hpp>
 #include <nihilus-incl/common/allocator.hpp>
 #include <nihilus-incl/common/config.hpp>
-#include <nihilus-incl/common/exception.hpp>
 #include <nihilus-incl/common/data_types.hpp>
 #include <nihilus-incl/common/concepts.hpp>
 #include <nihilus-incl/common/array.hpp>

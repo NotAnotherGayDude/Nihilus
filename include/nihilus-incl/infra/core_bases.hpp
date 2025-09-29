@@ -87,10 +87,10 @@ namespace nihilus {
 		uint64_t internal_offset{};
 		parse_core.values.template impl<memory_mapper_impl>(plan, memory_buffer, internal_offset);
 		if constexpr (static_cast<uint64_t>(base_type::core_type) == static_cast<uint64_t>(core_types::count) - 1 && config.device_type == device_types::gpu) {
-			static_cast<get_core_bases_t<config, core_types>*>(&parse_core)->data_ptr =
-				static_cast<get_core_bases_t<config, core_types>*>(memory_buffer.claim_memory(plan.metadata_offset));
-			memory_transfer<config>::host_to_device(*static_cast<get_core_bases_t<config, core_types>*>(&parse_core),
-				static_cast<get_core_bases_t<config, core_types>*>(&parse_core)->data_ptr);
+			using core_bases_t		 = get_core_bases_t<config, core_types>;
+			auto* core_bases_ptr	 = static_cast<core_bases_t*>(&parse_core);
+			core_bases_ptr->data_ptr = static_cast<core_bases_t*>(memory_buffer.claim_memory(plan.metadata_offset));
+			memory_transfer<config>::host_to_device(*core_bases_ptr, core_bases_ptr->data_ptr);
 		}
 		if constexpr (config.dev) {
 #if NIHILUS_CUDA_ENABLED

@@ -27,121 +27,181 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-	NIHILUS_HOST static consteval auto generate_model_config(model_generations model_generation, model_sizes model_size, kernel_type_profiles kernel_type_profile,
-		model_arches model_arch, device_types device_type_new = device_types::cpu, bool benchmark = false, bool dev = false, uint64_t default_max_sequence_length = 1024,
-		bool exceptions = false, uint64_t default_batch_size = 512, kv_cache_strategies kv_cache_strategy = kv_cache_strategies::paged,
-		user_input_types user_input_type = user_input_types::cin, bool use_gradient_checkpointing = false, rope_scaling_types rope_scaling = rope_scaling_types::linear,
-		tokenizer_pre_types tokenizer_pre_type = tokenizer_pre_types::llama3, uint64_t kv_cache_block_size = 16, bool use_rotary_embeddings = true, bool use_flash_attention = true,
-		rms_norm_types rms_norm_type = rms_norm_types::rms_standard, tokenizer_types tokenizer_type = tokenizer_types::bpe, model_formats format = model_formats::gguf,
-		float norm_epsilon = 1e-6f) {
-		model_config config{ model_generation, model_size, kernel_type_profile, model_arch, exceptions, default_max_sequence_length, default_batch_size, kv_cache_strategy,
-			user_input_type, use_gradient_checkpointing, rope_scaling, tokenizer_pre_type, kv_cache_block_size, use_rotary_embeddings, use_flash_attention, rms_norm_type,
-			tokenizer_type, device_type_new, format, norm_epsilon, benchmark, dev };
-		return config;
+	NIHILUS_HOST static consteval auto generate_model_config(model_generations model_generation = {}, model_sizes model_size = {}, kernel_type_profiles kernel_type_profile = {},
+		model_arches model_arch = {}, device_types device_type = {}, bool exceptions = {}, uint64_t default_max_sequence_length =  1024 , uint64_t default_batch_size = {},
+		kv_cache_strategies kv_cache_strategy = {}, user_input_types user_input_type = {}, rope_scaling_types rope_scaling_type = {},
+		tokenizer_pre_types tokenizer_pre_type = tokenizer_pre_types::llama3, uint64_t kv_cache_block_size = {}, bool use_rotary_embeddings = {},
+		rms_norm_types rms_norm_type = {}, tokenizer_types tokenizer_type = tokenizer_types::bpe, model_formats model_format = model_formats::gguf, float norm_epsilon = 0.0f,
+		bool benchmark = {}, bool dev = {}) {
+		return model_config{ .model_generation = model_generation,
+			.model_size						   = model_size,
+			.kernel_type_profile			   = kernel_type_profile,
+			.model_arch						   = model_arch,
+			.exceptions						   = exceptions,
+			.default_max_sequence_length	   = default_max_sequence_length,
+			.default_batch_size				   = default_batch_size,
+			.kv_cache_strategy				   = kv_cache_strategy,
+			.user_input_type				   = user_input_type,
+			.rope_scaling_type				   = rope_scaling_type,
+			.tokenizer_pre_type				   = tokenizer_pre_type,
+			.kv_cache_block_size			   = kv_cache_block_size,
+			.use_rotary_embeddings			   = use_rotary_embeddings,
+			.rms_norm_type					   = rms_norm_type,
+			.tokenizer_type					   = tokenizer_type,
+			.device_type					   = device_type,
+			.model_format					   = model_format,
+			.norm_epsilon					   = norm_epsilon,
+			.benchmark						   = benchmark,
+			.dev							   = dev };
 	}
 
-	NIHILUS_HOST static consteval auto update_model_config_generation(model_config config, model_generations model_generation) {
+	template<model_config_types model_config_type, typename config_update_type>
+		requires(model_config_type == model_config_types::model_generation)
+	NIHILUS_HOST static consteval auto update_model_config(model_config config, config_update_type model_generation) {
 		config.model_generation = model_generation;
 		return config;
 	}
 
-	NIHILUS_HOST static consteval auto update_model_config_size(model_config config, model_sizes model_size) {
+	template<model_config_types model_config_type, typename config_update_type>
+		requires(model_config_type == model_config_types::model_size)
+	NIHILUS_HOST static consteval auto update_model_config(model_config config, config_update_type model_size) {
 		config.model_size = model_size;
 		return config;
 	}
 
-	NIHILUS_HOST static consteval auto update_model_config_kernel_profile(model_config config, kernel_type_profiles kernel_type_profile) {
+	template<model_config_types model_config_type, typename config_update_type>
+		requires(model_config_type == model_config_types::kernel_type_profile)
+	NIHILUS_HOST static consteval auto update_model_config(model_config config, config_update_type kernel_type_profile) {
 		config.kernel_type_profile = kernel_type_profile;
 		return config;
 	}
 
-	NIHILUS_HOST static consteval auto update_model_config_arch(model_config config, model_arches model_arch) {
+	template<model_config_types model_config_type, typename config_update_type>
+		requires(model_config_type == model_config_types::model_arch)
+	NIHILUS_HOST static consteval auto update_model_config(model_config config, config_update_type model_arch) {
 		config.model_arch = model_arch;
 		return config;
 	}
 
-	NIHILUS_HOST static consteval auto update_model_config_exceptions(model_config config, bool exceptions) {
+	template<model_config_types model_config_type, typename config_update_type>
+		requires(model_config_type == model_config_types::exceptions)
+	NIHILUS_HOST static consteval auto update_model_config(model_config config, config_update_type exceptions) {
 		config.exceptions = exceptions;
 		return config;
 	}
 
-	NIHILUS_HOST static consteval auto update_model_config_cache_strategy(model_config config, kv_cache_strategies kv_cache_strategy) {
+	template<model_config_types model_config_type, typename config_update_type>
+		requires(model_config_type == model_config_types::default_max_sequence_length)
+	NIHILUS_HOST static consteval auto update_model_config(model_config config, config_update_type default_max_sequence_length) {
+		config.default_max_sequence_length = default_max_sequence_length;
+		return config;
+	}
+
+	template<model_config_types model_config_type, typename config_update_type>
+		requires(model_config_type == model_config_types::default_batch_size)
+	NIHILUS_HOST static consteval auto update_model_config(model_config config, config_update_type default_batch_size) {
+		config.default_batch_size = default_batch_size;
+		return config;
+	}
+
+	template<model_config_types model_config_type, typename config_update_type>
+		requires(model_config_type == model_config_types::kv_cache_strategy)
+	NIHILUS_HOST static consteval auto update_model_config(model_config config, config_update_type kv_cache_strategy) {
 		config.kv_cache_strategy = kv_cache_strategy;
 		return config;
 	}
 
-	NIHILUS_HOST static consteval auto update_model_config_gradient_checkpointing(model_config config, bool use_gradient_checkpointing) {
-		config.use_gradient_checkpointing = use_gradient_checkpointing;
+	template<model_config_types model_config_type, typename config_update_type>
+		requires(model_config_type == model_config_types::user_input_type)
+	NIHILUS_HOST static consteval auto update_model_config(model_config config, config_update_type user_input_type) {
+		config.user_input_type = user_input_type;
 		return config;
 	}
 
-	NIHILUS_HOST static consteval auto update_model_config_rope_scaling(model_config config, rope_scaling_types rope_scaling_type) {
+	template<model_config_types model_config_type, typename config_update_type>
+		requires(model_config_type == model_config_types::rope_scaling_type)
+	NIHILUS_HOST static consteval auto update_model_config(model_config config, config_update_type rope_scaling_type) {
 		config.rope_scaling_type = rope_scaling_type;
 		return config;
 	}
 
-	NIHILUS_HOST static consteval auto update_model_config_tokenizer_pre_type(model_config config, tokenizer_pre_types tokenizer_pre_type) {
+	template<model_config_types model_config_type, typename config_update_type>
+		requires(model_config_type == model_config_types::tokenizer_pre_type)
+	NIHILUS_HOST static consteval auto update_model_config(model_config config, config_update_type tokenizer_pre_type) {
 		config.tokenizer_pre_type = tokenizer_pre_type;
 		return config;
 	}
 
-	NIHILUS_HOST static consteval auto update_model_config_kv_cache_block_size(model_config config, uint64_t kv_cache_block_size) {
+	template<model_config_types model_config_type, typename config_update_type>
+		requires(model_config_type == model_config_types::kv_cache_block_size)
+	NIHILUS_HOST static consteval auto update_model_config(model_config config, config_update_type kv_cache_block_size) {
 		config.kv_cache_block_size = kv_cache_block_size;
 		return config;
 	}
 
-	NIHILUS_HOST static consteval auto update_model_config_rotary_embeddings(model_config config, bool use_rotary_embeddings) {
+	template<model_config_types model_config_type, typename config_update_type>
+		requires(model_config_type == model_config_types::use_rotary_embeddings)
+	NIHILUS_HOST static consteval auto update_model_config(model_config config, config_update_type use_rotary_embeddings) {
 		config.use_rotary_embeddings = use_rotary_embeddings;
 		return config;
 	}
 
-	NIHILUS_HOST static consteval auto update_model_config_flash_attention(model_config config, bool use_flash_attention) {
-		config.use_flash_attention = use_flash_attention;
-		return config;
-	}
-
-	NIHILUS_HOST static consteval auto update_model_config_rms_norm_type(model_config config, rms_norm_types rms_norm_type) {
+	template<model_config_types model_config_type, typename config_update_type>
+		requires(model_config_type == model_config_types::rms_norm_type)
+	NIHILUS_HOST static consteval auto update_model_config(model_config config, config_update_type rms_norm_type) {
 		config.rms_norm_type = rms_norm_type;
 		return config;
 	}
 
-	NIHILUS_HOST static consteval auto update_model_config_tokenizer_type(model_config config, tokenizer_types tokenizer_type) {
+	template<model_config_types model_config_type, typename config_update_type>
+		requires(model_config_type == model_config_types::tokenizer_type)
+	NIHILUS_HOST static consteval auto update_model_config(model_config config, config_update_type tokenizer_type) {
 		config.tokenizer_type = tokenizer_type;
 		return config;
 	}
 
-	NIHILUS_HOST static consteval auto update_model_config_format(model_config config, model_formats format) {
-		config.model_format = format;
+	template<model_config_types model_config_type, typename config_update_type>
+		requires(model_config_type == model_config_types::device_type)
+	NIHILUS_HOST static consteval auto update_model_config(model_config config, config_update_type device_type) {
+		config.device_type = device_type;
 		return config;
 	}
 
-	NIHILUS_HOST static consteval auto update_model_config_norm_epsilon(model_config config, float norm_epsilon) {
+	template<model_config_types model_config_type, typename config_update_type>
+		requires(model_config_type == model_config_types::model_format)
+	NIHILUS_HOST static consteval auto update_model_config(model_config config, config_update_type model_format) {
+		config.model_format = model_format;
+		return config;
+	}
+
+	template<model_config_types model_config_type, typename config_update_type>
+		requires(model_config_type == model_config_types::norm_epsilon)
+	NIHILUS_HOST static consteval auto update_model_config(model_config config, config_update_type norm_epsilon) {
 		config.norm_epsilon = norm_epsilon;
 		return config;
 	}
 
-	NIHILUS_HOST static consteval auto update_model_max_context_length(model_config config, uint64_t context_length) {
-		config.default_max_sequence_length = context_length;
-		return config;
-	}
-
-	NIHILUS_HOST static consteval auto update_model_config_benchmark(model_config config, bool benchmark) {
+	template<model_config_types model_config_type, typename config_update_type>
+		requires(model_config_type == model_config_types::benchmark)
+	NIHILUS_HOST static consteval auto update_model_config(model_config config, config_update_type benchmark) {
 		config.benchmark = benchmark;
 		return config;
 	}
 
-	NIHILUS_HOST static consteval auto update_model_config_dev(model_config config, bool dev) {
+	template<model_config_types model_config_type, typename config_update_type>
+		requires(model_config_type == model_config_types::dev)
+	NIHILUS_HOST static consteval auto update_model_config(model_config config, config_update_type dev) {
 		config.dev = dev;
 		return config;
 	}
 
-	NIHILUS_HOST static consteval auto update_model_device_type(model_config config, device_types dev) {
-		config.device_type = dev;
-		return config;
+	template<typename arg_type> NIHILUS_HOST static consteval auto model_config_updates(model_config config, arg_type&& arg) {
+		return update_model_config(config, std::forward<arg_type>(arg));
 	}
 
-	template<typename... UpdateFuncs> NIHILUS_HOST static consteval auto chain_model_config_updates(model_config config, UpdateFuncs... update_funcs) {
-		return (update_funcs(config), ...);
+	template<typename arg_type, typename... arg_types> NIHILUS_HOST static consteval auto model_config_updates(model_config config, arg_type&& arg, arg_types&&... args) {
+		auto updated_config = update_model_config(config, std::forward<arg_type>(arg));
+		return model_config_updates(updated_config, std::forward<arg_types>(args)...);
 	}
 
 	template<const model_config& config> struct harbinger {

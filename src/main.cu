@@ -1,6 +1,7 @@
 #include <nihilus>
-static constexpr auto model_config_01 = nihilus::generate_model_config(nihilus::model_generations::v3_1, nihilus::model_sizes::llm_8B, nihilus::kernel_type_profiles::q8_gqa,
-	nihilus::model_arches::llama, nihilus::device_types::gpu, true, NIHILUS_DEV, 1024);
+static constexpr auto model_config_00 = nihilus::generate_model_config(nihilus::model_generations::v3_1, nihilus::model_sizes::llm_8B, nihilus::kernel_type_profiles::q8_gqa,
+	nihilus::model_arches::llama, nihilus::device_types::gpu);
+static constexpr auto model_config_01 = nihilus::update_model_config<nihilus::model_config_types::benchmark>(model_config_00, true);
 //static constexpr auto model_config_02 = nihilus::generate_model_config(nihilus::model_generations::v3_2, nihilus::model_sizes::llm_3B, nihilus::kernel_type_profiles::q8_gqa,
 	//nihilus::model_arches::llama, nihilus::device_types::gpu, true, NIHILUS_DEV, 1024);
 int main(int32_t argc, char** argv) {

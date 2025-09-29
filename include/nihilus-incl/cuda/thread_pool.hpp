@@ -36,10 +36,10 @@ namespace nihilus {
 	template<const model_config& config>
 		requires(config.device_type == device_types::gpu)
 	struct thread_pool<config> : public get_core_bases_t<config, core_types>, public perf_base<config> {
-		using core_bases_type											   = get_core_bases_t<config, core_types>;
-		NIHILUS_HOST thread_pool() noexcept							   = default;
+		using core_bases_type											 = get_core_bases_t<config, core_types>;
+		NIHILUS_HOST thread_pool() noexcept								 = default;
 		NIHILUS_HOST thread_pool& operator=(const thread_pool&) noexcept = delete;
-		NIHILUS_HOST thread_pool(const thread_pool&) noexcept			   = delete;
+		NIHILUS_HOST thread_pool(const thread_pool&) noexcept			 = delete;
 
 		NIHILUS_HOST thread_pool(int64_t) {
 		}

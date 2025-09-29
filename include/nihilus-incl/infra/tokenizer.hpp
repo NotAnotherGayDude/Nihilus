@@ -171,7 +171,7 @@ namespace nihilus {
 				memory_transfer<config>::host_to_device(temp_tokens[i], output_tokens + i);
 			}
 
-			if constexpr (config.dev) {
+			if constexpr (config.dev ) {
 				print_tokenization_debug(input_text, temp_tokens);
 			}
 
@@ -198,7 +198,7 @@ namespace nihilus {
 				memory_transfer<config>::host_to_device(temp_tokens[i], output_tokens + i);
 			}
 
-			if constexpr (config.dev) {
+			if constexpr (config.dev ) {
 				print_tokenization_debug(input_text, temp_tokens);
 			}
 
