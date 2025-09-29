@@ -39,7 +39,7 @@ namespace nihilus {
 
 	template<typename value_type> using remove_member_pointer_t = typename decompose_types<value_type>::class_type;
 
-	template<auto element, typename value_type_new> NIHILUS_INLINE decltype(auto) get_member(value_type_new& value) {
+	template<auto element, typename value_type_new> NIHILUS_HOST decltype(auto) get_member(value_type_new& value) {
 		using value_type = detail::remove_cvref_t<decltype(element)>;
 		if constexpr (std::is_member_object_pointer_v<value_type>) {
 			return value.*element;
@@ -91,7 +91,7 @@ namespace nihilus {
 	template<typename value_type> using core_tuple_type				 = decltype(parse_core<detail::remove_cvref_t<value_type>>::parse_value);
 	template<typename value_type> constexpr uint64_t core_tuple_size = tuple_size_v<core_tuple_type<value_type>>;
 
-	template<typename value_type, uint64_t current_index = 0> NIHILUS_INLINE static constexpr uint64_t find_matching_element(const char* start, uint64_t length) noexcept {
+	template<typename value_type, uint64_t current_index = 0> NIHILUS_HOST static constexpr uint64_t find_matching_element(const char* start, uint64_t length) noexcept {
 		constexpr auto tuple_size = core_tuple_size<value_type>;
 
 		if constexpr (current_index >= tuple_size) {
@@ -110,7 +110,7 @@ namespace nihilus {
 	}
 
 	template<typename value_type, typename iterator_newer> struct hash_map {
-		NIHILUS_INLINE static uint64_t find_index(iterator_newer iter, iterator_newer end) noexcept {
+		NIHILUS_HOST static uint64_t find_index(iterator_newer iter, iterator_newer end) noexcept {
 			return find_matching_element<value_type>(iter, static_cast<uint64_t>(end - iter));
 		}
 	};

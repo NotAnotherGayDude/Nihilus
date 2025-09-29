@@ -58,21 +58,21 @@ namespace nihilus {
 		size_t currently_stored_size{};
 		comparator comp{};
 
-		NIHILUS_INLINE bool empty() const {
+		NIHILUS_HOST bool empty() const {
 			return currently_stored_size == 0;
 		}
 
-		NIHILUS_INLINE const stored_type& top() const {
+		NIHILUS_HOST const stored_type& top() const {
 			return data[0];
 		}
 
-		template<typename stored_type_new> NIHILUS_INLINE void push(stored_type_new&& value) {
+		template<typename stored_type_new> NIHILUS_HOST void push(stored_type_new&& value) {
 			data[currently_stored_size] = std::forward<stored_type_new>(value);
 			bubble_up(currently_stored_size);
 			++currently_stored_size;
 		}
 
-		NIHILUS_INLINE void pop() {
+		NIHILUS_HOST void pop() {
 			if (currently_stored_size > 0) {
 				data[0] = data[currently_stored_size - 1];
 				--currently_stored_size;
@@ -83,7 +83,7 @@ namespace nihilus {
 		}
 
 	  protected:
-		NIHILUS_INLINE void bubble_up(size_t index) {
+		NIHILUS_HOST void bubble_up(size_t index) {
 			while (index > 0) {
 				size_t parent = (index - 1) / 2;
 				if (!comp(data[index], data[parent]))
@@ -93,7 +93,7 @@ namespace nihilus {
 			}
 		}
 
-		NIHILUS_INLINE void bubble_down(size_t index) {
+		NIHILUS_HOST void bubble_down(size_t index) {
 			while (true) {
 				size_t left	   = 2 * index + 1;
 				size_t right   = 2 * index + 2;
@@ -116,7 +116,7 @@ namespace nihilus {
 
 	struct nihilus_bigram_bpe {
 		struct comparator {
-			NIHILUS_INLINE bool operator()(const nihilus_bigram_bpe& l, const nihilus_bigram_bpe& r) const {
+			NIHILUS_HOST bool operator()(const nihilus_bigram_bpe& l, const nihilus_bigram_bpe& r) const {
 				return l.rank > r.rank || (l.rank == r.rank && l.left > r.left);
 			}
 		};
@@ -131,7 +131,7 @@ namespace nihilus {
 	};
 
 	struct pair_hash {
-		NIHILUS_INLINE uint64_t operator()(const std::pair<const std::string_view, const std::string_view>& p) const noexcept {
+		NIHILUS_HOST uint64_t operator()(const std::pair<const std::string_view, const std::string_view>& p) const noexcept {
 			return std::hash<std::string_view>{}(p.first) ^ (std::hash<std::string_view>{}(p.second) << 1);
 		}
 	};
@@ -141,17 +141,17 @@ namespace nihilus {
 		using model_traits_type		= model_traits<config.model_arch, config.model_size, config.model_generation>;
 		using tokenizer_traits_type = tokenizer_traits<config.model_arch, config.tokenizer_type, config.tokenizer_pre_type>;
 
-		NIHILUS_INLINE tokenizer() noexcept {
+		NIHILUS_HOST tokenizer() noexcept {
 			candidate_tokens.reserve(32768);
 			cumulative_probs.reserve(32768);
 		}
 
-		NIHILUS_INLINE void tokenize_init(int32_t* output_tokens) {
+		NIHILUS_HOST void tokenize_init(int32_t* output_tokens) {
 			memory_transfer<config>::host_to_device(tokenizer_traits_type::special_bos_id, output_tokens);
 			memory_transfer<config>::host_to_device(tokenizer_traits_type::special_eos_id, output_tokens + 1);
 		}
 
-		NIHILUS_INLINE uint64_t tokenize(char input_text, int32_t* output_tokens) {
+		NIHILUS_HOST uint64_t tokenize(char input_text, int32_t* output_tokens) {
 			aligned_vector<int32_t> temp_tokens;
 			if constexpr (tokenizer_traits_type::add_bos && tokenizer_traits_type::special_bos_id > 0) {
 				temp_tokens.emplace_back(static_cast<int32_t>(tokenizer_traits_type::special_bos_id));
@@ -178,7 +178,7 @@ namespace nihilus {
 			return temp_tokens.size();
 		}
 
-		NIHILUS_INLINE uint64_t tokenize(const std::string_view input_text, int32_t* output_tokens) {
+		NIHILUS_HOST uint64_t tokenize(const std::string_view input_text, int32_t* output_tokens) {
 			aligned_vector<int32_t> temp_tokens;
 			if constexpr (tokenizer_traits_type::add_bos && tokenizer_traits_type::special_bos_id > 0) {
 				temp_tokens.emplace_back(static_cast<int32_t>(tokenizer_traits_type::special_bos_id));
@@ -234,7 +234,7 @@ namespace nihilus {
 				return result;
 			}
 
-			NIHILUS_INLINE float next_float() {
+			NIHILUS_HOST float next_float() {
 				return static_cast<float>(next()) / static_cast<float>(std::numeric_limits<uint64_t>::max());
 			}
 
@@ -268,7 +268,7 @@ namespace nihilus {
 			int32_t token_id{};
 			float probability{};
 
-			NIHILUS_INLINE bool operator>(const token_prob& other) const {
+			NIHILUS_HOST bool operator>(const token_prob& other) const {
 				return probability > other.probability;
 			}
 		};
@@ -278,7 +278,7 @@ namespace nihilus {
 		mutable float mirostat_mu{};
 		mutable nihilus_rng rng{};
 
-		NIHILUS_INLINE void apply_temperature(float* logits, uint64_t vocab_size, float temperature) const {
+		NIHILUS_HOST void apply_temperature(float* logits, uint64_t vocab_size, float temperature) const {
 			if (temperature == 1.0f)
 				return;
 
@@ -289,7 +289,7 @@ namespace nihilus {
 			}
 		}
 
-		NIHILUS_INLINE void apply_repetition_penalty(float* logits, const int32_t* recent_tokens, uint64_t recent_count, float penalty) const {
+		NIHILUS_HOST void apply_repetition_penalty(float* logits, const int32_t* recent_tokens, uint64_t recent_count, float penalty) const {
 			if (penalty == 1.0f)
 				return;
 
@@ -305,7 +305,7 @@ namespace nihilus {
 			}
 		}
 
-		NIHILUS_INLINE void logits_to_probs(float* logits, uint64_t vocab_size) const {
+		NIHILUS_HOST void logits_to_probs(float* logits, uint64_t vocab_size) const {
 			float max_logit = logits[0];
 			for (uint64_t i = 1; i < vocab_size; ++i) {
 				max_logit = detail::max(max_logit, logits[i]);
@@ -323,7 +323,7 @@ namespace nihilus {
 			}
 		}
 
-		NIHILUS_INLINE void apply_top_k(aligned_vector<token_prob>& candidates, int32_t k) const {
+		NIHILUS_HOST void apply_top_k(aligned_vector<token_prob>& candidates, int32_t k) const {
 			if (k <= 0 || k >= static_cast<int32_t>(candidates.size()))
 				return;
 
@@ -334,7 +334,7 @@ namespace nihilus {
 			candidates.resize(k);
 		}
 
-		NIHILUS_INLINE void apply_top_p(aligned_vector<token_prob>& candidates, float p) const {
+		NIHILUS_HOST void apply_top_p(aligned_vector<token_prob>& candidates, float p) const {
 			if (p >= 1.0f)
 				return;
 
@@ -354,7 +354,7 @@ namespace nihilus {
 			candidates.resize(cutoff);
 		}
 
-		NIHILUS_INLINE void apply_min_p(aligned_vector<token_prob>& candidates, float min_p) const {
+		NIHILUS_HOST void apply_min_p(aligned_vector<token_prob>& candidates, float min_p) const {
 			if (min_p <= 0.0f)
 				return;
 
@@ -365,7 +365,7 @@ namespace nihilus {
 				candidates.end());
 		}
 
-		NIHILUS_INLINE int32_t sample_from_candidates(const aligned_vector<token_prob>& candidates) const {
+		NIHILUS_HOST int32_t sample_from_candidates(const aligned_vector<token_prob>& candidates) const {
 			if (candidates.empty())
 				return 0;
 			if (candidates.size() == 1)
@@ -388,7 +388,7 @@ namespace nihilus {
 			return candidates[detail::min(index, candidates.size() - 1)].token_id;
 		}
 
-		NIHILUS_INLINE int32_t sample_next_token(float* logits, uint64_t vocab_size, const int32_t* recent_tokens, uint64_t recent_count, const sampling_params& params) const {
+		NIHILUS_HOST int32_t sample_next_token(float* logits, uint64_t vocab_size, const int32_t* recent_tokens, uint64_t recent_count, const sampling_params& params) const {
 			if (params.seed != 0) {
 				rng = nihilus_rng(params.seed);
 			}
@@ -431,12 +431,12 @@ namespace nihilus {
 			return sample_from_candidates(candidate_tokens);
 		}
 
-		NIHILUS_INLINE int32_t sample_next_token(float* logits, uint64_t vocab_size) {
+		NIHILUS_HOST int32_t sample_next_token(float* logits, uint64_t vocab_size) {
 			sampling_params default_params{};
 			return sample_next_token(logits, vocab_size, nullptr, 0, default_params);
 		}
 
-		NIHILUS_INLINE int32_t sample_next_token(float* logits, uint64_t vocab_size, const aligned_vector<int32_t>& context, const sampling_params& params = sampling_params{}) {
+		NIHILUS_HOST int32_t sample_next_token(float* logits, uint64_t vocab_size, const aligned_vector<int32_t>& context, const sampling_params& params = sampling_params{}) {
 			return sample_next_token(logits, vocab_size, context.empty() ? nullptr : context.data(), context.size(), params);
 		}
 
@@ -453,7 +453,7 @@ namespace nihilus {
 		nihilus_bigram_bpe::queue work_queue{};
 		aligned_vector<nihilus_symbol> symbols{};
 
-		NIHILUS_INLINE aligned_vector<std::string> gpt2_style_split(std::string_view text) {
+		NIHILUS_HOST aligned_vector<std::string> gpt2_style_split(std::string_view text) {
 			aligned_vector<std::string> result;
 			uint64_t start = text.find_first_not_of(" \t\n\r");
 			if (start == std::string::npos)
@@ -520,14 +520,14 @@ namespace nihilus {
 			return result;
 		}
 
-		NIHILUS_INLINE std::string gpt2_style_split(char c) {
+		NIHILUS_HOST std::string gpt2_style_split(char c) {
 			if (!is_space(c)) {
 				return std::string{ c, 1 };
 			}
 			return {};
 		}
 
-		NIHILUS_INLINE void tokenize_word(const std::string_view word, aligned_vector<int32_t>& output) {
+		NIHILUS_HOST void tokenize_word(const std::string_view word, aligned_vector<int32_t>& output) {
 			if (word.empty())
 				return;
 
@@ -611,7 +611,7 @@ namespace nihilus {
 			}
 		}
 
-		NIHILUS_INLINE void add_new_bigram(int32_t left, int32_t right) {
+		NIHILUS_HOST void add_new_bigram(int32_t left, int32_t right) {
 			if (left == -1 || right == -1)
 				return;
 
@@ -632,7 +632,7 @@ namespace nihilus {
 			work_queue.push(bigram);
 		}
 
-		NIHILUS_INLINE uint64_t unicode_len_utf8(char c) {
+		NIHILUS_HOST uint64_t unicode_len_utf8(char c) {
 			if ((c & 0xE0) == 0xC0) {
 				return 2;
 			}
@@ -645,7 +645,7 @@ namespace nihilus {
 			return 1;
 		}
 
-		NIHILUS_INLINE void print_tokenization_debug(const std::string_view input_text, const aligned_vector<int32_t>& tokens_new) {
+		NIHILUS_HOST void print_tokenization_debug(const std::string_view input_text, const aligned_vector<int32_t>& tokens_new) {
 			std::cout << "=== NIHILUS BPE TOKENIZATION DEBUG ===" << std::endl;
 			//std::cout << "tokenizer_traits_type: " << static_cast<int32_t>(tokenizer_traits_type) << " (BPE)" << std::endl;
 			std::cout << "pre_type: " << pre << std::endl;
@@ -670,7 +670,7 @@ namespace nihilus {
 			std::cout << "=================================" << std::endl;
 		}
 
-		NIHILUS_INLINE ~tokenizer() {
+		NIHILUS_HOST ~tokenizer() {
 		}
 	};
 

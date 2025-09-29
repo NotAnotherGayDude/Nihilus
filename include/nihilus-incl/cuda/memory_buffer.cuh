@@ -33,7 +33,7 @@ namespace nihilus {
 	template<const model_config& config>
 		requires(config.device_type == device_types::gpu)
 	struct memory_transfer<config> {
-		template<typename value_type> NIHILUS_INLINE static void host_to_device(const value_type* src, value_type* dst, uint64_t count) noexcept {
+		template<typename value_type> NIHILUS_HOST static void host_to_device(const value_type* src, value_type* dst, uint64_t count) noexcept {
 			if constexpr (config.dev) {
 				if (cudaError_t err = cudaMemcpy(static_cast<void*>(dst), static_cast<const void*>(src), sizeof(value_type) * count, cudaMemcpyHostToDevice); err != cudaSuccess) {
 					static constexpr auto location = std::source_location::current();
@@ -43,7 +43,7 @@ namespace nihilus {
 				cudaMemcpy(static_cast<void*>(dst), static_cast<const void*>(src), sizeof(value_type) * count, cudaMemcpyHostToDevice);
 			}
 		}
-		template<not_pointer_types value_type> NIHILUS_INLINE static void host_to_device(const value_type& src, value_type* dst) noexcept {
+		template<not_pointer_types value_type> NIHILUS_HOST static void host_to_device(const value_type& src, value_type* dst) noexcept {
 			if constexpr (config.dev) {
 				if (cudaError_t err = cudaMemcpy(dst, &src, sizeof(value_type), cudaMemcpyHostToDevice); err != cudaSuccess) {
 					static constexpr auto location = std::source_location::current();
@@ -53,7 +53,7 @@ namespace nihilus {
 				cudaMemcpy(dst, &src, sizeof(value_type), cudaMemcpyHostToDevice);
 			}
 		}
-		template<pointer_types value_type> NIHILUS_INLINE static void device_to_host(const value_type* src, value_type* dst, uint64_t count) noexcept {
+		template<pointer_types value_type> NIHILUS_HOST static void device_to_host(const value_type* src, value_type* dst, uint64_t count) noexcept {
 			if constexpr (config.dev) {
 				if (cudaError_t err = cudaMemcpy(static_cast<void*>(dst), static_cast<const void*>(src), sizeof(value_type) * count, cudaMemcpyHostToDevice); err != cudaSuccess) {
 					static constexpr auto location = std::source_location::current();
@@ -63,7 +63,7 @@ namespace nihilus {
 				cudaMemcpy(static_cast<void*>(dst), static_cast<const void*>(src), sizeof(value_type) * count, cudaMemcpyDeviceToHost);
 			}
 		}
-		template<not_pointer_types value_type> NIHILUS_INLINE static void device_to_host(const value_type* src, value_type& dst) noexcept {
+		template<not_pointer_types value_type> NIHILUS_HOST static void device_to_host(const value_type* src, value_type& dst) noexcept {
 			if constexpr (config.dev) {
 				if (cudaError_t err = cudaMemcpy(dst, &src, sizeof(value_type), cudaMemcpyHostToDevice); err != cudaSuccess) {
 					static constexpr auto location = std::source_location::current();
@@ -84,11 +84,11 @@ namespace nihilus {
 		using pointer	 = value_type*;
 		using size_type	 = uint64_t;
 
-		NIHILUS_INLINE memory_buffer() noexcept								   = default;
-		NIHILUS_INLINE memory_buffer& operator=(const memory_buffer&) noexcept = delete;
-		NIHILUS_INLINE memory_buffer(const memory_buffer&) noexcept			   = delete;
+		NIHILUS_HOST memory_buffer() noexcept								   = default;
+		NIHILUS_HOST memory_buffer& operator=(const memory_buffer&) noexcept = delete;
+		NIHILUS_HOST memory_buffer(const memory_buffer&) noexcept			   = delete;
 
-		NIHILUS_INLINE memory_buffer& operator=(memory_buffer&& other) noexcept {
+		NIHILUS_HOST memory_buffer& operator=(memory_buffer&& other) noexcept {
 			if (this != &other) {
 				std::swap(data_val, other.data_val);
 				std::swap(size_val, other.size_val);
@@ -96,11 +96,11 @@ namespace nihilus {
 			return *this;
 		}
 
-		NIHILUS_INLINE memory_buffer(memory_buffer&& other) noexcept {
+		NIHILUS_HOST memory_buffer(memory_buffer&& other) noexcept {
 			*this = detail::move(other);
 		}
 
-		NIHILUS_INLINE void init(uint64_t size) noexcept {
+		NIHILUS_HOST void init(uint64_t size) noexcept {
 			if (data_val) {
 				clear();
 			}
@@ -115,19 +115,19 @@ namespace nihilus {
 			size_val = size;
 		}
 
-		NIHILUS_INLINE void deinit() noexcept {
+		NIHILUS_HOST void deinit() noexcept {
 			clear();
 		}
 
-		NIHILUS_INLINE size_type size() noexcept {
+		NIHILUS_HOST size_type size() noexcept {
 			return size_val;
 		}
 
-		NIHILUS_INLINE pointer data() noexcept {
+		NIHILUS_HOST pointer data() noexcept {
 			return data_val;
 		}
 
-		NIHILUS_INLINE void* claim_memory(uint64_t offset_to_claim) noexcept {
+		NIHILUS_HOST void* claim_memory(uint64_t offset_to_claim) noexcept {
 			uint64_t aligned_amount = round_up_to_multiple<64>(offset_to_claim);
 			if (aligned_amount > size_val) {
 				static constexpr auto location = std::source_location::current();
@@ -137,7 +137,7 @@ namespace nihilus {
 			return return_value;
 		}
 
-		NIHILUS_INLINE ~memory_buffer() noexcept {
+		NIHILUS_HOST ~memory_buffer() noexcept {
 			clear();
 		}
 
@@ -145,7 +145,7 @@ namespace nihilus {
 		value_type* data_val{};
 		size_type size_val{};
 
-		NIHILUS_INLINE void clear() noexcept {
+		NIHILUS_HOST void clear() noexcept {
 			if (data_val) {
 				cudaError_t result = cudaFree(data_val);
 				data_val		   = nullptr;

@@ -483,7 +483,7 @@ namespace nihilus {
 	struct comparison_result {
 		std::string result_output{};
 		bool result{ true };
-		NIHILUS_INLINE operator bool() {
+		NIHILUS_HOST operator bool() {
 			return result;
 		}
 	};
@@ -491,17 +491,17 @@ namespace nihilus {
 	struct intermediary_tensor {
 		array<uint64_t, 4> dims{};
 
-		NIHILUS_INLINE intermediary_tensor() noexcept = default;
+		NIHILUS_HOST intermediary_tensor() noexcept = default;
 
-		NIHILUS_INLINE intermediary_tensor(const intermediary_tensor& other) {
+		NIHILUS_HOST intermediary_tensor(const intermediary_tensor& other) {
 			*this = other;
 		}
 
-		NIHILUS_INLINE intermediary_tensor(intermediary_tensor&& other) noexcept {
+		NIHILUS_HOST intermediary_tensor(intermediary_tensor&& other) noexcept {
 			*this = std::move(other);
 		}
 
-		NIHILUS_INLINE intermediary_tensor& operator=(const intermediary_tensor& other) {
+		NIHILUS_HOST intermediary_tensor& operator=(const intermediary_tensor& other) {
 			if (this != &other) {
 				inputs = other.inputs;
 				dims   = other.dims;
@@ -513,7 +513,7 @@ namespace nihilus {
 			return *this;
 		}
 
-		NIHILUS_INLINE intermediary_tensor& operator=(intermediary_tensor&& other) noexcept {
+		NIHILUS_HOST intermediary_tensor& operator=(intermediary_tensor&& other) noexcept {
 			if (this != &other) {
 				inputs = detail::move(other.inputs);
 				dims   = detail::move(other.dims);
@@ -525,7 +525,7 @@ namespace nihilus {
 			return *this;
 		}
 
-		NIHILUS_INLINE intermediary_tensor(const intermediary_ggml_tensor& other) {
+		NIHILUS_HOST intermediary_tensor(const intermediary_ggml_tensor& other) {
 			dims = other.dims;
 			data = other.data;
 			name = other.name;
@@ -541,9 +541,9 @@ namespace nihilus {
 	};
 
 	struct tensor_wrapper {
-		NIHILUS_INLINE tensor_wrapper() noexcept = default;
+		NIHILUS_HOST tensor_wrapper() noexcept = default;
 
-		NIHILUS_INLINE tensor_wrapper(const tensor_wrapper& other) {
+		NIHILUS_HOST tensor_wrapper(const tensor_wrapper& other) {
 			dims = other.dims;
 			data = other.data;
 			name = other.name;
@@ -551,7 +551,7 @@ namespace nihilus {
 			op	 = other.op;
 		}
 
-		NIHILUS_INLINE tensor_wrapper(tensor_wrapper&& other) noexcept {
+		NIHILUS_HOST tensor_wrapper(tensor_wrapper&& other) noexcept {
 			dims = detail::move(other.dims);
 			data = detail::move(other.data);
 			name = detail::move(other.name);
@@ -559,7 +559,7 @@ namespace nihilus {
 			op	 = other.op;
 		}
 
-		NIHILUS_INLINE tensor_wrapper& operator=(const tensor_wrapper& other) {
+		NIHILUS_HOST tensor_wrapper& operator=(const tensor_wrapper& other) {
 			if (this != &other) {
 				dims = other.dims;
 				data = other.data;
@@ -570,7 +570,7 @@ namespace nihilus {
 			return *this;
 		}
 
-		NIHILUS_INLINE tensor_wrapper& operator=(tensor_wrapper&& other) noexcept {
+		NIHILUS_HOST tensor_wrapper& operator=(tensor_wrapper&& other) noexcept {
 			if (this != &other) {
 				dims = detail::move(other.dims);
 				data = detail::move(other.data);
@@ -581,7 +581,7 @@ namespace nihilus {
 			return *this;
 		}
 
-		template<core_traits_types tensor_type> NIHILUS_INLINE tensor_wrapper(tensor_type& other, const std::string& name_new, uint64_t current_block) {
+		template<core_traits_types tensor_type> NIHILUS_HOST tensor_wrapper(tensor_type& other, const std::string& name_new, uint64_t current_block) {
 			using output_type = typename tensor_type::output_type;
 			dims[0]			  = other[0];
 			dims[1]			  = other[1];
@@ -752,7 +752,7 @@ namespace nihilus {
 			return !has_differences;
 		}
 
-		NIHILUS_INLINE comparison_result operator==(const intermediary_tensor& other) const {
+		NIHILUS_HOST comparison_result operator==(const intermediary_tensor& other) const {
 			comparison_result return_value{};
 			std::stringstream stream{};
 			if (type != other.type) {
@@ -824,7 +824,7 @@ namespace jsonifier {
 
 namespace nihilus {
 
-	NIHILUS_INLINE std::string convert_op_to_string(core_types type, uint64_t current_block) {
+	NIHILUS_HOST std::string convert_op_to_string(core_types type, uint64_t current_block) {
 		std::string block{ std::to_string(current_block) };
 		switch (type) {
 			case core_types::token_embeddings: {

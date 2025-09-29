@@ -105,7 +105,7 @@ namespace nihilus {
 	}
 
 	template<string_literal string> struct string_literal_comparitor {
-		NIHILUS_INLINE static bool impl(const char*) noexcept {
+		NIHILUS_HOST static bool impl(const char*) noexcept {
 			return false;
 		}
 	};
@@ -115,7 +115,7 @@ namespace nihilus {
 	struct string_literal_comparitor<string> {
 		inline static constexpr auto string_lit{ string };
 		inline static constexpr auto new_size{ string_lit.size() };
-		NIHILUS_INLINE static bool impl(const char* str) noexcept {
+		NIHILUS_HOST static bool impl(const char* str) noexcept {
 			if constexpr (new_size > 8) {
 				NIHILUS_ALIGN(64) static constexpr auto values_new{ pack_values<string_lit>() };
 				nihilus_simd_int_128 data1{};
@@ -170,7 +170,7 @@ namespace nihilus {
 	struct string_literal_comparitor<string> {
 		inline static constexpr auto new_literal{ string };
 		NIHILUS_ALIGN(64) inline static constexpr auto values_new { pack_values<new_literal>() };
-		NIHILUS_INLINE static bool impl(const char* str) noexcept {
+		NIHILUS_HOST static bool impl(const char* str) noexcept {
 			NIHILUS_ALIGN(64) char values_to_load[16];
 			constexpr_memcpy<16>(values_to_load, str);
 			const nihilus_simd_int_128 data1{ gather_values<nihilus_simd_int_128_t>(values_to_load) };
@@ -187,7 +187,7 @@ namespace nihilus {
 		inline static constexpr auto string_new{ offset_new_literal<string, get_offset_into_literal_size(string.size())>() };
 		inline static constexpr auto string_size = string_new.size();
 		inline static constexpr auto string_newer{ offset_into_literal<string, string_size>() };
-		NIHILUS_INLINE static bool impl(const char* str) noexcept {
+		NIHILUS_HOST static bool impl(const char* str) noexcept {
 			if (!string_literal_comparitor<string_new>::impl(str)) {
 				return false;
 			} else {
@@ -202,7 +202,7 @@ namespace nihilus {
 	struct string_literal_comparitor<string> {
 		inline static constexpr auto new_literal{ string };
 		NIHILUS_ALIGN(64) inline static constexpr auto values_new { pack_values<new_literal>() };
-		NIHILUS_INLINE static bool impl(const char* str) noexcept {
+		NIHILUS_HOST static bool impl(const char* str) noexcept {
 			NIHILUS_ALIGN(64) char values_to_load[32];
 			constexpr_memcpy<32>(values_to_load, str);
 			const nihilus_simd_int_256 data1{ gather_values<nihilus_simd_int_256_t>(values_to_load) };
@@ -221,7 +221,7 @@ namespace nihilus {
 		inline static constexpr auto string_new{ offset_new_literal<string, get_offset_into_literal_size(string.size())>() };
 		inline static constexpr auto string_size = string_new.size();
 		inline static constexpr auto string_newer{ offset_into_literal<string, string_size>() };
-		NIHILUS_INLINE static bool impl(const char* str) noexcept {
+		NIHILUS_HOST static bool impl(const char* str) noexcept {
 			if (!string_literal_comparitor<string_new>::impl(str)) {
 				return false;
 			} else {
@@ -236,7 +236,7 @@ namespace nihilus {
 	struct string_literal_comparitor<string> {
 		inline static constexpr auto new_literal{ string };
 		NIHILUS_ALIGN(64) inline static constexpr auto values_new { pack_values<new_literal>() };
-		NIHILUS_INLINE static bool impl(const char* str) noexcept {
+		NIHILUS_HOST static bool impl(const char* str) noexcept {
 			NIHILUS_ALIGN(64) char values_to_load[64];
 			constexpr_memcpy<64>(values_to_load, str);
 			const nihilus_simd_int_512 data1{ gather_values<nihilus_simd_int_512_t>(values_to_load) };
@@ -252,7 +252,7 @@ namespace nihilus {
 		inline static constexpr auto string_new{ offset_new_literal<string, get_offset_into_literal_size(string.size())>() };
 		inline static constexpr auto string_size = string_new.size();
 		inline static constexpr auto string_newer{ offset_into_literal<string, string_size>() };
-		NIHILUS_INLINE static bool impl(const char* str) noexcept {
+		NIHILUS_HOST static bool impl(const char* str) noexcept {
 			if (!string_literal_comparitor<string_new>::impl(str)) {
 				return false;
 			} else {

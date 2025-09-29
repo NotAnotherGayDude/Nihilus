@@ -43,9 +43,9 @@ namespace nihilus {
 		using allocator_type		 = allocator<value_type>;
 		using allocator_traits		 = std::allocator_traits<allocator_type>;
 
-		NIHILUS_INLINE aligned_vector() noexcept = default;
+		NIHILUS_HOST aligned_vector() noexcept = default;
 
-		NIHILUS_INLINE aligned_vector& operator=(aligned_vector&& other) noexcept
+		NIHILUS_HOST aligned_vector& operator=(aligned_vector&& other) noexcept
 			requires(std::is_move_assignable_v<value_type>)
 		{
 			if NIHILUS_LIKELY (this != &other) {
@@ -55,7 +55,7 @@ namespace nihilus {
 			return *this;
 		}
 
-		NIHILUS_INLINE aligned_vector(aligned_vector&& other) noexcept
+		NIHILUS_HOST aligned_vector(aligned_vector&& other) noexcept
 			requires(std::is_move_assignable_v<value_type>)
 		{
 			std::swap(data_val, other.data_val);
@@ -63,7 +63,7 @@ namespace nihilus {
 			std::swap(capacity_val, other.capacity_val);
 		}
 
-		NIHILUS_INLINE constexpr aligned_vector& operator=(const aligned_vector& other)
+		NIHILUS_HOST constexpr aligned_vector& operator=(const aligned_vector& other)
 			requires(std::is_copy_assignable_v<value_type>)
 		{
 			if NIHILUS_LIKELY (this != &other) {
@@ -73,7 +73,7 @@ namespace nihilus {
 			return *this;
 		}
 
-		NIHILUS_INLINE constexpr aligned_vector(const aligned_vector& other)
+		NIHILUS_HOST constexpr aligned_vector(const aligned_vector& other)
 			requires(std::is_copy_constructible_v<value_type>)
 		{
 			reserve(other.capacity_val);
@@ -83,23 +83,23 @@ namespace nihilus {
 			}
 		}
 
-		NIHILUS_INLINE constexpr aligned_vector& operator=(aligned_vector&& other)
+		NIHILUS_HOST constexpr aligned_vector& operator=(aligned_vector&& other)
 			requires(!std::is_move_assignable_v<value_type>)
 		= delete;
 
-		NIHILUS_INLINE constexpr aligned_vector(aligned_vector&& other)
+		NIHILUS_HOST constexpr aligned_vector(aligned_vector&& other)
 			requires(!std::is_move_assignable_v<value_type>)
 		= delete;
 
-		NIHILUS_INLINE constexpr aligned_vector& operator=(const aligned_vector& other)
+		NIHILUS_HOST constexpr aligned_vector& operator=(const aligned_vector& other)
 			requires(!std::is_copy_assignable_v<value_type>)
 		= delete;
 
-		NIHILUS_INLINE constexpr aligned_vector(const aligned_vector& other)
+		NIHILUS_HOST constexpr aligned_vector(const aligned_vector& other)
 			requires(!std::is_copy_assignable_v<value_type>)
 		= delete;
 
-		NIHILUS_INLINE constexpr aligned_vector(std::initializer_list<value_type> values)
+		NIHILUS_HOST constexpr aligned_vector(std::initializer_list<value_type> values)
 			requires(std::is_copy_assignable_v<value_type>)
 		{
 			reserve(values.size());
@@ -109,51 +109,51 @@ namespace nihilus {
 			}
 		}
 
-		NIHILUS_INLINE constexpr iterator begin() noexcept {
+		NIHILUS_HOST constexpr iterator begin() noexcept {
 			return iterator(data_val);
 		}
 
-		NIHILUS_INLINE constexpr const_iterator begin() const noexcept {
+		NIHILUS_HOST constexpr const_iterator begin() const noexcept {
 			return const_iterator(data_val);
 		}
 
-		NIHILUS_INLINE constexpr iterator end() noexcept {
+		NIHILUS_HOST constexpr iterator end() noexcept {
 			return iterator(data_val + size_val);
 		}
 
-		NIHILUS_INLINE constexpr const_iterator end() const noexcept {
+		NIHILUS_HOST constexpr const_iterator end() const noexcept {
 			return const_iterator(data_val + size_val);
 		}
 
-		NIHILUS_INLINE constexpr reverse_iterator rbegin() noexcept {
+		NIHILUS_HOST constexpr reverse_iterator rbegin() noexcept {
 			return reverse_iterator(end());
 		}
 
-		NIHILUS_INLINE constexpr const_reverse_iterator rbegin() const noexcept {
+		NIHILUS_HOST constexpr const_reverse_iterator rbegin() const noexcept {
 			return const_reverse_iterator(end());
 		}
 
-		NIHILUS_INLINE constexpr reverse_iterator rend() noexcept {
+		NIHILUS_HOST constexpr reverse_iterator rend() noexcept {
 			return reverse_iterator(begin());
 		}
 
-		NIHILUS_INLINE constexpr const_reverse_iterator rend() const noexcept {
+		NIHILUS_HOST constexpr const_reverse_iterator rend() const noexcept {
 			return const_reverse_iterator(begin());
 		}
 
-		NIHILUS_INLINE constexpr const_iterator cbegin() const noexcept {
+		NIHILUS_HOST constexpr const_iterator cbegin() const noexcept {
 			return begin();
 		}
 
-		NIHILUS_INLINE constexpr const_iterator cend() const noexcept {
+		NIHILUS_HOST constexpr const_iterator cend() const noexcept {
 			return end();
 		}
 
-		NIHILUS_INLINE constexpr const_reverse_iterator crbegin() const noexcept {
+		NIHILUS_HOST constexpr const_reverse_iterator crbegin() const noexcept {
 			return rbegin();
 		}
 
-		template<typename... value_type_newer> NIHILUS_INLINE iterator emplace_back(value_type_newer&&... value_new) {
+		template<typename... value_type_newer> NIHILUS_HOST iterator emplace_back(value_type_newer&&... value_new) {
 			if NIHILUS_UNLIKELY (size_val + 1 > capacity_val) {
 				reserve(detail::max(size_val * 2, size_val + 1));
 			}
@@ -170,29 +170,29 @@ namespace nihilus {
 			return iterator{ data_val + size_val - 1 };
 		}
 
-		NIHILUS_INLINE constexpr const_reverse_iterator crend() const noexcept {
+		NIHILUS_HOST constexpr const_reverse_iterator crend() const noexcept {
 			return rend();
 		}
 
-		NIHILUS_INLINE constexpr void swap(aligned_vector& other) noexcept {
+		NIHILUS_HOST constexpr void swap(aligned_vector& other) noexcept {
 			std::swap(capacity_val, other.capacity_val);
 			std::swap(data_val, other.data_val);
 			std::swap(size_val, other.size_val);
 		}
 
-		NIHILUS_INLINE constexpr uint64_t size() const noexcept {
+		NIHILUS_HOST constexpr uint64_t size() const noexcept {
 			return size_val;
 		}
 
-		NIHILUS_INLINE constexpr uint64_t max_size() const noexcept {
+		NIHILUS_HOST constexpr uint64_t max_size() const noexcept {
 			return allocator_traits::max_size(*this);
 		}
 
-		NIHILUS_INLINE constexpr void clear() noexcept {
+		NIHILUS_HOST constexpr void clear() noexcept {
 			resize(0);
 		}
 
-		NIHILUS_INLINE void resize(size_type size_new) noexcept {
+		NIHILUS_HOST void resize(size_type size_new) noexcept {
 			if NIHILUS_LIKELY (size_new > size_val) {
 				reserve(size_new);
 				if (data_val) {
@@ -206,7 +206,7 @@ namespace nihilus {
 			return;
 		}
 
-		NIHILUS_INLINE void reserve(size_type size_new) noexcept {
+		NIHILUS_HOST void reserve(size_type size_new) noexcept {
 			if NIHILUS_UNLIKELY (size_new > capacity_val) {
 				size_type old_capacity = capacity_val;
 				pointer old_data	   = data_val;
@@ -222,7 +222,7 @@ namespace nihilus {
 			return;
 		}
 
-		template<integral_or_enum_types index_type> NIHILUS_INLINE constexpr reference at(index_type position) {
+		template<integral_or_enum_types index_type> NIHILUS_HOST constexpr reference at(index_type position) {
 			if NIHILUS_UNLIKELY (size_val <= position) {
 				throw std::runtime_error{ "invalid aligned_vector<value_type> subscript" };
 			}
@@ -230,7 +230,7 @@ namespace nihilus {
 			return data_val[static_cast<uint64_t>(position)];
 		}
 
-		template<integral_or_enum_types index_type> NIHILUS_INLINE constexpr const_reference at(index_type position) const {
+		template<integral_or_enum_types index_type> NIHILUS_HOST constexpr const_reference at(index_type position) const {
 			if NIHILUS_UNLIKELY (size_val <= position) {
 				throw std::runtime_error{ "invalid aligned_vector<value_type> subscript" };
 			}
@@ -246,43 +246,43 @@ namespace nihilus {
 			return data_val[static_cast<uint64_t>(position)];
 		}
 
-		template<uint64_t index> NIHILUS_INLINE reference operator[](tag<index> index_new) {
+		template<uint64_t index> NIHILUS_HOST reference operator[](tag<index> index_new) {
 			return data_val[index_new];
 		}
 
-		template<uint64_t index> NIHILUS_INLINE const_reference operator[](tag<index> index_new) const {
+		template<uint64_t index> NIHILUS_HOST const_reference operator[](tag<index> index_new) const {
 			return data_val[index_new];
 		}
 
-		NIHILUS_INLINE constexpr reference front() noexcept {
+		NIHILUS_HOST constexpr reference front() noexcept {
 			return data_val[0];
 		}
 
-		NIHILUS_INLINE constexpr const_reference front() const noexcept {
+		NIHILUS_HOST constexpr const_reference front() const noexcept {
 			return data_val[0];
 		}
 
-		NIHILUS_INLINE constexpr reference back() noexcept {
+		NIHILUS_HOST constexpr reference back() noexcept {
 			return data_val[size_val - 1];
 		}
 
-		NIHILUS_INLINE constexpr const_reference back() const noexcept {
+		NIHILUS_HOST constexpr const_reference back() const noexcept {
 			return data_val[size_val - 1];
 		}
 
-		NIHILUS_INLINE constexpr value_type* data() noexcept {
+		NIHILUS_HOST constexpr value_type* data() noexcept {
 			return data_val;
 		}
 
-		NIHILUS_INLINE constexpr const value_type* data() const noexcept {
+		NIHILUS_HOST constexpr const value_type* data() const noexcept {
 			return data_val;
 		}
 
-		NIHILUS_INLINE constexpr bool empty() const noexcept {
+		NIHILUS_HOST constexpr bool empty() const noexcept {
 			return size_val == 0;
 		}
 
-		NIHILUS_INLINE constexpr friend bool operator==(const aligned_vector& lhs, const aligned_vector& rhs) {
+		NIHILUS_HOST constexpr friend bool operator==(const aligned_vector& lhs, const aligned_vector& rhs) {
 			if NIHILUS_UNLIKELY (lhs.size_val != rhs.size_val) {
 				return false;
 			}
@@ -294,7 +294,7 @@ namespace nihilus {
 			return true;
 		}
 
-		NIHILUS_INLINE ~aligned_vector() {
+		NIHILUS_HOST ~aligned_vector() {
 			clear();
 			if NIHILUS_LIKELY (capacity_val && data_val) {
 				allocator_traits::deallocate(*this, data_val, capacity_val);

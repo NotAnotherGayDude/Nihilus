@@ -27,7 +27,7 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-	NIHILUS_INLINE static consteval auto generate_model_config(model_generations model_generation, model_sizes model_size, kernel_type_profiles kernel_type_profile,
+	NIHILUS_HOST static consteval auto generate_model_config(model_generations model_generation, model_sizes model_size, kernel_type_profiles kernel_type_profile,
 		model_arches model_arch, device_types device_type_new = device_types::cpu, bool benchmark = false, bool dev = false, uint64_t default_max_sequence_length = 1024,
 		bool exceptions = false, uint64_t default_batch_size = 512, kv_cache_strategies kv_cache_strategy = kv_cache_strategies::paged,
 		user_input_types user_input_type = user_input_types::cin, bool use_gradient_checkpointing = false, rope_scaling_types rope_scaling = rope_scaling_types::linear,
@@ -40,107 +40,107 @@ namespace nihilus {
 		return config;
 	}
 
-	NIHILUS_INLINE static consteval auto update_model_config_generation(model_config config, model_generations model_generation) {
+	NIHILUS_HOST static consteval auto update_model_config_generation(model_config config, model_generations model_generation) {
 		config.model_generation = model_generation;
 		return config;
 	}
 
-	NIHILUS_INLINE static consteval auto update_model_config_size(model_config config, model_sizes model_size) {
+	NIHILUS_HOST static consteval auto update_model_config_size(model_config config, model_sizes model_size) {
 		config.model_size = model_size;
 		return config;
 	}
 
-	NIHILUS_INLINE static consteval auto update_model_config_kernel_profile(model_config config, kernel_type_profiles kernel_type_profile) {
+	NIHILUS_HOST static consteval auto update_model_config_kernel_profile(model_config config, kernel_type_profiles kernel_type_profile) {
 		config.kernel_type_profile = kernel_type_profile;
 		return config;
 	}
 
-	NIHILUS_INLINE static consteval auto update_model_config_arch(model_config config, model_arches model_arch) {
+	NIHILUS_HOST static consteval auto update_model_config_arch(model_config config, model_arches model_arch) {
 		config.model_arch = model_arch;
 		return config;
 	}
 
-	NIHILUS_INLINE static consteval auto update_model_config_exceptions(model_config config, bool exceptions) {
+	NIHILUS_HOST static consteval auto update_model_config_exceptions(model_config config, bool exceptions) {
 		config.exceptions = exceptions;
 		return config;
 	}
 
-	NIHILUS_INLINE static consteval auto update_model_config_cache_strategy(model_config config, kv_cache_strategies kv_cache_strategy) {
+	NIHILUS_HOST static consteval auto update_model_config_cache_strategy(model_config config, kv_cache_strategies kv_cache_strategy) {
 		config.kv_cache_strategy = kv_cache_strategy;
 		return config;
 	}
 
-	NIHILUS_INLINE static consteval auto update_model_config_gradient_checkpointing(model_config config, bool use_gradient_checkpointing) {
+	NIHILUS_HOST static consteval auto update_model_config_gradient_checkpointing(model_config config, bool use_gradient_checkpointing) {
 		config.use_gradient_checkpointing = use_gradient_checkpointing;
 		return config;
 	}
 
-	NIHILUS_INLINE static consteval auto update_model_config_rope_scaling(model_config config, rope_scaling_types rope_scaling_type) {
+	NIHILUS_HOST static consteval auto update_model_config_rope_scaling(model_config config, rope_scaling_types rope_scaling_type) {
 		config.rope_scaling_type = rope_scaling_type;
 		return config;
 	}
 
-	NIHILUS_INLINE static consteval auto update_model_config_tokenizer_pre_type(model_config config, tokenizer_pre_types tokenizer_pre_type) {
+	NIHILUS_HOST static consteval auto update_model_config_tokenizer_pre_type(model_config config, tokenizer_pre_types tokenizer_pre_type) {
 		config.tokenizer_pre_type = tokenizer_pre_type;
 		return config;
 	}
 
-	NIHILUS_INLINE static consteval auto update_model_config_kv_cache_block_size(model_config config, uint64_t kv_cache_block_size) {
+	NIHILUS_HOST static consteval auto update_model_config_kv_cache_block_size(model_config config, uint64_t kv_cache_block_size) {
 		config.kv_cache_block_size = kv_cache_block_size;
 		return config;
 	}
 
-	NIHILUS_INLINE static consteval auto update_model_config_rotary_embeddings(model_config config, bool use_rotary_embeddings) {
+	NIHILUS_HOST static consteval auto update_model_config_rotary_embeddings(model_config config, bool use_rotary_embeddings) {
 		config.use_rotary_embeddings = use_rotary_embeddings;
 		return config;
 	}
 
-	NIHILUS_INLINE static consteval auto update_model_config_flash_attention(model_config config, bool use_flash_attention) {
+	NIHILUS_HOST static consteval auto update_model_config_flash_attention(model_config config, bool use_flash_attention) {
 		config.use_flash_attention = use_flash_attention;
 		return config;
 	}
 
-	NIHILUS_INLINE static consteval auto update_model_config_rms_norm_type(model_config config, rms_norm_types rms_norm_type) {
+	NIHILUS_HOST static consteval auto update_model_config_rms_norm_type(model_config config, rms_norm_types rms_norm_type) {
 		config.rms_norm_type = rms_norm_type;
 		return config;
 	}
 
-	NIHILUS_INLINE static consteval auto update_model_config_tokenizer_type(model_config config, tokenizer_types tokenizer_type) {
+	NIHILUS_HOST static consteval auto update_model_config_tokenizer_type(model_config config, tokenizer_types tokenizer_type) {
 		config.tokenizer_type = tokenizer_type;
 		return config;
 	}
 
-	NIHILUS_INLINE static consteval auto update_model_config_format(model_config config, model_formats format) {
+	NIHILUS_HOST static consteval auto update_model_config_format(model_config config, model_formats format) {
 		config.model_format = format;
 		return config;
 	}
 
-	NIHILUS_INLINE static consteval auto update_model_config_norm_epsilon(model_config config, float norm_epsilon) {
+	NIHILUS_HOST static consteval auto update_model_config_norm_epsilon(model_config config, float norm_epsilon) {
 		config.norm_epsilon = norm_epsilon;
 		return config;
 	}
 
-	NIHILUS_INLINE static consteval auto update_model_max_context_length(model_config config, uint64_t context_length) {
+	NIHILUS_HOST static consteval auto update_model_max_context_length(model_config config, uint64_t context_length) {
 		config.default_max_sequence_length = context_length;
 		return config;
 	}
 
-	NIHILUS_INLINE static consteval auto update_model_config_benchmark(model_config config, bool benchmark) {
+	NIHILUS_HOST static consteval auto update_model_config_benchmark(model_config config, bool benchmark) {
 		config.benchmark = benchmark;
 		return config;
 	}
 
-	NIHILUS_INLINE static consteval auto update_model_config_dev(model_config config, bool dev) {
+	NIHILUS_HOST static consteval auto update_model_config_dev(model_config config, bool dev) {
 		config.dev = dev;
 		return config;
 	}
 
-	NIHILUS_INLINE static consteval auto update_model_device_type(model_config config, device_types dev) {
+	NIHILUS_HOST static consteval auto update_model_device_type(model_config config, device_types dev) {
 		config.device_type = dev;
 		return config;
 	}
 
-	template<typename... UpdateFuncs> NIHILUS_INLINE static consteval auto chain_model_config_updates(model_config config, UpdateFuncs... update_funcs) {
+	template<typename... UpdateFuncs> NIHILUS_HOST static consteval auto chain_model_config_updates(model_config config, UpdateFuncs... update_funcs) {
 		return (update_funcs(config), ...);
 	}
 
@@ -148,16 +148,16 @@ namespace nihilus {
 		using model_t	   = model<config>;
 		using model_base_t = model_base;
 
-		NIHILUS_INLINE static auto parse_model_graph_data(cli_params params) {
+		NIHILUS_HOST static auto parse_model_graph_data(cli_params params) {
 			std::unique_ptr<model_base_t> return_value{ new model_t{ params } };
 			return return_value;
 		}
 
-		NIHILUS_INLINE static auto serialize_model(serializer_params) {
+		NIHILUS_HOST static auto serialize_model(serializer_params) {
 			//return model_serializer<config>::impl(params);
 		}
 
-		NIHILUS_INLINE static auto get_model_graph() {
+		NIHILUS_HOST static auto get_model_graph() {
 			std::unique_ptr<model_base_t> return_value{ new model_t{} };
 			return return_value;
 		}

@@ -54,27 +54,27 @@ namespace nihilus::benchmarking {
 		double branches{};
 		double cycles{};
 
-		NIHILUS_INLINE performance_counters(double c, double b, double m, double i) : branch_misses(m), instructions(i), branches(b), cycles(c) {
+		NIHILUS_HOST performance_counters(double c, double b, double m, double i) : branch_misses(m), instructions(i), branches(b), cycles(c) {
 		}
 
-		NIHILUS_INLINE performance_counters(double init = 0.0) : branch_misses(init), instructions(init), branches(init), cycles(init) {
+		NIHILUS_HOST performance_counters(double init = 0.0) : branch_misses(init), instructions(init), branches(init), cycles(init) {
 		}
 
-		NIHILUS_INLINE performance_counters& operator-=(const performance_counters& other) {
+		NIHILUS_HOST performance_counters& operator-=(const performance_counters& other) {
 			cycles -= other.cycles;
 			branches -= other.branches;
 			branch_misses -= other.branch_misses;
 			instructions -= other.instructions;
 			return *this;
 		}
-		NIHILUS_INLINE performance_counters& min(const performance_counters& other) {
+		NIHILUS_HOST performance_counters& min(const performance_counters& other) {
 			cycles		  = other.cycles < cycles ? other.cycles : cycles;
 			branches	  = other.branches < branches ? other.branches : branches;
 			branch_misses = other.branch_misses < branch_misses ? other.branch_misses : branch_misses;
 			instructions  = other.instructions < instructions ? other.instructions : instructions;
 			return *this;
 		}
-		NIHILUS_INLINE performance_counters& operator+=(const performance_counters& other) {
+		NIHILUS_HOST performance_counters& operator+=(const performance_counters& other) {
 			cycles += other.cycles;
 			branches += other.branches;
 			branch_misses += other.branch_misses;
@@ -82,7 +82,7 @@ namespace nihilus::benchmarking {
 			return *this;
 		}
 
-		NIHILUS_INLINE performance_counters& operator/=(double numerator) {
+		NIHILUS_HOST performance_counters& operator/=(double numerator) {
 			cycles /= numerator;
 			branches /= numerator;
 			branch_misses /= numerator;
@@ -91,7 +91,7 @@ namespace nihilus::benchmarking {
 		}
 	};
 
-	NIHILUS_INLINE performance_counters operator-(const performance_counters& a, const performance_counters& b) {
+	NIHILUS_HOST performance_counters operator-(const performance_counters& a, const performance_counters& b) {
 		return performance_counters(a.cycles - b.cycles, a.branches - b.branches, a.branch_misses - b.branch_misses, a.instructions - b.instructions);
 	}
 
@@ -202,7 +202,7 @@ namespace nihilus::benchmarking {
 
 	static uint64_t (*kperf_tick_frequency)();
 
-	NIHILUS_INLINE static int32_t kperf_lightweight_pet_get(uint32_t* enabled) {
+	NIHILUS_HOST static int32_t kperf_lightweight_pet_get(uint32_t* enabled) {
 		if (!enabled) {
 			return -1;
 		}
@@ -210,7 +210,7 @@ namespace nihilus::benchmarking {
 		return sysctlbyname("kperf.lightweight_pet", enabled, &size, NULL, 0);
 	}
 
-	NIHILUS_INLINE static int32_t kperf_lightweight_pet_set(uint32_t enabled) {
+	NIHILUS_HOST static int32_t kperf_lightweight_pet_set(uint32_t enabled) {
 		return sysctlbyname("kperf.lightweight_pet", NULL, NULL, &enabled, 4);
 	}
 
@@ -555,33 +555,33 @@ namespace nihilus::benchmarking {
 	};
 
 
-	NIHILUS_INLINE static int32_t kdebug_reset() {
+	NIHILUS_HOST static int32_t kdebug_reset() {
 		int32_t mib[3] = { CTL_KERN, KERN_KDEBUG, KERN_KDREMOVE };
 		return sysctl(mib, 3, NULL, NULL, NULL, 0);
 	}
 
-	NIHILUS_INLINE static int32_t kdebug_reinit() {
+	NIHILUS_HOST static int32_t kdebug_reinit() {
 		int32_t mib[3] = { CTL_KERN, KERN_KDEBUG, KERN_KDSETUP };
 		return sysctl(mib, 3, NULL, NULL, NULL, 0);
 	}
 
-	NIHILUS_INLINE static int32_t kdebug_setreg(kd_regtype* kdr) {
+	NIHILUS_HOST static int32_t kdebug_setreg(kd_regtype* kdr) {
 		int32_t mib[3] = { CTL_KERN, KERN_KDEBUG, KERN_KDSETREG };
 		size_t size	   = sizeof(kd_regtype);
 		return sysctl(mib, 3, kdr, &size, NULL, 0);
 	}
 
-	NIHILUS_INLINE static int32_t kdebug_trace_setbuf(int32_t nbufs) {
+	NIHILUS_HOST static int32_t kdebug_trace_setbuf(int32_t nbufs) {
 		int32_t mib[4] = { CTL_KERN, KERN_KDEBUG, KERN_KDSETBUF, nbufs };
 		return sysctl(mib, 4, NULL, NULL, NULL, 0);
 	}
 
-	NIHILUS_INLINE static int32_t kdebug_trace_enable(bool enable) {
+	NIHILUS_HOST static int32_t kdebug_trace_enable(bool enable) {
 		int32_t mib[4] = { CTL_KERN, KERN_KDEBUG, KERN_KDENABLE, enable };
 		return sysctl(mib, 4, NULL, nullptr, NULL, 0);
 	}
 
-	NIHILUS_INLINE static int32_t kdebug_get_bufinfo(kbufinfo_t* info) {
+	NIHILUS_HOST static int32_t kdebug_get_bufinfo(kbufinfo_t* info) {
 		if (!info) {
 			return -1;
 		}
@@ -590,7 +590,7 @@ namespace nihilus::benchmarking {
 		return sysctl(mib, 3, info, &needed, NULL, 0);
 	}
 
-	NIHILUS_INLINE static int32_t kdebug_trace_read(void* buf, size_t len, size_t* count) {
+	NIHILUS_HOST static int32_t kdebug_trace_read(void* buf, size_t len, size_t* count) {
 		if (count) {
 			*count = 0;
 		}
@@ -607,7 +607,7 @@ namespace nihilus::benchmarking {
 		return 0;
 	}
 
-	NIHILUS_INLINE static int32_t kdebug_wait(size_t timeout_ms, bool* suc) {
+	NIHILUS_HOST static int32_t kdebug_wait(size_t timeout_ms, bool* suc) {
 		if (timeout_ms == 0) {
 			return -1;
 		}
@@ -751,7 +751,7 @@ namespace nihilus::benchmarking {
 		return (worked = true);
 	}
 
-	NIHILUS_INLINE performance_counters get_counters() {
+	NIHILUS_HOST performance_counters get_counters() {
 		static bool warned = false;
 		int32_t ret;
 		if ((ret = kpc_get_thread_counters(0, KPC_MAX_COUNTERS, counters_0.data()))) {
@@ -774,24 +774,24 @@ namespace nihilus::benchmarking {
 		bool has_events_val{};
 		bool started{};
 
-		NIHILUS_INLINE event_collector_type() : aligned_vector<event_count>{}, diff(0), current_index{}, has_events_val{ setup_performance_counters() }, started{} {
+		NIHILUS_HOST event_collector_type() : aligned_vector<event_count>{}, diff(0), current_index{}, has_events_val{ setup_performance_counters() }, started{} {
 		}
 
-		NIHILUS_INLINE void reset() {
+		NIHILUS_HOST void reset() {
 			started		  = false;
 			current_index = 0;
 			aligned_vector<event_count>::clear();
 		}
 
-		NIHILUS_INLINE operator bool() {
+		NIHILUS_HOST operator bool() {
 			return started;
 		}
 
-		NIHILUS_INLINE bool has_events() {
+		NIHILUS_HOST bool has_events() {
 			return has_events_val;
 		}
 
-		NIHILUS_INLINE void start() {
+		NIHILUS_HOST void start() {
 			if (has_events()) {
 				diff = get_counters();
 			}
@@ -799,11 +799,11 @@ namespace nihilus::benchmarking {
 			cycle_start = mach_absolute_time();
 		}
 
-		NIHILUS_INLINE performance_metrics operator*() {
+		NIHILUS_HOST performance_metrics operator*() {
 			return collect_metrics(std::span<event_count>{ aligned_vector<event_count>::data(), aligned_vector<event_count>::size() }, aligned_vector<event_count>::size());
 		}
 
-		NIHILUS_INLINE void end(uint64_t bytes_processed) {
+		NIHILUS_HOST void end(uint64_t bytes_processed) {
 			if (!started) {
 				started = true;
 			}

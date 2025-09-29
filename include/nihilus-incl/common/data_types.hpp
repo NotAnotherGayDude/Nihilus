@@ -44,7 +44,7 @@ namespace nihilus {
 	};
 	static_assert(sizeof(block_q8_0<half>) == sizeof(half) + Q_SIZE, "Wrong q8_0 block size/padding.");
 
-	NIHILUS_INLINE static std::ostream& operator<<(std::ostream& os, const block_q8_0<half>& other) {
+	NIHILUS_HOST static std::ostream& operator<<(std::ostream& os, const block_q8_0<half>& other) {
 		static constexpr auto size{ sizeof(other.qs) };
 		os << "d: " << other.d << ", qs: [";
 		for (uint64_t x = 0; x < size; ++x) {

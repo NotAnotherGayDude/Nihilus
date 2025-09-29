@@ -37,24 +37,24 @@ namespace nihilus {
 		requires(config.device_type == device_types::gpu)
 	struct thread_pool<config> : public get_core_bases_t<config, core_types>, public perf_base<config> {
 		using core_bases_type											   = get_core_bases_t<config, core_types>;
-		NIHILUS_INLINE thread_pool() noexcept							   = default;
-		NIHILUS_INLINE thread_pool& operator=(const thread_pool&) noexcept = delete;
-		NIHILUS_INLINE thread_pool(const thread_pool&) noexcept			   = delete;
+		NIHILUS_HOST thread_pool() noexcept							   = default;
+		NIHILUS_HOST thread_pool& operator=(const thread_pool&) noexcept = delete;
+		NIHILUS_HOST thread_pool(const thread_pool&) noexcept			   = delete;
 
-		NIHILUS_INLINE thread_pool(int64_t) {
+		NIHILUS_HOST thread_pool(int64_t) {
 		}
 
-		template<processing_phases processing_phase, size_t... indices> NIHILUS_INLINE void execute_blocks(std::index_sequence<indices...>) {
+		template<processing_phases processing_phase, size_t... indices> NIHILUS_HOST void execute_blocks(std::index_sequence<indices...>) {
 			(core_bases_type::template impl_thread<per_block_thread_function, processing_phase>(static_cast<int64_t>(indices), 1), ...);
 		}
 
-		template<processing_phases phase_new> NIHILUS_INLINE void thread_function() {
+		template<processing_phases phase_new> NIHILUS_HOST void thread_function() {
 			core_bases_type::template impl_thread<global_input_thread_function, phase_new>(1);
 			execute_blocks<phase_new>(std::make_index_sequence<static_cast<size_t>(model_traits_type<config>::block_count)>{});
 			core_bases_type::template impl_thread<global_output_thread_function, phase_new>(1);
 		}
 
-		template<processing_phases phase_new> NIHILUS_INLINE void execute_tasks(uint64_t runtime_dimensions_new) {
+		template<processing_phases phase_new> NIHILUS_HOST void execute_tasks(uint64_t runtime_dimensions_new) {
 			core_bases_type::template impl<dim_updater>(runtime_dimensions_new);
 			thread_function<phase_new>();
 			if constexpr (config.dev) {
@@ -67,7 +67,7 @@ namespace nihilus {
 		}
 
 	  protected:
-		NIHILUS_INLINE ~thread_pool(){};
+		NIHILUS_HOST ~thread_pool(){};
 	};
 
 

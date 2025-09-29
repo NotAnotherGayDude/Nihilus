@@ -26,7 +26,7 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-	template<auto multiple, typename value_01_type = decltype(multiple)> NIHILUS_INLINE constexpr value_01_type round_up_to_multiple(value_01_type value) noexcept {
+	template<auto multiple, typename value_01_type = decltype(multiple)> NIHILUS_HOST constexpr value_01_type round_up_to_multiple(value_01_type value) noexcept {
 		if constexpr ((multiple & (multiple - 1)) == 0) {
 			constexpr value_01_type mulSub1{ multiple - 1 };
 			constexpr value_01_type notMulSub1{ static_cast<value_01_type>(~mulSub1) };
@@ -52,12 +52,12 @@ namespace nihilus {
 			using other = allocator<U>;
 		};
 
-		NIHILUS_INLINE allocator() noexcept = default;
+		NIHILUS_HOST allocator() noexcept = default;
 
 		template<typename U> allocator(const allocator<U>&) noexcept {
 		}
 
-		NIHILUS_INLINE static pointer allocate(size_type count_new) noexcept {
+		NIHILUS_HOST static pointer allocate(size_type count_new) noexcept {
 			if NIHILUS_UNLIKELY (count_new == 0) {
 				return nullptr;
 			}
@@ -68,7 +68,7 @@ namespace nihilus {
 #endif
 		}
 
-		NIHILUS_INLINE static void deallocate(pointer ptr, uint64_t = 0) noexcept {
+		NIHILUS_HOST static void deallocate(pointer ptr, uint64_t = 0) noexcept {
 			if NIHILUS_LIKELY (ptr) {
 #if NIHILUS_PLATFORM_WINDOWS || NIHILUS_PLATFORM_LINUX
 				_mm_free(ptr);
@@ -78,15 +78,15 @@ namespace nihilus {
 			}
 		}
 
-		template<typename... arg_types> NIHILUS_INLINE static void construct(pointer ptr, arg_types&&... args) noexcept {
+		template<typename... arg_types> NIHILUS_HOST static void construct(pointer ptr, arg_types&&... args) noexcept {
 			new (ptr) value_type(detail::forward<arg_types>(args)...);
 		}
 
-		NIHILUS_INLINE static void destroy(pointer ptr) noexcept {
+		NIHILUS_HOST static void destroy(pointer ptr) noexcept {
 			ptr->~value_type();
 		}
 
-		NIHILUS_INLINE constexpr bool operator==(const allocator&) const noexcept {
+		NIHILUS_HOST constexpr bool operator==(const allocator&) const noexcept {
 			return true;
 		}
 	};

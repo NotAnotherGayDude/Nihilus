@@ -31,7 +31,7 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-	NIHILUS_INLINE bool pin_thread_to_core(uint64_t core_id) {
+	NIHILUS_HOST bool pin_thread_to_core(uint64_t core_id) {
 #if NIHILUS_PLATFORM_WINDOWS
 		DWORD_PTR mask	 = 1ULL << core_id;
 		HANDLE thread	 = GetCurrentThread();
@@ -74,7 +74,7 @@ namespace nihilus {
 #endif
 	}
 
-	NIHILUS_INLINE void raise_current_thread_priority() {
+	NIHILUS_HOST void raise_current_thread_priority() {
 #if NIHILUS_PLATFORM_WINDOWS
 		HANDLE thread = GetCurrentThread();
 		if (!SetThreadPriority(thread, THREAD_PRIORITY_HIGHEST)) {
@@ -136,11 +136,11 @@ namespace nihilus {
 
 	template<const model_config& config> struct thread_pool : public get_core_bases_t<config, core_types>, public perf_base<config> {
 		using core_bases_type											   = get_core_bases_t<config, core_types>;
-		NIHILUS_INLINE thread_pool() noexcept							   = default;
-		NIHILUS_INLINE thread_pool& operator=(const thread_pool&) noexcept = delete;
-		NIHILUS_INLINE thread_pool(const thread_pool&) noexcept			   = delete;
+		NIHILUS_HOST thread_pool() noexcept							   = default;
+		NIHILUS_HOST thread_pool& operator=(const thread_pool&) noexcept = delete;
+		NIHILUS_HOST thread_pool(const thread_pool&) noexcept			   = delete;
 
-		NIHILUS_INLINE thread_pool(int64_t thread_count_new) {
+		NIHILUS_HOST thread_pool(int64_t thread_count_new) {
 			thread_count = thread_count_new;
 			threads.resize(static_cast<uint64_t>(thread_count));
 			thread_latch.init(static_cast<typename main_gate_latch::value_type>(thread_count_new));
@@ -153,11 +153,11 @@ namespace nihilus {
 			}
 		}
 
-		template<processing_phases processing_phase, size_t... indices> NIHILUS_INLINE void execute_blocks(std::index_sequence<indices...>) {
+		template<processing_phases processing_phase, size_t... indices> NIHILUS_HOST void execute_blocks(std::index_sequence<indices...>) {
 			(core_bases_type::template impl_thread<per_block_thread_function, processing_phase>(static_cast<int64_t>(indices), thread_count), ...);
 		}
 
-		NIHILUS_INLINE void thread_function(int64_t thread_index) {
+		NIHILUS_HOST void thread_function(int64_t thread_index) {
 			if (thread_index % 4 == 0 && (thread_index < static_cast<int64_t>(cpu_properties::thread_count) / 3)) {
 				//raise_current_thread_priority();
 			}
@@ -178,7 +178,7 @@ namespace nihilus {
 			}
 		}
 
-		template<processing_phases phase_new> NIHILUS_INLINE void execute_tasks(uint64_t runtime_dimensions_new) {
+		template<processing_phases phase_new> NIHILUS_HOST void execute_tasks(uint64_t runtime_dimensions_new) {
 			processing_phase.store(phase_new);
 			core_bases_type::template impl<sync_resetter>(thread_count);
 			core_bases_type::template impl<dim_updater>(runtime_dimensions_new);
@@ -198,7 +198,7 @@ namespace nihilus {
 		main_gate_latch thread_latch{};
 		int64_t thread_count{};
 
-		NIHILUS_INLINE ~thread_pool() {
+		NIHILUS_HOST ~thread_pool() {
 			stop.store(true);
 			thread_latch.count_down();
 			for (auto& value: threads) {

@@ -49,9 +49,9 @@ namespace nihilus {
 		using reverse_iterator		 = std::reverse_iterator<iterator>;
 		using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
-		NIHILUS_INLINE constexpr array() = default;
+		NIHILUS_HOST constexpr array() = default;
 
-		NIHILUS_INLINE constexpr array& operator=(array&& other) noexcept
+		NIHILUS_HOST constexpr array& operator=(array&& other) noexcept
 			requires(std::is_move_assignable_v<value_type>)
 		{
 			if (this != &other) {
@@ -61,7 +61,7 @@ namespace nihilus {
 			return *this;
 		}
 
-		NIHILUS_INLINE constexpr array(array&& other) noexcept
+		NIHILUS_HOST constexpr array(array&& other) noexcept
 			requires(std::is_move_assignable_v<value_type>)
 		{
 			for (size_type i = 0; i < size_val; ++i) {
@@ -69,7 +69,7 @@ namespace nihilus {
 			}
 		}
 
-		NIHILUS_INLINE constexpr array& operator=(const array& other)
+		NIHILUS_HOST constexpr array& operator=(const array& other)
 			requires(std::is_copy_assignable_v<value_type>)
 		{
 			if (this != &other) {
@@ -79,7 +79,7 @@ namespace nihilus {
 			return *this;
 		}
 
-		NIHILUS_INLINE constexpr array(const array& other)
+		NIHILUS_HOST constexpr array(const array& other)
 			requires(std::is_copy_assignable_v<value_type>)
 		{
 			for (size_type i = 0; i < size_val; ++i) {
@@ -87,104 +87,104 @@ namespace nihilus {
 			}
 		}
 
-		NIHILUS_INLINE constexpr array& operator=(array&& other)
+		NIHILUS_HOST constexpr array& operator=(array&& other)
 			requires(!std::is_move_assignable_v<value_type>)
 		= delete;
 
-		NIHILUS_INLINE constexpr array(array&& other)
+		NIHILUS_HOST constexpr array(array&& other)
 			requires(!std::is_move_assignable_v<value_type>)
 		= delete;
 
-		NIHILUS_INLINE constexpr array& operator=(const array& other)
+		NIHILUS_HOST constexpr array& operator=(const array& other)
 			requires(!std::is_copy_assignable_v<value_type>)
 		= delete;
 
-		NIHILUS_INLINE constexpr array(const array& other)
+		NIHILUS_HOST constexpr array(const array& other)
 			requires(!std::is_copy_assignable_v<value_type>)
 		= delete;
 
-		NIHILUS_INLINE constexpr array(std::initializer_list<value_type> values) {
+		NIHILUS_HOST constexpr array(std::initializer_list<value_type> values) {
 			for (size_type x = 0; x < values.size(); ++x) {
 				data_val[x] = values.begin()[x];
 			}
 		}
 
-		template<typename... arg_types> NIHILUS_INLINE constexpr array(arg_types&&... args)
+		template<typename... arg_types> NIHILUS_HOST constexpr array(arg_types&&... args)
 			requires(sizeof...(arg_types) == size_val && (std::is_constructible_v<value_type, arg_types> && ...) && std::is_copy_constructible_v<value_type>)
 			: data_val{ static_cast<value_type>(forward<arg_types>(args))... } {
 		}
 
-		NIHILUS_INLINE constexpr void swap(array& other) noexcept {
+		NIHILUS_HOST constexpr void swap(array& other) noexcept {
 			for (uint64_t x = 0; x < size_val; ++x) {
 				std::swap(data_val[x], other.data_val[x]);
 			}
 		}
 
-		NIHILUS_INLINE constexpr void fill(const value_type& value) {
+		NIHILUS_HOST constexpr void fill(const value_type& value) {
 			std::fill_n(data_val, static_cast<uint64_t>(size_new), value);
 		}
 
-		NIHILUS_INLINE constexpr iterator begin() noexcept {
+		NIHILUS_HOST constexpr iterator begin() noexcept {
 			return iterator(data_val);
 		}
 
-		NIHILUS_INLINE constexpr const_iterator begin() const noexcept {
+		NIHILUS_HOST constexpr const_iterator begin() const noexcept {
 			return const_iterator(data_val);
 		}
 
-		NIHILUS_INLINE constexpr iterator end() noexcept {
+		NIHILUS_HOST constexpr iterator end() noexcept {
 			return iterator(data_val + size_val);
 		}
 
-		NIHILUS_INLINE constexpr const_iterator end() const noexcept {
+		NIHILUS_HOST constexpr const_iterator end() const noexcept {
 			return const_iterator(data_val + size_val);
 		}
 
-		NIHILUS_INLINE constexpr reverse_iterator rbegin() noexcept {
+		NIHILUS_HOST constexpr reverse_iterator rbegin() noexcept {
 			return reverse_iterator(end());
 		}
 
-		NIHILUS_INLINE constexpr const_reverse_iterator rbegin() const noexcept {
+		NIHILUS_HOST constexpr const_reverse_iterator rbegin() const noexcept {
 			return const_reverse_iterator(end());
 		}
 
-		NIHILUS_INLINE constexpr reverse_iterator rend() noexcept {
+		NIHILUS_HOST constexpr reverse_iterator rend() noexcept {
 			return reverse_iterator(begin());
 		}
 
-		NIHILUS_INLINE constexpr const_reverse_iterator rend() const noexcept {
+		NIHILUS_HOST constexpr const_reverse_iterator rend() const noexcept {
 			return const_reverse_iterator(begin());
 		}
 
-		NIHILUS_INLINE constexpr const_iterator cbegin() const noexcept {
+		NIHILUS_HOST constexpr const_iterator cbegin() const noexcept {
 			return begin();
 		}
 
-		NIHILUS_INLINE constexpr const_iterator cend() const noexcept {
+		NIHILUS_HOST constexpr const_iterator cend() const noexcept {
 			return end();
 		}
 
-		NIHILUS_INLINE constexpr const_reverse_iterator crbegin() const noexcept {
+		NIHILUS_HOST constexpr const_reverse_iterator crbegin() const noexcept {
 			return rbegin();
 		}
 
-		NIHILUS_INLINE constexpr const_reverse_iterator crend() const noexcept {
+		NIHILUS_HOST constexpr const_reverse_iterator crend() const noexcept {
 			return rend();
 		}
 
-		NIHILUS_INLINE constexpr size_type size() const noexcept {
+		NIHILUS_HOST constexpr size_type size() const noexcept {
 			return size_val;
 		}
 
-		NIHILUS_INLINE constexpr size_type max_size() const noexcept {
+		NIHILUS_HOST constexpr size_type max_size() const noexcept {
 			return size_val;
 		}
 
-		NIHILUS_INLINE constexpr bool empty() const noexcept {
+		NIHILUS_HOST constexpr bool empty() const noexcept {
 			return false;
 		}
 
-		template<integral_or_enum_types index_type> NIHILUS_INLINE constexpr reference at(index_type position) {
+		template<integral_or_enum_types index_type> NIHILUS_HOST constexpr reference at(index_type position) {
 			static_assert(static_assert_printer<is_indexable<index_type, decltype(size_new)>, array_static_assert_errors::invalid_index_type, index_type>::impl,
 				"Sorry, but please index into this array using the correct enum type!");
 			if (size_new <= position) {
@@ -194,7 +194,7 @@ namespace nihilus {
 			return data_val[static_cast<size_type>(position)];
 		}
 
-		template<integral_or_enum_types index_type> NIHILUS_INLINE constexpr const_reference at(index_type position) const {
+		template<integral_or_enum_types index_type> NIHILUS_HOST constexpr const_reference at(index_type position) const {
 			static_assert(static_assert_printer<is_indexable<index_type, decltype(size_new)>, array_static_assert_errors::invalid_index_type, index_type>::impl,
 				"Sorry, but please index into this array using the correct enum type!");
 			if (size_new <= position) {
@@ -204,51 +204,51 @@ namespace nihilus {
 			return data_val[static_cast<size_type>(position)];
 		}
 
-		template<integral_or_enum_types index_type> NIHILUS_INLINE constexpr reference operator[](index_type position) noexcept {
+		template<integral_or_enum_types index_type> NIHILUS_HOST_DEVICE constexpr reference operator[](index_type position) noexcept {
 			static_assert(static_assert_printer<is_indexable<index_type, decltype(size_new)>, array_static_assert_errors::invalid_index_type, index_type>::impl,
 				"Sorry, but please index into this array using the correct enum type!");
 			return data_val[static_cast<size_type>(position)];
 		}
 
-		template<integral_or_enum_types index_type> NIHILUS_INLINE constexpr const_reference operator[](index_type position) const noexcept {
+		template<integral_or_enum_types index_type> NIHILUS_HOST_DEVICE constexpr const_reference operator[](index_type position) const noexcept {
 			static_assert(static_assert_printer<is_indexable<index_type, decltype(size_new)>, array_static_assert_errors::invalid_index_type, index_type>::impl,
 				"Sorry, but please index into this array using the correct enum type!");
 			return data_val[static_cast<size_type>(position)];
 		}
 
-		template<size_type index> NIHILUS_INLINE constexpr reference operator[](tag<index> index_new) {
+		template<size_type index> NIHILUS_HOST constexpr reference operator[](tag<index> index_new) {
 			return data_val[index_new];
 		}
 
-		template<size_type index> NIHILUS_INLINE constexpr const_reference operator[](tag<index> index_new) const {
+		template<size_type index> NIHILUS_HOST constexpr const_reference operator[](tag<index> index_new) const {
 			return data_val[index_new];
 		}
 
-		NIHILUS_INLINE constexpr reference front() noexcept {
+		NIHILUS_HOST constexpr reference front() noexcept {
 			return data_val[0];
 		}
 
-		NIHILUS_INLINE constexpr const_reference front() const noexcept {
+		NIHILUS_HOST constexpr const_reference front() const noexcept {
 			return data_val[0];
 		}
 
-		NIHILUS_INLINE constexpr reference back() noexcept {
+		NIHILUS_HOST constexpr reference back() noexcept {
 			return data_val[size_new - 1];
 		}
 
-		NIHILUS_INLINE constexpr const_reference back() const noexcept {
+		NIHILUS_HOST constexpr const_reference back() const noexcept {
 			return data_val[size_new - 1];
 		}
 
-		NIHILUS_INLINE constexpr value_type* data() noexcept {
+		NIHILUS_HOST constexpr value_type* data() noexcept {
 			return data_val;
 		}
 
-		NIHILUS_INLINE constexpr const value_type* data() const noexcept {
+		NIHILUS_HOST constexpr const value_type* data() const noexcept {
 			return data_val;
 		}
 
-		NIHILUS_INLINE constexpr friend bool operator==(const array& lhs, const array& rhs) {
+		NIHILUS_HOST constexpr friend bool operator==(const array& lhs, const array& rhs) {
 			for (size_type x = 0; x < size_val; ++x) {
 				if (lhs[x] != rhs[x]) {
 					return false;
@@ -257,7 +257,7 @@ namespace nihilus {
 			return true;
 		}
 
-		NIHILUS_INLINE constexpr friend bool operator!=(const array& lhs, const array& rhs) {
+		NIHILUS_HOST constexpr friend bool operator!=(const array& lhs, const array& rhs) {
 			return !(lhs == rhs);
 		}
 
@@ -282,89 +282,89 @@ namespace nihilus {
 		using reverse_iterator		 = std::reverse_iterator<iterator>;
 		using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
-		NIHILUS_INLINE constexpr void fill(const value_type&) {
+		NIHILUS_HOST constexpr void fill(const value_type&) {
 		}
 
-		NIHILUS_INLINE constexpr void swap(array&) noexcept {
+		NIHILUS_HOST constexpr void swap(array&) noexcept {
 		}
 
-		NIHILUS_INLINE constexpr iterator begin() noexcept {
+		NIHILUS_HOST constexpr iterator begin() noexcept {
 			return iterator{};
 		}
 
-		NIHILUS_INLINE constexpr const_iterator begin() const noexcept {
+		NIHILUS_HOST constexpr const_iterator begin() const noexcept {
 			return const_iterator{};
 		}
 
-		NIHILUS_INLINE constexpr iterator end() noexcept {
+		NIHILUS_HOST constexpr iterator end() noexcept {
 			return iterator{};
 		}
 
-		NIHILUS_INLINE constexpr const_iterator end() const noexcept {
+		NIHILUS_HOST constexpr const_iterator end() const noexcept {
 			return const_iterator{};
 		}
 
-		NIHILUS_INLINE constexpr reverse_iterator rbegin() noexcept {
+		NIHILUS_HOST constexpr reverse_iterator rbegin() noexcept {
 			return reverse_iterator(end());
 		}
 
-		NIHILUS_INLINE constexpr const_reverse_iterator rbegin() const noexcept {
+		NIHILUS_HOST constexpr const_reverse_iterator rbegin() const noexcept {
 			return const_reverse_iterator(end());
 		}
 
-		NIHILUS_INLINE constexpr reverse_iterator rend() noexcept {
+		NIHILUS_HOST constexpr reverse_iterator rend() noexcept {
 			return reverse_iterator(begin());
 		}
 
-		NIHILUS_INLINE constexpr const_reverse_iterator rend() const noexcept {
+		NIHILUS_HOST constexpr const_reverse_iterator rend() const noexcept {
 			return const_reverse_iterator(begin());
 		}
 
-		NIHILUS_INLINE constexpr const_iterator cbegin() const noexcept {
+		NIHILUS_HOST constexpr const_iterator cbegin() const noexcept {
 			return begin();
 		}
 
-		NIHILUS_INLINE constexpr const_iterator cend() const noexcept {
+		NIHILUS_HOST constexpr const_iterator cend() const noexcept {
 			return end();
 		}
 
-		NIHILUS_INLINE constexpr const_reverse_iterator crbegin() const noexcept {
+		NIHILUS_HOST constexpr const_reverse_iterator crbegin() const noexcept {
 			return rbegin();
 		}
 
-		NIHILUS_INLINE constexpr const_reverse_iterator crend() const noexcept {
+		NIHILUS_HOST constexpr const_reverse_iterator crend() const noexcept {
 			return rend();
 		}
 
-		NIHILUS_INLINE constexpr size_type size() const noexcept {
+		NIHILUS_HOST constexpr size_type size() const noexcept {
 			return 0;
 		}
 
-		NIHILUS_INLINE constexpr size_type max_size() const noexcept {
+		NIHILUS_HOST constexpr size_type max_size() const noexcept {
 			return 0;
 		}
 
-		NIHILUS_INLINE constexpr bool empty() const noexcept {
+		NIHILUS_HOST constexpr bool empty() const noexcept {
 			return true;
 		}
 
-		NIHILUS_INLINE constexpr reference at(size_type) {
+		NIHILUS_HOST constexpr reference at(size_type) {
 			throw std::runtime_error{ "invalid array<value_type, N> subscript" };
 		}
 
-		NIHILUS_INLINE constexpr const_reference at(size_type) const {
+		NIHILUS_HOST constexpr const_reference at(size_type) const {
 			throw std::runtime_error{ "invalid array<value_type, N> subscript" };
 		}
 
-		NIHILUS_INLINE constexpr value_type* data() noexcept {
+		NIHILUS_HOST constexpr value_type* data() noexcept {
 			return nullptr;
 		}
 
-		NIHILUS_INLINE constexpr const value_type* data() const noexcept {
+		NIHILUS_HOST constexpr const value_type* data() const noexcept {
 			return nullptr;
 		}
 
-		NIHILUS_INLINE constexpr friend bool operator==(const array& lhs, const array& rhs) {
+		NIHILUS_HOST constexpr friend bool operator==(const array& lhs, const array& rhs) {
 			( void )lhs;
 			( void )rhs;
 			return true;

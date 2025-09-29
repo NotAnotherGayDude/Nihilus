@@ -33,7 +33,7 @@ RealTimeChris (Chris M.)
 
 namespace nihilus::benchmarking {
 
-	NIHILUS_INLINE size_t rdtsc() {
+	NIHILUS_HOST size_t rdtsc() {
 		uint32_t a, d;
 		__asm__ volatile("rdtsc" : "=a"(a), "=d"(d));
 		return static_cast<unsigned long>(a) | (static_cast<unsigned long>(d) << 32);
@@ -49,7 +49,7 @@ namespace nihilus::benchmarking {
 		int32_t fd{};
 
 	  public:
-		NIHILUS_INLINE explicit linux_events(aligned_vector<int32_t> config_vec) : working(true) {
+		NIHILUS_HOST explicit linux_events(aligned_vector<int32_t> config_vec) : working(true) {
 			memset(&attribs, 0, sizeof(attribs));
 			attribs.type		   = PERF_TYPE_HARDWARE;
 			attribs.size		   = sizeof(attribs);
@@ -83,13 +83,13 @@ namespace nihilus::benchmarking {
 			temp_result_vec.resize(num_events * 2 + 1);
 		}
 
-		NIHILUS_INLINE ~linux_events() {
+		NIHILUS_HOST ~linux_events() {
 			if (fd != -1) {
 				close(fd);
 			}
 		}
 
-		NIHILUS_INLINE void run() {
+		NIHILUS_HOST void run() {
 			if (fd != -1) {
 				if (ioctl(fd, PERF_EVENT_IOC_RESET, PERF_IOC_FLAG_GROUP) == -1) {
 					reportError("ioctl(PERF_EVENT_IOC_RESET)");
@@ -101,7 +101,7 @@ namespace nihilus::benchmarking {
 			}
 		}
 
-		NIHILUS_INLINE void end(aligned_vector<uint64_t>& results) {
+		NIHILUS_HOST void end(aligned_vector<uint64_t>& results) {
 			if (fd != -1) {
 				if (ioctl(fd, PERF_EVENT_IOC_DISABLE, PERF_IOC_FLAG_GROUP) == -1) {
 					reportError("ioctl(PERF_EVENT_IOC_DISABLE)");
@@ -127,7 +127,7 @@ namespace nihilus::benchmarking {
 		}
 
 	  protected:
-		NIHILUS_INLINE void reportError(const std::string&) {
+		NIHILUS_HOST void reportError(const std::string&) {
 			working = false;
 		}
 	};
@@ -140,27 +140,27 @@ namespace nihilus::benchmarking {
 		int64_t current_index{};
 		bool started{};
 
-		NIHILUS_INLINE event_collector_type()
+		NIHILUS_HOST event_collector_type()
 			: linux_events{ aligned_vector<int32_t>{ PERF_COUNT_HW_CPU_CYCLES, PERF_COUNT_HW_INSTRUCTIONS, PERF_COUNT_HW_BRANCH_INSTRUCTIONS, PERF_COUNT_HW_BRANCH_MISSES,
 				  PERF_COUNT_HW_CACHE_REFERENCES, PERF_COUNT_HW_CACHE_MISSES } },
 			  aligned_vector<event_count>{} {
 		}
 
-		NIHILUS_INLINE void reset() {
+		NIHILUS_HOST void reset() {
 			started		  = false;
 			current_index = 0;
 			aligned_vector<event_count>::clear();
 		}
 
-		NIHILUS_INLINE operator bool() {
+		NIHILUS_HOST operator bool() {
 			return started;
 		}
 
-		NIHILUS_INLINE bool has_events() {
+		NIHILUS_HOST bool has_events() {
 			return linux_events::isWorking();
 		}
 
-		NIHILUS_INLINE void start() {
+		NIHILUS_HOST void start() {
 			if (has_events()) {
 				linux_events::run();
 			}
@@ -168,11 +168,11 @@ namespace nihilus::benchmarking {
 			cycle_start = rdtsc();
 		}
 
-		NIHILUS_INLINE performance_metrics operator*() {
+		NIHILUS_HOST performance_metrics operator*() {
 			return collect_metrics(std::span<event_count>{ aligned_vector<event_count>::data(), aligned_vector<event_count>::size() }, aligned_vector<event_count>::size());
 		}
 
-		NIHILUS_INLINE void end(uint64_t bytes_processed) {
+		NIHILUS_HOST void end(uint64_t bytes_processed) {
 			if (!started) {
 				started = true;
 			}

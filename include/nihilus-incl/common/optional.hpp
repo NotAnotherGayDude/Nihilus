@@ -31,9 +31,9 @@ namespace nihilus {
 		using const_reference = const value_type&;
 		using const_pointer	  = const value_type*;
 
-		NIHILUS_INLINE optional() noexcept = default;
+		NIHILUS_HOST optional() noexcept = default;
 
-		NIHILUS_INLINE optional& operator=(optional&& other) noexcept {
+		NIHILUS_HOST optional& operator=(optional&& other) noexcept {
 			if (this != &other) {
 				if (constructed) {
 					destroy();
@@ -46,11 +46,11 @@ namespace nihilus {
 			return *this;
 		}
 
-		NIHILUS_INLINE optional(optional&& other) noexcept {
+		NIHILUS_HOST optional(optional&& other) noexcept {
 			*this = detail::move(other);
 		}
 
-		NIHILUS_INLINE optional& operator=(const optional& other) noexcept {
+		NIHILUS_HOST optional& operator=(const optional& other) noexcept {
 			if (this != &other) {
 				if (constructed) {
 					destroy();
@@ -63,11 +63,11 @@ namespace nihilus {
 			return *this;
 		}
 
-		NIHILUS_INLINE optional(const optional& other) noexcept {
+		NIHILUS_HOST optional(const optional& other) noexcept {
 			*this = other;
 		}
 
-		template<typename... value_types> NIHILUS_INLINE optional& operator=(value_types&&... args) noexcept {
+		template<typename... value_types> NIHILUS_HOST optional& operator=(value_types&&... args) noexcept {
 			if (constructed) {
 				destroy();
 			}
@@ -76,45 +76,45 @@ namespace nihilus {
 			return *this;
 		}
 
-		template<typename... value_types> NIHILUS_INLINE optional(value_types&&... args) noexcept : value{ std::forward<value_types>(args)... } {
+		template<typename... value_types> NIHILUS_HOST optional(value_types&&... args) noexcept : value{ std::forward<value_types>(args)... } {
 			constructed = true;
 		}
 
-		NIHILUS_INLINE pointer operator->() noexcept {
+		NIHILUS_HOST pointer operator->() noexcept {
 			return &value;
 		}
 
-		NIHILUS_INLINE operator reference() noexcept {
+		NIHILUS_HOST operator reference() noexcept {
 			return value;
 		}
 
-		NIHILUS_INLINE operator const_reference() const noexcept {
+		NIHILUS_HOST operator const_reference() const noexcept {
 			return value;
 		}
 
-		NIHILUS_INLINE reference operator*() noexcept {
+		NIHILUS_HOST reference operator*() noexcept {
 			return value;
 		}
 
-		NIHILUS_INLINE const_pointer operator->() const noexcept {
+		NIHILUS_HOST const_pointer operator->() const noexcept {
 			return &value;
 		}
 
-		NIHILUS_INLINE const_reference operator*() const noexcept {
+		NIHILUS_HOST const_reference operator*() const noexcept {
 			return value;
 		}
 
-		NIHILUS_INLINE void swap(optional& other) noexcept {
+		NIHILUS_HOST void swap(optional& other) noexcept {
 			std::swap(value, other.value);
 		}
 
-		NIHILUS_INLINE ~optional() noexcept = default;
+		NIHILUS_HOST ~optional() noexcept = default;
 
 	  protected:
 		bool constructed{ false };
 		value_type value;
 
-		NIHILUS_INLINE void destroy() noexcept {
+		NIHILUS_HOST void destroy() noexcept {
 			if (constructed) {
 				value.~value_type();
 				constructed = false;

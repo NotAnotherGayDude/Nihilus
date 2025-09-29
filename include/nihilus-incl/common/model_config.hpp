@@ -81,7 +81,7 @@ namespace nihilus {
 		static constexpr bool benchmark							  = config.benchmark;
 		static constexpr bool dev								  = config.dev;
 
-		NIHILUS_INLINE static constexpr model_config get_config() {
+		NIHILUS_HOST static constexpr model_config get_config() {
 			return config;
 		}
 	};

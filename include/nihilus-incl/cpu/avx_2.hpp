@@ -27,7 +27,7 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-	template<typename output_type> NIHILUS_INLINE static constexpr int64_t calculate_chunk_count(output_type& output, uint64_t& chunk_size, int64_t thread_count) {
+	template<typename output_type> NIHILUS_HOST static constexpr int64_t calculate_chunk_count(output_type& output, uint64_t& chunk_size, int64_t thread_count) {
 		const auto dims			   = output.get_array_rt();
 		const uint64_t total_bytes = type_traits<typename output_type::output_type>::total_byte_size(dims);
 		uint64_t chunk_count	   = detail::max(static_cast<uint64_t>(1), total_bytes / static_cast<uint64_t>(static_cast<float>(cpu_properties::l1_cache_size) * 0.5f));
@@ -37,7 +37,7 @@ namespace nihilus {
 		return static_cast<int64_t>(chunk_count);
 	}
 
-	NIHILUS_INLINE void dequantize_q8_0_to_f32(const block_q8_0<half>* __restrict src, float* __restrict dst, uint64_t count) {
+	NIHILUS_HOST void dequantize_q8_0_to_f32(const block_q8_0<half>* __restrict src, float* __restrict dst, uint64_t count) {
 		constexpr uint64_t block_size = 32;
 
 		const uint64_t full_blocks = count / block_size;
@@ -67,8 +67,8 @@ namespace nihilus {
 
 	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, core_types::token_embeddings, processing_phases::prompt_eval_time> {
-		NIHILUS_INLINE static void process_chunk(core_traits_type& params, int64_t current_chunk, uint64_t chunk_size) {
-			auto& get_rows_op						= params.values.template get_core<token_embedding_types, token_embedding_types::get_rows>();
+		NIHILUS_HOST static void process_chunk(core_traits_type& params, int64_t current_chunk, uint64_t chunk_size) {
+			auto& get_rows_op						= params.values.template get_core<token_embeddings_types, token_embeddings_types::get_rows>();
 			auto& weights_core						= get_adjacent_value<core_traits_type::config, core_types::weights>::impl(params);
 			auto& inputs_core						= get_adjacent_value<core_traits_type::config, core_types::global_inputs>::impl(params);
 			auto& token_embd_op						= weights_core.values.template get_core<weight_types, weight_types::token_embd>();
@@ -89,7 +89,7 @@ namespace nihilus {
 			}
 		}
 
-		NIHILUS_INLINE static void impl(core_traits_type& params, int64_t thread_count) {
+		NIHILUS_HOST static void impl(core_traits_type& params, int64_t thread_count) {
 			uint64_t chunk_size{};
 			const int64_t chunk_count = calculate_chunk_count<typename core_traits_type::token_embeddings_type>(params.values, chunk_size, thread_count);
 			int64_t current_chunk	  = params.current_chunk_prompt_eval.fetch_add(1);
@@ -104,8 +104,8 @@ namespace nihilus {
 
 	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, core_types::token_embeddings, processing_phases::eval_time> {
-		NIHILUS_INLINE static void process_chunk(core_traits_type& params, int64_t current_chunk, uint64_t chunk_size) {
-			auto& get_rows_op						= params.values.template get_core<token_embedding_types, token_embedding_types::get_rows>();
+		NIHILUS_HOST static void process_chunk(core_traits_type& params, int64_t current_chunk, uint64_t chunk_size) {
+			auto& get_rows_op						= params.values.template get_core<token_embeddings_types, token_embeddings_types::get_rows>();
 			auto& weights_core						= get_adjacent_value<core_traits_type::config, core_types::weights>::impl(params);
 			auto& inputs_core						= get_adjacent_value<core_traits_type::config, core_types::global_inputs>::impl(params);
 			auto& token_embd_op						= weights_core.values.template get_core<weight_types, weight_types::token_embd>();
@@ -126,7 +126,7 @@ namespace nihilus {
 			}
 		}
 
-		NIHILUS_INLINE static void impl(core_traits_type& params, int64_t thread_count) {
+		NIHILUS_HOST static void impl(core_traits_type& params, int64_t thread_count) {
 			uint64_t chunk_size{};
 			const int64_t chunk_count = calculate_chunk_count<typename core_traits_type::token_embeddings_type>(params.values, chunk_size, thread_count);
 			int64_t current_chunk	  = params.current_chunk_prompt_eval.fetch_add(1);
@@ -141,10 +141,10 @@ namespace nihilus {
 
 	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, core_types::mega_qkv_prep_and_cache_publish, processing_phases::eval_time> {
-		NIHILUS_INLINE static void process_chunk(core_traits_type&, int64_t, int64_t) {
+		NIHILUS_HOST static void process_chunk(core_traits_type&, int64_t, int64_t) {
 		}
 
-		NIHILUS_INLINE static void impl(core_traits_type& params, int64_t, int64_t current_block) {
+		NIHILUS_HOST static void impl(core_traits_type& params, int64_t, int64_t current_block) {
 			params.latch_eval[current_block].fetch_sub(1);
 			params.latch_eval[current_block].wait();
 		}
@@ -152,10 +152,10 @@ namespace nihilus {
 
 	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, core_types::mega_qkv_prep_and_cache_publish, processing_phases::prompt_eval_time> {
-		NIHILUS_INLINE static void process_chunk(core_traits_type&, int64_t, int64_t) {
+		NIHILUS_HOST static void process_chunk(core_traits_type&, int64_t, int64_t) {
 		}
 
-		NIHILUS_INLINE static void impl(core_traits_type& params, int64_t, int64_t current_block) {
+		NIHILUS_HOST static void impl(core_traits_type& params, int64_t, int64_t current_block) {
 			params.latch_prompt_eval[current_block].fetch_sub(1);
 			params.latch_prompt_eval[current_block].wait();
 		}
@@ -163,10 +163,10 @@ namespace nihilus {
 
 	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, core_types::mega_attention_apply, processing_phases::eval_time> {
-		NIHILUS_INLINE static void process_chunk(core_traits_type&, int64_t, int64_t) {
+		NIHILUS_HOST static void process_chunk(core_traits_type&, int64_t, int64_t) {
 			// PROCESS DATA.
 		}
-		NIHILUS_INLINE static void impl(core_traits_type& params, int64_t, int64_t current_block) {
+		NIHILUS_HOST static void impl(core_traits_type& params, int64_t, int64_t current_block) {
 			params.latch_eval[current_block].fetch_sub(1);
 			params.latch_eval[current_block].wait();
 		}
@@ -174,10 +174,10 @@ namespace nihilus {
 
 	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, core_types::mega_attention_apply, processing_phases::prompt_eval_time> {
-		NIHILUS_INLINE static void process_chunk(core_traits_type&, int64_t, int64_t) {
+		NIHILUS_HOST static void process_chunk(core_traits_type&, int64_t, int64_t) {
 			// PROCESS DATA.
 		}
-		NIHILUS_INLINE static void impl(core_traits_type& params, int64_t, int64_t current_block) {
+		NIHILUS_HOST static void impl(core_traits_type& params, int64_t, int64_t current_block) {
 			params.latch_prompt_eval[current_block].fetch_sub(1);
 			params.latch_prompt_eval[current_block].wait();
 		}
@@ -185,10 +185,10 @@ namespace nihilus {
 
 	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, core_types::mega_ffn, processing_phases::eval_time> {
-		NIHILUS_INLINE static void process_chunk(core_traits_type&, int64_t, int64_t) {
+		NIHILUS_HOST static void process_chunk(core_traits_type&, int64_t, int64_t) {
 			// PROCESS DATA.
 		}
-		NIHILUS_INLINE static void impl(core_traits_type& params, int64_t, int64_t current_block) {
+		NIHILUS_HOST static void impl(core_traits_type& params, int64_t, int64_t current_block) {
 			params.latch_eval[current_block].fetch_sub(1);
 			params.latch_eval[current_block].wait();
 		}
@@ -196,10 +196,10 @@ namespace nihilus {
 
 	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, core_types::mega_ffn, processing_phases::prompt_eval_time> {
-		NIHILUS_INLINE static void process_chunk(core_traits_type&, int64_t, int64_t) {
+		NIHILUS_HOST static void process_chunk(core_traits_type&, int64_t, int64_t) {
 			// PROCESS DATA.
 		}
-		NIHILUS_INLINE static void impl(core_traits_type& params, int64_t, int64_t current_block) {
+		NIHILUS_HOST static void impl(core_traits_type& params, int64_t, int64_t current_block) {
 			params.latch_prompt_eval[current_block].fetch_sub(1);
 			params.latch_prompt_eval[current_block].wait();
 		}
@@ -207,10 +207,10 @@ namespace nihilus {
 
 	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, core_types::final_norm_and_sampling, processing_phases::eval_time> {
-		NIHILUS_INLINE static void process_chunk(core_traits_type&, int64_t) {
+		NIHILUS_HOST static void process_chunk(core_traits_type&, int64_t) {
 			// PROCESS DATA.
 		}
-		NIHILUS_INLINE static void impl(core_traits_type& params, int64_t) {
+		NIHILUS_HOST static void impl(core_traits_type& params, int64_t) {
 			params.latch_eval.fetch_sub(1);
 			params.latch_eval.wait();
 		}
@@ -218,10 +218,10 @@ namespace nihilus {
 
 	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, core_types::final_norm_and_sampling, processing_phases::prompt_eval_time> {
-		NIHILUS_INLINE static void process_chunk(core_traits_type&, int64_t) {
+		NIHILUS_HOST static void process_chunk(core_traits_type&, int64_t) {
 			// PROCESS DATA.
 		}
-		NIHILUS_INLINE static void impl(core_traits_type& params, int64_t) {
+		NIHILUS_HOST static void impl(core_traits_type& params, int64_t) {
 			params.latch_prompt_eval.fetch_sub(1);
 			params.latch_prompt_eval.wait();
 		}
@@ -241,7 +241,7 @@ namespace nihilus {
 		static constexpr uint64_t ne2  = core_traits_type::get_array()[2];
 		static constexpr uint64_t ne3  = core_traits_type::get_array()[3];
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01, const typename core_traits_type::input_02_type& input02) {
 			if constexpr (blocks_per_element) {
 				const uint64_t elements_per_block_count{};
@@ -259,7 +259,7 @@ namespace nihilus {
 			}
 		};
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01, const typename core_traits_type::input_02_type& input02) {
 			if constexpr (blocks_per_element) {
 				const uint64_t blocks_per_element_count{};
@@ -277,7 +277,7 @@ namespace nihilus {
 			}
 		};
 
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
+		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02) {
 			const uint64_t ne01 = input01[1];
 			const uint64_t ne11 = input02[1];
@@ -312,7 +312,7 @@ namespace nihilus {
 		static constexpr uint64_t ne2  = core_traits_type::get_array()[2];
 		static constexpr uint64_t ne3  = core_traits_type::get_array()[3];
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01, const typename core_traits_type::input_02_type& input02) {
 			if constexpr (blocks_per_element) {
 				const uint64_t elements_per_block_count{};
@@ -330,7 +330,7 @@ namespace nihilus {
 			}
 		};
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01, const typename core_traits_type::input_02_type& input02) {
 			if constexpr (blocks_per_element) {
 				const uint64_t blocks_per_element_count{};
@@ -348,7 +348,7 @@ namespace nihilus {
 			}
 		};
 
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
+		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02) {
 			const uint64_t chunk_count = count_elements(output) / thread_count;
 			const uint64_t block_byte_size{};
@@ -379,7 +379,7 @@ namespace nihilus {
 		static constexpr uint64_t ne2  = core_traits_type::get_array()[2];
 		static constexpr uint64_t ne3  = core_traits_type::get_array()[3];
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01, const typename core_traits_type::input_02_type& input02) {
 			if constexpr (blocks_per_element) {
 				const uint64_t elements_per_block_count{};
@@ -397,7 +397,7 @@ namespace nihilus {
 			}
 		};
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01, const typename core_traits_type::input_02_type& input02) {
 			if constexpr (blocks_per_element) {
 				const uint64_t blocks_per_element_count{};
@@ -415,7 +415,7 @@ namespace nihilus {
 			}
 		};
 
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
+		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02) {
 			const uint64_t ne01 = input01[1];
 			const uint64_t ne11 = input02[1];
@@ -454,7 +454,7 @@ namespace nihilus {
 		static constexpr uint64_t ne2  = core_traits_type::get_array()[2];
 		static constexpr uint64_t ne3  = core_traits_type::get_array()[3];
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01, const typename core_traits_type::input_02_type& input02) {
 			if constexpr (blocks_per_element) {
 				const uint64_t elements_per_block_count{};
@@ -472,7 +472,7 @@ namespace nihilus {
 			}
 		};
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01, const typename core_traits_type::input_02_type& input02) {
 			if constexpr (blocks_per_element) {
 				const uint64_t blocks_per_element_count{};
@@ -490,7 +490,7 @@ namespace nihilus {
 			}
 		};
 
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
+		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02) {
 			const uint64_t ne01 = input01[1];
 			const uint64_t ne11 = input02[1];
@@ -534,7 +534,7 @@ namespace nihilus {
 		static constexpr uint64_t ne2  = core_traits_type::get_array()[2];
 		static constexpr uint64_t ne3  = core_traits_type::get_array()[3];
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01, const typename core_traits_type::input_02_type& input02, const typename core_traits_type::input_03_type& input03) {
 			if constexpr (blocks_per_element) {
 				const uint64_t elements_per_block_count{};
@@ -552,7 +552,7 @@ namespace nihilus {
 			}
 		};
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01, const typename core_traits_type::input_02_type& input02, const typename core_traits_type::input_03_type& input03) {
 			if constexpr (blocks_per_element) {
 				const uint64_t blocks_per_element_count{};
@@ -570,7 +570,7 @@ namespace nihilus {
 			}
 		};
 
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
+		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02, const typename core_traits_type::input_03_type& input03) {
 			const uint64_t ne01 = input01[1];
 			const uint64_t ne11 = input02[1];
@@ -610,7 +610,7 @@ namespace nihilus {
 		static constexpr uint64_t ne2  = core_traits_type::get_array()[2];
 		static constexpr uint64_t ne3  = core_traits_type::get_array()[3];
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01, const typename core_traits_type::input_02_type& input02, const typename core_traits_type::input_03_type& input03) {
 			if constexpr (blocks_per_element) {
 				const uint64_t elements_per_block_count{};
@@ -628,7 +628,7 @@ namespace nihilus {
 			}
 		};
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01, const typename core_traits_type::input_02_type& input02, const typename core_traits_type::input_03_type& input03) {
 			if constexpr (blocks_per_element) {
 				const uint64_t blocks_per_element_count{};
@@ -646,7 +646,7 @@ namespace nihilus {
 			}
 		};
 
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
+		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02, const typename core_traits_type::input_03_type& input03) {
 			const uint64_t ne01 = input01[1];
 			const uint64_t ne11 = input02[1];
@@ -668,7 +668,7 @@ namespace nihilus {
 		}
 	};
 
-	NIHILUS_INLINE static void quantize_row_q8_0_avx2(const float* __restrict src, block_q8_0<half>* __restrict dst, uint64_t n) {
+	NIHILUS_HOST static void quantize_row_q8_0_avx2(const float* __restrict src, block_q8_0<half>* __restrict dst, uint64_t n) {
 		static constexpr uint64_t QK = Q_SIZE;
 		const uint64_t nb			 = n / QK;
 		const __m256 signBit		 = _mm256_set1_ps(-0.0f);
@@ -725,7 +725,7 @@ namespace nihilus {
 	template<uint64_t size_new>
 		requires(size_new > 0 && size_new <= 32)
 	struct vec_scale_mul_f32_to_q8_0<size_new> {
-		NIHILUS_INLINE static void impl(block_q8_0<half>* __restrict y_q8, const float* __restrict x, const float scale, const float* __restrict z, uint64_t block_idx,
+		NIHILUS_HOST static void impl(block_q8_0<half>* __restrict y_q8, const float* __restrict x, const float scale, const float* __restrict z, uint64_t block_idx,
 			uint64_t element_offset) {
 			alignas(64) float temp_results[32] = { 0 };
 
@@ -755,7 +755,7 @@ namespace nihilus {
 		}
 	};
 
-	NIHILUS_INLINE float simd_sum_squares(const float* __restrict data, uint64_t size) {
+	NIHILUS_HOST float simd_sum_squares(const float* __restrict data, uint64_t size) {
 		__m256 sum_vec			= _mm256_setzero_ps();
 		const uint64_t simd_end = size & ~7ULL;
 
@@ -781,7 +781,7 @@ namespace nihilus {
 	template<uint64_t size_new> struct vec_scale_mul_f32_contiguous;
 
 	template<uint64_t size_new> struct vec_scale_mul_f32_contiguous {
-		NIHILUS_INLINE static void impl(float* __restrict y, const float* __restrict x, const float scale, const float* __restrict z) {
+		NIHILUS_HOST static void impl(float* __restrict y, const float* __restrict x, const float scale, const float* __restrict z) {
 			if constexpr (size_new == 4) {
 				const __m128 scale_vec = _mm_set1_ps(scale);
 				__m128 ax0			   = _mm_load_ps(x);
@@ -818,7 +818,7 @@ namespace nihilus {
 		static constexpr uint64_t ne2  = core_traits_type::get_array()[2];
 		static constexpr uint64_t ne3  = core_traits_type::get_array()[3];
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01, const typename core_traits_type::input_02_type& input02) {
 			if constexpr (blocks_per_element) {
 				const uint64_t elements_per_block_count{};
@@ -836,7 +836,7 @@ namespace nihilus {
 			}
 		};
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01, const typename core_traits_type::input_02_type& input02) {
 			if constexpr (blocks_per_element) {
 				const uint64_t blocks_per_element_count{};
@@ -854,7 +854,7 @@ namespace nihilus {
 			}
 		};
 
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
+		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02) {
 			const uint64_t ne01 = input01[1];
 			const uint64_t ne11 = input02[1];
@@ -889,7 +889,7 @@ namespace nihilus {
 		static constexpr uint64_t ne2  = core_traits_type::get_array()[2];
 		static constexpr uint64_t ne3  = core_traits_type::get_array()[3];
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01, const typename core_traits_type::input_02_type& input02) {
 			if constexpr (blocks_per_element) {
 				const uint64_t elements_per_block_count{};
@@ -907,7 +907,7 @@ namespace nihilus {
 			}
 		};
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01, const typename core_traits_type::input_02_type& input02) {
 			if constexpr (blocks_per_element) {
 				const uint64_t blocks_per_element_count{};
@@ -925,7 +925,7 @@ namespace nihilus {
 			}
 		};
 
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
+		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02) {
 			const uint64_t ne01 = input01[1];
 			const uint64_t ne11 = input02[1];
@@ -960,7 +960,7 @@ namespace nihilus {
 		static constexpr uint64_t ne2  = core_traits_type::get_array()[2];
 		static constexpr uint64_t ne3  = core_traits_type::get_array()[3];
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01, const typename core_traits_type::input_02_type& input02) {
 			if constexpr (blocks_per_element) {
 				const uint64_t elements_per_block_count{};
@@ -978,7 +978,7 @@ namespace nihilus {
 			}
 		};
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01, const typename core_traits_type::input_02_type& input02) {
 			if constexpr (blocks_per_element) {
 				const uint64_t blocks_per_element_count{};
@@ -996,7 +996,7 @@ namespace nihilus {
 			}
 		};
 
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
+		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02) {
 			const uint64_t ne01 = input01[1];
 			const uint64_t ne11 = input02[1];
@@ -1035,7 +1035,7 @@ namespace nihilus {
 		static constexpr uint64_t ne2  = core_traits_type::get_array()[2];
 		static constexpr uint64_t ne3  = core_traits_type::get_array()[3];
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01, const typename core_traits_type::input_02_type& input02) {
 			if constexpr (blocks_per_element) {
 				const uint64_t elements_per_block_count{};
@@ -1053,7 +1053,7 @@ namespace nihilus {
 			}
 		};
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01, const typename core_traits_type::input_02_type& input02) {
 			if constexpr (blocks_per_element) {
 				const uint64_t blocks_per_element_count{};
@@ -1071,7 +1071,7 @@ namespace nihilus {
 			}
 		};
 
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
+		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02) {
 			const uint64_t ne01 = input01[1];
 			const uint64_t ne11 = input02[1];
@@ -1110,7 +1110,7 @@ namespace nihilus {
 		static constexpr uint64_t ne2  = core_traits_type::get_array()[2];
 		static constexpr uint64_t ne3  = core_traits_type::get_array()[3];
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01, const typename core_traits_type::input_02_type& input02) {
 			if constexpr (blocks_per_element) {
 				const uint64_t elements_per_block_count{};
@@ -1128,7 +1128,7 @@ namespace nihilus {
 			}
 		};
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01, const typename core_traits_type::input_02_type& input02) {
 			if constexpr (blocks_per_element) {
 				const uint64_t blocks_per_element_count{};
@@ -1146,7 +1146,7 @@ namespace nihilus {
 			}
 		};
 
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
+		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02) {
 			const uint64_t ne01 = input01[1];
 			const uint64_t ne11 = input02[1];
@@ -1181,7 +1181,7 @@ namespace nihilus {
 		static constexpr uint64_t ne2  = core_traits_type::get_array()[2];
 		static constexpr uint64_t ne3  = core_traits_type::get_array()[3];
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01, const typename core_traits_type::input_02_type& input02) {
 			if constexpr (blocks_per_element) {
 				const uint64_t elements_per_block_count{};
@@ -1199,7 +1199,7 @@ namespace nihilus {
 			}
 		};
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01, const typename core_traits_type::input_02_type& input02) {
 			if constexpr (blocks_per_element) {
 				const uint64_t blocks_per_element_count{};
@@ -1217,7 +1217,7 @@ namespace nihilus {
 			}
 		};
 
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
+		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02) {
 			const uint64_t ne01 = input01[1];
 			const uint64_t ne11 = input02[1];
@@ -1243,7 +1243,7 @@ namespace nihilus {
 		using input_type01			   = typename core_traits_type::input_01_type;
 		static constexpr uint64_t ne00 = input_type01::get_array()[0];
 		static constexpr uint64_t ne0  = core_traits_type::get_array()[0];
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
+		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02) {
 			static constexpr uint64_t blocks_per_row = ne00 / Q_SIZE;
 			const uint64_t ne1						 = output[1];
@@ -1274,7 +1274,7 @@ namespace nihilus {
 		using input_type01			   = typename core_traits_type::input_01_type;
 		static constexpr uint64_t ne00 = input_type01::get_array()[0];
 		static constexpr uint64_t ne0  = core_traits_type::get_array()[0];
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
+		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02) {
 			static constexpr uint64_t blocks_per_row = ne00 / Q_SIZE;
 			const int32_t token_id					 = static_cast<uint32_t>(input02.data[0]);
@@ -1307,7 +1307,7 @@ namespace nihilus {
 		static constexpr uint64_t ne2  = core_traits_type::get_array()[2];
 		static constexpr uint64_t ne3  = core_traits_type::get_array()[3];
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01, const typename core_traits_type::input_02_type& input02) {
 			if constexpr (blocks_per_element) {
 				const uint64_t elements_per_block_count{};
@@ -1325,7 +1325,7 @@ namespace nihilus {
 			}
 		};
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01, const typename core_traits_type::input_02_type& input02) {
 			if constexpr (blocks_per_element) {
 				const uint64_t blocks_per_element_count{};
@@ -1343,7 +1343,7 @@ namespace nihilus {
 			}
 		};
 
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
+		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02) {
 			const uint64_t ne01 = input01[1];
 			const uint64_t ne11 = input02[1];
@@ -1382,7 +1382,7 @@ namespace nihilus {
 		static constexpr uint64_t ne2  = core_traits_type::get_array()[2];
 		static constexpr uint64_t ne3  = core_traits_type::get_array()[3];
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01, const typename core_traits_type::input_02_type& input02) {
 			if constexpr (blocks_per_element) {
 				const uint64_t elements_per_block_count{};
@@ -1400,7 +1400,7 @@ namespace nihilus {
 			}
 		};
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01, const typename core_traits_type::input_02_type& input02) {
 			if constexpr (blocks_per_element) {
 				const uint64_t blocks_per_element_count{};
@@ -1418,7 +1418,7 @@ namespace nihilus {
 			}
 		};
 
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
+		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02) {
 			const uint64_t ne01 = input01[1];
 			const uint64_t ne11 = input02[1];
@@ -1457,7 +1457,7 @@ namespace nihilus {
 		static constexpr uint64_t ne2  = core_traits_type::get_array()[2];
 		static constexpr uint64_t ne3  = core_traits_type::get_array()[3];
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01, const typename core_traits_type::input_02_type& input02) {
 			if constexpr (blocks_per_element) {
 				const uint64_t elements_per_block_count{};
@@ -1475,7 +1475,7 @@ namespace nihilus {
 			}
 		};
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01, const typename core_traits_type::input_02_type& input02) {
 			if constexpr (blocks_per_element) {
 				const uint64_t blocks_per_element_count{};
@@ -1493,7 +1493,7 @@ namespace nihilus {
 			}
 		};
 
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
+		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02) {
 			const uint64_t ne01 = input01[1];
 			const uint64_t ne11 = input02[1];
@@ -1532,7 +1532,7 @@ namespace nihilus {
 		static constexpr uint64_t ne2  = core_traits_type::get_array()[2];
 		static constexpr uint64_t ne3  = core_traits_type::get_array()[3];
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01, const typename core_traits_type::input_02_type& input02) {
 			if constexpr (blocks_per_element) {
 				const uint64_t elements_per_block_count{};
@@ -1550,7 +1550,7 @@ namespace nihilus {
 			}
 		};
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01, const typename core_traits_type::input_02_type& input02) {
 			if constexpr (blocks_per_element) {
 				const uint64_t blocks_per_element_count{};
@@ -1568,7 +1568,7 @@ namespace nihilus {
 			}
 		};
 
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
+		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02) {
 			const uint64_t ne01 = input01[1];
 			const uint64_t ne11 = input02[1];
@@ -1608,7 +1608,7 @@ namespace nihilus {
 		static constexpr uint64_t ne2  = core_traits_type::get_array()[2];
 		static constexpr uint64_t ne3  = core_traits_type::get_array()[3];
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01, const typename core_traits_type::input_02_type& input02) {
 			if constexpr (blocks_per_element) {
 				const uint64_t elements_per_block_count{};
@@ -1626,7 +1626,7 @@ namespace nihilus {
 			}
 		};
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01, const typename core_traits_type::input_02_type& input02) {
 			if constexpr (blocks_per_element) {
 				const uint64_t blocks_per_element_count{};
@@ -1644,7 +1644,7 @@ namespace nihilus {
 			}
 		};
 
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
+		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02) {
 			const uint64_t ne01 = input01[1];
 			const uint64_t ne11 = input02[1];
@@ -1679,7 +1679,7 @@ namespace nihilus {
 		static constexpr uint64_t ne2  = core_traits_type::get_array()[2];
 		static constexpr uint64_t ne3  = core_traits_type::get_array()[3];
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01, const typename core_traits_type::input_02_type& input02) {
 			if constexpr (blocks_per_element) {
 				const uint64_t elements_per_block_count{};
@@ -1697,7 +1697,7 @@ namespace nihilus {
 			}
 		};
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01, const typename core_traits_type::input_02_type& input02) {
 			if constexpr (blocks_per_element) {
 				const uint64_t blocks_per_element_count{};
@@ -1715,7 +1715,7 @@ namespace nihilus {
 			}
 		};
 
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
+		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02) {
 			const uint64_t ne01 = input01[1];
 			const uint64_t ne11 = input02[1];
@@ -1754,7 +1754,7 @@ namespace nihilus {
 		static constexpr uint64_t ne2  = core_traits_type::get_array()[2];
 		static constexpr uint64_t ne3  = core_traits_type::get_array()[3];
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01, const typename core_traits_type::input_02_type& input02, const typename core_traits_type::input_03_type& input03) {
 			if constexpr (blocks_per_element) {
 				const uint64_t elements_per_block_count{};
@@ -1772,7 +1772,7 @@ namespace nihilus {
 			}
 		};
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01, const typename core_traits_type::input_02_type& input02, const typename core_traits_type::input_03_type& input03) {
 			if constexpr (blocks_per_element) {
 				const uint64_t blocks_per_element_count{};
@@ -1790,7 +1790,7 @@ namespace nihilus {
 			}
 		};
 
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
+		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02, const typename core_traits_type::input_03_type& input03) {
 			const uint64_t ne01 = input01[1];
 			const uint64_t ne11 = input02[1];
@@ -1834,7 +1834,7 @@ namespace nihilus {
 		static constexpr uint64_t ne2  = core_traits_type::get_array()[2];
 		static constexpr uint64_t ne3  = core_traits_type::get_array()[3];
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01, const typename core_traits_type::input_02_type& input02, const typename core_traits_type::input_03_type& input03) {
 			if constexpr (blocks_per_element) {
 				const uint64_t elements_per_block_count{};
@@ -1852,7 +1852,7 @@ namespace nihilus {
 			}
 		};
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01, const typename core_traits_type::input_02_type& input02, const typename core_traits_type::input_03_type& input03) {
 			if constexpr (blocks_per_element) {
 				const uint64_t blocks_per_element_count{};
@@ -1870,7 +1870,7 @@ namespace nihilus {
 			}
 		};
 
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
+		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02, const typename core_traits_type::input_03_type& input03) {
 			const uint64_t ne01 = input01[1];
 			const uint64_t ne11 = input02[1];
@@ -1898,7 +1898,7 @@ namespace nihilus {
 
 	template<const model_config& config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::get_rows, processing_phases::prompt_eval_time, core_traits_type, float, float, int32_t>
 		: public kernel_base<kernel_types::get_rows, core_traits_type, float, float, int32_t> {
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
+		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02) {
 			const uint64_t ne1		 = output[1];
 			const uint64_t ne0		 = output[0];
@@ -1925,7 +1925,7 @@ namespace nihilus {
 
 	template<const model_config& config, typename core_traits_type> struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::get_rows, processing_phases::eval_time, core_traits_type, float, float, int32_t>
 		: public kernel_base<kernel_types::get_rows, core_traits_type, float, float, int32_t> {
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
+		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02) {
 			const uint64_t ne0		= output[0];
 			const int32_t token_id = static_cast<uint32_t>(input02.data[0]);
@@ -1953,7 +1953,7 @@ namespace nihilus {
 		static constexpr uint64_t ne2  = core_traits_type::get_array()[2];
 		static constexpr uint64_t ne3  = core_traits_type::get_array()[3];
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01) {
 			if constexpr (blocks_per_element) {
 				const uint64_t elements_per_block_count{};
@@ -1971,7 +1971,7 @@ namespace nihilus {
 			}
 		};
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01) {
 			if constexpr (blocks_per_element) {
 				const uint64_t blocks_per_element_count{};
@@ -1989,7 +1989,7 @@ namespace nihilus {
 			}
 		};
 
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01) {
+		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01) {
 			const uint64_t ne01 = input01[1];
 			const uint64_t ne1	= output[1];
 
@@ -2018,7 +2018,7 @@ namespace nihilus {
 		static constexpr uint64_t ne2  = core_traits_type::get_array()[2];
 		static constexpr uint64_t ne3  = core_traits_type::get_array()[3];
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01) {
 			if constexpr (blocks_per_element) {
 				const uint64_t elements_per_block_count{};
@@ -2036,7 +2036,7 @@ namespace nihilus {
 			}
 		};
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01) {
 			if constexpr (blocks_per_element) {
 				const uint64_t blocks_per_element_count{};
@@ -2054,7 +2054,7 @@ namespace nihilus {
 			}
 		};
 
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01) {
+		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01) {
 			const uint64_t ne01 = input01[1];
 			const uint64_t ne1	= output[1];
 
@@ -2088,7 +2088,7 @@ namespace nihilus {
 		static constexpr uint64_t ne2  = core_traits_type::get_array()[2];
 		static constexpr uint64_t ne3  = core_traits_type::get_array()[3];
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01, const typename core_traits_type::input_02_type& input02) {
 			if constexpr (blocks_per_element) {
 				const uint64_t elements_per_block_count{};
@@ -2106,7 +2106,7 @@ namespace nihilus {
 			}
 		};
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01, const typename core_traits_type::input_02_type& input02) {
 			if constexpr (blocks_per_element) {
 				const uint64_t blocks_per_element_count{};
@@ -2124,7 +2124,7 @@ namespace nihilus {
 			}
 		};
 
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
+		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02) {
 			const uint64_t ne01 = input01[1];
 			const uint64_t ne11 = input02[1];
@@ -2163,7 +2163,7 @@ namespace nihilus {
 		static constexpr uint64_t ne2  = core_traits_type::get_array()[2];
 		static constexpr uint64_t ne3  = core_traits_type::get_array()[3];
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01, const typename core_traits_type::input_02_type& input02) {
 			if constexpr (blocks_per_element) {
 				const uint64_t elements_per_block_count{};
@@ -2181,7 +2181,7 @@ namespace nihilus {
 			}
 		};
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01, const typename core_traits_type::input_02_type& input02) {
 			if constexpr (blocks_per_element) {
 				const uint64_t blocks_per_element_count{};
@@ -2199,7 +2199,7 @@ namespace nihilus {
 			}
 		};
 
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
+		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02) {
 			const uint64_t ne01 = input01[1];
 			const uint64_t ne11 = input02[1];
@@ -2242,7 +2242,7 @@ namespace nihilus {
 		static constexpr uint64_t ne2  = core_traits_type::get_array()[2];
 		static constexpr uint64_t ne3  = core_traits_type::get_array()[3];
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01, const typename core_traits_type::input_02_type& input02, const typename core_traits_type::input_03_type& input03) {
 			if constexpr (blocks_per_element) {
 				const uint64_t elements_per_block_count{};
@@ -2260,7 +2260,7 @@ namespace nihilus {
 			}
 		};
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01, const typename core_traits_type::input_02_type& input02, const typename core_traits_type::input_03_type& input03) {
 			if constexpr (blocks_per_element) {
 				const uint64_t blocks_per_element_count{};
@@ -2278,7 +2278,7 @@ namespace nihilus {
 			}
 		};
 
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
+		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02, const typename core_traits_type::input_03_type& input03) {
 			const uint64_t ne01 = input01[1];
 			const uint64_t ne11 = input02[1];
@@ -2322,7 +2322,7 @@ namespace nihilus {
 		static constexpr uint64_t ne2  = core_traits_type::get_array()[2];
 		static constexpr uint64_t ne3  = core_traits_type::get_array()[3];
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01, const typename core_traits_type::input_02_type& input02, const typename core_traits_type::input_03_type& input03) {
 			if constexpr (blocks_per_element) {
 				const uint64_t elements_per_block_count{};
@@ -2340,7 +2340,7 @@ namespace nihilus {
 			}
 		};
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01, const typename core_traits_type::input_02_type& input02, const typename core_traits_type::input_03_type& input03) {
 			if constexpr (blocks_per_element) {
 				const uint64_t blocks_per_element_count{};
@@ -2358,7 +2358,7 @@ namespace nihilus {
 			}
 		};
 
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
+		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02, const typename core_traits_type::input_03_type& input03) {
 			const uint64_t ne01 = input01[1];
 			const uint64_t ne11 = input02[1];
@@ -2406,7 +2406,7 @@ namespace nihilus {
 		static constexpr uint64_t ne2  = core_traits_type::get_array()[2];
 		static constexpr uint64_t ne3  = core_traits_type::get_array()[3];
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01, const typename core_traits_type::input_02_type& input02, const typename core_traits_type::input_03_type& input03,
 			const typename core_traits_type::input_04_type& input04) {
 			if constexpr (blocks_per_element) {
@@ -2425,7 +2425,7 @@ namespace nihilus {
 			}
 		};
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01, const typename core_traits_type::input_02_type& input02, const typename core_traits_type::input_03_type& input03,
 			const typename core_traits_type::input_04_type& input04) {
 			if constexpr (blocks_per_element) {
@@ -2444,7 +2444,7 @@ namespace nihilus {
 			}
 		};
 
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
+		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02, const typename core_traits_type::input_03_type& input03, const typename core_traits_type::input_04_type& input04) {
 			const uint64_t ne01 = input01[1];
 			const uint64_t ne11 = input02[1];
@@ -2493,7 +2493,7 @@ namespace nihilus {
 		static constexpr uint64_t ne2  = core_traits_type::get_array()[2];
 		static constexpr uint64_t ne3  = core_traits_type::get_array()[3];
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01, const typename core_traits_type::input_02_type& input02, const typename core_traits_type::input_03_type& input03,
 			const typename core_traits_type::input_04_type& input04) {
 			if constexpr (blocks_per_element) {
@@ -2512,7 +2512,7 @@ namespace nihilus {
 			}
 		};
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01, const typename core_traits_type::input_02_type& input02, const typename core_traits_type::input_03_type& input03,
 			const typename core_traits_type::input_04_type& input04) {
 			if constexpr (blocks_per_element) {
@@ -2531,7 +2531,7 @@ namespace nihilus {
 			}
 		};
 
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
+		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02, const typename core_traits_type::input_03_type& input03, const typename core_traits_type::input_04_type& input04) {
 			const uint64_t ne01 = input01[1];
 			const uint64_t ne11 = input02[1];
@@ -2576,7 +2576,7 @@ namespace nihilus {
 		static constexpr uint64_t ne2  = core_traits_type::get_array()[2];
 		static constexpr uint64_t ne3  = core_traits_type::get_array()[3];
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01, const typename core_traits_type::input_02_type& input02, const typename core_traits_type::input_03_type& input03) {
 			if constexpr (blocks_per_element) {
 				const uint64_t elements_per_block_count{};
@@ -2594,7 +2594,7 @@ namespace nihilus {
 			}
 		};
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01, const typename core_traits_type::input_02_type& input02, const typename core_traits_type::input_03_type& input03) {
 			if constexpr (blocks_per_element) {
 				const uint64_t blocks_per_element_count{};
@@ -2612,7 +2612,7 @@ namespace nihilus {
 			}
 		};
 
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
+		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02, const typename core_traits_type::input_03_type& input03) {
 			const uint64_t ne01 = input01[1];
 			const uint64_t ne11 = input02[1];
@@ -2656,7 +2656,7 @@ namespace nihilus {
 		static constexpr uint64_t ne2  = core_traits_type::get_array()[2];
 		static constexpr uint64_t ne3  = core_traits_type::get_array()[3];
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_block(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01, const typename core_traits_type::input_02_type& input02, const typename core_traits_type::input_03_type& input03) {
 			if constexpr (blocks_per_element) {
 				const uint64_t elements_per_block_count{};
@@ -2674,7 +2674,7 @@ namespace nihilus {
 			}
 		};
 
-		template<bool blocks_per_element> NIHILUS_INLINE static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
+		template<bool blocks_per_element> NIHILUS_HOST static void produce_single_element(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output,
 			const typename core_traits_type::input_01_type& input01, const typename core_traits_type::input_02_type& input02, const typename core_traits_type::input_03_type& input03) {
 			if constexpr (blocks_per_element) {
 				const uint64_t blocks_per_element_count{};
@@ -2692,7 +2692,7 @@ namespace nihilus {
 			}
 		};
 
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
+		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02, const typename core_traits_type::input_03_type& input03) {
 			const uint64_t ne01 = input01[1];
 			const uint64_t ne11 = input02[1];
@@ -2723,7 +2723,7 @@ namespace nihilus {
 	template<uint64_t size_new>
 		requires(size_new > 0 && size_new < 4)
 	struct vec_add_rms_norm_f32<size_new> {
-		NIHILUS_INLINE static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z, const float scale) {
+		NIHILUS_HOST static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z, const float scale) {
 			for (uint64_t i = 0; i < size_new; ++i) {
 				const float added = x[i] + z[i];
 				y[i]			  = added * scale;
@@ -2734,7 +2734,7 @@ namespace nihilus {
 	template<uint64_t size_new>
 		requires(size_new == 4)
 	struct vec_add_rms_norm_f32<size_new> {
-		NIHILUS_INLINE static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z, const float scale) {
+		NIHILUS_HOST static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z, const float scale) {
 			const __m128 scale_vec = _mm_set1_ps(scale);
 			__m128 ax0			   = _mm_load_ps(x);
 			__m128 az0			   = _mm_load_ps(z);
@@ -2747,7 +2747,7 @@ namespace nihilus {
 	template<uint64_t size_new>
 		requires(size_new > 4 && size_new < 8)
 	struct vec_add_rms_norm_f32<size_new> {
-		NIHILUS_INLINE static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z, const float scale) {
+		NIHILUS_HOST static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z, const float scale) {
 			vec_add_rms_norm_f32<4>::impl(y, x, z, scale);
 
 			constexpr uint64_t remainder = size_new - 8ULL;
@@ -2760,7 +2760,7 @@ namespace nihilus {
 	template<uint64_t size_new>
 		requires(size_new == 8)
 	struct vec_add_rms_norm_f32<size_new> {
-		NIHILUS_INLINE static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z, const float scale) {
+		NIHILUS_HOST static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z, const float scale) {
 			const __m256 scale_vec = _mm256_set1_ps(scale);
 			__m256 ax0			   = _mm256_load_ps(x);
 			__m256 az0			   = _mm256_load_ps(z);
@@ -2773,7 +2773,7 @@ namespace nihilus {
 	template<uint64_t size_new>
 		requires(size_new > 8 && size_new < 16)
 	struct vec_add_rms_norm_f32<size_new> {
-		NIHILUS_INLINE static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z, const float scale) {
+		NIHILUS_HOST static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z, const float scale) {
 			vec_add_rms_norm_f32<8>::impl(y, x, z, scale);
 
 			constexpr uint64_t remainder = size_new - 8ULL;
@@ -2786,7 +2786,7 @@ namespace nihilus {
 	template<uint64_t size_new>
 		requires(size_new == 16)
 	struct vec_add_rms_norm_f32<size_new> {
-		NIHILUS_INLINE static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z, const float scale) {
+		NIHILUS_HOST static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z, const float scale) {
 			const __m256 scale_vec = _mm256_set1_ps(scale);
 
 			__m256 ax0 = _mm256_load_ps(x);
@@ -2808,7 +2808,7 @@ namespace nihilus {
 	template<uint64_t size_new>
 		requires(size_new > 16 && size_new < Q_SIZE)
 	struct vec_add_rms_norm_f32<size_new> {
-		NIHILUS_INLINE static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z, const float scale) {
+		NIHILUS_HOST static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z, const float scale) {
 			vec_add_rms_norm_f32<16>::impl(y, x, z, scale);
 
 			constexpr uint64_t remainder = size_new - 16ULL;
@@ -2821,7 +2821,7 @@ namespace nihilus {
 	template<uint64_t size_new>
 		requires(size_new == Q_SIZE)
 	struct vec_add_rms_norm_f32<size_new> {
-		NIHILUS_INLINE static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z, const float scale) {
+		NIHILUS_HOST static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z, const float scale) {
 			const __m256 scale_vec = _mm256_set1_ps(scale);
 
 			__m256 ax0 = _mm256_load_ps(x);
@@ -2854,7 +2854,7 @@ namespace nihilus {
 	template<uint64_t size_new>
 		requires(size_new > Q_SIZE && size_new < 64)
 	struct vec_add_rms_norm_f32<size_new> {
-		NIHILUS_INLINE static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z, const float scale) {
+		NIHILUS_HOST static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z, const float scale) {
 			vec_add_rms_norm_f32<32>::impl(y, x, z, scale);
 
 			constexpr uint64_t remainder = size_new - 32ULL;
@@ -2867,7 +2867,7 @@ namespace nihilus {
 	template<uint64_t size_new>
 		requires(size_new == 64)
 	struct vec_add_rms_norm_f32<size_new> {
-		NIHILUS_INLINE static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z, const float scale) {
+		NIHILUS_HOST static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z, const float scale) {
 			const __m256 scale_vec = _mm256_set1_ps(scale);
 
 			for (uint64_t i = 0; i < 64ULL; i += 32ULL) {
@@ -2905,7 +2905,7 @@ namespace nihilus {
 	template<uint64_t size_new>
 		requires(size_new > 64)
 	struct vec_add_rms_norm_f32<size_new> {
-		NIHILUS_INLINE static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z, const float scale) {
+		NIHILUS_HOST static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z, const float scale) {
 			const __m256 scale_vec		 = _mm256_set1_ps(scale);
 			static constexpr uint64_t np = size_new & ~63ULL;
 			uint64_t i					 = 0;
@@ -2951,7 +2951,7 @@ namespace nihilus {
 		}
 	};
 
-	NIHILUS_INLINE float simd_sum_squares_add(const float* __restrict x_data, const float* __restrict z_data, uint64_t size) {
+	NIHILUS_HOST float simd_sum_squares_add(const float* __restrict x_data, const float* __restrict z_data, uint64_t size) {
 		__m256 sum_vec			= _mm256_setzero_ps();
 		const uint64_t simd_end = size & ~7ULL;
 
@@ -2983,7 +2983,7 @@ namespace nihilus {
 		using input_type01 = typename core_traits_type::input_01_type;
 		using input_type02 = typename core_traits_type::input_02_type;
 
-		template<bool is_power_of_2able> NIHILUS_INLINE static void process_tensor_elements(uint64_t thread_index, uint64_t thread_count, uint64_t ne01, uint64_t ne11,
+		template<bool is_power_of_2able> NIHILUS_HOST static void process_tensor_elements(uint64_t thread_index, uint64_t thread_count, uint64_t ne01, uint64_t ne11,
 			const float* __restrict src0_data, const float* __restrict src1_data, float* __restrict dst_data) {
 			static constexpr uint64_t ne00 = input_type01::get_array()[0];
 			static constexpr uint64_t ne02 = input_type01::get_array()[2];
@@ -3086,7 +3086,7 @@ namespace nihilus {
 			}
 		}
 
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
+		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02) {
 			const uint64_t ne01			   = input01[1];
 			static constexpr uint64_t ne02 = input_type01::get_array()[2];
@@ -3116,7 +3116,7 @@ namespace nihilus {
 	template<uint64_t size_new>
 		requires(size_new > 0 && size_new < 4)
 	struct vec_add_rms_norm_mul_q8_f32<size_new> {
-		NIHILUS_INLINE static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z, const float scale, const float* __restrict w_scales,
+		NIHILUS_HOST static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z, const float scale, const float* __restrict w_scales,
 			const int8_t* __restrict w_quants, uint64_t w_offset) {
 			for (uint64_t i = 0; i < size_new; ++i) {
 				const float added			   = x[i] + z[i];
@@ -3130,7 +3130,7 @@ namespace nihilus {
 	template<uint64_t size_new>
 		requires(size_new == 4)
 	struct vec_add_rms_norm_mul_q8_f32<size_new> {
-		NIHILUS_INLINE static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z, const float scale, const float* __restrict w_scales,
+		NIHILUS_HOST static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z, const float scale, const float* __restrict w_scales,
 			const int8_t* __restrict w_quants, uint64_t w_offset) {
 			const __m128 scale_vec = _mm_set1_ps(scale);
 
@@ -3156,7 +3156,7 @@ namespace nihilus {
 	template<uint64_t size_new>
 		requires(size_new > 4 && size_new < 8)
 	struct vec_add_rms_norm_mul_q8_f32<size_new> {
-		NIHILUS_INLINE static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z, const float scale, const float* __restrict w_scales,
+		NIHILUS_HOST static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z, const float scale, const float* __restrict w_scales,
 			const int8_t* __restrict w_quants, uint64_t w_offset) {
 			vec_add_rms_norm_mul_q8_f32<4>::impl(y, x, z, scale, w_scales, w_quants, w_offset);
 
@@ -3170,7 +3170,7 @@ namespace nihilus {
 	template<uint64_t size_new>
 		requires(size_new == 8)
 	struct vec_add_rms_norm_mul_q8_f32<size_new> {
-		NIHILUS_INLINE static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z, const float scale, const float* __restrict w_scales,
+		NIHILUS_HOST static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z, const float scale, const float* __restrict w_scales,
 			const int8_t* __restrict w_quants, uint64_t w_offset) {
 			const __m256 scale_vec = _mm256_set1_ps(scale);
 
@@ -3196,7 +3196,7 @@ namespace nihilus {
 	template<uint64_t size_new>
 		requires(size_new > 8 && size_new < 16)
 	struct vec_add_rms_norm_mul_q8_f32<size_new> {
-		NIHILUS_INLINE static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z, const float scale, const float* __restrict w_scales,
+		NIHILUS_HOST static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z, const float scale, const float* __restrict w_scales,
 			const int8_t* __restrict w_quants, uint64_t w_offset) {
 			vec_add_rms_norm_mul_q8_f32<8>::impl(y, x, z, scale, w_scales, w_quants, w_offset);
 
@@ -3210,7 +3210,7 @@ namespace nihilus {
 	template<uint64_t size_new>
 		requires(size_new == 16)
 	struct vec_add_rms_norm_mul_q8_f32<size_new> {
-		NIHILUS_INLINE static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z, const float scale, const float* __restrict w_scales,
+		NIHILUS_HOST static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z, const float scale, const float* __restrict w_scales,
 			const int8_t* __restrict w_quants, uint64_t w_offset) {
 			const __m256 scale_vec = _mm256_set1_ps(scale);
 
@@ -3249,7 +3249,7 @@ namespace nihilus {
 	template<uint64_t size_new>
 		requires(size_new > 16 && size_new < Q_SIZE)
 	struct vec_add_rms_norm_mul_q8_f32<size_new> {
-		NIHILUS_INLINE static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z, const float scale, const float* __restrict w_scales,
+		NIHILUS_HOST static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z, const float scale, const float* __restrict w_scales,
 			const int8_t* __restrict w_quants, uint64_t w_offset) {
 			vec_add_rms_norm_mul_q8_f32<16>::impl(y, x, z, scale, w_scales, w_quants, w_offset);
 
@@ -3263,7 +3263,7 @@ namespace nihilus {
 	template<uint64_t size_new>
 		requires(size_new == Q_SIZE)
 	struct vec_add_rms_norm_mul_q8_f32<size_new> {
-		NIHILUS_INLINE static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z, const float scale, const float* __restrict w_scales,
+		NIHILUS_HOST static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z, const float scale, const float* __restrict w_scales,
 			const int8_t* __restrict w_quants, uint64_t w_offset) {
 			const __m256 scale_vec	 = _mm256_set1_ps(scale);
 			const float block_scale	 = w_scales[w_offset / Q_SIZE];
@@ -3290,7 +3290,7 @@ namespace nihilus {
 	template<uint64_t size_new>
 		requires(size_new > Q_SIZE && size_new < 64)
 	struct vec_add_rms_norm_mul_q8_f32<size_new> {
-		NIHILUS_INLINE static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z, const float scale, const float* __restrict w_scales,
+		NIHILUS_HOST static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z, const float scale, const float* __restrict w_scales,
 			const int8_t* __restrict w_quants, uint64_t w_offset) {
 			vec_add_rms_norm_mul_q8_f32<Q_SIZE>::impl(y, x, z, scale, w_scales, w_quants, w_offset);
 
@@ -3304,7 +3304,7 @@ namespace nihilus {
 	template<uint64_t size_new>
 		requires(size_new == 64)
 	struct vec_add_rms_norm_mul_q8_f32<size_new> {
-		NIHILUS_INLINE static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z, const float scale, const float* __restrict w_scales,
+		NIHILUS_HOST static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z, const float scale, const float* __restrict w_scales,
 			const int8_t* __restrict w_quants, uint64_t w_offset) {
 			const __m256 scale_vec = _mm256_set1_ps(scale);
 
@@ -3340,7 +3340,7 @@ namespace nihilus {
 	template<uint64_t size_new>
 		requires(size_new > 64)
 	struct vec_add_rms_norm_mul_q8_f32<size_new> {
-		NIHILUS_INLINE static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z, const float scale, const float* __restrict w_scales,
+		NIHILUS_HOST static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z, const float scale, const float* __restrict w_scales,
 			const int8_t* __restrict w_quants, uint64_t w_offset) {
 			const __m256 scale_vec		 = _mm256_set1_ps(scale);
 			static constexpr uint64_t np = size_new & ~63ULL;
@@ -3385,7 +3385,7 @@ namespace nihilus {
 		}
 	};
 
-	NIHILUS_INLINE float simd_sum_squares_add_for_q8(const float* __restrict x_data, const float* __restrict z_data, uint64_t size) {
+	NIHILUS_HOST float simd_sum_squares_add_for_q8(const float* __restrict x_data, const float* __restrict z_data, uint64_t size) {
 		__m256 sum_vec			= _mm256_setzero_ps();
 		const uint64_t simd_end = size & ~7ULL;
 
@@ -3418,7 +3418,7 @@ namespace nihilus {
 		using input_type02 = typename core_traits_type::input_02_type;
 		using input_type03 = typename core_traits_type::input_03_type;
 
-		template<bool is_power_of_2able> NIHILUS_INLINE static void process_tensor_elements(uint64_t thread_index, uint64_t thread_count, uint64_t ne01, uint64_t ne11, uint64_t ne21,
+		template<bool is_power_of_2able> NIHILUS_HOST static void process_tensor_elements(uint64_t thread_index, uint64_t thread_count, uint64_t ne01, uint64_t ne11, uint64_t ne21,
 			const float* __restrict src0_data, const float* __restrict src1_data, const block_q8_0<half>* __restrict src2_data, float* __restrict dst_data) {
 			static constexpr uint64_t ne00 = input_type01::get_array()[0];
 			static constexpr uint64_t ne02 = input_type01::get_array()[2];
@@ -3564,7 +3564,7 @@ namespace nihilus {
 			}
 		}
 
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
+		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02, const typename core_traits_type::input_03_type& input03) {
 			const uint64_t ne01			   = input01[1];
 			static constexpr uint64_t ne02 = input_type01::get_array()[2];
@@ -3595,7 +3595,7 @@ namespace nihilus {
 		}
 	};
 
-	NIHILUS_INLINE float simd_sum_squares(const float* __restrict data, uint64_t size) {
+	NIHILUS_HOST float simd_sum_squares(const float* __restrict data, uint64_t size) {
 		__m256 sum_vec			= _mm256_setzero_ps();
 		const uint64_t simd_end = size & ~7ULL;
 
@@ -3623,7 +3623,7 @@ namespace nihilus {
 	template<uint64_t size_new>
 		requires(size_new > 0 && size_new < 4)
 	struct vec_scale_mul_f32<size_new> {
-		NIHILUS_INLINE static void impl(float* __restrict y, const float* __restrict x, const float scale, const float* __restrict z) {
+		NIHILUS_HOST static void impl(float* __restrict y, const float* __restrict x, const float scale, const float* __restrict z) {
 			for (uint64_t i = 0; i < size_new; ++i) {
 				y[i] = x[i] * scale * z[i];
 			}
@@ -3633,7 +3633,7 @@ namespace nihilus {
 	template<uint64_t size_new>
 		requires(size_new == 4)
 	struct vec_scale_mul_f32<size_new> {
-		NIHILUS_INLINE static void impl(float* __restrict y, const float* __restrict x, const float scale, const float* __restrict z) {
+		NIHILUS_HOST static void impl(float* __restrict y, const float* __restrict x, const float scale, const float* __restrict z) {
 			const __m128 scale_vec = _mm_set1_ps(scale);
 			__m128 ax0			   = _mm_load_ps(x);
 			__m128 az0			   = _mm_load_ps(z);
@@ -3646,7 +3646,7 @@ namespace nihilus {
 	template<uint64_t size_new>
 		requires(size_new > 4 && size_new < 8)
 	struct vec_scale_mul_f32<size_new> {
-		NIHILUS_INLINE static void impl(float* __restrict y, const float* __restrict x, const float scale, const float* __restrict z) {
+		NIHILUS_HOST static void impl(float* __restrict y, const float* __restrict x, const float scale, const float* __restrict z) {
 			vec_scale_mul_f32<4>::impl(y, x, scale, z);
 
 			constexpr uint64_t remainder = size_new - 8ULL;
@@ -3659,7 +3659,7 @@ namespace nihilus {
 	template<uint64_t size_new>
 		requires(size_new == 8)
 	struct vec_scale_mul_f32<size_new> {
-		NIHILUS_INLINE static void impl(float* __restrict y, const float* __restrict x, const float scale, const float* __restrict z) {
+		NIHILUS_HOST static void impl(float* __restrict y, const float* __restrict x, const float scale, const float* __restrict z) {
 			const __m256 scale_vec = _mm256_set1_ps(scale);
 			__m256 ax0			   = _mm256_load_ps(x);
 			__m256 az0			   = _mm256_load_ps(z);
@@ -3672,7 +3672,7 @@ namespace nihilus {
 	template<uint64_t size_new>
 		requires(size_new > 8 && size_new < 16)
 	struct vec_scale_mul_f32<size_new> {
-		NIHILUS_INLINE static void impl(float* __restrict y, const float* __restrict x, const float scale, const float* __restrict z) {
+		NIHILUS_HOST static void impl(float* __restrict y, const float* __restrict x, const float scale, const float* __restrict z) {
 			vec_scale_mul_f32<8>::impl(y, x, scale, z);
 
 			constexpr uint64_t remainder = size_new - 8ULL;
@@ -3685,7 +3685,7 @@ namespace nihilus {
 	template<uint64_t size_new>
 		requires(size_new == 16)
 	struct vec_scale_mul_f32<size_new> {
-		NIHILUS_INLINE static void impl(float* __restrict y, const float* __restrict x, const float scale, const float* __restrict z) {
+		NIHILUS_HOST static void impl(float* __restrict y, const float* __restrict x, const float scale, const float* __restrict z) {
 			const __m256 scale_vec = _mm256_set1_ps(scale);
 
 			__m256 ax0 = _mm256_load_ps(x);
@@ -3706,7 +3706,7 @@ namespace nihilus {
 	template<uint64_t size_new>
 		requires(size_new > 16 && size_new < Q_SIZE)
 	struct vec_scale_mul_f32<size_new> {
-		NIHILUS_INLINE static void impl(float* __restrict y, const float* __restrict x, const float scale, const float* __restrict z) {
+		NIHILUS_HOST static void impl(float* __restrict y, const float* __restrict x, const float scale, const float* __restrict z) {
 			vec_scale_mul_f32<16>::impl(y, x, scale, z);
 
 			constexpr uint64_t remainder = size_new - 16ULL;
@@ -3719,7 +3719,7 @@ namespace nihilus {
 	template<uint64_t size_new>
 		requires(size_new == Q_SIZE)
 	struct vec_scale_mul_f32<size_new> {
-		NIHILUS_INLINE static void impl(float* __restrict y, const float* __restrict x, const float scale, const float* __restrict z) {
+		NIHILUS_HOST static void impl(float* __restrict y, const float* __restrict x, const float scale, const float* __restrict z) {
 			const __m256 scale_vec = _mm256_set1_ps(scale);
 
 			__m256 ax0 = _mm256_load_ps(x);
@@ -3752,7 +3752,7 @@ namespace nihilus {
 	template<uint64_t size_new>
 		requires(size_new > Q_SIZE && size_new < 64)
 	struct vec_scale_mul_f32<size_new> {
-		NIHILUS_INLINE static void impl(float* __restrict y, const float* __restrict x, const float scale, const float* __restrict z) {
+		NIHILUS_HOST static void impl(float* __restrict y, const float* __restrict x, const float scale, const float* __restrict z) {
 			vec_scale_mul_f32<32>::impl(y, x, scale, z);
 
 			constexpr uint64_t remainder = size_new - 32ULL;
@@ -3765,7 +3765,7 @@ namespace nihilus {
 	template<uint64_t size_new>
 		requires(size_new == 64)
 	struct vec_scale_mul_f32<size_new> {
-		NIHILUS_INLINE static void impl(float* __restrict y, const float* __restrict x, const float scale, const float* __restrict z) {
+		NIHILUS_HOST static void impl(float* __restrict y, const float* __restrict x, const float scale, const float* __restrict z) {
 			const __m256 scale_vec = _mm256_set1_ps(scale);
 
 			for (uint64_t i = 0; i < 64ULL; i += 32ULL) {
@@ -3803,7 +3803,7 @@ namespace nihilus {
 	template<uint64_t size_new>
 		requires(size_new > 64)
 	struct vec_scale_mul_f32<size_new> {
-		NIHILUS_INLINE static void impl(float* __restrict y, const float* __restrict x, const float scale, const float* __restrict z) {
+		NIHILUS_HOST static void impl(float* __restrict y, const float* __restrict x, const float scale, const float* __restrict z) {
 			const __m256 scale_vec		 = _mm256_set1_ps(scale);
 			static constexpr uint64_t np = size_new & ~63ULL;
 			uint64_t i					 = 0;
@@ -3855,7 +3855,7 @@ namespace nihilus {
 		using input_type01 = typename core_traits_type::input_01_type;
 		using input_type02 = typename core_traits_type::input_02_type;
 
-		template<bool is_power_of_2able> NIHILUS_INLINE static void process_tensor_elements(uint64_t thread_index, uint64_t thread_count, uint64_t ne01, uint64_t ne11,
+		template<bool is_power_of_2able> NIHILUS_HOST static void process_tensor_elements(uint64_t thread_index, uint64_t thread_count, uint64_t ne01, uint64_t ne11,
 			const float* __restrict src0_data, const float* __restrict src1_data, float* __restrict dst_data) {
 			static constexpr uint64_t ne00 = input_type01::get_array()[0];
 			static constexpr uint64_t ne02 = input_type01::get_array()[2];
@@ -3956,7 +3956,7 @@ namespace nihilus {
 			}
 		}
 
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
+		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02) {
 			const uint64_t ne01			   = input01[1];
 			static constexpr uint64_t ne02 = input_type01::get_array()[2];
@@ -3986,7 +3986,7 @@ namespace nihilus {
 	template<uint64_t size_new>
 		requires(size_new > 0 && size_new < 8)
 	struct vec_mul_f32<size_new> {
-		NIHILUS_INLINE static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z) {
+		NIHILUS_HOST static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z) {
 			for (uint64_t i = 0; i < size_new; ++i) {
 				y[i] = x[i] * z[i];
 			}
@@ -3996,7 +3996,7 @@ namespace nihilus {
 	template<uint64_t size_new>
 		requires(size_new == 8)
 	struct vec_mul_f32<size_new> {
-		NIHILUS_INLINE static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z) {
+		NIHILUS_HOST static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z) {
 			__m256 ax0 = _mm256_load_ps(x);
 			__m256 az0 = _mm256_load_ps(z);
 			__m256 ay0 = _mm256_mul_ps(ax0, az0);
@@ -4007,7 +4007,7 @@ namespace nihilus {
 	template<uint64_t size_new>
 		requires(size_new > 8 && size_new < 16)
 	struct vec_mul_f32<size_new> {
-		NIHILUS_INLINE static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z) {
+		NIHILUS_HOST static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z) {
 			vec_mul_f32<8>::impl(y, x, z);
 
 			constexpr uint64_t remainder = size_new - 8ULL;
@@ -4020,7 +4020,7 @@ namespace nihilus {
 	template<uint64_t size_new>
 		requires(size_new == 16)
 	struct vec_mul_f32<size_new> {
-		NIHILUS_INLINE static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z) {
+		NIHILUS_HOST static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z) {
 			__m256 ax0 = _mm256_load_ps(x);
 			__m256 ax1 = _mm256_load_ps(x + 8);
 			__m256 az0 = _mm256_load_ps(z);
@@ -4037,7 +4037,7 @@ namespace nihilus {
 	template<uint64_t size_new>
 		requires(size_new > 16 && size_new < Q_SIZE)
 	struct vec_mul_f32<size_new> {
-		NIHILUS_INLINE static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z) {
+		NIHILUS_HOST static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z) {
 			vec_mul_f32<16>::impl(y, x, z);
 
 			constexpr uint64_t remainder = size_new - 16ULL;
@@ -4050,7 +4050,7 @@ namespace nihilus {
 	template<uint64_t size_new>
 		requires(size_new == Q_SIZE)
 	struct vec_mul_f32<size_new> {
-		NIHILUS_INLINE static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z) {
+		NIHILUS_HOST static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z) {
 			__m256 ax0 = _mm256_load_ps(x);
 			__m256 ax1 = _mm256_load_ps(x + 8);
 			__m256 ax2 = _mm256_load_ps(x + 16);
@@ -4076,7 +4076,7 @@ namespace nihilus {
 	template<uint64_t size_new>
 		requires(size_new > Q_SIZE && size_new < 64)
 	struct vec_mul_f32<size_new> {
-		NIHILUS_INLINE static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z) {
+		NIHILUS_HOST static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z) {
 			vec_mul_f32<32>::impl(y, x, z);
 
 			constexpr uint64_t remainder = size_new - 32ULL;
@@ -4089,7 +4089,7 @@ namespace nihilus {
 	template<uint64_t size_new>
 		requires(size_new == 64)
 	struct vec_mul_f32<size_new> {
-		NIHILUS_INLINE static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z) {
+		NIHILUS_HOST static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z) {
 			for (uint64_t i = 0; i < 64ULL; i += 32ULL) {
 				_mm_prefetch(static_cast<const char*>(x + i + 64ULL), _MM_HINT_T0);
 				_mm_prefetch(static_cast<const char*>(z + i + 64ULL), _MM_HINT_T0);
@@ -4120,7 +4120,7 @@ namespace nihilus {
 	template<uint64_t size_new>
 		requires(size_new > 64)
 	struct vec_mul_f32<size_new> {
-		NIHILUS_INLINE static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z) {
+		NIHILUS_HOST static void impl(float* __restrict y, const float* __restrict x, const float* __restrict z) {
 			const uint64_t np = size_new & ~63ULL;
 			uint64_t i		  = 0;
 
@@ -4166,7 +4166,7 @@ namespace nihilus {
 		using input_type01 = typename core_traits_type::input_01_type;
 		using input_type02 = typename core_traits_type::input_02_type;
 
-		template<bool is_power_of_2able> NIHILUS_INLINE static void process_tensor_elements(uint64_t thread_index, uint64_t thread_count, uint64_t nr, uint64_t ne01, uint64_t ne11,
+		template<bool is_power_of_2able> NIHILUS_HOST static void process_tensor_elements(uint64_t thread_index, uint64_t thread_count, uint64_t nr, uint64_t ne01, uint64_t ne11,
 			const float* __restrict src0_data, const float* __restrict src1_data, float* __restrict dst_data) {
 			static constexpr uint64_t ne00 = input_type01::get_array()[0];
 			static constexpr uint64_t ne02 = input_type01::get_array()[2];
@@ -4260,7 +4260,7 @@ namespace nihilus {
 			}
 		}
 
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
+		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02) {
 			static constexpr uint64_t ne00 = input_type01::get_array()[0];
 			const uint64_t ne01			   = input01[1];
@@ -4287,7 +4287,7 @@ namespace nihilus {
 		}
 	};
 
-	NIHILUS_INLINE static void dequantize_row_q8_0(const block_q8_0<half>* __restrict x, float* __restrict y, uint64_t k) {
+	NIHILUS_HOST static void dequantize_row_q8_0(const block_q8_0<half>* __restrict x, float* __restrict y, uint64_t k) {
 		static constexpr int64_t qk = Q_SIZE;
 
 		const uint64_t nb = k & ~(Q_SIZE - 1);
@@ -4306,7 +4306,7 @@ namespace nihilus {
 		: public kernel_base<kernel_types::get_rows, core_traits_type, float, block_q8_0<half>, int32_t> {
 		using input_type01 = core_traits_type::input_01_type;
 		using input_type02 = core_traits_type::input_02_type;
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
+		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02) {
 			static constexpr uint64_t ne00 = input_type01::get_array()[0];
 			const uint64_t ne01			   = input01[1];
@@ -4355,7 +4355,7 @@ namespace nihilus {
 		}
 	};
 
-	NIHILUS_INLINE static void vec_cpy_f32(const uint64_t n, float* __restrict y, const float* __restrict x) {
+	NIHILUS_HOST static void vec_cpy_f32(const uint64_t n, float* __restrict y, const float* __restrict x) {
 		const uint64_t np = n & ~(Q_SIZE - 1);
 		for (uint64_t i = 0; i < np; i += Q_SIZE) {
 			__m256 ax0 = _mm256_load_ps(x + i);
@@ -4375,7 +4375,7 @@ namespace nihilus {
 	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::get_rows, processing_phases::prompt_eval_time, core_traits_type, float, float, int32_t>
 		: public kernel_base<kernel_types::get_rows, core_traits_type, float, float, int32_t> {
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
+		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02) {
 			const uint64_t ne00 = input01[0];
 			const uint64_t ne01 = input01[1];
@@ -4415,7 +4415,7 @@ namespace nihilus {
 		}
 	};
 
-	NIHILUS_INLINE static half fp32_to_fp16_f16c(float f) {
+	NIHILUS_HOST static half fp32_to_fp16_f16c(float f) {
 		static constexpr float scale_to_inf	 = fp32_from_bits(0x77800000);
 		static constexpr float scale_to_zero = fp32_from_bits(0x08800000);
 		float base							 = (fabsf(f) * scale_to_inf) * scale_to_zero;
@@ -4436,7 +4436,7 @@ namespace nihilus {
 		return (sign >> 16) | (shl1_w > UINT32_C(0xFF000000) ? UINT16_C(0x7E00) : nonsign);
 	}
 
-	NIHILUS_INLINE void quantize_row_q8_0(const float* __restrict x, block_q8_0<half>* __restrict vy, int64_t k) {
+	NIHILUS_HOST void quantize_row_q8_0(const float* __restrict x, block_q8_0<half>* __restrict vy, int64_t k) {
 		const int64_t nb = k / Q_SIZE;
 
 		block_q8_0<half>* __restrict y = vy;
@@ -4488,42 +4488,42 @@ namespace nihilus {
 		}
 	}
 
-	NIHILUS_INLINE float unhalf(half d) {
+	NIHILUS_HOST float unhalf(half d) {
 		return fp16_to_fp32(d);
 	}
 
-	NIHILUS_INLINE __m256 madd(__m256 a, __m256 b, __m256 c) {
+	NIHILUS_HOST __m256 madd(__m256 a, __m256 b, __m256 c) {
 		return _mm256_fmadd_ps(a, b, c);
 	}
 
-	NIHILUS_INLINE float hsum(__m128 x) {
+	NIHILUS_HOST float hsum(__m128 x) {
 		x = _mm_add_ps(x, _mm_movehl_ps(x, x));
 		x = _mm_add_ss(x, _mm_movehdup_ps(x));
 		return _mm_cvtss_f32(x);
 	}
 
-	NIHILUS_INLINE float hsum(__m256 x) {
+	NIHILUS_HOST float hsum(__m256 x) {
 		return hsum(_mm_add_ps(_mm256_extractf128_ps(x, 1), _mm256_castps256_ps128(x)));
 	}
 
-	NIHILUS_INLINE static __m256 sum_i16_pairs_float(const __m256i x) {
+	NIHILUS_HOST static __m256 sum_i16_pairs_float(const __m256i x) {
 		const __m256i ones		   = _mm256_set1_epi16(1);
 		const __m256i summed_pairs = _mm256_madd_epi16(ones, x);
 		return _mm256_cvtepi32_ps(summed_pairs);
 	}
 
-	NIHILUS_INLINE static __m256 mul_sum_us8_pairs_float(const __m256i ax, const __m256i sy) {
+	NIHILUS_HOST static __m256 mul_sum_us8_pairs_float(const __m256i ax, const __m256i sy) {
 		const __m256i dot = _mm256_maddubs_epi16(ax, sy);
 		return sum_i16_pairs_float(dot);
 	}
 
-	NIHILUS_INLINE static __m256 mul_sum_i8_pairs_float(const __m256i x, const __m256i y) {
+	NIHILUS_HOST static __m256 mul_sum_i8_pairs_float(const __m256i x, const __m256i y) {
 		const __m256i ax = _mm256_sign_epi8(x, x);
 		const __m256i sy = _mm256_sign_epi8(y, x);
 		return mul_sum_us8_pairs_float(ax, sy);
 	}
 
-	NIHILUS_INLINE float hsum_float_8(const __m256 x) {
+	NIHILUS_HOST float hsum_float_8(const __m256 x) {
 		__m128 res = _mm256_extractf128_ps(x, 1);
 		res		   = _mm_add_ps(res, _mm256_castps256_ps128(x));
 		res		   = _mm_add_ps(res, _mm_movehl_ps(res, res));
@@ -4536,7 +4536,7 @@ namespace nihilus {
 	template<uint64_t n_blocks>
 		requires(n_blocks > 0 && n_blocks < 4)
 	struct vec_dot_q8_0_q8_0<n_blocks> {
-		NIHILUS_INLINE static void impl(float* __restrict s, const block_q8_0<half>* __restrict vx, const block_q8_0<half>* __restrict vy) {
+		NIHILUS_HOST static void impl(float* __restrict s, const block_q8_0<half>* __restrict vx, const block_q8_0<half>* __restrict vy) {
 			const block_q8_0<half>* __restrict x = vx;
 			const block_q8_0<half>* __restrict y = vy;
 			float sumf							 = 0.0f;
@@ -4555,7 +4555,7 @@ namespace nihilus {
 	template<uint64_t n_blocks>
 		requires(n_blocks == 4)
 	struct vec_dot_q8_0_q8_0<n_blocks> {
-		NIHILUS_INLINE static void impl(float* __restrict s, const block_q8_0<half>* __restrict vx, const block_q8_0<half>* __restrict vy) {
+		NIHILUS_HOST static void impl(float* __restrict s, const block_q8_0<half>* __restrict vx, const block_q8_0<half>* __restrict vy) {
 			const block_q8_0<half>* __restrict x = vx;
 			const block_q8_0<half>* __restrict y = vy;
 			__m256 acc							 = _mm256_setzero_ps();
@@ -4574,7 +4574,7 @@ namespace nihilus {
 	template<uint64_t n_blocks>
 		requires(n_blocks > 4 && n_blocks < 8)
 	struct vec_dot_q8_0_q8_0<n_blocks> {
-		NIHILUS_INLINE static void impl(float* __restrict s, const block_q8_0<half>* __restrict vx, const block_q8_0<half>* __restrict vy) {
+		NIHILUS_HOST static void impl(float* __restrict s, const block_q8_0<half>* __restrict vx, const block_q8_0<half>* __restrict vy) {
 			vec_dot_q8_0_q8_0<4>::impl(s, vx, vy);
 
 			static constexpr uint64_t remainder = n_blocks - 4;
@@ -4589,7 +4589,7 @@ namespace nihilus {
 	template<uint64_t n_blocks>
 		requires(n_blocks == 8)
 	struct vec_dot_q8_0_q8_0<n_blocks> {
-		NIHILUS_INLINE static void impl(float* __restrict s, const block_q8_0<half>* __restrict vx, const block_q8_0<half>* __restrict vy) {
+		NIHILUS_HOST static void impl(float* __restrict s, const block_q8_0<half>* __restrict vx, const block_q8_0<half>* __restrict vy) {
 			const block_q8_0<half>* __restrict x = vx;
 			const block_q8_0<half>* __restrict y = vy;
 			__m256 acc0							 = _mm256_setzero_ps();
@@ -4619,7 +4619,7 @@ namespace nihilus {
 	template<uint64_t n_blocks>
 		requires(n_blocks > 8 && n_blocks < 16)
 	struct vec_dot_q8_0_q8_0<n_blocks> {
-		NIHILUS_INLINE static void impl(float* __restrict s, const block_q8_0<half>* __restrict vx, const block_q8_0<half>* __restrict vy) {
+		NIHILUS_HOST static void impl(float* __restrict s, const block_q8_0<half>* __restrict vx, const block_q8_0<half>* __restrict vy) {
 			vec_dot_q8_0_q8_0<8>::impl(s, vx, vy);
 
 			static constexpr uint64_t remainder = n_blocks - 8;
@@ -4634,7 +4634,7 @@ namespace nihilus {
 	template<uint64_t n_blocks>
 		requires(n_blocks == 16)
 	struct vec_dot_q8_0_q8_0<n_blocks> {
-		NIHILUS_INLINE static void impl(float* __restrict s, const block_q8_0<half>* __restrict vx, const block_q8_0<half>* __restrict vy) {
+		NIHILUS_HOST static void impl(float* __restrict s, const block_q8_0<half>* __restrict vx, const block_q8_0<half>* __restrict vy) {
 			const block_q8_0<half>* __restrict x = vx;
 			const block_q8_0<half>* __restrict y = vy;
 			__m256 acc0							 = _mm256_setzero_ps();
@@ -4677,7 +4677,7 @@ namespace nihilus {
 	};
 
 	template<uint64_t remainder_blocks> struct process_remainder {
-		NIHILUS_INLINE static void impl(float* sum, const block_q8_0<half>* vx, const block_q8_0<half>* vy) {
+		NIHILUS_HOST static void impl(float* sum, const block_q8_0<half>* vx, const block_q8_0<half>* vy) {
 			if constexpr (remainder_blocks == 1) {
 				vec_dot_q8_0_q8_0<device_types::cpu, 1>::impl(sum, vx, vy);
 			} else if constexpr (remainder_blocks == 2) {
@@ -4715,7 +4715,7 @@ namespace nihilus {
 	template<uint64_t n_blocks>
 		requires(n_blocks > 16)
 	struct vec_dot_q8_0_q8_0<n_blocks> {
-		NIHILUS_INLINE static void impl(float* __restrict s, const block_q8_0<half>* __restrict vx, const block_q8_0<half>* __restrict vy) {
+		NIHILUS_HOST static void impl(float* __restrict s, const block_q8_0<half>* __restrict vx, const block_q8_0<half>* __restrict vy) {
 			static constexpr uint64_t chunk_size	   = 16;
 			static constexpr uint64_t total_chunks	   = (n_blocks + chunk_size - 1) / chunk_size;
 			static constexpr uint64_t remainder_blocks = n_blocks % chunk_size;
@@ -4746,7 +4746,7 @@ namespace nihilus {
 		}
 	};
 
-	NIHILUS_INLINE void vec_dot_q8_0_q8_0_impl(int64_t n, float* __restrict s, const block_q8_0<half>* __restrict vx, const block_q8_0<half>* __restrict vy) {
+	NIHILUS_HOST void vec_dot_q8_0_q8_0_impl(int64_t n, float* __restrict s, const block_q8_0<half>* __restrict vx, const block_q8_0<half>* __restrict vy) {
 		static constexpr int64_t qk = Q_SIZE;
 		const int64_t nb			= n / qk;
 
@@ -4784,7 +4784,7 @@ namespace nihilus {
 	template<uint64_t size_new>
 		requires(size_new > 0 && size_new < Q_SIZE)
 	struct vec_dot_q8_f32<size_new> {
-		NIHILUS_INLINE static float impl(const float* __restrict x, const block_q8_0<half>* __restrict y_blocks, uint64_t block_offset) {
+		NIHILUS_HOST static float impl(const float* __restrict x, const block_q8_0<half>* __restrict y_blocks, uint64_t block_offset) {
 			float sum = 0.0f;
 			for (uint64_t i = 0; i < size_new; ++i) {
 				const uint64_t block_idx = (block_offset + i) / Q_SIZE;
@@ -4800,7 +4800,7 @@ namespace nihilus {
 	template<uint64_t size_new>
 		requires(size_new == Q_SIZE)
 	struct vec_dot_q8_f32<size_new> {
-		NIHILUS_INLINE static float impl(const float* __restrict x, const block_q8_0<half>* __restrict y_blocks, uint64_t block_offset) {
+		NIHILUS_HOST static float impl(const float* __restrict x, const block_q8_0<half>* __restrict y_blocks, uint64_t block_offset) {
 			const uint64_t block_idx = block_offset / Q_SIZE;
 			const float scale		 = fp16_to_fp32(y_blocks[block_idx].d);
 
@@ -4817,7 +4817,7 @@ namespace nihilus {
 	template<uint64_t size_new>
 		requires(size_new > Q_SIZE && size_new < 64)
 	struct vec_dot_q8_f32<size_new> {
-		NIHILUS_INLINE static float impl(const float* __restrict x, const block_q8_0<half>* __restrict y_blocks, uint64_t block_offset) {
+		NIHILUS_HOST static float impl(const float* __restrict x, const block_q8_0<half>* __restrict y_blocks, uint64_t block_offset) {
 			float sum					 = vec_dot_q8_f32<Q_SIZE>::impl(x, y_blocks, block_offset);
 			constexpr uint64_t remainder = size_new - Q_SIZE;
 			if constexpr (remainder > 0) {
@@ -4830,7 +4830,7 @@ namespace nihilus {
 	template<uint64_t size_new>
 		requires(size_new >= 64)
 	struct vec_dot_q8_f32<size_new> {
-		NIHILUS_INLINE static float impl(const float* __restrict x, const block_q8_0<half>* __restrict y_blocks, uint64_t block_offset) {
+		NIHILUS_HOST static float impl(const float* __restrict x, const block_q8_0<half>* __restrict y_blocks, uint64_t block_offset) {
 			float sum					 = 0.0f;
 			static constexpr uint64_t np = size_new & ~(Q_SIZE - 1);
 			uint64_t i					 = 0;
@@ -4878,7 +4878,7 @@ namespace nihilus {
 		static constexpr int64_t dr0		 = (nr0 + nchunk0 - 1) / nchunk0;
 		static constexpr int64_t dr1		 = (nr1 + nchunk1 - 1) / nchunk1;
 
-		NIHILUS_INLINE static float scalar_dot_product_q8_f32(const float* __restrict input_vector,
+		NIHILUS_HOST static float scalar_dot_product_q8_f32(const float* __restrict input_vector,
 			const block_q8_0<half>* __restrict weight_row,
 			int64_t vector_size
 		) {
@@ -4906,7 +4906,7 @@ namespace nihilus {
 			return sum;
 		}
 
-		template<bool is_power_of_2able> NIHILUS_INLINE static int64_t process_tensor_elements(int64_t chunk_id, const float* __restrict src0_data,
+		template<bool is_power_of_2able> NIHILUS_HOST static int64_t process_tensor_elements(int64_t chunk_id, const float* __restrict src0_data,
 			const block_q8_0<half>* __restrict src1_data, float* __restrict dst_data, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02, core_traits_type& output) {
 			const uint64_t ne01		  = input01[1];
@@ -4965,7 +4965,7 @@ namespace nihilus {
 			return 1;
 		}
 
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, typename core_traits_type::input_01_type& input01,
+		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, typename core_traits_type::input_01_type& input01,
 			typename core_traits_type::input_02_type& input02) {
 			int64_t current_chunk = thread_index;
 
@@ -4978,7 +4978,7 @@ namespace nihilus {
 	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::mul_mat, processing_phases::eval_time, core_traits_type, float, block_q8_0<half>, float>
 		: public kernel_base<kernel_types::mul_mat, core_traits_type, float, block_q8_0<half>, float> {
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
+		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02) {
 			if (thread_index != 0)
 				return;
@@ -5009,7 +5009,7 @@ namespace nihilus {
 		using input_type01 = typename core_traits_type::input_01_type;
 		using input_type02 = typename core_traits_type::input_02_type;
 
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
+		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02) {
 			static constexpr uint64_t ne00	  = input_type01::get_array()[0];
 			static constexpr uint64_t ne01	  = input_type01::get_array()[1];
@@ -5057,7 +5057,7 @@ namespace nihilus {
 		using input_type01 = typename core_traits_type::input_01_type;
 		using input_type02 = typename core_traits_type::input_02_type;
 
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
+		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02) {
 			static constexpr uint64_t ne00 = input_type01::get_array()[0];
 			const uint64_t ne01			   = input01[1];
@@ -5120,7 +5120,7 @@ namespace nihilus {
 		using input_type01 = typename core_traits_type::input_01_type;
 		using input_type02 = typename core_traits_type::input_02_type;
 
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
+		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02) {
 			static constexpr uint64_t ne00 = input_type01::get_array()[0];
 			static constexpr uint64_t ne01 = input_type01::get_array()[1];
@@ -5198,7 +5198,7 @@ namespace nihilus {
 
 		static constexpr auto freq_table = make_freq_table<half_rope_dim>();
 
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
+		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02, const typename core_traits_type::input_03_type& input03) {
 			const float* __restrict src_data		  = input01.data;
 			const int32_t* pos_data					  = input02.data;
@@ -5264,7 +5264,7 @@ namespace nihilus {
 		: public kernel_base<kernel_types::copy, core_traits_type, float, float> {
 		using input_type01 = typename core_traits_type::input_01_type;
 
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01) {
+		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01) {
 			static constexpr uint64_t ne00 = input_type01::get_array()[0];
 			static constexpr uint64_t ne01 = input_type01::get_array()[1];
 			static constexpr uint64_t ne02 = input_type01::get_array()[2];
@@ -5287,7 +5287,7 @@ namespace nihilus {
 		: public kernel_base<kernel_types::cont, core_traits_type, float, float> {
 		using input_type01 = typename core_traits_type::input_01_type;
 
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01) {
+		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01) {
 			static constexpr uint64_t ne00 = input_type01::get_array()[0];
 			static constexpr uint64_t ne01 = input_type01::get_array()[1];
 			static constexpr uint64_t ne03 = input_type01::get_array()[3];
@@ -5324,14 +5324,14 @@ namespace nihilus {
 	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::silu, processing_phases::prompt_eval_time, core_traits_type, float, float>
 		: public kernel_base<kernel_types::silu, core_traits_type, float, float> {
-		NIHILUS_INLINE static void impl(int64_t, int64_t, int64_t, core_traits_type&, const typename core_traits_type::input_01_type&) {
+		NIHILUS_HOST static void impl(int64_t, int64_t, int64_t, core_traits_type&, const typename core_traits_type::input_01_type&) {
 		}
 	};
 
 	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::none, processing_phases::eval_time, core_traits_type, float, float, float>
 		: public kernel_base<kernel_types::none, core_traits_type, float, float, float> {
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
+		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02) {
 			if (thread_index != 0)
 				return;
@@ -5369,7 +5369,7 @@ namespace nihilus {
 	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::none, processing_phases::eval_time, core_traits_type, float, float, float, block_q8_0<half>>
 		: public kernel_base<kernel_types::none, core_traits_type, float, float, float, block_q8_0<half>> {
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
+		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02, const typename core_traits_type::input_03_type& input03) {
 			if (thread_index != 0)
 				return;
@@ -5425,7 +5425,7 @@ namespace nihilus {
 	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::rms_norm_mul_transpose, processing_phases::eval_time, core_traits_type, float, float, float>
 		: public kernel_base<kernel_types::rms_norm_mul_transpose, core_traits_type, float, float, float> {
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
+		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02) {
 			if (thread_index != 0)
 				return;
@@ -5459,7 +5459,7 @@ namespace nihilus {
 	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::mul, processing_phases::eval_time, core_traits_type, float, float, float>
 		: public kernel_base<kernel_types::mul, core_traits_type, float, float, float> {
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
+		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02) {
 			if (thread_index != 0)
 				return;
@@ -5488,7 +5488,7 @@ namespace nihilus {
 	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::get_rows, processing_phases::eval_time, core_traits_type, float, block_q8_0<half>, int32_t>
 		: public kernel_base<kernel_types::get_rows, core_traits_type, float, block_q8_0<half>, int32_t> {
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
+		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02) {
 			if (thread_index != 0)
 				return;
@@ -5502,7 +5502,7 @@ namespace nihilus {
 	template<const model_config& config, typename core_traits_type>
 	struct kernel_dispatcher_impl<config, core_traits_type, device_types::cpu, 1, kernel_types::get_rows, processing_phases::eval_time, core_traits_type, float, float, int32_t>
 		: public kernel_base<kernel_types::get_rows, core_traits_type, float, float, int32_t> {
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
+		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02) {
 			if (thread_index != 0)
 				return;
@@ -5518,7 +5518,7 @@ namespace nihilus {
 		using input_type01 = typename core_traits_type::input_01_type;
 		using input_type02 = typename core_traits_type::input_02_type;
 
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
+		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02) {
 		}
 	};
@@ -5529,7 +5529,7 @@ namespace nihilus {
 		using input_type01 = typename core_traits_type::input_01_type;
 		using input_type02 = typename core_traits_type::input_02_type;
 
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
+		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02) {
 		}
 	};
@@ -5540,7 +5540,7 @@ namespace nihilus {
 		using input_type01 = typename core_traits_type::input_01_type;
 		using input_type02 = typename core_traits_type::input_02_type;
 
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
+		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02) {
 		}
 	};
@@ -5604,7 +5604,7 @@ namespace nihilus {
 
 		static constexpr auto freq_table = make_freq_table<half_rope_dim>();
 
-		NIHILUS_INLINE static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
+		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02, const typename core_traits_type::input_03_type& input03) {
 			const float* __restrict src_data		  = input01.data;
 			const int32_t* pos_data					  = input02.data;

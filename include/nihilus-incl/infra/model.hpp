@@ -33,8 +33,8 @@ RealTimeChris (Chris M.)
 namespace nihilus {
 
 	struct model_base {
-		NIHILUS_INLINE model_base() noexcept = default;
-		NIHILUS_INLINE model_base(model_config config_new) : config{ config_new } {
+		NIHILUS_HOST model_base() noexcept = default;
+		NIHILUS_HOST model_base(model_config config_new) : config{ config_new } {
 		}
 		model_config config{};
 		virtual bool process_input(std::string_view params) = 0;
@@ -53,9 +53,9 @@ namespace nihilus {
 		using core_bases_traits_type = core_bases_traits<config_new>;
 		using tokenizer_type		 = tokenizer<config_new, config_new.model_arch, config_new.tokenizer_type>;
 
-		NIHILUS_INLINE model() noexcept = default;
+		NIHILUS_HOST model() noexcept = default;
 
-		NIHILUS_INLINE model(cli_params params) : thread_pool<config_new>{ static_cast<int64_t>(params.thread_count) }, model_base{ config_new } {
+		NIHILUS_HOST model(cli_params params) : thread_pool<config_new>{ static_cast<int64_t>(params.thread_count) }, model_base{ config_new } {
 			exec_params.token_count = params.n_tokens;
 			init(params);
 		}
@@ -63,7 +63,7 @@ namespace nihilus {
 		model& operator=(const model&) = delete;
 		model(const model&)			   = delete;
 
-		NIHILUS_INLINE bool process_input(std::string_view input) override {
+		NIHILUS_HOST bool process_input(std::string_view input) override {
 			input = input.size() > config_new.default_max_sequence_length ? input.substr(0, config_new.default_max_sequence_length) : input;
 			tokenizer_type::tokenize_init(
 				this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::inp_tokens>().data);
@@ -79,7 +79,7 @@ namespace nihilus {
 			return false;
 		}
 
-		NIHILUS_INLINE bool process_input() override {
+		NIHILUS_HOST bool process_input() override {
 			input_collector<config_new>::read_multiline();
 			tokenizer_type::tokenize_init(
 				this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::inp_tokens>().data);
@@ -96,7 +96,7 @@ namespace nihilus {
 			return true;
 		}
 
-		NIHILUS_INLINE void init(cli_params params) {
+		NIHILUS_HOST void init(cli_params params) {
 			std::cout << "(Nihilus) Total Bytes Required for Intermediate Tensors at Context Length Of: " << config.default_max_sequence_length << ": "
 					  << core_bases_traits_type::total_required_bytes.peak_allocated_bytes << std::endl;
 			memory.init(core_bases_traits_type::total_required_bytes.peak_allocated_bytes);
@@ -118,11 +118,11 @@ namespace nihilus {
 			}
 		}
 
-		NIHILUS_INLINE void deinit() {
+		NIHILUS_HOST void deinit() {
 			memory.deinit();
 		}
 
-		NIHILUS_INLINE void execute_model(const std::string_view input) {
+		NIHILUS_HOST void execute_model(const std::string_view input) {
 			static_cast<thread_pool<config_new>*>(this)->template execute_tasks<processing_phases::prompt_eval_time>(2);
 
 			if constexpr (config_new.dev) {
@@ -201,19 +201,19 @@ namespace nihilus {
 			}
 		}
 
-		NIHILUS_INLINE ~model() override {
+		NIHILUS_HOST ~model() override {
 			deinit();
 		}
 
 	  protected:
-		NIHILUS_INLINE int32_t sample_next_token() {
+		NIHILUS_HOST int32_t sample_next_token() {
 			//auto& result_output_tensor = get_core<core_types, core_types::result_output>();
 			//float* logits			   = static_cast<float*>(result_output_tensor.data);
 			//uint64_t vocab_size		   = model_traits_type::vocab_size;
 			return {};
 		}
 
-		NIHILUS_INLINE void generate_causal_mask() {
+		NIHILUS_HOST void generate_causal_mask() {
 			using core_type = detail::remove_cvref_t<
 				decltype(this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::kq_mask>())>;
 			using output_type = typename core_type::output_type;
@@ -234,7 +234,7 @@ namespace nihilus {
 			}
 		}
 
-		NIHILUS_INLINE void print_performance_stats() {
+		NIHILUS_HOST void print_performance_stats() {
 			if constexpr (config_new.benchmark || config_new.dev) {
 				int64_t total_time_ns =
 					static_cast<int64_t>(perf_base<config_new>::perf_stats.total_prompt_eval_time_ns) + static_cast<int64_t>(perf_base<config_new>::perf_stats.total_eval_time_ns);

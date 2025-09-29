@@ -31,7 +31,7 @@ RealTimeChris (Chris M.)
 namespace nihilus {
 
 #if NIHILUS_PLATFORM_WINDOWS
-	NIHILUS_INLINE static std::string format_win_error(DWORD error_code) {
+	NIHILUS_HOST static std::string format_win_error(DWORD error_code) {
 		LPSTR buffer = nullptr;
 		DWORD size	 = FormatMessageA(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, nullptr, error_code,
 			  MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), std::bit_cast<LPSTR>(&buffer), 0, nullptr);
@@ -53,9 +53,9 @@ namespace nihilus {
 
 	template<model_config config> class memory_mapped_file {
 	  public:
-		NIHILUS_INLINE explicit memory_mapped_file() noexcept = default;
+		NIHILUS_HOST explicit memory_mapped_file() noexcept = default;
 
-		NIHILUS_INLINE explicit memory_mapped_file(const std::string_view file_path_new, uint64_t file_offset = 0) {
+		NIHILUS_HOST explicit memory_mapped_file(const std::string_view file_path_new, uint64_t file_offset = 0) {
 			const std::string_view file_pathstr(file_path_new);
 #if NIHILUS_PLATFORM_WINDOWS
 			if (file_pathstr.empty()) {
@@ -197,11 +197,11 @@ namespace nihilus {
 #endif
 		}
 
-		NIHILUS_INLINE memory_mapped_file(memory_mapped_file&& other) noexcept {
+		NIHILUS_HOST memory_mapped_file(memory_mapped_file&& other) noexcept {
 			*this = detail::move(other);
 		}
 
-		NIHILUS_INLINE memory_mapped_file& operator=(memory_mapped_file&& other) noexcept {
+		NIHILUS_HOST memory_mapped_file& operator=(memory_mapped_file&& other) noexcept {
 			if (this != &other) {
 				std::swap(mapped_data, other.mapped_data);
 				std::swap(mapped_size, other.mapped_size);
@@ -222,15 +222,15 @@ namespace nihilus {
 		memory_mapped_file(const memory_mapped_file&)			 = delete;
 		memory_mapped_file& operator=(const memory_mapped_file&) = delete;
 
-		NIHILUS_INLINE void* data() const noexcept {
+		NIHILUS_HOST void* data() const noexcept {
 			return mapped_data;
 		}
 
-		NIHILUS_INLINE uint64_t size() const noexcept {
+		NIHILUS_HOST uint64_t size() const noexcept {
 			return mapped_size;
 		}
 
-		NIHILUS_INLINE ~memory_mapped_file() {
+		NIHILUS_HOST ~memory_mapped_file() {
 #if NIHILUS_CUDA_ENABLED
 			if (mapped_data) {
 				cudaHostUnregister(mapped_data);

@@ -36,7 +36,7 @@ namespace nihilus {
 		status,
 	};
 
-	template<log_levels level> NIHILUS_INLINE void log(const std::string_view string) {
+	template<log_levels level> NIHILUS_HOST void log(const std::string_view string) {
 		static std::mutex mutex_new{};
 		std::unique_lock<std::mutex> lock{ mutex_new };
 		if constexpr (level == log_levels::error) {
@@ -47,14 +47,14 @@ namespace nihilus {
 	}
 
 	template<auto config, string_literal error_type, const std::source_location& source_info> struct nihilus_exception {
-		NIHILUS_INLINE static void impl() {
+		NIHILUS_HOST static void impl() {
 			static constexpr uint64_t str_length{ str_len(source_info.file_name()) };
 			static constexpr string_literal return_value{ "Error: " + error_type + "\nIn File: " + string_literal<str_length>{ source_info.file_name() } +
 				"\nOn Line: " + to_string_literal<source_info.line()>() + "\n" };
 			log<log_levels::error>(return_value);
 			std::exit(-1);
 		}
-		NIHILUS_INLINE static void impl(const std::string_view input_string) {
+		NIHILUS_HOST static void impl(const std::string_view input_string) {
 			static constexpr uint64_t str_length{ str_len(source_info.file_name()) };
 			static constexpr string_literal return_value01{ "Error: " + error_type };
 			static constexpr string_literal return_value02{ "\nIn File: " + string_literal<str_length>{ source_info.file_name() } +
@@ -69,13 +69,13 @@ namespace nihilus {
 	template<auto config, string_literal error_type, const std::source_location& source_info>
 		requires(config.exceptions)
 	struct nihilus_exception<config, error_type, source_info> : public std::runtime_error {
-		NIHILUS_INLINE static void impl() {
+		NIHILUS_HOST static void impl() {
 			static constexpr uint64_t str_length{ str_len(source_info.file_name()) };
 			static constexpr string_literal return_value{ "Error: " + error_type + "\nIn File: " + string_literal<str_length>{ source_info.file_name() } +
 				"\nOn Line: " + to_string_literal<source_info.line()>() + "\n" };
 			throw nihilus_exception(static_cast<const std::string_view>(return_value));
 		}
-		NIHILUS_INLINE static void impl(const std::string_view input_string) {
+		NIHILUS_HOST static void impl(const std::string_view input_string) {
 			static constexpr uint64_t str_length{ str_len(source_info.file_name()) };
 			static constexpr string_literal return_value01{ "Error: " + error_type };
 			static constexpr string_literal return_value02{ "\nIn File: " + string_literal<str_length>{ source_info.file_name() } +

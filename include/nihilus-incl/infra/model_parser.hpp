@@ -108,10 +108,10 @@ namespace nihilus {
 		uint64_t length		   = 0;
 		bool valid			   = true;
 
-		NIHILUS_INLINE stream_iterator(memory_mapped_file<config>* s) : file(s), length{ file->size() } {
+		NIHILUS_HOST stream_iterator(memory_mapped_file<config>* s) : file(s), length{ file->size() } {
 		}
 
-		template<typename value_type> NIHILUS_INLINE value_type read() {
+		template<typename value_type> NIHILUS_HOST value_type read() {
 			char values[sizeof(value_type)];
 			std::copy_n(static_cast<char*>(file->data()) + current_index, sizeof(value_type), values);
 			value_type dst = std::bit_cast<value_type>(values);
@@ -119,12 +119,12 @@ namespace nihilus {
 			return dst;
 		}
 
-		NIHILUS_INLINE bool map_pointer(void* dst, const uint64_t offset, uint64_t) {
+		NIHILUS_HOST bool map_pointer(void* dst, const uint64_t offset, uint64_t) {
 			*static_cast<void**>(dst) = static_cast<uint8_t*>(file->data()) + offset;
 			return true;
 		}
 
-		template<typename value_type = uint8_t> NIHILUS_INLINE bool has_bytes(uint64_t size = sizeof(value_type)) const {
+		template<typename value_type = uint8_t> NIHILUS_HOST bool has_bytes(uint64_t size = sizeof(value_type)) const {
 			return (current_index + size <= length);
 		}
 	};
@@ -138,10 +138,10 @@ namespace nihilus {
 		uint64_t length		   = 0;
 		bool valid			   = true;
 
-		NIHILUS_INLINE stream_iterator(memory_mapped_file<config>* s) : file(s), length{ file->size() } {
+		NIHILUS_HOST stream_iterator(memory_mapped_file<config>* s) : file(s), length{ file->size() } {
 		}
 
-		template<typename value_type> NIHILUS_INLINE value_type read() {
+		template<typename value_type> NIHILUS_HOST value_type read() {
 			char values[sizeof(value_type)];
 			std::copy_n(static_cast<char*>(file->data()) + current_index, sizeof(value_type), values);
 			value_type dst = std::bit_cast<value_type>(values);
@@ -149,12 +149,12 @@ namespace nihilus {
 			return dst;
 		}
 
-		NIHILUS_INLINE bool map_pointer(void* dst, const uint64_t offset, uint64_t count = 0) {
+		NIHILUS_HOST bool map_pointer(void* dst, const uint64_t offset, uint64_t count = 0) {
 			memory_transfer<config>::host_to_device(static_cast<uint8_t*>(file->data()) + offset, static_cast<uint8_t*>(*static_cast<void**>(dst)), count);
 			return true;
 		}
 
-		template<typename value_type = uint8_t> NIHILUS_INLINE bool has_bytes(uint64_t size = sizeof(value_type)) const {
+		template<typename value_type = uint8_t> NIHILUS_HOST bool has_bytes(uint64_t size = sizeof(value_type)) const {
 			return (current_index + size <= length);
 		}
 	};
@@ -165,7 +165,7 @@ namespace nihilus {
 	template<model_config config, typename value_type>
 		requires(( std::is_standard_layout_v<value_type> && std::is_trivial_v<value_type> && !std::is_enum_v<value_type> ) || std::is_same_v<gguf_metadata_value_type, value_type>)
 	struct value_reader<config, value_type> {
-		NIHILUS_INLINE static value_type gather_value(stream_iterator<config>& input) {
+		NIHILUS_HOST static value_type gather_value(stream_iterator<config>& input) {
 			if (input.template has_bytes<value_type>()) {
 				return input.template read<value_type>();
 			} else {
@@ -179,7 +179,7 @@ namespace nihilus {
 	template<typename enum_type> struct string_to_enum;
 
 	template<> struct string_to_enum<tokenizer_types> {
-		NIHILUS_INLINE static tokenizer_types impl(std::string_view value) {
+		NIHILUS_HOST static tokenizer_types impl(std::string_view value) {
 			if (string_literal_comparitor<"gpt2">::impl(value.data())) {
 				return tokenizer_types::bpe;
 			}
@@ -189,7 +189,7 @@ namespace nihilus {
 	};
 
 	template<> struct string_to_enum<tokenizer_pre_types> {
-		NIHILUS_INLINE static tokenizer_pre_types impl(std::string_view value) {
+		NIHILUS_HOST static tokenizer_pre_types impl(std::string_view value) {
 			if (string_literal_comparitor<"default">::impl(value.data())) {
 				return tokenizer_pre_types::default_pre;
 			}
@@ -288,7 +288,7 @@ namespace nihilus {
 	template<model_config config, typename value_type>
 		requires(std::is_enum_v<value_type> && !std::is_same_v<gguf_metadata_value_type, value_type>)
 	struct value_reader<config, value_type> {
-		NIHILUS_INLINE static value_type gather_value(stream_iterator<config>& input) {
+		NIHILUS_HOST static value_type gather_value(stream_iterator<config>& input) {
 			uint64_t length = value_reader<config, uint64_t>::gather_value(input);
 			if (!input.template has_bytes<uint8_t>(length)) {
 				static constexpr auto location = std::source_location::current();
@@ -304,7 +304,7 @@ namespace nihilus {
 	template<model_config config, typename value_type>
 		requires(is_specialization_v<value_type, std::unordered_map>)
 	struct value_reader<config, value_type> {
-		NIHILUS_INLINE static value_type gather_value(stream_iterator<config>& input) {
+		NIHILUS_HOST static value_type gather_value(stream_iterator<config>& input) {
 			value_reader<config, gguf_metadata_value_type>::gather_value(input);
 			uint64_t length{ value_reader<config, uint64_t>::gather_value(input) };
 			constexpr uint64_t max_array_length = 1024 * 1024;
@@ -324,7 +324,7 @@ namespace nihilus {
 	template<model_config config, typename value_type>
 		requires(is_specialization_v<value_type, aligned_vector>)
 	struct value_reader<config, value_type> {
-		NIHILUS_INLINE static value_type gather_value(stream_iterator<config>& input) {
+		NIHILUS_HOST static value_type gather_value(stream_iterator<config>& input) {
 			value_reader<config, gguf_metadata_value_type>::gather_value(input);
 			uint64_t length{ value_reader<config, uint64_t>::gather_value(input) };
 			constexpr uint64_t max_array_length = 1024 * 1024;
@@ -344,7 +344,7 @@ namespace nihilus {
 	using gguf_string_t = std::string_view;
 
 	template<model_config config> struct value_reader<config, gguf_string_t> {
-		NIHILUS_INLINE static std::string_view gather_value(stream_iterator<config>& input) {
+		NIHILUS_HOST static std::string_view gather_value(stream_iterator<config>& input) {
 			uint64_t length = value_reader<config, uint64_t>::gather_value(input);
 			if (!input.template has_bytes<uint8_t>(length)) {
 				static constexpr auto location = std::source_location::current();
@@ -416,7 +416,7 @@ namespace nihilus {
 	template<typename value_type01, typename value_type02>
 	concept is_comparable = requires() { value_type01{} != value_type02{}; };
 
-	template<typename value_type01, is_comparable<value_type01> value_type02> NIHILUS_INLINE bool compare_equal(const value_type01& value01, const value_type02& value02) noexcept {
+	template<typename value_type01, is_comparable<value_type01> value_type02> NIHILUS_HOST bool compare_equal(const value_type01& value01, const value_type02& value02) noexcept {
 		if constexpr (std::is_floating_point_v<value_type01>) {
 			constexpr value_type01 epsilon = std::numeric_limits<value_type01>::epsilon() * 10;
 			return std::abs(value01 - value02) <= epsilon;
@@ -431,7 +431,7 @@ namespace nihilus {
 		template<uint64_t index> using member_type_t =
 			std::remove_reference_t<decltype(get_member<get<index>(parse_core<value_type>::parse_value).member_ptr>(std::declval<value_type&>()))>;
 
-		template<uint64_t index> NIHILUS_INLINE static void process_index(value_type& value, std::string_view string, stream_iterator<config>& stream) {
+		template<uint64_t index> NIHILUS_HOST static void process_index(value_type& value, std::string_view string, stream_iterator<config>& stream) {
 			static constexpr auto tupleElem	 = get<index>(parse_core<value_type>::parse_value);
 			static constexpr auto string_lit = tupleElem.name;
 			static constexpr auto ptrNew	 = tupleElem.member_ptr;
@@ -464,7 +464,7 @@ namespace nihilus {
 
 	template<model_config config, uint64_t current_index = 0, uint64_t max_index = 10, typename enum_type>
 		requires(std::is_same_v<gguf_metadata_value_type, enum_type>)
-	NIHILUS_INLINE void skip_unknown_value(stream_iterator<config>& input, enum_type type) {
+	NIHILUS_HOST void skip_unknown_value(stream_iterator<config>& input, enum_type type) {
 		switch (static_cast<uint64_t>(type)) {
 			case static_cast<uint64_t>(enum_type::uint8):
 			case static_cast<uint64_t>(enum_type::int8):
@@ -541,7 +541,7 @@ namespace nihilus {
 	}
 
 	template<model_config config> struct value_reader<config, gguf_metadata<config>> {
-		NIHILUS_INLINE static gguf_metadata<config> gather_value(stream_iterator<config>& input) {
+		NIHILUS_HOST static gguf_metadata<config> gather_value(stream_iterator<config>& input) {
 			gguf_metadata<config> value{};
 			uint32_t magic = value_reader<config, uint32_t>::gather_value(input);
 			if (magic != 0x46554747) {
@@ -583,7 +583,7 @@ namespace nihilus {
 	template<model_config config>
 		requires(config.model_arch == model_arches::llama)
 	struct string_to_op_type<config> {
-		NIHILUS_INLINE static weight_types impl(std::string_view input) noexcept {
+		NIHILUS_HOST static weight_types impl(std::string_view input) noexcept {
 			if (string_literal_comparitor<"token_embd.weight">::impl(input.data())) {
 				return weight_types::token_embd;
 			}
@@ -653,11 +653,11 @@ namespace nihilus {
 		uint64_t offset{};
 		data_types type{};
 
-		NIHILUS_INLINE uint64_t total_dims() const {
+		NIHILUS_HOST_DEVICE uint64_t total_dims() const {
 			return dimensions[0] * dimensions[1] * dimensions[2] * dimensions[3];
 		}
 
-		NIHILUS_INLINE uint64_t total_byte_size() const {
+		NIHILUS_HOST_DEVICE uint64_t total_byte_size() const {
 			uint64_t total_elements = total_dims();
 			uint64_t block_size_val = block_size();
 			uint64_t type_size_val	= type_size();
@@ -665,16 +665,16 @@ namespace nihilus {
 			return num_blocks * type_size_val;
 		}
 
-		template<core_traits_types op_traits> NIHILUS_INLINE bool operator==(const op_traits&) const {
+		template<core_traits_types op_traits> NIHILUS_HOST bool operator==(const op_traits&) const {
 			static constexpr auto other_dims = op_traits::get_array();
 			return dimensions[0] == other_dims[0] && dimensions[1] == other_dims[1] && dimensions[2] == other_dims[2] && dimensions[3] == other_dims[3];
 		}
 
-		NIHILUS_INLINE uint64_t block_size() const {
+		NIHILUS_HOST uint64_t block_size() const {
 			return get_type_traits(type).block_size;
 		}
 
-		NIHILUS_INLINE uint64_t type_size() const {
+		NIHILUS_HOST uint64_t type_size() const {
 			return get_type_traits(type).type_size;
 		}
 	};
@@ -682,7 +682,7 @@ namespace nihilus {
 	template<model_config, model_arches> struct core_traits_comparitor;
 
 	template<model_config config> struct core_traits_comparitor<config, model_arches::llama> {
-		NIHILUS_INLINE static bool impl(const core_base_creation_data& parse_core) noexcept {
+		NIHILUS_HOST static bool impl(const core_base_creation_data& parse_core) noexcept {
 			switch (static_cast<uint64_t>(parse_core.op_type)) {
 				case static_cast<uint64_t>(weight_types::token_embd): {
 					return parse_core == typename core_traits<config, core_types::weights>::token_embd_weight_type{};
@@ -730,7 +730,7 @@ namespace nihilus {
 		}
 	};
 
-	NIHILUS_INLINE constexpr uint64_t parse_number(std::string_view str) noexcept {
+	NIHILUS_HOST constexpr uint64_t parse_number(std::string_view str) noexcept {
 		int64_t result = 0;
 		for (char c: str) {
 			if (c >= '0' && c <= '9') {
@@ -742,7 +742,7 @@ namespace nihilus {
 		return static_cast<uint64_t>(result);
 	}
 
-	NIHILUS_INLINE uint64_t extract_layer_number(std::string_view name) noexcept {
+	NIHILUS_HOST uint64_t extract_layer_number(std::string_view name) noexcept {
 		if NIHILUS_LIKELY (name[0] == 'b' && name.starts_with("blk.")) {
 			uint64_t start = 4;
 			uint64_t end   = name.find('.', start);
@@ -761,7 +761,7 @@ namespace nihilus {
 	}
 
 	template<model_config config> struct value_reader<config, core_base_creation_data> {
-		NIHILUS_INLINE static core_base_creation_data gather_value(stream_iterator<config>& input) {
+		NIHILUS_HOST static core_base_creation_data gather_value(stream_iterator<config>& input) {
 			core_base_creation_data value{};
 			std::string_view name{ value_reader<config, std::string_view>::gather_value(input) };
 			value.op_type					  = string_to_op_type<config>::impl(name);
@@ -787,15 +787,15 @@ namespace nihilus {
 		}
 	};
 
-	NIHILUS_INLINE bool operator<(const core_base_creation_data& lhs, const core_base_creation_data& rhs) noexcept {
+	NIHILUS_HOST bool operator<(const core_base_creation_data& lhs, const core_base_creation_data& rhs) noexcept {
 		return lhs.layer_number < rhs.layer_number;
 	}
 
-	NIHILUS_INLINE void sort_tensor_infos(aligned_vector<core_base_creation_data>& tensor_infos) noexcept {
+	NIHILUS_HOST void sort_tensor_infos(aligned_vector<core_base_creation_data>& tensor_infos) noexcept {
 		sort<sort_methods::less_than, aligned_vector<core_base_creation_data>::value_type>::impl(tensor_infos.data(), tensor_infos.size());
 	}
 
-	NIHILUS_INLINE uint64_t align_offset(uint64_t offset, uint64_t alignment) {
+	NIHILUS_HOST uint64_t align_offset(uint64_t offset, uint64_t alignment) {
 		alignment = alignment == 0 ? 1 : alignment;
 		return offset + (alignment - (offset % alignment)) % alignment;
 	}
@@ -807,7 +807,7 @@ namespace nihilus {
 	struct model_parser_impl<config> {
 		using model_traits_type = model_traits<config.model_arch, config.model_size, config.model_generation>;
 		static_assert((std::endian::native == std::endian::little), "Sorry, but big-endian is not yet supported by the library");
-		template<typename tokenizer_type> NIHILUS_INLINE static gguf_metadata<config> parse_model(std::string_view model_path,
+		template<typename tokenizer_type> NIHILUS_HOST static gguf_metadata<config> parse_model(std::string_view model_path,
 			array<array<void*, model_traits_type::block_count>, weight_types::count>& data, optional<memory_mapped_file<config>>& metadata_file,
 			optional<memory_mapped_file<config>>& memory_file, tokenizer_type& tokenizer) {
 			metadata_file = memory_mapped_file<config>{ model_path };
@@ -850,7 +850,7 @@ namespace nihilus {
 	template<model_config config> struct model_parser {
 		using model_traits_type = model_traits<config.model_arch, config.model_size, config.model_generation>;
 
-		template<typename tokenizer_type> NIHILUS_INLINE static gguf_metadata<config> parse_model(std::string_view model_path,
+		template<typename tokenizer_type> NIHILUS_HOST static gguf_metadata<config> parse_model(std::string_view model_path,
 			array<array<void*, model_traits_type::block_count>, weight_types::count>& data, optional<memory_mapped_file<config>>& metadata_file,
 			optional<memory_mapped_file<config>>& memory_file, tokenizer_type& tokenizer) {
 			return model_parser_impl<config>::parse_model(model_path, data, metadata_file, memory_file, tokenizer);

@@ -75,23 +75,23 @@ namespace nihilus::detail {
 
 	template<typename value_type> using remove_cvref_t = remove_cvref<remove_const_t<value_type>>::type;
 
-	template<typename value_01_type, convertible_to<value_01_type> value_02_type> NIHILUS_INLINE constexpr value_01_type max(value_01_type val01, value_02_type val02) noexcept {
+	template<typename value_01_type, convertible_to<value_01_type> value_02_type> NIHILUS_HOST constexpr value_01_type max(value_01_type val01, value_02_type val02) noexcept {
 		return val01 > static_cast<remove_cvref_t<value_01_type>>(val02) ? val01 : static_cast<remove_cvref_t<value_01_type>>(val02);
 	}
 
-	template<typename value_01_type, convertible_to<value_01_type> value_02_type> NIHILUS_INLINE constexpr value_01_type min(value_01_type val01, value_02_type val02) noexcept {
+	template<typename value_01_type, convertible_to<value_01_type> value_02_type> NIHILUS_HOST constexpr value_01_type min(value_01_type val01, value_02_type val02) noexcept {
 		return val01 < static_cast<remove_cvref_t<value_01_type>>(val02) ? val01 : static_cast<remove_cvref_t<value_01_type>>(val02);
 	}
 
-	template<typename value_type> NIHILUS_INLINE constexpr decltype(auto) forward(value_type& arg) noexcept {
+	template<typename value_type> NIHILUS_HOST constexpr decltype(auto) forward(value_type& arg) noexcept {
 		return static_cast<value_type&&>(arg);
 	}
 
-	template<typename value_type> NIHILUS_INLINE constexpr decltype(auto) forward(value_type&& arg) noexcept {
+	template<typename value_type> NIHILUS_HOST constexpr decltype(auto) forward(value_type&& arg) noexcept {
 		return static_cast<value_type&&>(arg);
 	}
 
-	template<typename value_type> NIHILUS_INLINE constexpr decltype(auto) move(value_type&& arg) noexcept {
+	template<typename value_type> NIHILUS_HOST constexpr decltype(auto) move(value_type&& arg) noexcept {
 		return static_cast<std::remove_reference_t<value_type>&&>(arg);
 	}
 

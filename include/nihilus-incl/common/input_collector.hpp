@@ -32,25 +32,25 @@ namespace nihilus {
 		size_t current_length = 0;
 
 	  public:
-		NIHILUS_INLINE input_collector() {
+		NIHILUS_HOST input_collector() {
 			buffer.resize(config.default_max_sequence_length);
 			terminate();
 		}
 
-		NIHILUS_INLINE std::string_view get_view() const noexcept {
+		NIHILUS_HOST std::string_view get_view() const noexcept {
 			return std::string_view(buffer.data(), current_length);
 		}
 
-		NIHILUS_INLINE void clear() noexcept {
+		NIHILUS_HOST void clear() noexcept {
 			current_length = 0;
 			terminate();
 		}
 
-		NIHILUS_INLINE void terminate() noexcept {
+		NIHILUS_HOST void terminate() noexcept {
 			buffer[current_length] = '\0';
 		}
 
-		NIHILUS_INLINE bool read_multiline() noexcept {
+		NIHILUS_HOST bool read_multiline() noexcept {
 			int32_t c;
 			bool last_was_newline = false;
 
@@ -86,27 +86,27 @@ namespace nihilus {
 		atomic_flag_wrapper<uint64_t> out_signal{};
 
 	  public:
-		NIHILUS_INLINE input_collector() {
+		NIHILUS_HOST input_collector() {
 			buffer.resize(config.default_max_sequence_length);
 			terminate();
 		}
 
-		NIHILUS_INLINE void clear() noexcept {
+		NIHILUS_HOST void clear() noexcept {
 			current_length = 0;
 			terminate();
 		}
 
-		NIHILUS_INLINE void terminate() noexcept {
+		NIHILUS_HOST void terminate() noexcept {
 			if (current_length < config.default_max_sequence_length) {
 				buffer[current_length] = '\0';
 			}
 		}
 
-		NIHILUS_INLINE uint64_t remaining_length() noexcept {
+		NIHILUS_HOST uint64_t remaining_length() noexcept {
 			return (config.default_max_sequence_length - current_length) - 1;
 		}
 
-		NIHILUS_INLINE uint64_t write_input(const char* string, uint64_t length) noexcept {
+		NIHILUS_HOST uint64_t write_input(const char* string, uint64_t length) noexcept {
 			if (in_signal.test() != 1) {
 				return 0;
 			}
@@ -120,7 +120,7 @@ namespace nihilus {
 			return length;
 		}
 
-		NIHILUS_INLINE std::string_view read_multiline() noexcept {
+		NIHILUS_HOST std::string_view read_multiline() noexcept {
 			if (in_signal.test() == 1) {
 				in_signal.wait();
 			}

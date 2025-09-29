@@ -35,28 +35,28 @@ namespace nihilus::benchmarking {
 		uint64_t cycle_start{};
 		bool started{};
 
-		NIHILUS_INLINE event_collector_type() : aligned_vector<event_count>{} {};
+		NIHILUS_HOST event_collector_type() : aligned_vector<event_count>{} {};
 
-		NIHILUS_INLINE void reset() {
+		NIHILUS_HOST void reset() {
 			started		  = false;
 			current_index = 0;
 		}
 
-		NIHILUS_INLINE operator bool() {
+		NIHILUS_HOST operator bool() {
 			return started;
 		}
 
-		NIHILUS_INLINE void start() {
+		NIHILUS_HOST void start() {
 			clock_start = clock_type::now();
 			cycle_start = __rdtsc();
 			return;
 		}
 
-		NIHILUS_INLINE performance_metrics operator*() {
+		NIHILUS_HOST performance_metrics operator*() {
 			return collect_metrics(std::span<event_count>{ aligned_vector<event_count>::data(), aligned_vector<event_count>::size() }, current_index);
 		}
 
-		NIHILUS_INLINE void end(uint64_t bytes_processed) {
+		NIHILUS_HOST void end(uint64_t bytes_processed) {
 			if (!started) {
 				started = true;
 			}

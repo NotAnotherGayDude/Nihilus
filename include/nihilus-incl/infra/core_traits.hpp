@@ -85,7 +85,7 @@ namespace nihilus {
 		using derived_type = derived_type_new;
 		mutable uint64_t total_required_bytes_rt{};
 
-		NIHILUS_INLINE constexpr decltype(auto) operator[](tag<index>) & noexcept {
+		NIHILUS_HOST constexpr decltype(auto) operator[](tag<index>) & noexcept {
 			return *static_cast<derived_type*>(this);
 		}
 	};
@@ -304,24 +304,40 @@ namespace nihilus {
 		static constexpr core_types core_type{ core_types::token_embeddings };
 		static constexpr const model_config& config{ config_new };
 		static constexpr uint64_t depth{ core_traits<config_new, static_cast<core_types>(static_cast<uint64_t>(core_types::token_embeddings) - 1)>::depth + 1 };
-		using enum_type	 = mega_qkv_prep_and_cache_publish_types;
-		using mt		 = model_traits_type<config_new>;
-		using prof		 = kernel_type_profile_traits<config_new.kernel_type_profile>;
-		using compute_t	 = typename prof::compute_type;
-		using kv_store_t = typename prof::kv_cache_type;
+		using enum_type	  = token_embeddings_types;
+		using mt		  = model_traits_type<config_new>;
+		using prof		  = kernel_type_profile_traits<config_new.kernel_type_profile>;
+		using compute_t	  = typename prof::compute_type;
+		using kv_store_t  = typename prof::kv_cache_type;
+		using weight_type = typename prof::weight_type;
+		using index_type  = typename prof::index_type;
+		using output_type = typename kernel_type_profile_traits<config_new.kernel_type_profile>::compute_type;
 
 		using input_01_type = typename core_traits<config_new, core_types::weights>::token_embd_weight_type;
 		using input_02_type = typename core_traits<config_new, core_types::global_inputs>::inp_tokens_type;
 
 		using input_embedding_kernel_traits = kernel_traits<config_new, get_new_dims_new_2_t<kernel_types::get_rows, input_01_type, input_02_type>, kernel_types::get_rows,
-			typename kernel_type_profile_traits<config_new.kernel_type_profile>::compute_type, input_01_type, input_02_type>;
+			output_type, input_01_type, input_02_type>;
 
-		using token_embeddings_type = op_traits<config_new, core_types::token_embeddings, token_embedding_types::get_rows, composite_kernel_types::get_rows,
+		using token_embeddings_type = op_traits<config_new, core_types::token_embeddings, token_embeddings_types::get_rows, composite_kernel_types::get_rows,
 			data_strategy_types::global, allocation_strategy_types::alloc, input_embedding_kernel_traits>;
 
 		using composite_ops = get_core_base_t<config_new, token_embeddings_type>;
 
 		composite_ops values{};
+
+		struct kernel_data_ptrs {
+			NIHILUS_ALIGN(16) const weight_type* weight_data;
+			NIHILUS_ALIGN(16) const index_type* token_ids;
+			NIHILUS_ALIGN(16) output_type* output_data;
+			NIHILUS_HOST void set_ptrs(output_type* output_data_new, const weight_type* weight_data_new, const index_type* token_ids_new) {
+				output_data = output_data_new;
+				weight_data = weight_data_new;
+				token_ids	= token_ids_new;
+			}
+		};
+
+		kernel_data_ptrs data_ptrs{};
 
 		static constexpr uint64_t total_required_bytes{ token_embeddings_type::total_required_bytes };
 		static constexpr bool has_total_required_bytes{ true };
@@ -405,6 +421,36 @@ namespace nihilus {
 
 		composite_ops values{};
 
+		struct kernel_data_ptrs {
+			NIHILUS_ALIGN(16) const compute_t* inp_embd_data;
+			NIHILUS_ALIGN(16) const compute_t* attn_norm_w_data;
+			NIHILUS_ALIGN(16) const typename prof::weight_type* attn_q_w_data;
+			NIHILUS_ALIGN(16) const typename prof::weight_type* attn_k_w_data;
+			NIHILUS_ALIGN(16) const typename prof::weight_type* attn_v_w_data;
+			NIHILUS_ALIGN(16) const typename prof::index_type* inp_pos_data;
+			NIHILUS_ALIGN(16) const compute_t* rope_freqs_data;
+			NIHILUS_ALIGN(16) kv_store_t* cache_k_data;
+			NIHILUS_ALIGN(16) kv_store_t* cache_v_data;
+			NIHILUS_ALIGN(16) compute_t* q_output_data;
+
+			NIHILUS_HOST void set_ptrs(compute_t* q_output_data_new, const compute_t* inp_embd_data_new, const compute_t* attn_norm_w_data_new,
+				const typename prof::weight_type* attn_q_w_data_new, const typename prof::weight_type* attn_k_w_data_new, const typename prof::weight_type* attn_v_w_data_new,
+				const typename prof::index_type* inp_pos_data_new, const compute_t* rope_freqs_data_new, kv_store_t* cache_k_data_new, kv_store_t* cache_v_data_new) {
+				q_output_data	 = q_output_data_new;
+				inp_embd_data	 = inp_embd_data_new;
+				attn_norm_w_data = attn_norm_w_data_new;
+				attn_q_w_data	 = attn_q_w_data_new;
+				attn_k_w_data	 = attn_k_w_data_new;
+				attn_v_w_data	 = attn_v_w_data_new;
+				inp_pos_data	 = inp_pos_data_new;
+				rope_freqs_data	 = rope_freqs_data_new;
+				cache_k_data	 = cache_k_data_new;
+				cache_v_data	 = cache_v_data_new;
+			}
+		};
+
+		kernel_data_ptrs data_ptrs{};
+
 		static constexpr uint64_t total_required_bytes{ q_out_type::total_required_bytes };
 		static constexpr bool has_total_required_bytes{ true };
 	};
@@ -463,6 +509,29 @@ namespace nihilus {
 
 		using composite_ops = get_core_base_t<config_new, ffn_inp_type>;
 		composite_ops values{};
+
+		struct kernel_data_ptrs {
+			NIHILUS_ALIGN(16) const compute_t* q_input_data;
+			NIHILUS_ALIGN(16) const kv_store_t* cache_k_data;
+			NIHILUS_ALIGN(16) const kv_store_t* cache_v_data;
+			NIHILUS_ALIGN(16) const compute_t* kq_mask_data;
+			NIHILUS_ALIGN(16) const typename prof::weight_type* attn_output_w_data;
+			NIHILUS_ALIGN(16) const compute_t* inp_embd_data;
+			NIHILUS_ALIGN(16) compute_t* ffn_inp_data;
+
+			NIHILUS_HOST void set_ptrs(compute_t* ffn_inp_data_new, const compute_t* q_input_data_new, const kv_store_t* cache_k_data_new, const kv_store_t* cache_v_data_new,
+				const compute_t* kq_mask_data_new, const typename prof::weight_type* attn_output_w_data_new, const compute_t* inp_embd_data_new) {
+				ffn_inp_data	   = ffn_inp_data_new;
+				q_input_data	   = q_input_data_new;
+				cache_k_data	   = cache_k_data_new;
+				cache_v_data	   = cache_v_data_new;
+				kq_mask_data	   = kq_mask_data_new;
+				attn_output_w_data = attn_output_w_data_new;
+				inp_embd_data	   = inp_embd_data_new;
+			}
+		};
+
+		kernel_data_ptrs data_ptrs{};
 
 		static constexpr uint64_t total_required_bytes{ ffn_inp_type::total_required_bytes };
 		static constexpr bool has_total_required_bytes{ true };
@@ -607,7 +676,7 @@ namespace nihilus {
 		using derived_type	   = core_traits<config_new, kernel_type>;
 		using thread_pool_type = thread_pool<config_new>;
 		using core_bases_type  = typename thread_pool<config_new>::core_bases_type;
-		NIHILUS_INLINE static auto& impl(auto& parse_core) {
+		NIHILUS_HOST static auto& impl(auto& parse_core) {
 			return *static_cast<derived_type*>(static_cast<core_bases_type*>(&parse_core));
 		}
 	};

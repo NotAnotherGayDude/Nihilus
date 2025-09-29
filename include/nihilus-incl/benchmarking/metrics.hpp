@@ -46,12 +46,12 @@ namespace nihilus::benchmarking {
 		uint64_t byes_processed{};
 		double timeInNs{};
 
-		NIHILUS_INLINE bool operator>(const performance_metrics& other) const {
+		NIHILUS_HOST bool operator>(const performance_metrics& other) const {
 			return throughput_mb_per_sec > other.throughput_mb_per_sec;
 		}
 	};
 
-	NIHILUS_INLINE static double calculate_throughput_mbps(double nanoseconds, double byes_processed) {
+	NIHILUS_HOST static double calculate_throughput_mbps(double nanoseconds, double byes_processed) {
 		constexpr double bytes_per_mb	= 1024.0 * 1024.0;
 		constexpr double nanosPerSecond = 1e9;
 		double megabytes				= byes_processed / bytes_per_mb;
@@ -62,11 +62,11 @@ namespace nihilus::benchmarking {
 		return megabytes / seconds;
 	}
 
-	NIHILUS_INLINE static double calculate_unitsps(double nanoseconds, double byes_processed) {
+	NIHILUS_HOST static double calculate_unitsps(double nanoseconds, double byes_processed) {
 		return (byes_processed * 1000000000.0) / nanoseconds;
 	}
 
-	NIHILUS_INLINE static performance_metrics collect_metrics(std::span<event_count>&& eventsNewer, size_t totalIterationCount) {
+	NIHILUS_HOST static performance_metrics collect_metrics(std::span<event_count>&& eventsNewer, size_t totalIterationCount) {
 		performance_metrics metrics{};
 		metrics.totalIterationCount.emplace(totalIterationCount);
 		double throughput{};
@@ -191,7 +191,7 @@ namespace nihilus::benchmarking {
 		{ opt.emplace(typename std::remove_cvref_t<metrics_type>::value_type{}) } -> std::same_as<typename std::remove_cvref_t<metrics_type>::value_type&>;
 	};
 
-	NIHILUS_INLINE static std::string printResults(const performance_metrics& metrics, uint64_t thread, const std::string_view kernel_name) {
+	NIHILUS_HOST static std::string printResults(const performance_metrics& metrics, uint64_t thread, const std::string_view kernel_name) {
 		std::stringstream stream{};
 		stream << "Performance Metrics: " << std::endl;
 		stream << "Metrics for: " << kernel_name << ", For Thread #" << std::to_string(thread) << std::endl;

@@ -128,7 +128,7 @@ namespace nihilus {
 		static constexpr uint64_t dim03{ dim03_new };
 		mutable uint64_t total_required_bytes{};
 
-		NIHILUS_INLINE static constexpr array<uint64_t, 4> get_array() {
+		NIHILUS_HOST static constexpr array<uint64_t, 4> get_array() {
 			return { { dim00_new, dim01_new, dim02_new, dim03_new } };
 		}
 	};
@@ -141,7 +141,7 @@ namespace nihilus {
 		static constexpr uint64_t dim03{ dim03_new };
 		mutable uint64_t total_required_bytes{};
 
-		NIHILUS_INLINE static constexpr array<uint64_t, 4> get_array() {
+		NIHILUS_HOST static constexpr array<uint64_t, 4> get_array() {
 			return { { dim00_new, dim01_new, dim02_new, dim03_new } };
 		}
 	};
@@ -156,15 +156,15 @@ namespace nihilus {
 
 		const uint64_t* dims[4]{ &dim00, &dim01, &dim02, &dim03 };
 
-		NIHILUS_INLINE static constexpr array<uint64_t, 4> get_array() {
+		NIHILUS_HOST static constexpr array<uint64_t, 4> get_array() {
 			return { { dim00_new, dim01_new, dim02_new, dim03_new } };
 		}
 
-		NIHILUS_INLINE array<uint64_t, 4> get_array_rt() {
+		NIHILUS_HOST array<uint64_t, 4> get_array_rt() {
 			return { { *dims[0], *dims[1], *dims[2], *dims[3] } };
 		}
 
-		NIHILUS_INLINE uint64_t& get_mutable_dim() const {
+		NIHILUS_HOST uint64_t& get_mutable_dim() const {
 			return dim00;
 		}
 	};
@@ -179,15 +179,15 @@ namespace nihilus {
 
 		const uint64_t* dims[4]{ &dim00, &dim01, &dim02, &dim03 };
 
-		NIHILUS_INLINE static constexpr array<uint64_t, 4> get_array() {
+		NIHILUS_HOST static constexpr array<uint64_t, 4> get_array() {
 			return { { dim00_new, dim01_new, dim02_new, dim03_new } };
 		}
 
-		NIHILUS_INLINE array<uint64_t, 4> get_array_rt() {
+		NIHILUS_HOST array<uint64_t, 4> get_array_rt() {
 			return { { *dims[0], *dims[1], *dims[2], *dims[3] } };
 		}
 
-		NIHILUS_INLINE uint64_t& get_mutable_dim() const {
+		NIHILUS_HOST uint64_t& get_mutable_dim() const {
 			return dim01;
 		}
 	};
@@ -202,15 +202,15 @@ namespace nihilus {
 
 		const uint64_t* dims[4]{ &dim00, &dim01, &dim02, &dim03 };
 
-		NIHILUS_INLINE static constexpr array<uint64_t, 4> get_array() {
+		NIHILUS_HOST static constexpr array<uint64_t, 4> get_array() {
 			return { { dim00_new, dim01_new, dim02_new, dim03_new } };
 		}
 
-		NIHILUS_INLINE array<uint64_t, 4> get_array_rt() {
+		NIHILUS_HOST array<uint64_t, 4> get_array_rt() {
 			return { { *dims[0], *dims[1], *dims[2], *dims[3] } };
 		}
 
-		NIHILUS_INLINE uint64_t& get_mutable_dim() const {
+		NIHILUS_HOST uint64_t& get_mutable_dim() const {
 			return dim02;
 		}
 	};
