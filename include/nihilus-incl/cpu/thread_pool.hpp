@@ -134,17 +134,17 @@ namespace nihilus {
 		benchmark_stats perf_stats{};
 	};
 
-	template<const model_config& config> struct thread_pool : public get_core_bases_t<config, core_types>, public perf_base<config> {
-		using core_bases_type											   = get_core_bases_t<config, core_types>;
-		NIHILUS_HOST thread_pool() noexcept							   = default;
+	template<const model_config& config> struct thread_pool : public get_core_bases_t<config>, public perf_base<config> {
+		using core_bases_type											 = get_core_bases_t<config>;
+		NIHILUS_HOST thread_pool() noexcept								 = default;
 		NIHILUS_HOST thread_pool& operator=(const thread_pool&) noexcept = delete;
-		NIHILUS_HOST thread_pool(const thread_pool&) noexcept			   = delete;
+		NIHILUS_HOST thread_pool(const thread_pool&) noexcept			 = delete;
 
 		NIHILUS_HOST thread_pool(int64_t thread_count_new) {
 			thread_count = thread_count_new;
 			threads.resize(static_cast<uint64_t>(thread_count));
 			thread_latch.init(static_cast<typename main_gate_latch::value_type>(thread_count_new));
-			if constexpr (config.benchmark ) {
+			if constexpr (config.benchmark) {
 				perf_base<config>::perf_stats.runtime_dimensions.resize(static_cast<uint64_t>(thread_count));
 			}
 
@@ -182,11 +182,6 @@ namespace nihilus {
 			processing_phase.store(phase_new);
 			core_bases_type::template impl<sync_resetter>(thread_count);
 			core_bases_type::template impl<dim_updater>(runtime_dimensions_new);
-			if constexpr (config.benchmark ) {
-				for (uint64_t x = 0; x < threads.size(); ++x) {
-					perf_base<config>::perf_stats.runtime_dimensions[x] = runtime_dimensions_new;
-				}
-			}
 			thread_latch.count_down();
 			thread_latch.main_wait();
 		}

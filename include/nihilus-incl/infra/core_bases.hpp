@@ -41,17 +41,9 @@ namespace nihilus {
 			(impl_internal_filtered_thread<mixin_type, bases, values...>(detail::forward<arg_types>(args)...), ...);
 		}
 
-		template<enum_types enum_type, enum_type enum_value> NIHILUS_HOST decltype(auto) get_core() noexcept {
+		template<enum_types core_types, core_types enum_value> NIHILUS_HOST decltype(auto) get_core() noexcept {
 			return (*this)[tag<enum_value>()];
 		}
-
-		template<enum_types enum_type, enum_type enum_value> NIHILUS_HOST static decltype(auto) get_core_static() noexcept {
-			return core_bases{}.template get_core<enum_type, enum_value>();
-		}
-
-		template<enum_types enum_type, enum_type enum_value> using core_base_type = decltype(get_core_static<enum_type, enum_value>());
-
-		core_bases* data_ptr{};
 
 	  protected:
 		template<template<const model_config&, typename> typename mixin_type, typename base_type, typename... arg_types>
@@ -73,43 +65,15 @@ namespace nihilus {
 		using type = core_bases<config, value_type...>;
 	};
 
-	template<const model_config& config, typename enum_type, size_t... index> struct get_core_bases<config, enum_type, std::index_sequence<index...>> {
-		using type = core_bases<config, core_traits<config, static_cast<enum_type>(index)>...>;
+	template<const model_config& config, size_t... index> struct get_core_bases<config, std::index_sequence<index...>> {
+		using type = core_bases<config, core_traits<config, static_cast<core_types>(index)>...>;
 	};
 
 	template<const model_config& config, typename... value_type> using get_core_base_t = typename get_core_bases<config, value_type...>::type;
 
-	template<const model_config& config, typename enum_type> using get_core_bases_t =
-		typename get_core_bases<config, enum_type, std::make_index_sequence<static_cast<uint64_t>(enum_type::count)>>::type;
+	template<const model_config& config> using get_core_bases_t = typename get_core_bases<config, std::make_index_sequence<static_cast<uint64_t>(core_types::count)>>::type;
 
-	template<const model_config& config, typename base_type>
-	NIHILUS_HOST void memory_mapper<config, base_type>::impl(base_type& parse_core, const memory_plan& plan, memory_buffer<config>& memory_buffer) {
-		uint64_t internal_offset{};
-		parse_core.values.template impl<memory_mapper_impl>(plan, memory_buffer, internal_offset);
-		if constexpr (static_cast<uint64_t>(base_type::core_type) == static_cast<uint64_t>(core_types::count) - 1 && config.device_type == device_types::gpu) {
-			using core_bases_t		 = get_core_bases_t<config, core_types>;
-			auto* core_bases_ptr	 = static_cast<core_bases_t*>(&parse_core);
-			core_bases_ptr->data_ptr = static_cast<core_bases_t*>(memory_buffer.claim_memory(plan.metadata_offset));
-			memory_transfer<config>::host_to_device(*core_bases_ptr, core_bases_ptr->data_ptr);
-		}
-		if constexpr (config.dev) {
-#if NIHILUS_CUDA_ENABLED
-			if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
-				static constexpr auto location = std::source_location::current();
-				nihilus_exception<config, "Cuda Error: ", location>::impl(cudaGetErrorString(err));
-			}
-#endif
-		}
-	}
-
-	template<const model_config& config> struct core_bases_traits {
-		static constexpr memory_plan total_required_bytes{ []() {
-			auto return_values{ get_memory_plan<config>() };
-			if constexpr (config.device_type == device_types::gpu) {
-				return_values.metadata_offset = return_values.currently_allocated_bytes;
-				return_values.currently_allocated_bytes += sizeof(get_core_bases_t<config, core_types>);
-			}
-			return return_values;
-		}() };
-	};
+	template<const model_config& config> static constexpr memory_plan core_bases_memory_plan{ []() {
+		return get_memory_plan<config>();
+	}() };
 }

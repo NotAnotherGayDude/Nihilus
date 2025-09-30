@@ -57,7 +57,7 @@ namespace nihilus {
 		NIHILUS_HOST memory_buffer() noexcept = default;
 
 		NIHILUS_HOST memory_buffer& operator=(const memory_buffer&) noexcept = delete;
-		NIHILUS_HOST memory_buffer(const memory_buffer&) noexcept			   = delete;
+		NIHILUS_HOST memory_buffer(const memory_buffer&) noexcept			 = delete;
 
 		NIHILUS_HOST memory_buffer& operator=(memory_buffer&& other) noexcept {
 			if (this != &other) {

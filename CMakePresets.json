@@ -70,7 +70,6 @@
       "inherits": "debug-base",
       "cacheVariables": {
         "VS_LLAMA_CUDA": true,
-        "NIHILUS_CUDA_ENABLED": true,
         "GGML_CUDA": true,
         "CMAKE_CUDA_ARCHITECTURES": "all-major",
         "LLAMA_CURL": "Off"
@@ -81,7 +80,6 @@
       "inherits": "release-base",
       "cacheVariables": {
         "VS_LLAMA_CUDA": true,
-        "NIHILUS_CUDA_ENABLED": true,
         "GGML_CUDA": true,
         "CMAKE_CUDA_ARCHITECTURES": "all-major",
         "LLAMA_CURL": "Off"

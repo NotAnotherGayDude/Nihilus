@@ -261,7 +261,7 @@ namespace nihilus {
 	concept pointer_types = std::is_pointer_v<value_type>;
 
 	template<typename value_type>
-	concept not_pointer_types = !std::is_pointer_v<value_type>;	
+	concept not_pointer_types = !std::is_pointer_v<value_type>;
 
 	template<typename value_type>
 	concept dim04_types = requires() { base_type<value_type>::w; };

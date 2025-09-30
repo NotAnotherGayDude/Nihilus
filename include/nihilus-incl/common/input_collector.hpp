@@ -117,7 +117,7 @@ namespace nihilus {
 			terminate();
 			in_signal.clear();
 			in_signal.notify_one();
-			return length;
+			return written_bytes;
 		}
 
 		NIHILUS_HOST std::string_view read_multiline() noexcept {

@@ -40,7 +40,7 @@ namespace nihilus {
 
 		inline static constexpr static_aligned_const length{ size_val > 0 ? size_val - 1 : 0 };
 
-		NIHILUS_HOST constexpr string_literal() noexcept = default;
+		NIHILUS_HOST constexpr string_literal() noexcept {}
 
 		NIHILUS_HOST constexpr string_literal(const char (&str)[size_val]) noexcept {
 			for (uint64_t x = 0; x < length; ++x) {
@@ -62,20 +62,6 @@ namespace nihilus {
 
 		NIHILUS_HOST constexpr pointer data() noexcept {
 			return values;
-		}
-
-		template<size_type sizeNew> NIHILUS_HOST constexpr auto operator+=(const string_literal<sizeNew>& str) const noexcept {
-			string_literal<sizeNew + size_val - 1> new_literal{};
-			std::copy(values, values + size(), new_literal.data());
-			std::copy(str.data(), str.data() + sizeNew, new_literal.data() + size());
-			return new_literal;
-		}
-
-		template<size_type sizeNew> NIHILUS_HOST constexpr auto operator+=(const value_type (&str)[sizeNew]) const noexcept {
-			string_literal<sizeNew + size_val - 1> new_literal{};
-			std::copy(values, values + size(), new_literal.data());
-			std::copy(str, str + sizeNew, new_literal.data() + size());
-			return new_literal;
 		}
 
 		template<size_type sizeNew> NIHILUS_HOST constexpr auto operator+(const string_literal<sizeNew>& str) const noexcept {
@@ -111,11 +97,11 @@ namespace nihilus {
 		}
 
 		template<typename string_types> NIHILUS_HOST constexpr operator string_types() const noexcept {
-			alignas(64) string_types return_values{ values, length };
+			string_types return_values{ values, length };
 			return return_values;
 		}
 
-		alignas(64) value_type values[size_val]{};
+		NIHILUS_ALIGN(64) value_type values[size_val] {};
 	};
 
 	template<uint64_t length> constexpr auto create_string_from_literal(const char (&string)[length]) {

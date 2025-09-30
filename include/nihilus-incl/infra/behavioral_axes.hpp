@@ -60,7 +60,6 @@ namespace nihilus {
 		array<core_traits_memory_footprint, core_types::count> footprints{};
 		uint64_t currently_allocated_bytes{};
 		uint64_t peak_allocated_bytes{};
-		uint64_t metadata_offset{};
 	};
 
 	template<device_types device_type> constexpr uint64_t base_index{ [] {
@@ -91,7 +90,7 @@ namespace nihilus {
 			}
 			if constexpr (current_index > 0) {
 				for (size_t x = 0; x < current_index; ++x) {
-					if (values.footprints[x].is_active && values.footprints[x].depth <= threshold && values.footprints[x].depth != std::numeric_limits<uint64_t>::max() ) {
+					if (values.footprints[x].is_active && values.footprints[x].depth <= threshold && values.footprints[x].depth != std::numeric_limits<uint64_t>::max()) {
 						values.footprints[x].is_active = false;
 						values.currently_allocated_bytes -= values.footprints[x].total_required_bytes;
 					}
@@ -106,13 +105,13 @@ namespace nihilus {
 	template<const model_config& config> struct thread_pool;
 
 	template<const model_config& config, typename base_type_new> struct memory_mapper_impl {
-		NIHILUS_HOST memory_mapper_impl() noexcept									 = default;
+		NIHILUS_HOST memory_mapper_impl() noexcept									   = default;
 		NIHILUS_HOST memory_mapper_impl& operator=(const memory_mapper_impl&) noexcept = delete;
-		NIHILUS_HOST memory_mapper_impl(const memory_mapper_impl&) noexcept			 = delete;
-		NIHILUS_HOST memory_mapper_impl& operator=(memory_mapper_impl&&) noexcept		 = delete;
-		NIHILUS_HOST memory_mapper_impl(memory_mapper_impl&&) noexcept				 = delete;
-		using base_type																	 = base_type_new;
-		using base_derived_type															 = typename base_type::derived_type;
+		NIHILUS_HOST memory_mapper_impl(const memory_mapper_impl&) noexcept			   = delete;
+		NIHILUS_HOST memory_mapper_impl& operator=(memory_mapper_impl&&) noexcept	   = delete;
+		NIHILUS_HOST memory_mapper_impl(memory_mapper_impl&&) noexcept				   = delete;
+		using base_type																   = base_type_new;
+		using base_derived_type														   = typename base_type::derived_type;
 		NIHILUS_HOST static constexpr bool filter() {
 			return has_total_required_bytes_types<base_derived_type>;
 		}
@@ -134,26 +133,29 @@ namespace nihilus {
 	};
 
 	template<const model_config& config, typename base_type_new> struct memory_mapper {
-		NIHILUS_HOST memory_mapper() noexcept								   = default;
+		NIHILUS_HOST memory_mapper() noexcept								 = default;
 		NIHILUS_HOST memory_mapper& operator=(const memory_mapper&) noexcept = delete;
-		NIHILUS_HOST memory_mapper(const memory_mapper&) noexcept			   = delete;
-		NIHILUS_HOST memory_mapper& operator=(memory_mapper&&) noexcept	   = delete;
-		NIHILUS_HOST memory_mapper(memory_mapper&&) noexcept				   = delete;
-		using base_type														   = base_type_new;
+		NIHILUS_HOST memory_mapper(const memory_mapper&) noexcept			 = delete;
+		NIHILUS_HOST memory_mapper& operator=(memory_mapper&&) noexcept		 = delete;
+		NIHILUS_HOST memory_mapper(memory_mapper&&) noexcept				 = delete;
+		using base_type														 = base_type_new;
 		NIHILUS_HOST static constexpr bool filter() {
 			return base_type::has_total_required_bytes;
 		}
 
-		NIHILUS_HOST static void impl(base_type& parse_core, const memory_plan& plan, memory_buffer<config>& memory_buffer);
+		NIHILUS_HOST static void impl(base_type& parse_core, const memory_plan& plan, memory_buffer<config>& memory_buffer) {
+			uint64_t internal_offset{};
+			parse_core.values.template impl<memory_mapper_impl>(plan, memory_buffer, internal_offset);
+		}
 	};
 
 	template<const model_config& config, typename base_type_new> struct tensor_debugger {
-		NIHILUS_HOST tensor_debugger() noexcept								   = default;
+		NIHILUS_HOST tensor_debugger() noexcept									 = default;
 		NIHILUS_HOST tensor_debugger& operator=(const tensor_debugger&) noexcept = delete;
-		NIHILUS_HOST tensor_debugger(const tensor_debugger&) noexcept			   = delete;
-		NIHILUS_HOST tensor_debugger& operator=(tensor_debugger&&) noexcept	   = delete;
-		NIHILUS_HOST tensor_debugger(tensor_debugger&&) noexcept				   = delete;
-		using base_type															   = base_type_new;
+		NIHILUS_HOST tensor_debugger(const tensor_debugger&) noexcept			 = delete;
+		NIHILUS_HOST tensor_debugger& operator=(tensor_debugger&&) noexcept		 = delete;
+		NIHILUS_HOST tensor_debugger(tensor_debugger&&) noexcept				 = delete;
+		using base_type															 = base_type_new;
 		NIHILUS_HOST static constexpr bool filter() {
 			return true;
 		}
@@ -163,12 +165,12 @@ namespace nihilus {
 	};
 
 	template<const model_config& config, typename base_type_new> struct sync_resetter {
-		NIHILUS_HOST sync_resetter() noexcept								   = default;
+		NIHILUS_HOST sync_resetter() noexcept								 = default;
 		NIHILUS_HOST sync_resetter& operator=(const sync_resetter&) noexcept = delete;
-		NIHILUS_HOST sync_resetter(const sync_resetter&) noexcept			   = delete;
-		NIHILUS_HOST sync_resetter& operator=(sync_resetter&&) noexcept	   = delete;
-		NIHILUS_HOST sync_resetter(sync_resetter&&) noexcept				   = delete;
-		using base_type														   = base_type_new;
+		NIHILUS_HOST sync_resetter(const sync_resetter&) noexcept			 = delete;
+		NIHILUS_HOST sync_resetter& operator=(sync_resetter&&) noexcept		 = delete;
+		NIHILUS_HOST sync_resetter(sync_resetter&&) noexcept				 = delete;
+		using base_type														 = base_type_new;
 		NIHILUS_HOST static constexpr bool filter() {
 			return has_chunk_types<base_type>;
 		}
@@ -190,12 +192,12 @@ namespace nihilus {
 	};
 
 	template<const model_config& config, typename base_type_new> struct dim_updater_impl {
-		NIHILUS_HOST dim_updater_impl() noexcept									 = default;
+		NIHILUS_HOST dim_updater_impl() noexcept								   = default;
 		NIHILUS_HOST dim_updater_impl& operator=(const dim_updater_impl&) noexcept = delete;
-		NIHILUS_HOST dim_updater_impl(const dim_updater_impl&) noexcept			 = delete;
-		NIHILUS_HOST dim_updater_impl& operator=(dim_updater_impl&&) noexcept		 = delete;
-		NIHILUS_HOST dim_updater_impl(dim_updater_impl&&) noexcept				 = delete;
-		using base_type																 = base_type_new;
+		NIHILUS_HOST dim_updater_impl(const dim_updater_impl&) noexcept			   = delete;
+		NIHILUS_HOST dim_updater_impl& operator=(dim_updater_impl&&) noexcept	   = delete;
+		NIHILUS_HOST dim_updater_impl(dim_updater_impl&&) noexcept				   = delete;
+		using base_type															   = base_type_new;
 		NIHILUS_HOST static constexpr bool filter() {
 			return runtime_dims_t<base_type>;
 		}
@@ -208,12 +210,12 @@ namespace nihilus {
 	};
 
 	template<const model_config& config, typename base_type_new> struct dim_updater {
-		NIHILUS_HOST dim_updater() noexcept							   = default;
+		NIHILUS_HOST dim_updater() noexcept								 = default;
 		NIHILUS_HOST dim_updater& operator=(const dim_updater&) noexcept = delete;
-		NIHILUS_HOST dim_updater(const dim_updater&) noexcept			   = delete;
-		NIHILUS_HOST dim_updater& operator=(dim_updater&&) noexcept	   = delete;
-		NIHILUS_HOST dim_updater(dim_updater&&) noexcept				   = delete;
-		using base_type													   = base_type_new;
+		NIHILUS_HOST dim_updater(const dim_updater&) noexcept			 = delete;
+		NIHILUS_HOST dim_updater& operator=(dim_updater&&) noexcept		 = delete;
+		NIHILUS_HOST dim_updater(dim_updater&&) noexcept				 = delete;
+		using base_type													 = base_type_new;
 		NIHILUS_HOST static constexpr bool filter() {
 			return has_total_required_bytes_types<base_type>;
 		}
@@ -226,12 +228,12 @@ namespace nihilus {
 	};
 
 	template<const model_config& config, typename base_type_new> struct weight_mapper_impl {
-		NIHILUS_HOST weight_mapper_impl() noexcept									 = default;
+		NIHILUS_HOST weight_mapper_impl() noexcept									   = default;
 		NIHILUS_HOST weight_mapper_impl& operator=(const weight_mapper_impl&) noexcept = delete;
-		NIHILUS_HOST weight_mapper_impl(const weight_mapper_impl&) noexcept			 = delete;
-		NIHILUS_HOST weight_mapper_impl& operator=(weight_mapper_impl&&) noexcept		 = delete;
-		NIHILUS_HOST weight_mapper_impl(weight_mapper_impl&&) noexcept				 = delete;
-		using base_type																	 = base_type_new;
+		NIHILUS_HOST weight_mapper_impl(const weight_mapper_impl&) noexcept			   = delete;
+		NIHILUS_HOST weight_mapper_impl& operator=(weight_mapper_impl&&) noexcept	   = delete;
+		NIHILUS_HOST weight_mapper_impl(weight_mapper_impl&&) noexcept				   = delete;
+		using base_type																   = base_type_new;
 		NIHILUS_HOST static constexpr bool filter() {
 			return std::is_same_v<typename base_type::enum_type, weight_types>;
 		}
@@ -254,12 +256,12 @@ namespace nihilus {
 	};
 
 	template<const model_config& config, typename base_type_new, processing_phases processing_phase> struct global_input_thread_function {
-		NIHILUS_HOST global_input_thread_function() noexcept												 = default;
+		NIHILUS_HOST global_input_thread_function() noexcept											   = default;
 		NIHILUS_HOST global_input_thread_function& operator=(const global_input_thread_function&) noexcept = delete;
-		NIHILUS_HOST global_input_thread_function(const global_input_thread_function&) noexcept			 = delete;
-		NIHILUS_HOST global_input_thread_function& operator=(global_input_thread_function&&) noexcept		 = delete;
-		NIHILUS_HOST global_input_thread_function(global_input_thread_function&&) noexcept				 = delete;
-		using base_type																						 = base_type_new;
+		NIHILUS_HOST global_input_thread_function(const global_input_thread_function&) noexcept			   = delete;
+		NIHILUS_HOST global_input_thread_function& operator=(global_input_thread_function&&) noexcept	   = delete;
+		NIHILUS_HOST global_input_thread_function(global_input_thread_function&&) noexcept				   = delete;
+		using base_type																					   = base_type_new;
 		NIHILUS_HOST static constexpr bool filter() {
 			return base_type::core_type == core_types::token_embeddings;
 		}
@@ -287,12 +289,12 @@ namespace nihilus {
 	};
 
 	template<const model_config& config, typename base_type_new, processing_phases processing_phase> struct per_block_thread_function {
-		NIHILUS_HOST per_block_thread_function() noexcept											   = default;
+		NIHILUS_HOST per_block_thread_function() noexcept											 = default;
 		NIHILUS_HOST per_block_thread_function& operator=(const per_block_thread_function&) noexcept = delete;
-		NIHILUS_HOST per_block_thread_function(const per_block_thread_function&) noexcept			   = delete;
-		NIHILUS_HOST per_block_thread_function& operator=(per_block_thread_function&&) noexcept	   = delete;
-		NIHILUS_HOST per_block_thread_function(per_block_thread_function&&) noexcept				   = delete;
-		using base_type																				   = base_type_new;
+		NIHILUS_HOST per_block_thread_function(const per_block_thread_function&) noexcept			 = delete;
+		NIHILUS_HOST per_block_thread_function& operator=(per_block_thread_function&&) noexcept		 = delete;
+		NIHILUS_HOST per_block_thread_function(per_block_thread_function&&) noexcept				 = delete;
+		using base_type																				 = base_type_new;
 		NIHILUS_HOST static constexpr bool filter() {
 			return base_type::core_type != core_types::weights && base_type::core_type != core_types::global_inputs &&
 				base_type::core_type != core_types::final_norm_and_sampling && base_type::core_type != core_types::token_embeddings;
@@ -321,12 +323,12 @@ namespace nihilus {
 	};
 
 	template<const model_config& config, typename base_type_new, processing_phases processing_phase> struct global_output_thread_function {
-		NIHILUS_HOST global_output_thread_function() noexcept												   = default;
+		NIHILUS_HOST global_output_thread_function() noexcept												 = default;
 		NIHILUS_HOST global_output_thread_function& operator=(const global_output_thread_function&) noexcept = delete;
-		NIHILUS_HOST global_output_thread_function(const global_output_thread_function&) noexcept			   = delete;
-		NIHILUS_HOST global_output_thread_function& operator=(global_output_thread_function&&) noexcept	   = delete;
-		NIHILUS_HOST global_output_thread_function(global_output_thread_function&&) noexcept				   = delete;
-		using base_type																						   = base_type_new;
+		NIHILUS_HOST global_output_thread_function(const global_output_thread_function&) noexcept			 = delete;
+		NIHILUS_HOST global_output_thread_function& operator=(global_output_thread_function&&) noexcept		 = delete;
+		NIHILUS_HOST global_output_thread_function(global_output_thread_function&&) noexcept				 = delete;
+		using base_type																						 = base_type_new;
 		NIHILUS_HOST static constexpr bool filter() {
 			return base_type::core_type == core_types::final_norm_and_sampling;
 		}

@@ -418,7 +418,7 @@ namespace nihilus {
 			case GGML_OP_GET_ROWS:
 				return kernel_types::get_rows;
 			case GGML_OP_RMS_NORM:
-				return kernel_types::none;
+				return kernel_types::weights;
 			case GGML_OP_MUL:
 				return kernel_types::mul;
 			case GGML_OP_MUL_MAT:
@@ -438,7 +438,7 @@ namespace nihilus {
 			case GGML_OP_SILU_BACK:
 				return kernel_types::silu;
 			default:
-				return kernel_types::none;
+				return kernel_types::weights;
 		}
 	}
 

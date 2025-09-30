@@ -225,7 +225,7 @@ namespace nihilus {
 
 	template<const model_config& config, typename dims_type, kernel_types kernel_type, typename output_type_new, typename... operand_types> struct kernel_traits;
 
-	template<const model_config& config, typename dims_type_new, typename output_type_new> struct kernel_traits<config, dims_type_new, kernel_types::none, output_type_new>
+	template<const model_config& config, typename dims_type_new, typename output_type_new> struct kernel_traits<config, dims_type_new, kernel_types::weights, output_type_new>
 		: public dims_type_new {
 		using output_type = output_type_new;
 		using dims_type	  = dims_type_new;
@@ -713,7 +713,7 @@ namespace nihilus {
 				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_02_type::runtime_dims>{};
 			} else if constexpr (kernel_type == kernel_types::sample_logits) {
 				return core_trait_dims<1, 1, 1, 1, 0>{};
-			} else if constexpr (kernel_type == kernel_types::none) {
+			} else if constexpr (kernel_type == kernel_types::weights) {
 				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_02_type::runtime_dims>{};
 			} else {
 				static_assert(static_assert_printer<false, get_new_dims_new_errors::unknown_kernel_type, dims_01_type, dims_02_type>::impl);
@@ -735,7 +735,7 @@ namespace nihilus {
 				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_01_type::runtime_dims>{};
 			} else if constexpr (kernel_type == kernel_types::frequency_penalty) {
 				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_01_type::runtime_dims>{};
-			} else if constexpr (kernel_type == kernel_types::none) {
+			} else if constexpr (kernel_type == kernel_types::weights) {
 				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_01_type::runtime_dims>{};
 			} else {
 				static_assert(static_assert_printer<false, get_new_dims_new_errors::unknown_kernel_type, dims_01_type, dims_02_type, dims_03_type>::impl);

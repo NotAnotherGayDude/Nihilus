@@ -84,7 +84,6 @@ namespace nihilus {
 	template<integral_or_enum_types auto index, typename derived_type_new> struct core_elem_base {
 		using derived_type = derived_type_new;
 		mutable uint64_t total_required_bytes_rt{};
-
 		NIHILUS_HOST constexpr decltype(auto) operator[](tag<index>) & noexcept {
 			return *static_cast<derived_type*>(this);
 		}
@@ -126,53 +125,48 @@ namespace nihilus {
 		: public core_elem_base<core_types::weights, core_traits<config_new, core_types::weights>> {
 		static constexpr core_types core_type{ core_types::weights };
 		static constexpr uint64_t depth{ std::numeric_limits<uint64_t>::max() };
-		using attn_q_weight_kernel_traits =
-			kernel_traits<config_new, core_trait_dims<model_traits_type<config_new>::embedding_length, model_traits_type<config_new>::embedding_length, 1, 1>, kernel_types::none,
-				typename kernel_type_profile_traits<config_new.kernel_type_profile>::weight_type>;
+		using kernel_profile_type = kernel_type_profile_traits<config_new.kernel_type_profile>;
+		using weight_type		  = typename kernel_profile_type::weight_type;
+		using norm_type			  = typename kernel_profile_type::norm_type;
 
-		using attn_k_weight_kernel_traits =
-			kernel_traits<config_new, core_trait_dims<model_traits_type<config_new>::embedding_length, model_traits_type<config_new>::n_embd_kv_gqa, 1, 1>, kernel_types::none,
-				typename kernel_type_profile_traits<config_new.kernel_type_profile>::weight_type>;
+		using attn_q_weight_kernel_traits = kernel_traits<config_new,
+			core_trait_dims<model_traits_type<config_new>::embedding_length, model_traits_type<config_new>::embedding_length, 1, 1>, kernel_types::weights, weight_type>;
 
-		using attn_v_weight_kernel_traits =
-			kernel_traits<config_new, core_trait_dims<model_traits_type<config_new>::embedding_length, model_traits_type<config_new>::n_embd_kv_gqa, 1, 1>, kernel_types::none,
-				typename kernel_type_profile_traits<config_new.kernel_type_profile>::weight_type>;
+		using attn_k_weight_kernel_traits = kernel_traits<config_new,
+			core_trait_dims<model_traits_type<config_new>::embedding_length, model_traits_type<config_new>::n_embd_kv_gqa, 1, 1>, kernel_types::weights, weight_type>;
 
-		using attn_output_weight_kernel_traits =
-			kernel_traits<config_new, core_trait_dims<model_traits_type<config_new>::embedding_length, model_traits_type<config_new>::embedding_length, 1, 1>, kernel_types::none,
-				typename kernel_type_profile_traits<config_new.kernel_type_profile>::weight_type>;
+		using attn_v_weight_kernel_traits = kernel_traits<config_new,
+			core_trait_dims<model_traits_type<config_new>::embedding_length, model_traits_type<config_new>::n_embd_kv_gqa, 1, 1>, kernel_types::weights, weight_type>;
 
-		using attn_norm_weight_kernel_traits = kernel_traits<config_new, core_trait_dims<model_traits_type<config_new>::embedding_length, 1, 1, 1>, kernel_types::none,
-			typename kernel_type_profile_traits<config_new.kernel_type_profile>::norm_type>;
+		using attn_output_weight_kernel_traits = kernel_traits<config_new,
+			core_trait_dims<model_traits_type<config_new>::embedding_length, model_traits_type<config_new>::embedding_length, 1, 1>, kernel_types::weights, weight_type>;
 
-		using ffn_gate_weight_kernel_traits =
-			kernel_traits<config_new, core_trait_dims<model_traits_type<config_new>::embedding_length, model_traits_type<config_new>::feed_forward_length, 1, 1>,
-				kernel_types::none, typename kernel_type_profile_traits<config_new.kernel_type_profile>::weight_type>;
+		using attn_norm_weight_kernel_traits =
+			kernel_traits<config_new, core_trait_dims<model_traits_type<config_new>::embedding_length, 1, 1, 1>, kernel_types::weights, norm_type>;
 
-		using ffn_up_weight_kernel_traits =
-			kernel_traits<config_new, core_trait_dims<model_traits_type<config_new>::embedding_length, model_traits_type<config_new>::feed_forward_length, 1, 1>,
-				kernel_types::none, typename kernel_type_profile_traits<config_new.kernel_type_profile>::weight_type>;
+		using ffn_gate_weight_kernel_traits = kernel_traits<config_new,
+			core_trait_dims<model_traits_type<config_new>::embedding_length, model_traits_type<config_new>::feed_forward_length, 1, 1>, kernel_types::weights, weight_type>;
 
-		using ffn_down_weight_kernel_traits =
-			kernel_traits<config_new, core_trait_dims<model_traits_type<config_new>::feed_forward_length, model_traits_type<config_new>::embedding_length, 1, 1>,
-				kernel_types::none, typename kernel_type_profile_traits<config_new.kernel_type_profile>::weight_type>;
+		using ffn_up_weight_kernel_traits = kernel_traits<config_new,
+			core_trait_dims<model_traits_type<config_new>::embedding_length, model_traits_type<config_new>::feed_forward_length, 1, 1>, kernel_types::weights, weight_type>;
 
-		using ffn_norm_weight_kernel_traits = kernel_traits<config_new, core_trait_dims<model_traits_type<config_new>::embedding_length, 1, 1, 1>, kernel_types::none,
-			typename kernel_type_profile_traits<config_new.kernel_type_profile>::norm_type>;
+		using ffn_down_weight_kernel_traits = kernel_traits<config_new,
+			core_trait_dims<model_traits_type<config_new>::feed_forward_length, model_traits_type<config_new>::embedding_length, 1, 1>, kernel_types::weights, weight_type>;
 
-		using token_embd_weight_kernel_traits =
-			kernel_traits<config_new, core_trait_dims<model_traits_type<config_new>::embedding_length, model_traits_type<config_new>::vocab_size, 1, 1>, kernel_types::none,
-				typename kernel_type_profile_traits<config_new.kernel_type_profile>::weight_type>;
+		using ffn_norm_weight_kernel_traits =
+			kernel_traits<config_new, core_trait_dims<model_traits_type<config_new>::embedding_length, 1, 1, 1>, kernel_types::weights, norm_type>;
 
-		using rope_freqs_weight_kernel_traits = kernel_traits<config_new, core_trait_dims<model_traits_type<config_new>::rope_dimension_count / 2, 1, 1, 1>, kernel_types::none,
-			typename kernel_type_profile_traits<config_new.kernel_type_profile>::norm_type>;
+		using token_embd_weight_kernel_traits = kernel_traits<config_new,
+			core_trait_dims<model_traits_type<config_new>::embedding_length, model_traits_type<config_new>::vocab_size, 1, 1>, kernel_types::weights, weight_type>;
 
-		using output_norm_weight_kernel_traits = kernel_traits<config_new, core_trait_dims<model_traits_type<config_new>::embedding_length, 1, 1, 1>, kernel_types::none,
-			typename kernel_type_profile_traits<config_new.kernel_type_profile>::norm_type>;
+		using rope_freqs_weight_kernel_traits =
+			kernel_traits<config_new, core_trait_dims<model_traits_type<config_new>::rope_dimension_count / 2, 1, 1, 1>, kernel_types::weights, norm_type>;
 
-		using output_weight_kernel_traits =
-			kernel_traits<config_new, core_trait_dims<model_traits_type<config_new>::embedding_length, model_traits_type<config_new>::vocab_size, 1, 1>, kernel_types::none,
-				typename kernel_type_profile_traits<config_new.kernel_type_profile>::weight_type>;
+		using output_norm_weight_kernel_traits =
+			kernel_traits<config_new, core_trait_dims<model_traits_type<config_new>::embedding_length, 1, 1, 1>, kernel_types::weights, norm_type>;
+
+		using output_weight_kernel_traits = kernel_traits<config_new,
+			core_trait_dims<model_traits_type<config_new>::embedding_length, model_traits_type<config_new>::vocab_size, 1, 1>, kernel_types::weights, weight_type>;
 
 		using attn_q_weight_type	  = op_traits<config_new, core_types::weights, weight_types::attn_q, composite_kernel_types::none, data_strategy_types::per_block,
 				 allocation_strategy_type<config_new.device_type>, attn_q_weight_kernel_traits>;
@@ -219,34 +213,37 @@ namespace nihilus {
 		: public core_elem_base<core_types::global_inputs, core_traits<config_new, core_types::global_inputs>> {
 		static constexpr core_types core_type{ core_types::global_inputs };
 		static constexpr uint64_t depth{ 0 };
-		using enum_type = global_input_types;
-		using mt		= model_traits_type<config_new>;
-		using prof		= kernel_type_profile_traits<config_new.kernel_type_profile>;
+		using enum_type			  = global_input_types;
+		using mtt				  = model_traits_type<config_new>;
+		using kernel_profile_type = kernel_type_profile_traits<config_new.kernel_type_profile>;
+		using weight_type		  = typename kernel_profile_type::weight_type;
+		using norm_type			  = typename kernel_profile_type::norm_type;
 
 		using inp_tokens_kernel_traits =
-			kernel_traits<config_new, core_trait_dims<config_new.default_max_sequence_length, 1, 1, 1, 0>, kernel_types::none, typename prof::input_token_type>;
+			kernel_traits<config_new, core_trait_dims<config_new.default_max_sequence_length, 1, 1, 1, 0>, kernel_types::weights, typename kernel_profile_type::input_token_type>;
 		using inp_pos_kernel_traits =
-			kernel_traits<config_new, core_trait_dims<config_new.default_max_sequence_length, 1, 1, 1, 0>, kernel_types::none, typename prof::position_type>;
-		using cache_k_kernel_traits = kernel_traits<config_new, core_trait_dims<config_new.default_max_sequence_length, mt::block_count, mt::n_embd_kv_gqa, 1, 0>,
-			kernel_types::none, typename prof::kv_cache_type>;
-		using cache_v_kernel_traits = kernel_traits<config_new, core_trait_dims<config_new.default_max_sequence_length, mt::block_count, mt::n_embd_kv_gqa, 1, 0>,
-			kernel_types::none, typename prof::kv_cache_type>;
-		using kq_mask_kernel_traits = kernel_traits<config_new, core_trait_dims<mt::block_count, mt::block_count, 1, 1>, kernel_types::none, typename prof::mask_type>;
+			kernel_traits<config_new, core_trait_dims<config_new.default_max_sequence_length, 1, 1, 1, 0>, kernel_types::weights, typename kernel_profile_type::position_type>;
+		using cache_k_kernel_traits = kernel_traits<config_new, core_trait_dims<config_new.default_max_sequence_length, mtt::block_count, mtt::n_embd_kv_gqa, 1, 0>,
+			kernel_types::weights, typename kernel_profile_type::kv_cache_type>;
+		using cache_v_kernel_traits = kernel_traits<config_new, core_trait_dims<config_new.default_max_sequence_length, mtt::block_count, mtt::n_embd_kv_gqa, 1, 0>,
+			kernel_types::weights, typename kernel_profile_type::kv_cache_type>;
+		using kq_mask_kernel_traits =
+			kernel_traits<config_new, core_trait_dims<mtt::block_count, mtt::block_count, 1, 1>, kernel_types::weights, typename kernel_profile_type::mask_type>;
 		using inp_out_ids_kernel_traits =
-			kernel_traits<config_new, core_trait_dims<config_new.default_max_sequence_length, 1, 1, 1, 0>, kernel_types::none, typename prof::output_token_type>;
+			kernel_traits<config_new, core_trait_dims<config_new.default_max_sequence_length, 1, 1, 1, 0>, kernel_types::weights, typename kernel_profile_type::output_token_type>;
 
-		using temperature_kernel_traits		   = kernel_traits<config_new, core_trait_dims<1, 1, 1, 1>, kernel_types::none, float>;
-		using top_k_kernel_traits			   = kernel_traits<config_new, core_trait_dims<1, 1, 1, 1>, kernel_types::none, int32_t>;
-		using top_p_kernel_traits			   = kernel_traits<config_new, core_trait_dims<1, 1, 1, 1>, kernel_types::none, float>;
-		using repetition_penalty_kernel_traits = kernel_traits<config_new, core_trait_dims<1, 1, 1, 1>, kernel_types::none, float>;
-		using presence_penalty_kernel_traits   = kernel_traits<config_new, core_trait_dims<1, 1, 1, 1>, kernel_types::none, float>;
-		using frequency_penalty_kernel_traits  = kernel_traits<config_new, core_trait_dims<1, 1, 1, 1>, kernel_types::none, float>;
-		using rep_window_kernel_traits		   = kernel_traits<config_new, core_trait_dims<1, 1, 1, 1>, kernel_types::none, int32_t>;
-		using token_history_kernel_traits	   = kernel_traits<config_new, core_trait_dims<config_new.default_max_sequence_length, 1, 1, 1, 0>, kernel_types::none, int32_t>;
-		using rng_state_kernel_traits		   = kernel_traits<config_new, core_trait_dims<2, 1, 1, 1>, kernel_types::none, uint64_t>;
+		using temperature_kernel_traits		   = kernel_traits<config_new, core_trait_dims<1, 1, 1, 1>, kernel_types::weights, float>;
+		using top_k_kernel_traits			   = kernel_traits<config_new, core_trait_dims<1, 1, 1, 1>, kernel_types::weights, int32_t>;
+		using top_p_kernel_traits			   = kernel_traits<config_new, core_trait_dims<1, 1, 1, 1>, kernel_types::weights, float>;
+		using repetition_penalty_kernel_traits = kernel_traits<config_new, core_trait_dims<1, 1, 1, 1>, kernel_types::weights, float>;
+		using presence_penalty_kernel_traits   = kernel_traits<config_new, core_trait_dims<1, 1, 1, 1>, kernel_types::weights, float>;
+		using frequency_penalty_kernel_traits  = kernel_traits<config_new, core_trait_dims<1, 1, 1, 1>, kernel_types::weights, float>;
+		using rep_window_kernel_traits		   = kernel_traits<config_new, core_trait_dims<1, 1, 1, 1>, kernel_types::weights, int32_t>;
+		using token_history_kernel_traits	   = kernel_traits<config_new, core_trait_dims<config_new.default_max_sequence_length, 1, 1, 1, 0>, kernel_types::weights, int32_t>;
+		using rng_state_kernel_traits		   = kernel_traits<config_new, core_trait_dims<2, 1, 1, 1>, kernel_types::weights, uint64_t>;
 
-		using logits_bias_kernel_traits		   = kernel_traits<config_new, core_trait_dims<mt::vocab_size, 1, 1, 1>, kernel_types::none, float>;
-		using allowed_vocab_mask_kernel_traits = kernel_traits<config_new, core_trait_dims<mt::vocab_size, 1, 1, 1>, kernel_types::none, uint8_t>;
+		using logits_bias_kernel_traits		   = kernel_traits<config_new, core_trait_dims<mtt::vocab_size, 1, 1, 1>, kernel_types::weights, float>;
+		using allowed_vocab_mask_kernel_traits = kernel_traits<config_new, core_trait_dims<mtt::vocab_size, 1, 1, 1>, kernel_types::weights, uint8_t>;
 
 		using cache_k_type	   = op_traits<config_new, core_types::global_inputs, global_input_types::cache_k, composite_kernel_types::none, data_strategy_types::global,
 				allocation_strategy_types::alloc, cache_k_kernel_traits>;
@@ -304,14 +301,15 @@ namespace nihilus {
 		static constexpr core_types core_type{ core_types::token_embeddings };
 		static constexpr const model_config& config{ config_new };
 		static constexpr uint64_t depth{ core_traits<config_new, static_cast<core_types>(static_cast<uint64_t>(core_types::token_embeddings) - 1)>::depth + 1 };
-		using enum_type	  = token_embeddings_types;
-		using mt		  = model_traits_type<config_new>;
-		using prof		  = kernel_type_profile_traits<config_new.kernel_type_profile>;
-		using compute_t	  = typename prof::compute_type;
-		using kv_store_t  = typename prof::kv_cache_type;
-		using weight_type = typename prof::weight_type;
-		using index_type  = typename prof::index_type;
-		using output_type = typename kernel_type_profile_traits<config_new.kernel_type_profile>::compute_type;
+		using enum_type			  = token_embeddings_types;
+		using mtt				  = model_traits_type<config_new>;
+		using kernel_profile_type = kernel_type_profile_traits<config_new.kernel_type_profile>;
+		using weight_type		  = typename kernel_profile_type::weight_type;
+		using norm_type			  = typename kernel_profile_type::norm_type;
+		using compute_t			  = typename kernel_profile_type::compute_type;
+		using kv_store_t		  = typename kernel_profile_type::kv_cache_type;
+		using index_type		  = typename kernel_profile_type::index_type;
+		using output_type		  = typename kernel_type_profile_traits<config_new.kernel_type_profile>::compute_type;
 
 		using input_01_type = typename core_traits<config_new, core_types::weights>::token_embd_weight_type;
 		using input_02_type = typename core_traits<config_new, core_types::global_inputs>::inp_tokens_type;
@@ -349,11 +347,13 @@ namespace nihilus {
 		static constexpr core_types core_type{ core_types::mega_qkv_prep_and_cache_publish };
 		static constexpr const model_config& config{ config_new };
 		static constexpr uint64_t depth{ core_traits<config_new, static_cast<core_types>(static_cast<uint64_t>(core_types::mega_qkv_prep_and_cache_publish) - 1)>::depth + 1 };
-		using enum_type	 = mega_qkv_prep_and_cache_publish_types;
-		using mt		 = model_traits_type<config_new>;
-		using prof		 = kernel_type_profile_traits<config_new.kernel_type_profile>;
-		using compute_t	 = typename prof::compute_type;
-		using kv_store_t = typename prof::kv_cache_type;
+		using enum_type			  = mega_qkv_prep_and_cache_publish_types;
+		using mtt				  = model_traits_type<config_new>;
+		using kernel_profile_type = kernel_type_profile_traits<config_new.kernel_type_profile>;
+		using weight_type		  = typename kernel_profile_type::weight_type;
+		using norm_type			  = typename kernel_profile_type::norm_type;
+		using compute_t			  = typename kernel_profile_type::compute_type;
+		using kv_store_t		  = typename kernel_profile_type::kv_cache_type;
 
 		using inp_embd_type	   = typename core_traits<config_new, core_types::token_embeddings>::token_embeddings_type;
 		using attn_norm_w_type = typename core_traits<config_new, core_types::weights>::attn_norm_weight_type;
@@ -365,7 +365,7 @@ namespace nihilus {
 		using cache_k_type	   = typename core_traits<config_new, core_types::global_inputs>::cache_k_type;
 		using cache_v_type	   = typename core_traits<config_new, core_types::global_inputs>::cache_v_type;
 
-		static_assert(mt::n_embd_kv_gqa == mt::rope_dimension_count * mt::attention_head_count_kv, "n_embd_kv_gqa must equal rope_dim * kv_heads for GQA.");
+		static_assert(mtt::n_embd_kv_gqa == mtt::rope_dimension_count * mtt::attention_head_count_kv, "n_embd_kv_gqa must equal rope_dim * kv_heads for GQA.");
 
 		using rms_norm_trait = kernel_traits<config_new, get_new_dims_new_1_t<kernel_types::rms_norm, inp_embd_type>, kernel_types::rms_norm, compute_t, inp_embd_type>;
 
@@ -375,7 +375,7 @@ namespace nihilus {
 		using q_mul_mat_trait =
 			kernel_traits<config_new, get_new_dims_new_2_t<kernel_types::mul_mat, attn_q_w_type, mul_trait>, kernel_types::mul_mat, compute_t, attn_q_w_type, mul_trait>;
 
-		using q_reshape_trait = kernel_traits<config_new, core_trait_dims<mt::rope_dimension_count, mt::attention_head_count, config_new.default_max_sequence_length, 1, 2>,
+		using q_reshape_trait = kernel_traits<config_new, core_trait_dims<mtt::rope_dimension_count, mtt::attention_head_count, config_new.default_max_sequence_length, 1, 2>,
 			kernel_types::reshape, compute_t, q_mul_mat_trait>;
 
 		using q_rope_trait = kernel_traits<config_new, get_new_dims_new_3_t<kernel_types::rope, q_reshape_trait, inp_pos_type, rope_freqs_type>, kernel_types::rope, compute_t,
@@ -384,7 +384,7 @@ namespace nihilus {
 		using k_mul_mat_trait =
 			kernel_traits<config_new, get_new_dims_new_2_t<kernel_types::mul_mat, attn_k_w_type, mul_trait>, kernel_types::mul_mat, compute_t, attn_k_w_type, mul_trait>;
 
-		using k_reshape_trait = kernel_traits<config_new, core_trait_dims<mt::rope_dimension_count, mt::attention_head_count_kv, config_new.default_max_sequence_length, 1, 2>,
+		using k_reshape_trait = kernel_traits<config_new, core_trait_dims<mtt::rope_dimension_count, mtt::attention_head_count_kv, config_new.default_max_sequence_length, 1, 2>,
 			kernel_types::reshape, compute_t, k_mul_mat_trait>;
 
 		using k_rope_trait = kernel_traits<config_new, get_new_dims_new_3_t<kernel_types::rope, k_reshape_trait, inp_pos_type, rope_freqs_type>, kernel_types::rope, compute_t,
@@ -394,13 +394,13 @@ namespace nihilus {
 			kernel_traits<config_new, get_new_dims_new_2_t<kernel_types::mul_mat, attn_v_w_type, mul_trait>, kernel_types::mul_mat, compute_t, attn_v_w_type, mul_trait>;
 
 		using v_transpose_trait =
-			kernel_traits<config_new, core_trait_dims<config_new.default_max_sequence_length, mt::n_embd_kv_gqa, 1, 1, 0>, kernel_types::transpose, compute_t, v_mul_mat_trait>;
+			kernel_traits<config_new, core_trait_dims<config_new.default_max_sequence_length, mtt::n_embd_kv_gqa, 1, 1, 0>, kernel_types::transpose, compute_t, v_mul_mat_trait>;
 
 		using k_cache_window_view_trait = kernel_traits<config_new,
-			core_trait_dims<mt::rope_dimension_count, config_new.default_max_sequence_length, mt::attention_head_count_kv, 1, 1>, kernel_types::view, kv_store_t, cache_k_type>;
+			core_trait_dims<mtt::rope_dimension_count, config_new.default_max_sequence_length, mtt::attention_head_count_kv, 1, 1>, kernel_types::view, kv_store_t, cache_k_type>;
 
 		using v_cache_window_view_trait = kernel_traits<config_new,
-			core_trait_dims<config_new.default_max_sequence_length, mt::rope_dimension_count, mt::attention_head_count_kv, 1, 0>, kernel_types::view, kv_store_t, cache_v_type>;
+			core_trait_dims<config_new.default_max_sequence_length, mtt::rope_dimension_count, mtt::attention_head_count_kv, 1, 0>, kernel_types::view, kv_store_t, cache_v_type>;
 
 		using k_cache_store_trait = kernel_traits<config_new, get_new_dims_new_2_t<kernel_types::copy, k_rope_trait, k_cache_window_view_trait>, kernel_types::copy, kv_store_t,
 			k_rope_trait, k_cache_window_view_trait>;
@@ -422,20 +422,21 @@ namespace nihilus {
 		composite_ops values{};
 
 		struct kernel_data_ptrs {
-			NIHILUS_ALIGN(16) const compute_t* inp_embd_data;
-			NIHILUS_ALIGN(16) const compute_t* attn_norm_w_data;
-			NIHILUS_ALIGN(16) const typename prof::weight_type* attn_q_w_data;
-			NIHILUS_ALIGN(16) const typename prof::weight_type* attn_k_w_data;
-			NIHILUS_ALIGN(16) const typename prof::weight_type* attn_v_w_data;
-			NIHILUS_ALIGN(16) const typename prof::index_type* inp_pos_data;
-			NIHILUS_ALIGN(16) const compute_t* rope_freqs_data;
-			NIHILUS_ALIGN(16) kv_store_t* cache_k_data;
-			NIHILUS_ALIGN(16) kv_store_t* cache_v_data;
-			NIHILUS_ALIGN(16) compute_t* q_output_data;
+			NIHILUS_ALIGN(16) const typename kernel_profile_type::compute_type* inp_embd_data;
+			NIHILUS_ALIGN(16) const typename kernel_profile_type::compute_type* attn_norm_w_data;
+			NIHILUS_ALIGN(16) const weight_type* attn_q_w_data;
+			NIHILUS_ALIGN(16) const weight_type* attn_k_w_data;
+			NIHILUS_ALIGN(16) const weight_type* attn_v_w_data;
+			NIHILUS_ALIGN(16) const typename kernel_profile_type::index_type* inp_pos_data;
+			NIHILUS_ALIGN(16) const typename kernel_profile_type::compute_type* rope_freqs_data;
+			NIHILUS_ALIGN(16) typename kernel_profile_type::kv_cache_type* cache_k_data;
+			NIHILUS_ALIGN(16) typename kernel_profile_type::kv_cache_type* cache_v_data;
+			NIHILUS_ALIGN(16) typename kernel_profile_type::compute_type* q_output_data;
 
 			NIHILUS_HOST void set_ptrs(compute_t* q_output_data_new, const compute_t* inp_embd_data_new, const compute_t* attn_norm_w_data_new,
-				const typename prof::weight_type* attn_q_w_data_new, const typename prof::weight_type* attn_k_w_data_new, const typename prof::weight_type* attn_v_w_data_new,
-				const typename prof::index_type* inp_pos_data_new, const compute_t* rope_freqs_data_new, kv_store_t* cache_k_data_new, kv_store_t* cache_v_data_new) {
+				const weight_type* attn_q_w_data_new, const weight_type* attn_k_w_data_new, const weight_type* attn_v_w_data_new,
+				const typename kernel_profile_type::index_type* inp_pos_data_new, const compute_t* rope_freqs_data_new, kv_store_t* cache_k_data_new,
+				kv_store_t* cache_v_data_new) {
 				q_output_data	 = q_output_data_new;
 				inp_embd_data	 = inp_embd_data_new;
 				attn_norm_w_data = attn_norm_w_data_new;
@@ -461,13 +462,15 @@ namespace nihilus {
 		static constexpr core_types core_type{ core_types::mega_attention_apply };
 		static constexpr const model_config& config{ config_new };
 		static constexpr uint64_t depth{ core_traits<config_new, static_cast<core_types>(static_cast<uint64_t>(core_types::mega_attention_apply) - 1)>::depth + 1 };
-		using enum_type	 = mega_attention_apply_types;
-		using mt		 = model_traits_type<config_new>;
-		using prof		 = kernel_type_profile_traits<config_new.kernel_type_profile>;
-		using compute_t	 = typename prof::compute_type;
-		using kv_store_t = typename prof::kv_cache_type;
+		using enum_type			  = mega_attention_apply_types;
+		using mtt				  = model_traits_type<config_new>;
+		using kernel_profile_type = kernel_type_profile_traits<config_new.kernel_type_profile>;
+		using weight_type		  = typename kernel_profile_type::weight_type;
+		using norm_type			  = typename kernel_profile_type::norm_type;
+		using compute_t			  = typename kernel_profile_type::compute_type;
+		using kv_store_t		  = typename kernel_profile_type::kv_cache_type;
 
-		using q_rope_input_dims	 = core_trait_dims<mt::rope_dimension_count, config_new.default_max_sequence_length, mt::attention_head_count, 1, 1>;
+		using q_rope_input_dims	 = core_trait_dims<mtt::rope_dimension_count, config_new.default_max_sequence_length, mtt::attention_head_count, 1, 1>;
 		using cache_k_type		 = typename core_traits<config_new, core_types::global_inputs>::cache_k_type;
 		using cache_v_type		 = typename core_traits<config_new, core_types::global_inputs>::cache_v_type;
 		using kq_mask_type		 = typename core_traits<config_new, core_types::global_inputs>::kq_mask_type;
@@ -475,11 +478,11 @@ namespace nihilus {
 		using inp_embd_type		 = typename core_traits<config_new, core_types::token_embeddings>::token_embeddings_type;
 
 		using k_cache_read_view_trait = kernel_traits<config_new,
-			core_trait_dims<mt::rope_dimension_count, config_new.default_max_sequence_length, mt::attention_head_count_kv, 1, 1>, kernel_types::view, kv_store_t, cache_k_type>;
+			core_trait_dims<mtt::rope_dimension_count, config_new.default_max_sequence_length, mtt::attention_head_count_kv, 1, 1>, kernel_types::view, kv_store_t, cache_k_type>;
 		using v_cache_read_view_trait = kernel_traits<config_new,
-			core_trait_dims<config_new.default_max_sequence_length, mt::rope_dimension_count, mt::attention_head_count_kv, 1, 0>, kernel_types::view, kv_store_t, cache_v_type>;
+			core_trait_dims<config_new.default_max_sequence_length, mtt::rope_dimension_count, mtt::attention_head_count_kv, 1, 0>, kernel_types::view, kv_store_t, cache_v_type>;
 
-		using q_input_trait = kernel_traits<config_new, q_rope_input_dims, kernel_types::none, compute_t>;
+		using q_input_trait = kernel_traits<config_new, q_rope_input_dims, kernel_types::weights, compute_t>;
 
 		using kq_mul_mat_trait = kernel_traits<config_new, get_new_dims_new_2_t<kernel_types::mul_mat, k_cache_read_view_trait, q_input_trait>, kernel_types::mul_mat, compute_t,
 			k_cache_read_view_trait, q_input_trait>;
@@ -490,11 +493,11 @@ namespace nihilus {
 		using kqv_mul_mat_trait = kernel_traits<config_new, get_new_dims_new_2_t<kernel_types::mul_mat, v_cache_read_view_trait, softmax_trait>, kernel_types::mul_mat, compute_t,
 			v_cache_read_view_trait, softmax_trait>;
 
-		using merge_permute_trait = kernel_traits<config_new, core_trait_dims<mt::rope_dimension_count, mt::attention_head_count, config_new.default_max_sequence_length, 1, 2>,
+		using merge_permute_trait = kernel_traits<config_new, core_trait_dims<mtt::rope_dimension_count, mtt::attention_head_count, config_new.default_max_sequence_length, 1, 2>,
 			kernel_types::permute, compute_t, kqv_mul_mat_trait>;
 
 		using cont_trait =
-			kernel_traits<config_new, core_trait_dims<mt::embedding_length, config_new.default_max_sequence_length, 1, 1, 1>, kernel_types::cont, compute_t, merge_permute_trait>;
+			kernel_traits<config_new, core_trait_dims<mtt::embedding_length, config_new.default_max_sequence_length, 1, 1, 1>, kernel_types::cont, compute_t, merge_permute_trait>;
 
 		using attn_out_mul_mat_trait = kernel_traits<config_new, get_new_dims_new_2_t<kernel_types::mul_mat, attn_output_w_type, cont_trait>, kernel_types::mul_mat, compute_t,
 			attn_output_w_type, cont_trait>;
@@ -515,12 +518,12 @@ namespace nihilus {
 			NIHILUS_ALIGN(16) const kv_store_t* cache_k_data;
 			NIHILUS_ALIGN(16) const kv_store_t* cache_v_data;
 			NIHILUS_ALIGN(16) const compute_t* kq_mask_data;
-			NIHILUS_ALIGN(16) const typename prof::weight_type* attn_output_w_data;
+			NIHILUS_ALIGN(16) const weight_type* attn_output_w_data;
 			NIHILUS_ALIGN(16) const compute_t* inp_embd_data;
 			NIHILUS_ALIGN(16) compute_t* ffn_inp_data;
 
 			NIHILUS_HOST void set_ptrs(compute_t* ffn_inp_data_new, const compute_t* q_input_data_new, const kv_store_t* cache_k_data_new, const kv_store_t* cache_v_data_new,
-				const compute_t* kq_mask_data_new, const typename prof::weight_type* attn_output_w_data_new, const compute_t* inp_embd_data_new) {
+				const compute_t* kq_mask_data_new, const weight_type* attn_output_w_data_new, const compute_t* inp_embd_data_new) {
 				ffn_inp_data	   = ffn_inp_data_new;
 				q_input_data	   = q_input_data_new;
 				cache_k_data	   = cache_k_data_new;
@@ -542,18 +545,18 @@ namespace nihilus {
 		static constexpr core_types core_type{ core_types::mega_ffn };
 		static constexpr const model_config& config{ config_new };
 		static constexpr uint64_t depth{ core_traits<config_new, static_cast<core_types>(static_cast<uint64_t>(core_types::mega_ffn) - 1)>::depth + 1 };
-		using enum_type = mega_ffn_types;
-		using mt		= model_traits_type<config_new>;
-		using prof		= kernel_type_profile_traits<config_new.kernel_type_profile>;
-		using compute_t = typename prof::compute_type;
+		using enum_type			  = mega_ffn_types;
+		using mtt				  = model_traits_type<config_new>;
+		using kernel_profile_type = kernel_type_profile_traits<config_new.kernel_type_profile>;
+		using compute_t			  = typename kernel_profile_type::compute_type;
 
-		using ffn_inp_input_dims = core_trait_dims<mt::embedding_length, config_new.default_max_sequence_length, 1, 1, 0>;
+		using ffn_inp_input_dims = core_trait_dims<mtt::embedding_length, config_new.default_max_sequence_length, 1, 1, 0>;
 		using ffn_norm_w_type	 = typename core_traits<config_new, core_types::weights>::ffn_norm_weight_type;
 		using ffn_gate_w_type	 = typename core_traits<config_new, core_types::weights>::ffn_gate_weight_type;
 		using ffn_up_w_type		 = typename core_traits<config_new, core_types::weights>::ffn_up_weight_type;
 		using ffn_down_w_type	 = typename core_traits<config_new, core_types::weights>::ffn_down_weight_type;
 
-		using ffn_inp_trait = kernel_traits<config_new, ffn_inp_input_dims, kernel_types::none, compute_t>;
+		using ffn_inp_trait = kernel_traits<config_new, ffn_inp_input_dims, kernel_types::weights, compute_t>;
 
 		using ffn_rms_norm_trait = kernel_traits<config_new, get_new_dims_new_1_t<kernel_types::rms_norm, ffn_inp_trait>, kernel_types::rms_norm, compute_t, ffn_inp_trait>;
 
@@ -586,6 +589,28 @@ namespace nihilus {
 		using composite_ops = get_core_base_t<config_new, l_out_type>;
 		composite_ops values{};
 
+		struct kernel_data_ptrs {
+			NIHILUS_ALIGN(16) const compute_t* ffn_inp_data;
+			NIHILUS_ALIGN(16) const typename kernel_profile_type::norm_type* ffn_norm_w_data;
+			NIHILUS_ALIGN(16) const typename kernel_profile_type::weight_type* ffn_gate_w_data;
+			NIHILUS_ALIGN(16) const typename kernel_profile_type::weight_type* ffn_up_w_data;
+			NIHILUS_ALIGN(16) const typename kernel_profile_type::weight_type* ffn_down_w_data;
+			NIHILUS_ALIGN(16) compute_t* l_out_data;
+
+			NIHILUS_HOST void set_ptrs(compute_t* l_out_data_new, const compute_t* ffn_inp_data_new, const typename kernel_profile_type::norm_type* ffn_norm_w_data_new,
+				const typename kernel_profile_type::weight_type* ffn_gate_w_data_new, const typename kernel_profile_type::weight_type* ffn_up_w_data_new,
+				const typename kernel_profile_type::weight_type* ffn_down_w_data_new) {
+				l_out_data		= l_out_data_new;
+				ffn_inp_data	= ffn_inp_data_new;
+				ffn_norm_w_data = ffn_norm_w_data_new;
+				ffn_gate_w_data = ffn_gate_w_data_new;
+				ffn_up_w_data	= ffn_up_w_data_new;
+				ffn_down_w_data = ffn_down_w_data_new;
+			}
+		};
+
+		kernel_data_ptrs data_ptrs{};
+
 		static constexpr uint64_t total_required_bytes{ l_out_type::total_required_bytes };
 		static constexpr bool has_total_required_bytes{ true };
 	};
@@ -596,12 +621,12 @@ namespace nihilus {
 		static constexpr core_types core_type{ core_types::final_norm_and_sampling };
 		static constexpr const model_config& config{ config_new };
 		static constexpr uint64_t depth{ core_traits<config_new, static_cast<core_types>(static_cast<uint64_t>(core_types::final_norm_and_sampling) - 1)>::depth + 1 };
-		using enum_type = final_norm_and_sampling_types;
-		using mt		= model_traits_type<config_new>;
-		using prof		= kernel_type_profile_traits<config_new.kernel_type_profile>;
-		using compute_t = typename prof::compute_type;
+		using enum_type			  = final_norm_and_sampling_types;
+		using mtt				  = model_traits_type<config_new>;
+		using kernel_profile_type = kernel_type_profile_traits<config_new.kernel_type_profile>;
+		using compute_t			  = typename kernel_profile_type::compute_type;
 
-		using l_out_input_dims	 = core_trait_dims<mt::embedding_length, config_new.default_max_sequence_length, 1, 1, 0>;
+		using l_out_input_dims	 = core_trait_dims<mtt::embedding_length, config_new.default_max_sequence_length, 1, 1, 0>;
 		using output_norm_w_type = typename core_traits<config_new, core_types::weights>::output_norm_weight_type;
 		using output_w_type		 = typename core_traits<config_new, core_types::weights>::output_weight_type;
 
@@ -617,9 +642,9 @@ namespace nihilus {
 		using logits_bias_type		  = typename core_traits<config_new, core_types::global_inputs>::logits_bias_type;
 		using allowed_vocab_mask_type = typename core_traits<config_new, core_types::global_inputs>::allowed_vocab_mask_type;
 
-		using l_out_trait = kernel_traits<config_new, l_out_input_dims, kernel_types::none, compute_t>;
+		using l_out_trait = kernel_traits<config_new, l_out_input_dims, kernel_types::weights, compute_t>;
 
-		using last_token_view_trait = kernel_traits<config_new, core_trait_dims<mt::embedding_length, 1, 1, 1, 0>, kernel_types::view, compute_t, l_out_trait>;
+		using last_token_view_trait = kernel_traits<config_new, core_trait_dims<mtt::embedding_length, 1, 1, 1, 0>, kernel_types::view, compute_t, l_out_trait>;
 
 		using final_rms_norm_trait =
 			kernel_traits<config_new, get_new_dims_new_1_t<kernel_types::rms_norm, last_token_view_trait>, kernel_types::rms_norm, compute_t, last_token_view_trait>;
@@ -667,6 +692,47 @@ namespace nihilus {
 
 		using composite_ops = get_core_base_t<config_new, result_token_id_type>;
 		composite_ops values{};
+
+		struct kernel_data_ptrs {
+			NIHILUS_ALIGN(16) const compute_t* l_out_data;
+			NIHILUS_ALIGN(16) const typename kernel_profile_type::norm_type* output_norm_w_data;
+			NIHILUS_ALIGN(16) const typename kernel_profile_type::weight_type* output_w_data;
+			NIHILUS_ALIGN(16) const float* temperature_data;
+			NIHILUS_ALIGN(16) const int32_t* top_k_data;
+			NIHILUS_ALIGN(16) const float* top_p_data;
+			NIHILUS_ALIGN(16) const float* repetition_penalty_data;
+			NIHILUS_ALIGN(16) const float* presence_penalty_data;
+			NIHILUS_ALIGN(16) const float* frequency_penalty_data;
+			NIHILUS_ALIGN(16) const int32_t* rep_window_data;
+			NIHILUS_ALIGN(16) const int32_t* token_history_data;
+			NIHILUS_ALIGN(16) uint64_t* rng_state_data;
+			NIHILUS_ALIGN(16) const float* logits_bias_data;
+			NIHILUS_ALIGN(16) const uint8_t* allowed_vocab_mask_data;
+			NIHILUS_ALIGN(16) int32_t* result_token_id_data;
+
+			NIHILUS_HOST void set_ptrs(int32_t* result_token_id_data_new, const compute_t* l_out_data_new, const typename kernel_profile_type::norm_type* output_norm_w_data_new,
+				const typename kernel_profile_type::weight_type* output_w_data_new, const float* temperature_data_new, const int32_t* top_k_data_new, const float* top_p_data_new,
+				const float* repetition_penalty_data_new, const float* presence_penalty_data_new, const float* frequency_penalty_data_new, const int32_t* rep_window_data_new,
+				const int32_t* token_history_data_new, uint64_t* rng_state_data_new, const float* logits_bias_data_new, const uint8_t* allowed_vocab_mask_data_new) {
+				result_token_id_data	= result_token_id_data_new;
+				l_out_data				= l_out_data_new;
+				output_norm_w_data		= output_norm_w_data_new;
+				output_w_data			= output_w_data_new;
+				temperature_data		= temperature_data_new;
+				top_k_data				= top_k_data_new;
+				top_p_data				= top_p_data_new;
+				repetition_penalty_data = repetition_penalty_data_new;
+				presence_penalty_data	= presence_penalty_data_new;
+				frequency_penalty_data	= frequency_penalty_data_new;
+				rep_window_data			= rep_window_data_new;
+				token_history_data		= token_history_data_new;
+				rng_state_data			= rng_state_data_new;
+				logits_bias_data		= logits_bias_data_new;
+				allowed_vocab_mask_data = allowed_vocab_mask_data_new;
+			}
+		};
+
+		kernel_data_ptrs data_ptrs{};
 
 		static constexpr uint64_t total_required_bytes{ result_token_id_type::total_required_bytes };
 		static constexpr bool has_total_required_bytes{ true };

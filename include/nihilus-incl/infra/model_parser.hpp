@@ -190,95 +190,188 @@ namespace nihilus {
 
 	template<> struct string_to_enum<tokenizer_pre_types> {
 		NIHILUS_HOST static tokenizer_pre_types impl(std::string_view value) {
-			if (string_literal_comparitor<"default">::impl(value.data())) {
+			if (value.empty()) {
 				return tokenizer_pre_types::default_pre;
 			}
-			if (string_literal_comparitor<"llama3">::impl(value.data()) || string_literal_comparitor<"llama-v3">::impl(value.data()) ||
-				string_literal_comparitor<"llama-bpe">::impl(value.data()) || string_literal_comparitor<"falcon3">::impl(value.data())) {
-				return tokenizer_pre_types::llama3;
-			}
-			if (string_literal_comparitor<"deepseek-llm">::impl(value.data())) {
-				return tokenizer_pre_types::deepseek_llm;
-			}
-			if (string_literal_comparitor<"deepseek-coder">::impl(value.data())) {
-				return tokenizer_pre_types::deepseek_coder;
-			}
-			if (string_literal_comparitor<"deepseek-v3">::impl(value.data())) {
-				return tokenizer_pre_types::deepseek3_llm;
-			}
-			if (string_literal_comparitor<"falcon">::impl(value.data())) {
-				return tokenizer_pre_types::falcon;
-			}
-			if (string_literal_comparitor<"mpt">::impl(value.data())) {
-				return tokenizer_pre_types::mpt;
-			}
-			if (string_literal_comparitor<"starcoder">::impl(value.data())) {
-				return tokenizer_pre_types::starcoder;
-			}
-			if (string_literal_comparitor<"gpt-2">::impl(value.data()) || string_literal_comparitor<"phi-2">::impl(value.data()) ||
-				string_literal_comparitor<"jina-es">::impl(value.data()) || string_literal_comparitor<"jina-de">::impl(value.data()) ||
-				string_literal_comparitor<"gigachat">::impl(value.data()) || string_literal_comparitor<"jina-v1-en">::impl(value.data()) ||
-				string_literal_comparitor<"jina-v2-es">::impl(value.data()) || string_literal_comparitor<"jina-v2-de">::impl(value.data()) ||
-				string_literal_comparitor<"jina-v2-code">::impl(value.data()) || string_literal_comparitor<"roberta-bpe">::impl(value.data())) {
-				return tokenizer_pre_types::gpt2;
-			}
-			if (string_literal_comparitor<"refact">::impl(value.data())) {
-				return tokenizer_pre_types::refact;
-			}
-			if (string_literal_comparitor<"command-r">::impl(value.data())) {
-				return tokenizer_pre_types::command_r;
-			}
-			if (string_literal_comparitor<"stablelm2">::impl(value.data())) {
-				return tokenizer_pre_types::stablelm2;
-			}
-			if (string_literal_comparitor<"qwen2">::impl(value.data()) || string_literal_comparitor<"deepseek-r1-qwen">::impl(value.data()) ||
-				string_literal_comparitor<"megrez">::impl(value.data())) {
-				return tokenizer_pre_types::qwen2;
-			}
-			if (string_literal_comparitor<"olmo">::impl(value.data())) {
-				return tokenizer_pre_types::olmo;
-			}
-			if (string_literal_comparitor<"dbrx">::impl(value.data())) {
-				return tokenizer_pre_types::dbrx;
-			}
-			if (string_literal_comparitor<"smaug-bpe">::impl(value.data())) {
-				return tokenizer_pre_types::smaug;
-			}
-			if (string_literal_comparitor<"poro-chat">::impl(value.data())) {
-				return tokenizer_pre_types::poro;
-			}
-			if (string_literal_comparitor<"chatglm-bpe">::impl(value.data())) {
-				return tokenizer_pre_types::chatglm4;
-			}
-			if (string_literal_comparitor<"viking">::impl(value.data())) {
-				return tokenizer_pre_types::viking;
-			}
-			if (string_literal_comparitor<"jais">::impl(value.data())) {
-				return tokenizer_pre_types::jais;
-			}
-			if (string_literal_comparitor<"tekken">::impl(value.data())) {
-				return tokenizer_pre_types::tekken;
-			}
-			if (string_literal_comparitor<"smollm">::impl(value.data())) {
-				return tokenizer_pre_types::smollm;
-			}
-			if (string_literal_comparitor<"codeshell">::impl(value.data())) {
-				return tokenizer_pre_types::codeshell;
-			}
-			if (string_literal_comparitor<"bloom">::impl(value.data())) {
-				return tokenizer_pre_types::bloom;
-			}
-			if (string_literal_comparitor<"gpt3-finnish">::impl(value.data())) {
-				return tokenizer_pre_types::gpt3_finnish;
-			}
-			if (string_literal_comparitor<"exaone">::impl(value.data())) {
-				return tokenizer_pre_types::exaone;
-			}
-			if (string_literal_comparitor<"chameleon">::impl(value.data())) {
-				return tokenizer_pre_types::chameleon;
-			}
-			if (string_literal_comparitor<"minerva-7b">::impl(value.data())) {
-				return tokenizer_pre_types::minerva;
+
+			switch (value[0]) {
+				case 'b': {
+					if (string_literal_comparitor<"bloom">::impl(value.data())) {
+						return tokenizer_pre_types::bloom;
+					}
+					break;
+				}
+				case 'c': {
+					if (string_literal_comparitor<"command-r">::impl(value.data())) {
+						return tokenizer_pre_types::command_r;
+					}
+					if (string_literal_comparitor<"codeshell">::impl(value.data())) {
+						return tokenizer_pre_types::codeshell;
+					}
+					if (string_literal_comparitor<"chameleon">::impl(value.data())) {
+						return tokenizer_pre_types::chameleon;
+					}
+					if (string_literal_comparitor<"chatglm-bpe">::impl(value.data())) {
+						return tokenizer_pre_types::chatglm4;
+					}
+					break;
+				}
+				case 'd': {
+					if (string_literal_comparitor<"default">::impl(value.data())) {
+						return tokenizer_pre_types::default_pre;
+					}
+					if (string_literal_comparitor<"deepseek-llm">::impl(value.data())) {
+						return tokenizer_pre_types::deepseek_llm;
+					}
+					if (string_literal_comparitor<"deepseek-coder">::impl(value.data())) {
+						return tokenizer_pre_types::deepseek_coder;
+					}
+					if (string_literal_comparitor<"deepseek-v3">::impl(value.data())) {
+						return tokenizer_pre_types::deepseek3_llm;
+					}
+					if (string_literal_comparitor<"deepseek-r1-qwen">::impl(value.data())) {
+						return tokenizer_pre_types::qwen2;
+					}
+					if (string_literal_comparitor<"dbrx">::impl(value.data())) {
+						return tokenizer_pre_types::dbrx;
+					}
+					break;
+				}
+				case 'e': {
+					if (string_literal_comparitor<"exaone">::impl(value.data())) {
+						return tokenizer_pre_types::exaone;
+					}
+					break;
+				}
+				case 'f': {
+					if (string_literal_comparitor<"falcon">::impl(value.data())) {
+						return tokenizer_pre_types::falcon;
+					}
+					if (string_literal_comparitor<"falcon3">::impl(value.data())) {
+						return tokenizer_pre_types::llama3;
+					}
+					break;
+				}
+				case 'g': {
+					if (string_literal_comparitor<"gpt-2">::impl(value.data())) {
+						return tokenizer_pre_types::gpt2;
+					}
+					if (string_literal_comparitor<"gigachat">::impl(value.data())) {
+						return tokenizer_pre_types::gpt2;
+					}
+					if (string_literal_comparitor<"gpt3-finnish">::impl(value.data())) {
+						return tokenizer_pre_types::gpt3_finnish;
+					}
+					break;
+				}
+				case 'j': {
+					if (string_literal_comparitor<"jais">::impl(value.data())) {
+						return tokenizer_pre_types::jais;
+					}
+					if (string_literal_comparitor<"jina-es">::impl(value.data())) {
+						return tokenizer_pre_types::gpt2;
+					}
+					if (string_literal_comparitor<"jina-de">::impl(value.data())) {
+						return tokenizer_pre_types::gpt2;
+					}
+					if (string_literal_comparitor<"jina-v1-en">::impl(value.data())) {
+						return tokenizer_pre_types::gpt2;
+					}
+					if (string_literal_comparitor<"jina-v2-es">::impl(value.data())) {
+						return tokenizer_pre_types::gpt2;
+					}
+					if (string_literal_comparitor<"jina-v2-de">::impl(value.data())) {
+						return tokenizer_pre_types::gpt2;
+					}
+					if (string_literal_comparitor<"jina-v2-code">::impl(value.data())) {
+						return tokenizer_pre_types::gpt2;
+					}
+					break;
+				}
+				case 'l': {
+					if (string_literal_comparitor<"llama3">::impl(value.data())) {
+						return tokenizer_pre_types::llama3;
+					}
+					if (string_literal_comparitor<"llama-v3">::impl(value.data())) {
+						return tokenizer_pre_types::llama3;
+					}
+					if (string_literal_comparitor<"llama-bpe">::impl(value.data())) {
+						return tokenizer_pre_types::llama3;
+					}
+					break;
+				}
+				case 'm': {
+					if (string_literal_comparitor<"mpt">::impl(value.data())) {
+						return tokenizer_pre_types::mpt;
+					}
+					if (string_literal_comparitor<"megrez">::impl(value.data())) {
+						return tokenizer_pre_types::qwen2;
+					}
+					if (string_literal_comparitor<"minerva-7b">::impl(value.data())) {
+						return tokenizer_pre_types::minerva;
+					}
+					break;
+				}
+				case 'o': {
+					if (string_literal_comparitor<"olmo">::impl(value.data())) {
+						return tokenizer_pre_types::olmo;
+					}
+					break;
+				}
+				case 'p': {
+					if (string_literal_comparitor<"phi-2">::impl(value.data())) {
+						return tokenizer_pre_types::gpt2;
+					}
+					if (string_literal_comparitor<"poro-chat">::impl(value.data())) {
+						return tokenizer_pre_types::poro;
+					}
+					break;
+				}
+				case 'q': {
+					if (string_literal_comparitor<"qwen2">::impl(value.data())) {
+						return tokenizer_pre_types::qwen2;
+					}
+					break;
+				}
+				case 'r': {
+					if (string_literal_comparitor<"refact">::impl(value.data())) {
+						return tokenizer_pre_types::refact;
+					}
+					if (string_literal_comparitor<"roberta-bpe">::impl(value.data())) {
+						return tokenizer_pre_types::gpt2;
+					}
+					break;
+				}
+				case 's': {
+					if (string_literal_comparitor<"starcoder">::impl(value.data())) {
+						return tokenizer_pre_types::starcoder;
+					}
+					if (string_literal_comparitor<"stablelm2">::impl(value.data())) {
+						return tokenizer_pre_types::stablelm2;
+					}
+					if (string_literal_comparitor<"smaug-bpe">::impl(value.data())) {
+						return tokenizer_pre_types::smaug;
+					}
+					if (string_literal_comparitor<"smollm">::impl(value.data())) {
+						return tokenizer_pre_types::smollm;
+					}
+					break;
+				}
+				case 't': {
+					if (string_literal_comparitor<"tekken">::impl(value.data())) {
+						return tokenizer_pre_types::tekken;
+					}
+					break;
+				}
+				case 'v': {
+					if (string_literal_comparitor<"viking">::impl(value.data())) {
+						return tokenizer_pre_types::viking;
+					}
+					break;
+				}
+				default: {
+					return tokenizer_pre_types::default_pre;
+				}
 			}
 
 			return tokenizer_pre_types::default_pre;

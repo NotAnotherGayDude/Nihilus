@@ -75,7 +75,7 @@ namespace nihilus {
 		typename detail::remove_cvref_t<value_type>::member_type;
 	} && std::is_member_pointer_v<decltype(detail::remove_cvref_t<value_type>::member_ptr)>;
 
-	template<auto... values, size_t... indices> inline static constexpr auto create_value_impl(std::index_sequence<indices...>) {
+	template<auto... values> inline static constexpr auto create_value_impl() {
 		static_assert((parse_entity_types<decltype(values)> + ...), "Sorry, but they must all be parse_entities passed to this function!");
 		return make_tuple(values...);
 	}
@@ -85,7 +85,7 @@ namespace nihilus {
 	}
 
 	template<auto... values> inline static constexpr auto create_value() noexcept {
-		return create_value_impl<values...>(std::make_index_sequence<sizeof...(values)>{});
+		return create_value_impl<values...>();
 	}
 
 	template<typename value_type> using core_tuple_type				 = decltype(parse_core<detail::remove_cvref_t<value_type>>::parse_value);

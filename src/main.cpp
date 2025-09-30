@@ -379,44 +379,48 @@ template<uint64_t seq_length> static std::vector<tensor_op> create_mega_pipeline
 }
 
 int32_t main(int32_t argc, char** argv) {
-	auto result = get_read_writes(create_original_llama_cpp_layer_tensor_ops_with_seqlen<32>());
-	std::cout << "Bandwidth used per Inference Run - For Length: " << std::to_string(32) << std::endl;
-	std::cout << "---------------------------------" << std::endl;
-	std::cout << "Read bytes (llama.cpp): " << result.read_bytes << std::endl;
-	std::cout << "Written bytes (llama.cpp): " << result.written_bytes << std::endl;
-	auto result02 = get_read_writes(create_mega_pipeline_layer_tensor_ops_with_seqlen<32>());
-	std::cout << "Read bytes (Nihilus): " << result02.read_bytes << std::endl;
-	std::cout << "Written bytes (Nihilus): " << result02.written_bytes << std::endl;
-	result = get_read_writes(create_original_llama_cpp_layer_tensor_ops_with_seqlen<1024>());
-	std::cout << "Bandwidth used per Inference Run - For Length: " << std::to_string(1024) << std::endl;
-	std::cout << "---------------------------------" << std::endl;
-	std::cout << "Read bytes (llama.cpp): " << result.read_bytes << std::endl;
-	std::cout << "Written bytes (llama.cpp): " << result.written_bytes << std::endl;
-	result02 = get_read_writes(create_mega_pipeline_layer_tensor_ops_with_seqlen<1024>());
-	std::cout << "Read bytes (Nihilus): " << result02.read_bytes << std::endl;
-	std::cout << "Written bytes (Nihilus): " << result02.written_bytes << std::endl;
-	result = get_read_writes(create_original_llama_cpp_layer_tensor_ops_with_seqlen<2048>());
-	std::cout << "Bandwidth used per Inference Run - For Length: " << std::to_string(2048) << std::endl;
-	std::cout << "---------------------------------" << std::endl;
-	std::cout << "Read bytes (llama.cpp): " << result.read_bytes << std::endl;
-	std::cout << "Written bytes (llama.cpp): " << result.written_bytes << std::endl;
-	result02 = get_read_writes(create_mega_pipeline_layer_tensor_ops_with_seqlen<2048>());
-	std::cout << "Read bytes (Nihilus): " << result02.read_bytes << std::endl;
-	std::cout << "Written bytes (Nihilus): " << result02.written_bytes << std::endl;
-	result = get_read_writes(create_original_llama_cpp_layer_tensor_ops_with_seqlen<131072>());
-	std::cout << "Bandwidth used per Inference Run - For Length: " << std::to_string(131072) << std::endl;
-	std::cout << "---------------------------------" << std::endl;
-	std::cout << "Read bytes (llama.cpp): " << result.read_bytes << std::endl;
-	std::cout << "Written bytes (llama.cpp): " << result.written_bytes << std::endl;
-	result02 = get_read_writes(create_mega_pipeline_layer_tensor_ops_with_seqlen<131072>());
-	std::cout << "Read bytes (Nihilus): " << result02.read_bytes << std::endl;
-	std::cout << "Written bytes (Nihilus): " << result02.written_bytes << std::endl;
-	static constexpr auto model_config_00 = nihilus::generate_model_config(nihilus::model_generations::v3_1, nihilus::model_sizes::llm_8B, nihilus::kernel_type_profiles::q8_gqa,
-		nihilus::model_arches::llama, nihilus::device_types::cpu);
-	static constexpr auto model_config_01 = nihilus::update_model_config<nihilus::model_config_types::benchmark>(model_config_00, true);
-	cli_params cli_args			   = harbinger<model_config_01>::parse_cli_arguments(argc, argv);
-	auto model_new_01{ harbinger<model_config_01>::parse_model_graph_data(cli_args) };
-	while (model_new_01->process_input(cli_args.prompt)) {
+	try {
+		auto result = get_read_writes(create_original_llama_cpp_layer_tensor_ops_with_seqlen<32>());
+		std::cout << "Bandwidth used per Inference Run - For Length: " << std::to_string(32) << std::endl;
+		std::cout << "---------------------------------" << std::endl;
+		std::cout << "Read bytes (llama.cpp): " << result.read_bytes << std::endl;
+		std::cout << "Written bytes (llama.cpp): " << result.written_bytes << std::endl;
+		auto result02 = get_read_writes(create_mega_pipeline_layer_tensor_ops_with_seqlen<32>());
+		std::cout << "Read bytes (Nihilus): " << result02.read_bytes << std::endl;
+		std::cout << "Written bytes (Nihilus): " << result02.written_bytes << std::endl;
+		result = get_read_writes(create_original_llama_cpp_layer_tensor_ops_with_seqlen<1024>());
+		std::cout << "Bandwidth used per Inference Run - For Length: " << std::to_string(1024) << std::endl;
+		std::cout << "---------------------------------" << std::endl;
+		std::cout << "Read bytes (llama.cpp): " << result.read_bytes << std::endl;
+		std::cout << "Written bytes (llama.cpp): " << result.written_bytes << std::endl;
+		result02 = get_read_writes(create_mega_pipeline_layer_tensor_ops_with_seqlen<1024>());
+		std::cout << "Read bytes (Nihilus): " << result02.read_bytes << std::endl;
+		std::cout << "Written bytes (Nihilus): " << result02.written_bytes << std::endl;
+		result = get_read_writes(create_original_llama_cpp_layer_tensor_ops_with_seqlen<2048>());
+		std::cout << "Bandwidth used per Inference Run - For Length: " << std::to_string(2048) << std::endl;
+		std::cout << "---------------------------------" << std::endl;
+		std::cout << "Read bytes (llama.cpp): " << result.read_bytes << std::endl;
+		std::cout << "Written bytes (llama.cpp): " << result.written_bytes << std::endl;
+		result02 = get_read_writes(create_mega_pipeline_layer_tensor_ops_with_seqlen<2048>());
+		std::cout << "Read bytes (Nihilus): " << result02.read_bytes << std::endl;
+		std::cout << "Written bytes (Nihilus): " << result02.written_bytes << std::endl;
+		result = get_read_writes(create_original_llama_cpp_layer_tensor_ops_with_seqlen<131072>());
+		std::cout << "Bandwidth used per Inference Run - For Length: " << std::to_string(131072) << std::endl;
+		std::cout << "---------------------------------" << std::endl;
+		std::cout << "Read bytes (llama.cpp): " << result.read_bytes << std::endl;
+		std::cout << "Written bytes (llama.cpp): " << result.written_bytes << std::endl;
+		result02 = get_read_writes(create_mega_pipeline_layer_tensor_ops_with_seqlen<131072>());
+		std::cout << "Read bytes (Nihilus): " << result02.read_bytes << std::endl;
+		std::cout << "Written bytes (Nihilus): " << result02.written_bytes << std::endl;
+		static constexpr auto model_config_00 = nihilus::generate_model_config(nihilus::model_generations::v3_1, nihilus::model_sizes::llm_8B,
+			nihilus::kernel_type_profiles::q8_gqa, nihilus::model_arches::llama, nihilus::device_types::cpu, true, 4096);
+		static constexpr auto model_config_01 = model_config_00.update_benchmark(true);
+		cli_params cli_args					  = harbinger<model_config_01>::parse_cli_arguments(argc, argv);
+		auto model_new_01{ harbinger<model_config_01>::parse_model_graph_data(cli_args) };
+		while (model_new_01->process_input(cli_args.prompt)) {
+		}
+	} catch (const std::exception& e) {
+		std::cout << "Error: " << e.what() << std::endl;
 	}
 	return 0;
 }

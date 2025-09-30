@@ -133,7 +133,7 @@ namespace nihilus {
 			return !(*this < other);
 		}
 
-		alignas(64) pointer ptr;
+		NIHILUS_ALIGN(64) pointer ptr;
 	};
 
 	template<typename value_type_new> class array_iterator<value_type_new, 0> {
@@ -275,7 +275,7 @@ namespace nihilus {
 			return !(*this < other);
 		}
 
-		alignas(64) pointer ptr;
+		NIHILUS_ALIGN(64) pointer ptr;
 	};
 
 }

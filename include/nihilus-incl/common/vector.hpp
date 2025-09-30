@@ -28,7 +28,7 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-	template<typename value_type_new> struct alignas(64) aligned_vector : protected allocator<value_type_new> {
+	template<typename value_type_new> struct NIHILUS_ALIGN(64) aligned_vector : protected allocator<value_type_new> {
 		using value_type			 = value_type_new;
 		using size_type				 = uint64_t;
 		using difference_type		 = ptrdiff_t;
@@ -302,9 +302,9 @@ namespace nihilus {
 		}
 
 	  protected:
-		alignas(64) size_type capacity_val{};
-		alignas(64) size_type size_val{};
-		alignas(64) pointer data_val{};
+		NIHILUS_ALIGN(64) size_type capacity_val{};
+		NIHILUS_ALIGN(64) size_type size_val{};
+		NIHILUS_ALIGN(64) pointer data_val{};
 	};
 
 }

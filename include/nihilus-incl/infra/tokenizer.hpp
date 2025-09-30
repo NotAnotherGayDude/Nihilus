@@ -171,7 +171,7 @@ namespace nihilus {
 				memory_transfer<config>::host_to_device(temp_tokens[i], output_tokens + i);
 			}
 
-			if constexpr (config.dev ) {
+			if constexpr (config.dev) {
 				print_tokenization_debug(input_text, temp_tokens);
 			}
 
@@ -198,7 +198,7 @@ namespace nihilus {
 				memory_transfer<config>::host_to_device(temp_tokens[i], output_tokens + i);
 			}
 
-			if constexpr (config.dev ) {
+			if constexpr (config.dev) {
 				print_tokenization_debug(input_text, temp_tokens);
 			}
 
@@ -208,11 +208,12 @@ namespace nihilus {
 		struct nihilus_rng {
 			uint64_t state[4]{};
 
-			constexpr nihilus_rng() noexcept {
-				auto x   = time_based_seed::seed >> 12ull;
-				auto x01 = x ^ x << 25ull;
-				auto x02 = x01 ^ x01 >> 27ull;
-				uint64_t s		   = x02 * 0x2545F4914F6CDD1Dull;
+			NIHILUS_HOST nihilus_rng() noexcept {
+				static const uint64_t seed{ get_time_based_seed() };
+				auto x	   = seed >> 12ull;
+				auto x01   = x ^ x << 25ull;
+				auto x02   = x01 ^ x01 >> 27ull;
+				uint64_t s = x02 * 0x2545F4914F6CDD1Dull;
 				for (uint64_t y = 0; y < 4; ++y) {
 					state[y] = splitmix64(s);
 				}

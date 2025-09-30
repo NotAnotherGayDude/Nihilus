@@ -33,7 +33,7 @@ namespace nihilus {
 		invalid_index_type,
 	};
 
-	template<typename value_type_new, integral_or_enum_types auto size_new> struct alignas(64) array {
+	template<typename value_type_new, integral_or_enum_types auto size_new> struct NIHILUS_ALIGN(64) array {
 	  public:
 		static_assert(integral_or_enum_types<decltype(size_new)>, "Sorry, but the size val passed to array must be integral or enum!");
 		static constexpr static_aligned_const<uint64_t> size_val{ static_cast<uint64_t>(size_new) };
@@ -268,7 +268,7 @@ namespace nihilus {
 
 	struct empty_array_element {};
 
-	template<typename value_type_new> struct alignas(64) array<value_type_new, 0> {
+	template<typename value_type_new> struct NIHILUS_ALIGN(64) array<value_type_new, 0> {
 	  public:
 		using value_type			 = value_type_new;
 		using size_type				 = uint64_t;

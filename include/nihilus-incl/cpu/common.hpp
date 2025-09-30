@@ -270,7 +270,7 @@ namespace nihilus {
 
 	template<nihilus_simd_128_types nihilus_simd_int_types_new> NIHILUS_HOST static auto gather_values(const void* str) noexcept {
 		m128x return_value{};
-		return_value.m128x_int8[0] = static_cast<const int8_t*>(str)[0];
+		return_value.m128x_int8[0]	= static_cast<const int8_t*>(str)[0];
 		return_value.m128x_int8[1]	= static_cast<const int8_t*>(str)[1];
 		return_value.m128x_int8[2]	= static_cast<const int8_t*>(str)[2];
 		return_value.m128x_int8[3]	= static_cast<const int8_t*>(str)[3];
@@ -295,7 +295,7 @@ namespace nihilus {
 		result.m128x_uint64[0] = value.m128x_uint64[0] ^ other.m128x_uint64[0];
 		result.m128x_uint64[1] = value.m128x_uint64[1] ^ other.m128x_uint64[1];
 		return result;
-	}	
+	}
 
 	template<nihilus_simd_128_types simd_int_t01> NIHILUS_HOST static bool opTest(const typename simd_int_t01::type& value) noexcept {
 		return (value.m128x_uint64[0] != 0) || (value.m128x_uint64[1] != 0);
@@ -339,8 +339,9 @@ namespace nihilus {
 		return fp32_from_bits(result);
 	}
 
-	alignas(64) static static_aligned_const<float>* __restrict fp16_to_fp32_array{ []() {
-		alignas(64) static array<static_aligned_const<float>, (1 << 16)> return_values_new{};
+	NIHILUS_ALIGN(64)
+	static static_aligned_const<float>* __restrict fp16_to_fp32_array{ []() {
+		NIHILUS_ALIGN(64) static array<static_aligned_const<float>, (1 << 16)> return_values_new{};
 		for (uint64_t i = 0; i < (1 << 16); ++i) {
 			return_values_new[i] = static_aligned_const<float>{ compute_fp16_to_fp32(static_cast<half>(i)) };
 		}

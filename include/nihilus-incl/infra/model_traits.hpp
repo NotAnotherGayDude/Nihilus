@@ -62,4 +62,21 @@ namespace nihilus {
 		static constexpr uint64_t n_embd_kv_gqa			  = rope_dimension_count * attention_head_count_kv;
 	};
 
+	template<> struct model_traits<model_arches::llama, model_sizes::llm_405B, model_generations::v3_1> {
+		static constexpr auto model_arch{ model_arches::llama };
+		static constexpr auto model_generation{ model_generations::v3_1 };
+		static constexpr auto model_size{ model_sizes::llm_405B };
+		static constexpr float layer_norm_rms_epsilon	  = 1e-5f;
+		static constexpr float rope_freq_base			  = 500000.0f;
+		static constexpr uint32_t vocab_size			  = 128256;
+		static constexpr uint32_t embedding_length		  = 16384;
+		static constexpr uint32_t block_count			  = 126;
+		static constexpr uint32_t feed_forward_length	  = 53248;
+		static constexpr uint32_t attention_head_count	  = 128;
+		static constexpr uint32_t attention_head_count_kv = 8;
+		static constexpr uint32_t rope_dimension_count	  = 128;
+		static constexpr uint32_t context_length		  = 131072;
+		static constexpr uint64_t n_embd_kv_gqa			  = rope_dimension_count * attention_head_count_kv;
+	};
+
 }

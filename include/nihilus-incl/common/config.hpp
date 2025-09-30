@@ -77,6 +77,8 @@ namespace nihilus {
 
 	using clock_type = std::conditional_t<std::chrono::high_resolution_clock::is_steady, std::chrono::high_resolution_clock, std::chrono::steady_clock>;
 
+	static constexpr bool false_type_v = std::false_type::value;
+
 	template<auto enum_error, typename... types> struct error_printer_impl;
 
 	template<bool value, auto enum_error, typename... value_to_test> struct static_assert_printer {
@@ -103,50 +105,50 @@ namespace nihilus {
 		}() };
 	};
 
-	template<uint64_t byte_count, typename value_type01, typename value_type02> NIHILUS_HOST void constexpr_memcpy(value_type02* dst, const value_type01* src) {
+	template<uint64_t byte_count, typename value_type01, typename value_type02> NIHILUS_HOST_DEVICE void constexpr_memcpy(value_type02* dst, const value_type01* src) {
 		std::memcpy(static_cast<void*>(dst), static_cast<const void*>(src), byte_count);
 	}
 
-	template<typename value_type01, typename value_type02> NIHILUS_HOST void memcpy_wrapper(value_type02* dst, const value_type01* src, uint64_t byte_count) {
+	template<typename value_type01, typename value_type02> NIHILUS_HOST_DEVICE void memcpy_wrapper(value_type02* dst, const value_type01* src, uint64_t byte_count) {
 		std::memcpy(static_cast<void*>(dst), static_cast<const void*>(src), byte_count);
 	}
 
-	template<typename value_type> struct alignas(64) static_aligned_const {
-		alignas(64) value_type value{};
+	template<typename value_type> struct NIHILUS_ALIGN(64) static_aligned_const {
+		NIHILUS_ALIGN(64) value_type value {};
 
-		NIHILUS_HOST constexpr operator const value_type&() const& {
+		NIHILUS_HOST_DEVICE constexpr operator const value_type&() const& {
 			return value;
 		}
 
-		NIHILUS_HOST operator value_type&() & {
+		NIHILUS_HOST_DEVICE operator value_type&() & {
 			return value;
 		}
 
-		NIHILUS_HOST operator value_type&&() && {
+		NIHILUS_HOST_DEVICE operator value_type&&() && {
 			return std::move(value);
 		}
 
-		NIHILUS_HOST constexpr const value_type& operator*() const {
+		NIHILUS_HOST_DEVICE constexpr const value_type& operator*() const {
 			return value;
 		}
 
-		NIHILUS_HOST value_type& operator*() {
+		NIHILUS_HOST_DEVICE value_type& operator*() {
 			return value;
 		}
 
-		NIHILUS_HOST constexpr bool operator==(const static_aligned_const& other) const {
+		NIHILUS_HOST_DEVICE constexpr bool operator==(const static_aligned_const& other) const {
 			return value == other.value;
 		}
 
-		NIHILUS_HOST constexpr bool operator!=(const static_aligned_const& other) const {
+		NIHILUS_HOST_DEVICE constexpr bool operator!=(const static_aligned_const& other) const {
 			return value != other.value;
 		}
 
-		NIHILUS_HOST constexpr bool operator<(const static_aligned_const& other) const {
+		NIHILUS_HOST_DEVICE constexpr bool operator<(const static_aligned_const& other) const {
 			return value < other.value;
 		}
 
-		NIHILUS_HOST constexpr bool operator>(const static_aligned_const& other) const {
+		NIHILUS_HOST_DEVICE constexpr bool operator>(const static_aligned_const& other) const {
 			return value > other.value;
 		}
 	};

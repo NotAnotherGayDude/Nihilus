@@ -33,29 +33,25 @@ RealTimeChris (Chris M.)
 namespace nihilus {
 
 	struct model_base {
-		NIHILUS_HOST model_base() noexcept = default;
-		NIHILUS_HOST model_base(model_config config_new) : config{ config_new } {
-		}
-		model_config config{};
-		virtual bool process_input(std::string_view params) = 0;
-		virtual bool process_input()						= 0;
-		virtual ~model_base();
+		NIHILUS_HOST model_base() noexcept					= default;
+		NIHILUS_HOST virtual bool process_input(std::string_view params) = 0;
+		NIHILUS_HOST virtual bool process_input()						 = 0;
+		NIHILUS_HOST virtual ~model_base();
 	};
 
-	model_base::~model_base() {};
+	NIHILUS_HOST model_base::~model_base(){};
 
 	template<const model_config& config_new> struct model : public input_collector<config_new>,
 															public thread_pool<config_new>,
 															public model_base,
 															public tokenizer<config_new, config_new.model_arch, config_new.tokenizer_type> {
-		using thread_pool_type		 = thread_pool<config_new>;
-		using core_bases_type		 = get_core_bases_t<config_new, core_types>;
-		using core_bases_traits_type = core_bases_traits<config_new>;
-		using tokenizer_type		 = tokenizer<config_new, config_new.model_arch, config_new.tokenizer_type>;
+		using thread_pool_type = thread_pool<config_new>;
+		using core_bases_type  = get_core_bases_t<config_new>;
+		using tokenizer_type   = tokenizer<config_new, config_new.model_arch, config_new.tokenizer_type>;
 
 		NIHILUS_HOST model() noexcept = default;
 
-		NIHILUS_HOST model(cli_params params) : thread_pool<config_new>{ static_cast<int64_t>(params.thread_count) }, model_base{ config_new } {
+		NIHILUS_HOST model(cli_params params) : thread_pool<config_new>{ static_cast<int64_t>(params.thread_count) } {
 			exec_params.token_count = params.n_tokens;
 			init(params);
 		}
@@ -97,10 +93,10 @@ namespace nihilus {
 		}
 
 		NIHILUS_HOST void init(cli_params params) {
-			std::cout << "(Nihilus) Total Bytes Required for Intermediate Tensors at Context Length Of: " << config.default_max_sequence_length << ": "
-					  << core_bases_traits_type::total_required_bytes.peak_allocated_bytes << std::endl;
-			memory.init(core_bases_traits_type::total_required_bytes.peak_allocated_bytes);
-			this->template impl<memory_mapper>(core_bases_traits_type::total_required_bytes, memory);
+			std::cout << "(Nihilus) Total Bytes Required for Intermediate Tensors at Context Length Of: " << config_new.default_max_sequence_length << ": "
+					  << core_bases_memory_plan<config_new>.peak_allocated_bytes << std::endl;
+			memory.init(core_bases_memory_plan<config_new>.peak_allocated_bytes);
+			this->template impl<memory_mapper>(core_bases_memory_plan<config_new>, memory);
 			array<array<void*, model_traits_type<config_new>::block_count>, weight_types::count> data{};
 			weight_mapper<config_new, core_traits<config_new, core_types::weights>>::impl(*static_cast<core_traits<config_new, core_types::weights>*>(this), data);
 

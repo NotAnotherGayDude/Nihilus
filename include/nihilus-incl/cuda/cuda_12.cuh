@@ -141,143 +141,323 @@ namespace nihilus {
 		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) = delete;
 	};
 
-	template<int8_cuda_types value_type> struct get_value_type<value_type> {
+	template<int8_cuda_types value_type>
+		requires(dim01_types<value_type>)
+	struct get_value_type<value_type> {
 		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
-			if constexpr (dim01_types<value_type>) {
-				return make_char1(device_forward<value_types>(args)...);
-			} else if constexpr (dim02_types<value_type>) {
-				return make_char2(device_forward<value_types>(args)...);
-			} else if constexpr (dim03_types<value_type>) {
-				return make_char3(device_forward<value_types>(args)...);
-			} else if constexpr (dim04_types<value_type>) {
-				return make_char4(device_forward<value_types>(args)...);
-			}
+			return make_char1(device_forward<value_types>(args)...);
 		}
 	};
 
-	template<int16_cuda_types value_type> struct get_value_type<value_type> {
+	template<int8_cuda_types value_type>
+		requires(dim02_types<value_type>)
+	struct get_value_type<value_type> {
 		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
-			if constexpr (dim01_types<value_type>) {
-				return make_short1(device_forward<value_types>(args)...);
-			} else if constexpr (dim02_types<value_type>) {
-				return make_short2(device_forward<value_types>(args)...);
-			} else if constexpr (dim03_types<value_type>) {
-				return make_short3(device_forward<value_types>(args)...);
-			} else if constexpr (dim04_types<value_type>) {
-				return make_short4(device_forward<value_types>(args)...);
-			}
+			return make_char2(device_forward<value_types>(args)...);
 		}
 	};
 
-	template<int32_cuda_types value_type> struct get_value_type<value_type> {
+	template<int8_cuda_types value_type>
+		requires(dim03_types<value_type>)
+	struct get_value_type<value_type> {
 		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
-			if constexpr (dim01_types<value_type>) {
-				return make_int1(device_forward<value_types>(args)...);
-			} else if constexpr (dim02_types<value_type>) {
-				return make_int2(device_forward<value_types>(args)...);
-			} else if constexpr (dim03_types<value_type>) {
-				return make_int3(device_forward<value_types>(args)...);
-			} else if constexpr (dim04_types<value_type>) {
-				return make_int4(device_forward<value_types>(args)...);
-			}
+			return make_char3(device_forward<value_types>(args)...);
 		}
 	};
 
-	template<int64_cuda_types value_type> struct get_value_type<value_type> {
+	template<int8_cuda_types value_type>
+		requires(dim04_types<value_type>)
+	struct get_value_type<value_type> {
 		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
-			if constexpr (dim01_types<value_type>) {
-				return make_long1(device_forward<value_types>(args)...);
-			} else if constexpr (dim02_types<value_type>) {
-				return make_long2(device_forward<value_types>(args)...);
-			} else if constexpr (dim03_types<value_type>) {
-				return make_long3(device_forward<value_types>(args)...);
-			} else if constexpr (dim04_types<value_type>) {
-				return make_long4(device_forward<value_types>(args)...);
-			}
+			return make_char4(device_forward<value_types>(args)...);
 		}
 	};
 
-	template<uint8_cuda_types value_type> struct get_value_type<value_type> {
+	template<int16_cuda_types value_type>
+		requires(dim01_types<value_type>)
+	struct get_value_type<value_type> {
 		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
-			if constexpr (dim01_types<value_type>) {
-				return make_uchar1(device_forward<value_types>(args)...);
-			} else if constexpr (dim02_types<value_type>) {
-				return make_uchar2(device_forward<value_types>(args)...);
-			} else if constexpr (dim03_types<value_type>) {
-				return make_uchar3(device_forward<value_types>(args)...);
-			} else if constexpr (dim04_types<value_type>) {
-				return make_uchar4(device_forward<value_types>(args)...);
-			}
+			return make_short1(device_forward<value_types>(args)...);
 		}
 	};
 
-	template<uint16_cuda_types value_type> struct get_value_type<value_type> {
+	template<int16_cuda_types value_type>
+		requires(dim02_types<value_type>)
+	struct get_value_type<value_type> {
 		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
-			if constexpr (dim01_types<value_type>) {
-				return make_ushort1(device_forward<value_types>(args)...);
-			} else if constexpr (dim02_types<value_type>) {
-				return make_ushort2(device_forward<value_types>(args)...);
-			} else if constexpr (dim03_types<value_type>) {
-				return make_ushort3(device_forward<value_types>(args)...);
-			} else if constexpr (dim04_types<value_type>) {
-				return make_ushort4(device_forward<value_types>(args)...);
-			}
+			return make_short2(device_forward<value_types>(args)...);
 		}
 	};
 
-	template<uint32_cuda_types value_type> struct get_value_type<value_type> {
+	template<int16_cuda_types value_type>
+		requires(dim03_types<value_type>)
+	struct get_value_type<value_type> {
 		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
-			if constexpr (dim01_types<value_type>) {
-				return make_uint1(device_forward<value_types>(args)...);
-			} else if constexpr (dim02_types<value_type>) {
-				return make_uint2(device_forward<value_types>(args)...);
-			} else if constexpr (dim03_types<value_type>) {
-				return make_uint3(device_forward<value_types>(args)...);
-			} else if constexpr (dim04_types<value_type>) {
-				return make_uint4(device_forward<value_types>(args)...);
-			}
+			return make_short3(device_forward<value_types>(args)...);
 		}
 	};
 
-	template<uint64_cuda_types value_type> struct get_value_type<value_type> {
+	template<int16_cuda_types value_type>
+		requires(dim04_types<value_type>)
+	struct get_value_type<value_type> {
 		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
-			if constexpr (dim01_types<value_type>) {
-				return make_ulong1(device_forward<value_types>(args)...);
-			} else if constexpr (dim02_types<value_type>) {
-				return make_ulong2(device_forward<value_types>(args)...);
-			} else if constexpr (dim03_types<value_type>) {
-				return make_ulong3(device_forward<value_types>(args)...);
-			} else if constexpr (dim04_types<value_type>) {
-				return make_ulong4(device_forward<value_types>(args)...);
-			}
+			return make_short4(device_forward<value_types>(args)...);
 		}
 	};
 
-	template<float32_cuda_types value_type> struct get_value_type<value_type> {
+	template<int32_cuda_types value_type>
+		requires(dim01_types<value_type>)
+	struct get_value_type<value_type> {
 		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
-			if constexpr (dim01_types<value_type>) {
-				return make_float1(device_forward<value_types>(args)...);
-			} else if constexpr (dim02_types<value_type>) {
-				return make_float2(device_forward<value_types>(args)...);
-			} else if constexpr (dim03_types<value_type>) {
-				return make_float3(device_forward<value_types>(args)...);
-			} else if constexpr (dim04_types<value_type>) {
-				return make_float4(device_forward<value_types>(args)...);
-			}
+			return make_int1(device_forward<value_types>(args)...);
 		}
 	};
 
-	template<float64_cuda_types value_type> struct get_value_type<value_type> {
+	template<int32_cuda_types value_type>
+		requires(dim02_types<value_type>)
+	struct get_value_type<value_type> {
 		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
-			if constexpr (dim01_types<value_type>) {
-				return make_double1(device_forward<value_types>(args)...);
-			} else if constexpr (dim02_types<value_type>) {
-				return make_double2(device_forward<value_types>(args)...);
-			} else if constexpr (dim03_types<value_type>) {
-				return make_double3(device_forward<value_types>(args)...);
-			} else if constexpr (dim04_types<value_type>) {
-				return make_double4(device_forward<value_types>(args)...);
-			}
+			return make_int2(device_forward<value_types>(args)...);
+		}
+	};
+
+	template<int32_cuda_types value_type>
+		requires(dim03_types<value_type>)
+	struct get_value_type<value_type> {
+		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
+			return make_int3(device_forward<value_types>(args)...);
+		}
+	};
+
+	template<int32_cuda_types value_type>
+		requires(dim04_types<value_type>)
+	struct get_value_type<value_type> {
+		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
+			return make_int4(device_forward<value_types>(args)...);
+		}
+	};
+
+	template<int64_cuda_types value_type>
+		requires(dim01_types<value_type>)
+	struct get_value_type<value_type> {
+		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
+			return make_long1(device_forward<value_types>(args)...);
+		}
+	};
+
+	template<int64_cuda_types value_type>
+		requires(dim02_types<value_type>)
+	struct get_value_type<value_type> {
+		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
+			return make_long2(device_forward<value_types>(args)...);
+		}
+	};
+
+	template<int64_cuda_types value_type>
+		requires(dim03_types<value_type>)
+	struct get_value_type<value_type> {
+		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
+			return make_long3(device_forward<value_types>(args)...);
+		}
+	};
+
+	template<int64_cuda_types value_type>
+		requires(dim04_types<value_type>)
+	struct get_value_type<value_type> {
+		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
+			return make_long4(device_forward<value_types>(args)...);
+		}
+	};
+
+	template<uint8_cuda_types value_type>
+		requires(dim01_types<value_type>)
+	struct get_value_type<value_type> {
+		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
+			return make_uchar1(device_forward<value_types>(args)...);
+		}
+	};
+
+	template<uint8_cuda_types value_type>
+		requires(dim02_types<value_type>)
+	struct get_value_type<value_type> {
+		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
+			return make_uchar2(device_forward<value_types>(args)...);
+		}
+	};
+
+	template<uint8_cuda_types value_type>
+		requires(dim03_types<value_type>)
+	struct get_value_type<value_type> {
+		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
+			return make_uchar3(device_forward<value_types>(args)...);
+		}
+	};
+
+	template<uint8_cuda_types value_type>
+		requires(dim04_types<value_type>)
+	struct get_value_type<value_type> {
+		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
+			return make_uchar4(device_forward<value_types>(args)...);
+		}
+	};
+
+	template<uint16_cuda_types value_type>
+		requires(dim01_types<value_type>)
+	struct get_value_type<value_type> {
+		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
+			return make_ushort1(device_forward<value_types>(args)...);
+		}
+	};
+
+	template<uint16_cuda_types value_type>
+		requires(dim02_types<value_type>)
+	struct get_value_type<value_type> {
+		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
+			return make_ushort2(device_forward<value_types>(args)...);
+		}
+	};
+
+	template<uint16_cuda_types value_type>
+		requires(dim03_types<value_type>)
+	struct get_value_type<value_type> {
+		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
+			return make_ushort3(device_forward<value_types>(args)...);
+		}
+	};
+
+	template<uint16_cuda_types value_type>
+		requires(dim04_types<value_type>)
+	struct get_value_type<value_type> {
+		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
+			return make_ushort4(device_forward<value_types>(args)...);
+		}
+	};
+
+	template<uint32_cuda_types value_type>
+		requires(dim01_types<value_type>)
+	struct get_value_type<value_type> {
+		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
+			return make_uint1(device_forward<value_types>(args)...);
+		}
+	};
+
+	template<uint32_cuda_types value_type>
+		requires(dim02_types<value_type>)
+	struct get_value_type<value_type> {
+		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
+			return make_uint2(device_forward<value_types>(args)...);
+		}
+	};
+
+	template<uint32_cuda_types value_type>
+		requires(dim03_types<value_type>)
+	struct get_value_type<value_type> {
+		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
+			return make_uint3(device_forward<value_types>(args)...);
+		}
+	};
+
+	template<uint32_cuda_types value_type>
+		requires(dim04_types<value_type>)
+	struct get_value_type<value_type> {
+		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
+			return make_uint4(device_forward<value_types>(args)...);
+		}
+	};
+
+	template<uint64_cuda_types value_type>
+		requires(dim01_types<value_type>)
+	struct get_value_type<value_type> {
+		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
+			return make_ulong1(device_forward<value_types>(args)...);
+		}
+	};
+
+	template<uint64_cuda_types value_type>
+		requires(dim02_types<value_type>)
+	struct get_value_type<value_type> {
+		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
+			return make_ulong2(device_forward<value_types>(args)...);
+		}
+	};
+
+	template<uint64_cuda_types value_type>
+		requires(dim03_types<value_type>)
+	struct get_value_type<value_type> {
+		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
+			return make_ulong3(device_forward<value_types>(args)...);
+		}
+	};
+
+	template<uint64_cuda_types value_type>
+		requires(dim04_types<value_type>)
+	struct get_value_type<value_type> {
+		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
+			return make_ulong4(device_forward<value_types>(args)...);
+		}
+	};
+
+	template<float32_cuda_types value_type>
+		requires(dim01_types<value_type>)
+	struct get_value_type<value_type> {
+		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
+			return make_float1(device_forward<value_types>(args)...);
+		}
+	};
+
+	template<float32_cuda_types value_type>
+		requires(dim02_types<value_type>)
+	struct get_value_type<value_type> {
+		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
+			return make_float2(device_forward<value_types>(args)...);
+		}
+	};
+
+	template<float32_cuda_types value_type>
+		requires(dim03_types<value_type>)
+	struct get_value_type<value_type> {
+		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
+			return make_float3(device_forward<value_types>(args)...);
+		}
+	};
+
+	template<float32_cuda_types value_type>
+		requires(dim04_types<value_type>)
+	struct get_value_type<value_type> {
+		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
+			return make_float4(device_forward<value_types>(args)...);
+		}
+	};
+
+	template<float64_cuda_types value_type>
+		requires(dim01_types<value_type>)
+	struct get_value_type<value_type> {
+		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
+			return make_double1(device_forward<value_types>(args)...);
+		}
+	};
+
+	template<float64_cuda_types value_type>
+		requires(dim02_types<value_type>)
+	struct get_value_type<value_type> {
+		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
+			return make_double2(device_forward<value_types>(args)...);
+		}
+	};
+
+	template<float64_cuda_types value_type>
+		requires(dim03_types<value_type>)
+	struct get_value_type<value_type> {
+		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
+			return make_double3(device_forward<value_types>(args)...);
+		}
+	};
+
+	template<float64_cuda_types value_type>
+		requires(dim04_types<value_type>)
+	struct get_value_type<value_type> {
+		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
+			return make_double4(device_forward<value_types>(args)...);
 		}
 	};
 
@@ -434,20 +614,9 @@ namespace nihilus {
 		return binary_op<binary_op_types::div>::impl(device_forward<value_type01>(val01), device_forward<value_type02>(val02));
 	}
 
-	template<enum_types enum_type, enum_type enum_value, typename core_bases_type> NIHILUS_DEVICE decltype(auto) get_core(core_bases_type& core_bases) noexcept {
-		return *static_cast<std::remove_cvref_t<typename core_bases_type::template core_base_type<enum_type, enum_value>>*>(&core_bases);
-	}
-
-	template<const model_config& config_new, auto kernel_type> NIHILUS_DEVICE static decltype(auto) get_adjacent_value_device(auto& parse_core) {
-		using derived_type	   = core_traits<config_new, kernel_type>;
-		using thread_pool_type = thread_pool<config_new>;
-		using core_bases_type  = typename thread_pool<config_new>::core_bases_type;
-		return *static_cast<derived_type*>(static_cast<core_bases_type*>(&parse_core));
-	}
-
 	template<typename core_traits_type> __global__ void token_embeddings_prompt_eval_time(uint64_t sequence_length, typename core_traits_type::kernel_data_ptrs params) {
-		static constexpr uint64_t embedding_length	   = core_traits_type::mt::embedding_length;
-		static constexpr uint64_t block_size		   = core_traits_type::prof::weight_type::quant_count;
+		static constexpr uint64_t embedding_length	   = core_traits_type::mtt::embedding_length;
+		static constexpr uint64_t block_size		   = core_traits_type::kernel_profile_type::weight_type::quant_count;
 		static constexpr uint64_t blocks_per_embedding = (embedding_length + block_size - 1) / block_size;
 
 		const auto* __restrict__ weight_data = params.weight_data;
@@ -474,7 +643,7 @@ namespace nihilus {
 	#pragma unroll
 			for (uint64_t j = 0; j < block_size; ++j) {
 				if (base_offset + j < embedding_length) {
-					dst_row[base_offset + j] = scale * static_cast<typename core_traits_type::prof::compute_type>(quantized[j]);
+					dst_row[base_offset + j] = scale * static_cast<typename core_traits_type::kernel_profile_type::compute_type>(quantized[j]);
 				}
 			}
 		}
@@ -497,7 +666,7 @@ namespace nihilus {
 
 			params.data_ptrs.set_ptrs(output_data, weight_data, token_ids);
 
-			if constexpr (config.dev ) {
+			if constexpr (config.dev) {
 				if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
 					static constexpr auto location = std::source_location::current();
 					nihilus_exception<config, "Cuda Error: ", location>::impl(cudaGetErrorString(err));
@@ -505,8 +674,8 @@ namespace nihilus {
 			}
 
 			if (sequence_length > 0) {
-				static constexpr uint64_t embedding_length	   = core_traits_type::mt::embedding_length;
-				static constexpr uint64_t block_size		   = core_traits_type::prof::weight_type::quant_count;
+				static constexpr uint64_t embedding_length	   = core_traits_type::mtt::embedding_length;
+				static constexpr uint64_t block_size		   = core_traits_type::kernel_profile_type::weight_type::quant_count;
 				static constexpr uint64_t blocks_per_embedding = (embedding_length + block_size - 1) / block_size;
 
 				constexpr uint64_t threads_per_block = blocks_per_embedding <= 32 ? 32
@@ -519,7 +688,7 @@ namespace nihilus {
 
 				token_embeddings_prompt_eval_time<core_traits_type><<<blocks_per_grid, threads_per_block>>>(sequence_length, params.data_ptrs);
 
-				if constexpr (config.dev ) {
+				if constexpr (config.dev) {
 					if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
 						static constexpr auto location = std::source_location::current();
 						nihilus_exception<config, "Cuda Kernel Launch Error: ", location>::impl(cudaGetErrorString(err));
@@ -528,7 +697,7 @@ namespace nihilus {
 
 				cudaDeviceSynchronize();
 
-				if constexpr (config.dev ) {
+				if constexpr (config.dev) {
 					if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
 						static constexpr auto location = std::source_location::current();
 						nihilus_exception<config, "Cuda Synchronization Error: ", location>::impl(cudaGetErrorString(err));
@@ -539,8 +708,8 @@ namespace nihilus {
 	};
 
 	template<typename core_traits_type> __global__ void token_embeddings_eval_time(uint64_t sequence_length, typename core_traits_type::kernel_data_ptrs params) {
-		static constexpr uint64_t embedding_length	   = core_traits_type::mt::embedding_length;
-		static constexpr uint64_t block_size		   = core_traits_type::prof::weight_type::quant_count;
+		static constexpr uint64_t embedding_length	   = core_traits_type::mtt::embedding_length;
+		static constexpr uint64_t block_size		   = core_traits_type::kernel_profile_type::weight_type::quant_count;
 		static constexpr uint64_t blocks_per_embedding = (embedding_length + block_size - 1) / block_size;
 
 		const auto* __restrict__ weight_data = params.weight_data;
@@ -561,7 +730,7 @@ namespace nihilus {
 			const auto scale		 = __half2float(block.d);
 			const auto quantized_val = block.qs[elem_in_block];
 
-			output_data[elem_idx] = scale * static_cast<typename core_traits_type::prof::compute_type>(quantized_val);
+			output_data[elem_idx] = scale * static_cast<typename core_traits_type::kernel_profile_type::compute_type>(quantized_val);
 		}
 	}
 
@@ -581,21 +750,21 @@ namespace nihilus {
 
 			params.data_ptrs.set_ptrs(output_data, weight_data, token_ids);
 
-			if constexpr (config.dev ) {
+			if constexpr (config.dev) {
 				if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
 					static constexpr auto location = std::source_location::current();
 					nihilus_exception<config, "Cuda Error: ", location>::impl(cudaGetErrorString(err));
 				}
 			}
 
-			static constexpr uint64_t embedding_length = core_traits_type::mt::embedding_length;
+			static constexpr uint64_t embedding_length = core_traits_type::mtt::embedding_length;
 
 			constexpr uint64_t threads_per_block = 256;
 			const uint64_t blocks_per_grid		 = (embedding_length + threads_per_block - 1) / threads_per_block;
 
 			token_embeddings_eval_time<core_traits_type><<<blocks_per_grid, threads_per_block>>>(sequence_length, params.data_ptrs);
 
-			if constexpr (config.dev ) {
+			if constexpr (config.dev) {
 				if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
 					static constexpr auto location = std::source_location::current();
 					nihilus_exception<config, "Cuda Kernel Launch Error: ", location>::impl(cudaGetErrorString(err));
@@ -604,7 +773,7 @@ namespace nihilus {
 
 			cudaDeviceSynchronize();
 
-			if constexpr (config.dev ) {
+			if constexpr (config.dev) {
 				if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
 					static constexpr auto location = std::source_location::current();
 					nihilus_exception<config, "Cuda Synchronization Error: ", location>::impl(cudaGetErrorString(err));
@@ -615,13 +784,13 @@ namespace nihilus {
 
 	template<typename core_traits_type>
 	__global__ void mega_qkv_prep_and_cache_publish_prompt_eval_time(uint64_t sequence_length, typename core_traits_type::kernel_data_ptrs params) {
-		static constexpr uint64_t embedding_length = core_traits_type::mt::embedding_length;
-		static constexpr uint64_t rope_dim		   = core_traits_type::mt::rope_dimension_count;
-		static constexpr uint64_t n_head		   = core_traits_type::mt::attention_head_count;
-		static constexpr uint64_t n_head_kv		   = core_traits_type::mt::attention_head_count_kv;
-		static constexpr uint64_t n_embd_kv_gqa	   = core_traits_type::mt::n_embd_kv_gqa;
+		static constexpr uint64_t embedding_length = core_traits_type::mtt::embedding_length;
+		static constexpr uint64_t rope_dim		   = core_traits_type::mtt::rope_dimension_count;
+		static constexpr uint64_t n_head		   = core_traits_type::mtt::attention_head_count;
+		static constexpr uint64_t n_head_kv		   = core_traits_type::mtt::attention_head_count_kv;
+		static constexpr uint64_t n_embd_kv_gqa	   = core_traits_type::mtt::n_embd_kv_gqa;
 
-		static constexpr uint64_t block_size	 = core_traits_type::prof::weight_type::quant_count;
+		static constexpr uint64_t block_size	 = core_traits_type::kernel_profile_type::weight_type::quant_count;
 		static constexpr uint64_t blocks_per_row = (embedding_length + block_size - 1) / block_size;
 
 		const auto* __restrict__ inp_embd_data	  = params.inp_embd_data;
@@ -668,7 +837,7 @@ namespace nihilus {
 	#pragma unroll
 						for (uint64_t j = 0; j < block_size; ++j) {
 							if (base_offset + j < embedding_length) {
-								const auto dequantized_weight = scale * static_cast<typename core_traits_type::prof::compute_type>(quantized[j]);
+								const auto dequantized_weight = scale * static_cast<typename core_traits_type::kernel_profile_type::compute_type>(quantized[j]);
 								q_val += dequantized_weight * normed[base_offset + j];
 							}
 						}
@@ -693,7 +862,7 @@ namespace nihilus {
 	#pragma unroll
 								for (uint64_t j = 0; j < block_size; ++j) {
 									if (base_offset + j < embedding_length) {
-										const auto dequantized_weight = scale * static_cast<typename core_traits_type::prof::compute_type>(quantized[j]);
+										const auto dequantized_weight = scale * static_cast<typename core_traits_type::kernel_profile_type::compute_type>(quantized[j]);
 										q_pair += dequantized_weight * normed[base_offset + j];
 									}
 								}
@@ -712,7 +881,7 @@ namespace nihilus {
 	#pragma unroll
 							for (uint64_t j = 0; j < block_size; ++j) {
 								if (base_offset + j < embedding_length) {
-									const auto dequantized_weight = scale * static_cast<typename core_traits_type::prof::compute_type>(quantized[j]);
+									const auto dequantized_weight = scale * static_cast<typename core_traits_type::kernel_profile_type::compute_type>(quantized[j]);
 									q_pair += dequantized_weight * normed[base_offset + j];
 								}
 							}
@@ -737,7 +906,7 @@ namespace nihilus {
 	#pragma unroll
 						for (uint64_t j = 0; j < block_size; ++j) {
 							if (base_offset + j < embedding_length) {
-								const auto dequantized_weight = scale * static_cast<typename core_traits_type::prof::compute_type>(quantized[j]);
+								const auto dequantized_weight = scale * static_cast<typename core_traits_type::kernel_profile_type::compute_type>(quantized[j]);
 								k_val += dequantized_weight * normed[base_offset + j];
 							}
 						}
@@ -763,7 +932,7 @@ namespace nihilus {
 	#pragma unroll
 								for (uint64_t j = 0; j < block_size; ++j) {
 									if (base_offset + j < embedding_length) {
-										const auto dequantized_weight = scale * static_cast<typename core_traits_type::prof::compute_type>(quantized[j]);
+										const auto dequantized_weight = scale * static_cast<typename core_traits_type::kernel_profile_type::compute_type>(quantized[j]);
 										k_pair += dequantized_weight * normed[base_offset + j];
 									}
 								}
@@ -782,7 +951,7 @@ namespace nihilus {
 	#pragma unroll
 							for (uint64_t j = 0; j < block_size; ++j) {
 								if (base_offset + j < embedding_length) {
-									const auto dequantized_weight = scale * static_cast<typename core_traits_type::prof::compute_type>(quantized[j]);
+									const auto dequantized_weight = scale * static_cast<typename core_traits_type::kernel_profile_type::compute_type>(quantized[j]);
 									k_pair += dequantized_weight * normed[base_offset + j];
 								}
 							}
@@ -808,7 +977,7 @@ namespace nihilus {
 	#pragma unroll
 						for (uint64_t j = 0; j < block_size; ++j) {
 							if (base_offset + j < embedding_length) {
-								const auto dequantized_weight = scale * static_cast<typename core_traits_type::prof::compute_type>(quantized[j]);
+								const auto dequantized_weight = scale * static_cast<typename core_traits_type::kernel_profile_type::compute_type>(quantized[j]);
 								v_val += dequantized_weight * normed[base_offset + j];
 							}
 						}
@@ -843,7 +1012,7 @@ namespace nihilus {
 			const uint64_t max_threads_needed = sequence_length;
 			const uint64_t actual_blocks = detail::min(launch_params.blocks_per_grid, (max_threads_needed + launch_params.threads_per_block - 1) / launch_params.threads_per_block);
 
-			if constexpr (config.dev ) {
+			if constexpr (config.dev) {
 				if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
 					static constexpr auto location = std::source_location::current();
 					nihilus_exception<config, "Cuda Error: ", location>::impl(cudaGetErrorString(err));
@@ -851,9 +1020,9 @@ namespace nihilus {
 			}
 
 			if (sequence_length > 0) {
-				mega_qkv_prep_and_cache_publish_prompt_eval_time<core_traits_type><<<actual_blocks, launch_params.threads_per_block>>>(sequence_length, params.data_ptrs);
+				//mega_qkv_prep_and_cache_publish_prompt_eval_time<core_traits_type><<<actual_blocks, launch_params.threads_per_block>>>(sequence_length, params.data_ptrs);
 
-				if constexpr (config.dev ) {
+				if constexpr (config.dev) {
 					if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
 						static constexpr auto location = std::source_location::current();
 						nihilus_exception<config, "Cuda Kernel Launch Error: ", location>::impl(cudaGetErrorString(err));
@@ -862,7 +1031,7 @@ namespace nihilus {
 
 				cudaDeviceSynchronize();
 
-				if constexpr (config.dev ) {
+				if constexpr (config.dev) {
 					if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
 						static constexpr auto location = std::source_location::current();
 						nihilus_exception<config, "Cuda Synchronization Error: ", location>::impl(cudaGetErrorString(err));
@@ -872,15 +1041,14 @@ namespace nihilus {
 		}
 	};
 
-	template<typename core_traits_type>
-	__global__ void mega_qkv_prep_and_cache_publish_eval_time(uint64_t sequence_length, typename core_traits_type::kernel_data_ptrs params) {
-		static constexpr uint64_t embedding_length = core_traits_type::mt::embedding_length;
-		static constexpr uint64_t rope_dim		   = core_traits_type::mt::rope_dimension_count;
-		static constexpr uint64_t n_head		   = core_traits_type::mt::attention_head_count;
-		static constexpr uint64_t n_head_kv		   = core_traits_type::mt::attention_head_count_kv;
-		static constexpr uint64_t n_embd_kv_gqa	   = core_traits_type::mt::n_embd_kv_gqa;
+	template<typename core_traits_type> __global__ void mega_qkv_prep_and_cache_publish_eval_time(uint64_t sequence_length, typename core_traits_type::kernel_data_ptrs params) {
+		static constexpr uint64_t embedding_length = core_traits_type::mtt::embedding_length;
+		static constexpr uint64_t rope_dim		   = core_traits_type::mtt::rope_dimension_count;
+		static constexpr uint64_t n_head		   = core_traits_type::mtt::attention_head_count;
+		static constexpr uint64_t n_head_kv		   = core_traits_type::mtt::attention_head_count_kv;
+		static constexpr uint64_t n_embd_kv_gqa	   = core_traits_type::mtt::n_embd_kv_gqa;
 
-		static constexpr uint64_t block_size	 = core_traits_type::prof::weight_type::quant_count;
+		static constexpr uint64_t block_size	 = core_traits_type::kernel_profile_type::weight_type::quant_count;
 		static constexpr uint64_t blocks_per_row = (embedding_length + block_size - 1) / block_size;
 
 		const auto* __restrict__ inp_embd_data	  = params.inp_embd_data;
@@ -937,7 +1105,7 @@ namespace nihilus {
 	#pragma unroll
 					for (uint64_t j = 0; j < block_size; ++j) {
 						if (base_offset + j < embedding_length) {
-							const auto dequantized_weight = scale * static_cast<typename core_traits_type::prof::compute_type>(quantized[j]);
+							const auto dequantized_weight = scale * static_cast<typename core_traits_type::kernel_profile_type::compute_type>(quantized[j]);
 							q_val += dequantized_weight * normed[base_offset + j];
 						}
 					}
@@ -962,7 +1130,7 @@ namespace nihilus {
 	#pragma unroll
 							for (uint64_t j = 0; j < block_size; ++j) {
 								if (base_offset + j < embedding_length) {
-									const auto dequantized_weight = scale * static_cast<typename core_traits_type::prof::compute_type>(quantized[j]);
+									const auto dequantized_weight = scale * static_cast<typename core_traits_type::kernel_profile_type::compute_type>(quantized[j]);
 									q_pair += dequantized_weight * normed[base_offset + j];
 								}
 							}
@@ -981,7 +1149,7 @@ namespace nihilus {
 	#pragma unroll
 						for (uint64_t j = 0; j < block_size; ++j) {
 							if (base_offset + j < embedding_length) {
-								const auto dequantized_weight = scale * static_cast<typename core_traits_type::prof::compute_type>(quantized[j]);
+								const auto dequantized_weight = scale * static_cast<typename core_traits_type::kernel_profile_type::compute_type>(quantized[j]);
 								q_pair += dequantized_weight * normed[base_offset + j];
 							}
 						}
@@ -1006,7 +1174,7 @@ namespace nihilus {
 	#pragma unroll
 					for (uint64_t j = 0; j < block_size; ++j) {
 						if (base_offset + j < embedding_length) {
-							const auto dequantized_weight = scale * static_cast<typename core_traits_type::prof::compute_type>(quantized[j]);
+							const auto dequantized_weight = scale * static_cast<typename core_traits_type::kernel_profile_type::compute_type>(quantized[j]);
 							k_val += dequantized_weight * normed[base_offset + j];
 						}
 					}
@@ -1032,7 +1200,7 @@ namespace nihilus {
 	#pragma unroll
 							for (uint64_t j = 0; j < block_size; ++j) {
 								if (base_offset + j < embedding_length) {
-									const auto dequantized_weight = scale * static_cast<typename core_traits_type::prof::compute_type>(quantized[j]);
+									const auto dequantized_weight = scale * static_cast<typename core_traits_type::kernel_profile_type::compute_type>(quantized[j]);
 									k_pair += dequantized_weight * normed[base_offset + j];
 								}
 							}
@@ -1051,7 +1219,7 @@ namespace nihilus {
 	#pragma unroll
 						for (uint64_t j = 0; j < block_size; ++j) {
 							if (base_offset + j < embedding_length) {
-								const auto dequantized_weight = scale * static_cast<typename core_traits_type::prof::compute_type>(quantized[j]);
+								const auto dequantized_weight = scale * static_cast<typename core_traits_type::kernel_profile_type::compute_type>(quantized[j]);
 								k_pair += dequantized_weight * normed[base_offset + j];
 							}
 						}
@@ -1077,7 +1245,7 @@ namespace nihilus {
 	#pragma unroll
 					for (uint64_t j = 0; j < block_size; ++j) {
 						if (base_offset + j < embedding_length) {
-							const auto dequantized_weight = scale * static_cast<typename core_traits_type::prof::compute_type>(quantized[j]);
+							const auto dequantized_weight = scale * static_cast<typename core_traits_type::kernel_profile_type::compute_type>(quantized[j]);
 							v_val += dequantized_weight * normed[base_offset + j];
 						}
 					}
@@ -1106,24 +1274,24 @@ namespace nihilus {
 
 			const uint64_t sequence_length = q_out_op.get_mutable_dim();
 
-			static constexpr uint64_t rope_dim	= core_traits_type::mt::rope_dimension_count;
-			static constexpr uint64_t n_head	= core_traits_type::mt::attention_head_count;
-			static constexpr uint64_t n_head_kv = core_traits_type::mt::attention_head_count_kv;
+			static constexpr uint64_t rope_dim	= core_traits_type::mtt::rope_dimension_count;
+			static constexpr uint64_t n_head	= core_traits_type::mtt::attention_head_count;
+			static constexpr uint64_t n_head_kv = core_traits_type::mtt::attention_head_count_kv;
 
 			cuda_launch_params launch_params  = calculate_gpu_launch_params<typename core_traits_type::q_out_type, core_types::mega_qkv_prep_and_cache_publish>(q_out_op);
 			const uint64_t max_threads_needed = n_head * rope_dim + n_head_kv * rope_dim * 2;
 			const uint64_t actual_blocks = detail::min(launch_params.blocks_per_grid, (max_threads_needed + launch_params.threads_per_block - 1) / launch_params.threads_per_block);
 
-			if constexpr (config.dev ) {
+			if constexpr (config.dev) {
 				if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
 					static constexpr auto location = std::source_location::current();
 					nihilus_exception<config, "Cuda Error: ", location>::impl(cudaGetErrorString(err));
 				}
 			}
 
-			mega_qkv_prep_and_cache_publish_eval_time<core_traits_type><<<actual_blocks, launch_params.threads_per_block>>>(sequence_length, params.data_ptrs);
+			//mega_qkv_prep_and_cache_publish_eval_time<core_traits_type><<<actual_blocks, launch_params.threads_per_block>>>(sequence_length, params.data_ptrs);
 
-			if constexpr (config.dev ) {
+			if constexpr (config.dev) {
 				if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
 					static constexpr auto location = std::source_location::current();
 					nihilus_exception<config, "Cuda Kernel Launch Error: ", location>::impl(cudaGetErrorString(err));
@@ -1132,7 +1300,7 @@ namespace nihilus {
 
 			cudaDeviceSynchronize();
 
-			if constexpr (config.dev ) {
+			if constexpr (config.dev) {
 				if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
 					static constexpr auto location = std::source_location::current();
 					nihilus_exception<config, "Cuda Synchronization Error: ", location>::impl(cudaGetErrorString(err));
