@@ -195,7 +195,8 @@ namespace nihilus {
 	template<int8_types value_type> NIHILUS_HOST static bool is_alpha(value_type c) noexcept {
 		NIHILUS_ALIGN(64)
 		static constexpr const static_aligned_const<bool>* __restrict alpha_table{ [] {
-			NIHILUS_ALIGN(64) constexpr array<static_aligned_const<bool>, 256> return_values{ [] {
+			NIHILUS_ALIGN(64)
+			constexpr array<static_aligned_const<bool>, 256> return_values{ [] {
 				array<static_aligned_const<bool>, 256> return_values_new{};
 				for (int32_t i = 'A'; i <= 'Z'; ++i) {
 					return_values_new[static_cast<uint64_t>(i)] = static_aligned_const<bool>{ true };
@@ -237,7 +238,7 @@ namespace nihilus {
 	template<integral_or_enum_types value_type_new> struct NIHILUS_ALIGN(64) atomic_flag_wrapper {
 		static constexpr static_aligned_const spin_cycles{ 500000ull };
 		using value_type									  = typename std::atomic_signed_lock_free::value_type;
-		NIHILUS_HOST constexpr atomic_flag_wrapper() noexcept = default;
+		NIHILUS_HOST constexpr atomic_flag_wrapper() noexcept {}
 		NIHILUS_HOST constexpr atomic_flag_wrapper& operator=(const atomic_flag_wrapper&) noexcept {
 			return *this;
 		}
@@ -302,17 +303,17 @@ namespace nihilus {
 		}
 
 	  protected:
-		NIHILUS_ALIGN(64) std::atomic_signed_lock_free flag{};
+		NIHILUS_ALIGN(64) std::atomic_signed_lock_free flag {};
 	};
 
 	struct NIHILUS_ALIGN(64) main_gate_latch {
-		NIHILUS_HOST main_gate_latch()									= default;
+		NIHILUS_HOST main_gate_latch()									{}
 		NIHILUS_HOST main_gate_latch& operator=(const main_gate_latch&) = delete;
 		NIHILUS_HOST main_gate_latch(const main_gate_latch&)			= delete;
 		using value_type												= std::atomic_signed_lock_free::value_type;
 		aligned_vector<atomic_flag_wrapper<value_type>> flags{};
 		atomic_flag_wrapper<value_type> global_counter{};
-		NIHILUS_ALIGN(64) value_type thread_count{};
+		NIHILUS_ALIGN(64) value_type thread_count {};
 
 		NIHILUS_HOST void init(value_type thread_count_new) {
 			thread_count = thread_count_new;
@@ -387,6 +388,26 @@ namespace nihilus {
 		os << get_name(type);
 		return os;
 	}
+
+	enum class thread_strategy_types : uint8_t {
+		none,
+		global_input,
+		global_output,
+		per_block,
+	};
+
+	enum class allocation_strategy_types : uint8_t {
+		none,
+		mmap,
+		remap,
+		alloc,
+	};
+
+	enum class data_strategy_types : uint8_t {
+		none,
+		global,
+		per_block,
+	};
 
 	enum class data_types : uint64_t {
 		f32		= 0,

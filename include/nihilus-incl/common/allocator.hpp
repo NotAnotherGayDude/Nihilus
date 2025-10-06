@@ -40,10 +40,10 @@ namespace nihilus {
 	template<typename value_type_new> class allocator {
 	  public:
 		using value_type	   = value_type_new;
-		using pointer		   = value_type_new*;
-		using const_pointer	   = const value_type_new*;
-		using reference		   = value_type_new&;
-		using const_reference  = const value_type_new&;
+		using pointer		   = value_type*;
+		using const_pointer	   = const value_type*;
+		using reference		   = value_type&;
+		using const_reference  = const value_type&;
 		using size_type		   = uint64_t;
 		using difference_type  = std::ptrdiff_t;
 		using allocator_traits = std::allocator_traits<allocator<value_type>>;
@@ -52,7 +52,7 @@ namespace nihilus {
 			using other = allocator<U>;
 		};
 
-		NIHILUS_HOST allocator() noexcept = default;
+		NIHILUS_HOST allocator() noexcept {}
 
 		template<typename U> allocator(const allocator<U>&) noexcept {
 		}

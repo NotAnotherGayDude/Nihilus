@@ -47,7 +47,9 @@ namespace nihilus {
 		}
 
 		NIHILUS_HOST void terminate() noexcept {
-			buffer[current_length] = '\0';
+			if (current_length < config.default_max_sequence_length) {
+				buffer.at(current_length) = '\0';
+			}
 		}
 
 		NIHILUS_HOST bool read_multiline() noexcept {

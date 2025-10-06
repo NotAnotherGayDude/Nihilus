@@ -41,7 +41,7 @@ namespace nihilus {
 	template<const model_config& config> class file_loader;
 
 	template<const model_config& config>
-		requires(config.exceptions)
+		requires(config.exceptions.operator bool())
 	class file_loader<config> {
 	  public:
 		explicit file_loader(const std::filesystem::path& filePath) {

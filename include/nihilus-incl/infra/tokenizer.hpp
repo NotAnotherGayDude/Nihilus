@@ -116,7 +116,7 @@ namespace nihilus {
 
 	struct nihilus_bigram_bpe {
 		struct comparator {
-			NIHILUS_HOST bool operator()(const nihilus_bigram_bpe& l, const nihilus_bigram_bpe& r) const {
+			NIHILUS_HOST_DEVICE bool operator()(const nihilus_bigram_bpe& l, const nihilus_bigram_bpe& r) const {
 				return l.rank > r.rank || (l.rank == r.rank && l.left > r.left);
 			}
 		};

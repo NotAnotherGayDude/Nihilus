@@ -5205,7 +5205,7 @@ template<typename IteratorType> class iteration_proxy_value
     string_type empty_str{};
 
   public:
-    explicit iteration_proxy_value() = default;
+    explicit iteration_proxy_value() {}
     explicit iteration_proxy_value(IteratorType it, std::size_t array_index_ = 0)
     noexcept(std::is_nothrow_move_constructible<IteratorType>::value
              && std::is_nothrow_default_constructible<string_type>::value)
@@ -5213,16 +5213,16 @@ template<typename IteratorType> class iteration_proxy_value
         , array_index(array_index_)
     {}
 
-    iteration_proxy_value(iteration_proxy_value const&) = default;
-    iteration_proxy_value& operator=(iteration_proxy_value const&) = default;
+    iteration_proxy_value(iteration_proxy_value const&) {}
+    iteration_proxy_value& operator=(iteration_proxy_value const&) {}
     // older GCCs are a bit fussy and require explicit noexcept specifiers on defaulted functions
     iteration_proxy_value(iteration_proxy_value&&)
     noexcept(std::is_nothrow_move_constructible<IteratorType>::value
-             && std::is_nothrow_move_constructible<string_type>::value) = default; // NOLINT(hicpp-noexcept-move,performance-noexcept-move-constructor,cppcoreguidelines-noexcept-move-operations)
+             && std::is_nothrow_move_constructible<string_type>::value) {} // NOLINT(hicpp-noexcept-move,performance-noexcept-move-constructor,cppcoreguidelines-noexcept-move-operations)
     iteration_proxy_value& operator=(iteration_proxy_value&&)
     noexcept(std::is_nothrow_move_assignable<IteratorType>::value
-             && std::is_nothrow_move_assignable<string_type>::value) = default; // NOLINT(hicpp-noexcept-move,performance-noexcept-move-constructor,cppcoreguidelines-noexcept-move-operations)
-    ~iteration_proxy_value() = default;
+             && std::is_nothrow_move_assignable<string_type>::value) {} // NOLINT(hicpp-noexcept-move,performance-noexcept-move-constructor,cppcoreguidelines-noexcept-move-operations)
+    ~iteration_proxy_value() {}
 
     /// dereference operator (needed for range-based for)
     const iteration_proxy_value& operator*() const
@@ -5310,17 +5310,17 @@ template<typename IteratorType> class iteration_proxy
     typename IteratorType::pointer container = nullptr;
 
   public:
-    explicit iteration_proxy() = default;
+    explicit iteration_proxy() {}
 
     /// construct iteration proxy from a container
     explicit iteration_proxy(typename IteratorType::reference cont) noexcept
         : container(&cont) {}
 
-    iteration_proxy(iteration_proxy const&) = default;
-    iteration_proxy& operator=(iteration_proxy const&) = default;
-    iteration_proxy(iteration_proxy&&) noexcept = default;
-    iteration_proxy& operator=(iteration_proxy&&) noexcept = default;
-    ~iteration_proxy() = default;
+    iteration_proxy(iteration_proxy const&) {}
+    iteration_proxy& operator=(iteration_proxy const&) {}
+    iteration_proxy(iteration_proxy&&) noexcept {}
+    iteration_proxy& operator=(iteration_proxy&&) noexcept {}
+    ~iteration_proxy() {}
 
     /// return iterator begin (needed for range-based for)
     iteration_proxy_value<IteratorType> begin() const noexcept
@@ -6199,10 +6199,10 @@ class file_input_adapter
 
     // make class move-only
     file_input_adapter(const file_input_adapter&) = delete;
-    file_input_adapter(file_input_adapter&&) noexcept = default;
+    file_input_adapter(file_input_adapter&&) noexcept {}
     file_input_adapter& operator=(const file_input_adapter&) = delete;
     file_input_adapter& operator=(file_input_adapter&&) = delete;
-    ~file_input_adapter() = default;
+    ~file_input_adapter() {}
 
     std::char_traits<char>::int_type get_character() noexcept
     {
@@ -6773,12 +6773,12 @@ struct json_sax
                              const std::string& last_token,
                              const detail::exception& ex) = 0;
 
-    json_sax() = default;
-    json_sax(const json_sax&) = default;
-    json_sax(json_sax&&) noexcept = default;
-    json_sax& operator=(const json_sax&) = default;
-    json_sax& operator=(json_sax&&) noexcept = default;
-    virtual ~json_sax() = default;
+    json_sax() {}
+    json_sax(const json_sax&) {}
+    json_sax(json_sax&&) noexcept {}
+    json_sax& operator=(const json_sax&) {}
+    json_sax& operator=(json_sax&&) noexcept {}
+    virtual ~json_sax() {}
 };
 
 namespace detail
@@ -6817,10 +6817,10 @@ class json_sax_dom_parser
 
     // make class move-only
     json_sax_dom_parser(const json_sax_dom_parser&) = delete;
-    json_sax_dom_parser(json_sax_dom_parser&&) = default; // NOLINT(hicpp-noexcept-move,performance-noexcept-move-constructor)
+    json_sax_dom_parser(json_sax_dom_parser&&) {} // NOLINT(hicpp-noexcept-move,performance-noexcept-move-constructor)
     json_sax_dom_parser& operator=(const json_sax_dom_parser&) = delete;
-    json_sax_dom_parser& operator=(json_sax_dom_parser&&) = default; // NOLINT(hicpp-noexcept-move,performance-noexcept-move-constructor)
-    ~json_sax_dom_parser() = default;
+    json_sax_dom_parser& operator=(json_sax_dom_parser&&) {} // NOLINT(hicpp-noexcept-move,performance-noexcept-move-constructor)
+    ~json_sax_dom_parser() {}
 
     bool null()
     {
@@ -7001,10 +7001,10 @@ class json_sax_dom_callback_parser
 
     // make class move-only
     json_sax_dom_callback_parser(const json_sax_dom_callback_parser&) = delete;
-    json_sax_dom_callback_parser(json_sax_dom_callback_parser&&) = default; // NOLINT(hicpp-noexcept-move,performance-noexcept-move-constructor)
+    json_sax_dom_callback_parser(json_sax_dom_callback_parser&&) {} // NOLINT(hicpp-noexcept-move,performance-noexcept-move-constructor)
     json_sax_dom_callback_parser& operator=(const json_sax_dom_callback_parser&) = delete;
-    json_sax_dom_callback_parser& operator=(json_sax_dom_callback_parser&&) = default; // NOLINT(hicpp-noexcept-move,performance-noexcept-move-constructor)
-    ~json_sax_dom_callback_parser() = default;
+    json_sax_dom_callback_parser& operator=(json_sax_dom_callback_parser&&) {} // NOLINT(hicpp-noexcept-move,performance-noexcept-move-constructor)
+    ~json_sax_dom_callback_parser() {}
 
     bool null()
     {
@@ -7501,10 +7501,10 @@ class lexer : public lexer_base<BasicJsonType>
 
     // delete because of pointer members
     lexer(const lexer&) = delete;
-    lexer(lexer&&) = default; // NOLINT(hicpp-noexcept-move,performance-noexcept-move-constructor)
+    lexer(lexer&&) {} // NOLINT(hicpp-noexcept-move,performance-noexcept-move-constructor)
     lexer& operator=(lexer&) = delete;
-    lexer& operator=(lexer&&) = default; // NOLINT(hicpp-noexcept-move,performance-noexcept-move-constructor)
-    ~lexer() = default;
+    lexer& operator=(lexer&&) {} // NOLINT(hicpp-noexcept-move,performance-noexcept-move-constructor)
+    ~lexer() {}
 
   private:
     /////////////////////
@@ -9233,10 +9233,10 @@ class binary_reader
 
     // make class move-only
     binary_reader(const binary_reader&) = delete;
-    binary_reader(binary_reader&&) = default; // NOLINT(hicpp-noexcept-move,performance-noexcept-move-constructor)
+    binary_reader(binary_reader&&) {} // NOLINT(hicpp-noexcept-move,performance-noexcept-move-constructor)
     binary_reader& operator=(const binary_reader&) = delete;
-    binary_reader& operator=(binary_reader&&) = default; // NOLINT(hicpp-noexcept-move,performance-noexcept-move-constructor)
-    ~binary_reader() = default;
+    binary_reader& operator=(binary_reader&&) {} // NOLINT(hicpp-noexcept-move,performance-noexcept-move-constructor)
+    ~binary_reader() {}
 
     /*!
     @param[in] format  the binary format to parse
@@ -12955,10 +12955,10 @@ class iter_impl // NOLINT(cppcoreguidelines-special-member-functions,hicpp-speci
         typename BasicJsonType::const_reference,
         typename BasicJsonType::reference>::type;
 
-    iter_impl() = default;
-    ~iter_impl() = default;
-    iter_impl(iter_impl&&) noexcept = default;
-    iter_impl& operator=(iter_impl&&) noexcept = default;
+    iter_impl() {}
+    ~iter_impl() {}
+    iter_impl(iter_impl&&) noexcept {}
+    iter_impl& operator=(iter_impl&&) noexcept {}
 
     /*!
     @brief constructor for a given JSON instance
@@ -14842,11 +14842,11 @@ class json_ref
     {}
 
     // class should be movable only
-    json_ref(json_ref&&) noexcept = default;
+    json_ref(json_ref&&) noexcept {}
     json_ref(const json_ref&) = delete;
     json_ref& operator=(const json_ref&) = delete;
     json_ref& operator=(json_ref&&) = delete;
-    ~json_ref() = default;
+    ~json_ref() {}
 
     value_type moved_or_copied() const
     {
@@ -14946,13 +14946,13 @@ template<typename CharType> struct output_adapter_protocol
 {
     virtual void write_character(CharType c) = 0;
     virtual void write_characters(const CharType* s, std::size_t length) = 0;
-    virtual ~output_adapter_protocol() = default;
+    virtual ~output_adapter_protocol() {}
 
-    output_adapter_protocol() = default;
-    output_adapter_protocol(const output_adapter_protocol&) = default;
-    output_adapter_protocol(output_adapter_protocol&&) noexcept = default;
-    output_adapter_protocol& operator=(const output_adapter_protocol&) = default;
-    output_adapter_protocol& operator=(output_adapter_protocol&&) noexcept = default;
+    output_adapter_protocol() {}
+    output_adapter_protocol(const output_adapter_protocol&) {}
+    output_adapter_protocol(output_adapter_protocol&&) noexcept {}
+    output_adapter_protocol& operator=(const output_adapter_protocol&) {}
+    output_adapter_protocol& operator=(output_adapter_protocol&&) noexcept {}
 };
 
 /// a type to simplify interfaces
@@ -18089,7 +18089,7 @@ class serializer
     serializer& operator=(const serializer&) = delete;
     serializer(serializer&&) = delete;
     serializer& operator=(serializer&&) = delete;
-    ~serializer() = default;
+    ~serializer() {}
 
     /*!
     @brief internal implementation of the serialization function
@@ -19743,7 +19743,7 @@ class basic_json // NOLINT(cppcoreguidelines-special-member-functions,hicpp-spec
         number_float_t number_float;
 
         /// default constructor (for null values)
-        json_value() = default;
+        json_value() {}
         /// constructor for booleans
         json_value(boolean_t v) noexcept : boolean(v) {}
         /// constructor for numbers (integer)
@@ -23508,8 +23508,8 @@ class basic_json // NOLINT(cppcoreguidelines-special-member-functions,hicpp-spec
             m_value.array = create<array_t>(cnt, val);
         }
 
-        data() noexcept = default;
-        data(data&&) noexcept = default;
+        data() noexcept {}
+        data(data&&) noexcept {}
         data(const data&) noexcept = delete;
         data& operator=(data&&) noexcept = delete;
         data& operator=(const data&) noexcept = delete;

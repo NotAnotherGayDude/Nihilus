@@ -68,7 +68,7 @@ namespace nihilus {
 	};
 
 	template<auto config, string_literal error_type, const std::source_location& source_info>
-		requires(config.exceptions)
+		requires(config.exceptions.operator bool())
 	struct nihilus_exception<config, error_type, source_info> : public std::runtime_error {
 		NIHILUS_HOST static void impl() {
 			static constexpr uint64_t str_length{ str_len(source_info.file_name()) };

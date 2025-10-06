@@ -18,7 +18,7 @@ RealTimeChris (Chris M.)
 2025
 */
 
-#if NIHILUS_CUDA_ENABLED
+#if NIHILUS_COMPILER_CUDA
 
 	#pragma once
 

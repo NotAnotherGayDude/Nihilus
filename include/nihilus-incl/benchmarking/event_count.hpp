@@ -30,7 +30,7 @@ namespace nihilus::benchmarking {
 	struct event_count {
 		template<typename value_type> friend struct event_collector_type;
 
-		NIHILUS_HOST event_count() noexcept = default;
+		NIHILUS_HOST event_count() noexcept {}
 
 		NIHILUS_HOST double elapsedNs() const noexcept {
 			return std::chrono::duration<double, std::nano>(elapsed).count();

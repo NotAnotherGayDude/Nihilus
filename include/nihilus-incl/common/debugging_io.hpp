@@ -491,7 +491,7 @@ namespace nihilus {
 	struct intermediary_tensor {
 		array<uint64_t, 4> dims{};
 
-		NIHILUS_HOST intermediary_tensor() noexcept = default;
+		NIHILUS_HOST intermediary_tensor() noexcept {}
 
 		NIHILUS_HOST intermediary_tensor(const intermediary_tensor& other) {
 			*this = other;
@@ -541,7 +541,7 @@ namespace nihilus {
 	};
 
 	struct tensor_wrapper {
-		NIHILUS_HOST tensor_wrapper() noexcept = default;
+		NIHILUS_HOST tensor_wrapper() noexcept {}
 
 		NIHILUS_HOST tensor_wrapper(const tensor_wrapper& other) {
 			dims = other.dims;

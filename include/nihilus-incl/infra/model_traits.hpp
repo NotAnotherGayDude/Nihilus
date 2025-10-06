@@ -28,24 +28,8 @@ namespace nihilus {
 
 	template<model_arches model_arch, model_sizes model_size, model_generations model_generation> struct model_traits;
 
-	template<> struct model_traits<model_arches::llama, model_sizes::llm_8B, model_generations::v3_1> {
-		static constexpr auto model_arch{ model_arches::llama };
-		static constexpr auto model_generation{ model_generations::v3_1 };
-		static constexpr auto model_size{ model_sizes::llm_8B };
-		static constexpr float layer_norm_rms_epsilon	  = 1e-5f;
-		static constexpr float rope_freq_base			  = 500000.0f;
-		static constexpr uint32_t vocab_size			  = 128256;
-		static constexpr uint32_t embedding_length		  = 4096;
-		static constexpr uint32_t block_count			  = 32;
-		static constexpr uint32_t feed_forward_length	  = 14336;
-		static constexpr uint32_t attention_head_count	  = 32;
-		static constexpr uint32_t attention_head_count_kv = 8;
-		static constexpr uint32_t rope_dimension_count	  = 128;
-		static constexpr uint32_t context_length		  = 131072;
-		static constexpr uint64_t n_embd_kv_gqa			  = rope_dimension_count * attention_head_count_kv;
-	};
-
 	template<> struct model_traits<model_arches::llama, model_sizes::llm_3B, model_generations::v3_2> {
+		static constexpr const char* name{ "llama-3.2-3B" };
 		static constexpr auto model_arch{ model_arches::llama };
 		static constexpr auto model_generation{ model_generations::v3_2 };
 		static constexpr auto model_size{ model_sizes::llm_3B };
@@ -57,12 +41,49 @@ namespace nihilus {
 		static constexpr uint32_t feed_forward_length	  = 8192;
 		static constexpr uint32_t attention_head_count	  = 24;
 		static constexpr uint32_t attention_head_count_kv = 8;
-		static constexpr uint32_t rope_dimension_count	  = 128;
+		static constexpr uint32_t rope_dimension_count	  = embedding_length / attention_head_count;
+		static constexpr uint32_t context_length		  = 131072;
+		static constexpr uint64_t n_embd_kv_gqa			  = rope_dimension_count * attention_head_count_kv;
+	};
+
+	template<> struct model_traits<model_arches::llama, model_sizes::llm_8B, model_generations::v3_1> {
+		static constexpr const char* name{ "llama-3.1-8B" };
+		static constexpr auto model_arch{ model_arches::llama };
+		static constexpr auto model_generation{ model_generations::v3_1 };
+		static constexpr auto model_size{ model_sizes::llm_8B };
+		static constexpr float layer_norm_rms_epsilon	  = 1e-5f;
+		static constexpr float rope_freq_base			  = 500000.0f;
+		static constexpr uint32_t vocab_size			  = 128256;
+		static constexpr uint32_t embedding_length		  = 4096;
+		static constexpr uint32_t block_count			  = 32;
+		static constexpr uint32_t feed_forward_length	  = 14336;
+		static constexpr uint32_t attention_head_count	  = 32;
+		static constexpr uint32_t attention_head_count_kv = 8;
+		static constexpr uint32_t rope_dimension_count	  = embedding_length / attention_head_count;
+		static constexpr uint32_t context_length		  = 131072;
+		static constexpr uint64_t n_embd_kv_gqa			  = rope_dimension_count * attention_head_count_kv;
+	};
+
+	template<> struct model_traits<model_arches::llama, model_sizes::llm_70B, model_generations::v3_1> {
+		static constexpr const char* name{ "llama-3.1-70B" };
+		static constexpr auto model_arch{ model_arches::llama };
+		static constexpr auto model_generation{ model_generations::v3_1 };
+		static constexpr auto model_size{ model_sizes::llm_70B };
+		static constexpr float layer_norm_rms_epsilon	  = 1e-5f;
+		static constexpr float rope_freq_base			  = 500000.0f;
+		static constexpr uint32_t vocab_size			  = 128256;
+		static constexpr uint32_t embedding_length		  = 8192;
+		static constexpr uint32_t block_count			  = 80;
+		static constexpr uint32_t feed_forward_length	  = 28672;
+		static constexpr uint32_t attention_head_count	  = 64;
+		static constexpr uint32_t attention_head_count_kv = 8;
+		static constexpr uint32_t rope_dimension_count	  = embedding_length / attention_head_count;
 		static constexpr uint32_t context_length		  = 131072;
 		static constexpr uint64_t n_embd_kv_gqa			  = rope_dimension_count * attention_head_count_kv;
 	};
 
 	template<> struct model_traits<model_arches::llama, model_sizes::llm_405B, model_generations::v3_1> {
+		static constexpr const char* name{ "llama-3.1-405B" };
 		static constexpr auto model_arch{ model_arches::llama };
 		static constexpr auto model_generation{ model_generations::v3_1 };
 		static constexpr auto model_size{ model_sizes::llm_405B };
@@ -74,7 +95,7 @@ namespace nihilus {
 		static constexpr uint32_t feed_forward_length	  = 53248;
 		static constexpr uint32_t attention_head_count	  = 128;
 		static constexpr uint32_t attention_head_count_kv = 8;
-		static constexpr uint32_t rope_dimension_count	  = 128;
+		static constexpr uint32_t rope_dimension_count	  = embedding_length / attention_head_count;
 		static constexpr uint32_t context_length		  = 131072;
 		static constexpr uint64_t n_embd_kv_gqa			  = rope_dimension_count * attention_head_count_kv;
 	};

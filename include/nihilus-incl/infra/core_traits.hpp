@@ -31,34 +31,46 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-	enum class thread_strategy_types : uint8_t {
-		none,
-		global_input,
-		global_output,
-		per_block,
-	};
-
-	enum class allocation_strategy_types : uint8_t {
-		none,
-		mmap,
-		remap,
-		alloc,
-	};
-
-	enum class data_strategy_types : uint8_t {
-		none,
-		global,
-		per_block,
-	};
-
 	template<const model_config& config_new, data_strategy_types data_strategy_type, typename output_type> struct data_mixin;
 
-	template<const model_config& config_new, typename output_type> struct data_mixin<config_new, data_strategy_types::global, output_type> {
-		output_type* data{};
+	template<const model_config& config_new, typename output_type_new> struct data_mixin<config_new, data_strategy_types::global, output_type_new> {
+		using output_type = output_type_new;
+		static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+
+		template<typename output_type_newer = output_type> NIHILUS_HOST output_type_newer* get_data() {
+			return static_cast<output_type_newer*>(data);
+		}
+
+		NIHILUS_HOST void** get_data_ptr() {
+			return &data;
+		}
+
+		NIHILUS_HOST void set_data(void* data_new) {
+			data = data_new;
+		}
+
+	  protected:
+		void* data{};
 	};
 
-	template<const model_config& config_new, typename output_type> struct data_mixin<config_new, data_strategy_types::per_block, output_type> {
-		array<output_type*, model_traits_type<config_new>::block_count> data{};
+	template<const model_config& config_new, typename output_type_new> struct data_mixin<config_new, data_strategy_types::per_block, output_type_new> {
+		using output_type = output_type_new;
+		static constexpr data_strategy_types data_strategy_type{ data_strategy_types::per_block };
+
+		template<typename output_type_newer = output_type> NIHILUS_HOST output_type_newer* get_data(uint64_t index) {
+			return static_cast<output_type_newer*>(data[index]);
+		}
+
+		NIHILUS_HOST void** get_data_ptr(uint64_t index) {
+			return &data[index];
+		}
+
+		NIHILUS_HOST void set_data(void* data_new, uint64_t index) {
+			data[index] = data_new;
+		}
+
+	  protected:
+		array<void*, model_traits_type<config_new>::block_count> data{};
 	};
 
 	template<const model_config& config_new, core_types core_type> struct sync_base {};
@@ -223,10 +235,12 @@ namespace nihilus {
 			kernel_traits<config_new, core_trait_dims<config_new.default_max_sequence_length, 1, 1, 1, 0>, kernel_types::weights, typename kernel_profile_type::input_token_type>;
 		using inp_pos_kernel_traits =
 			kernel_traits<config_new, core_trait_dims<config_new.default_max_sequence_length, 1, 1, 1, 0>, kernel_types::weights, typename kernel_profile_type::position_type>;
-		using cache_k_kernel_traits = kernel_traits<config_new, core_trait_dims<config_new.default_max_sequence_length, mtt::block_count, mtt::n_embd_kv_gqa, 1, 0>,
-			kernel_types::weights, typename kernel_profile_type::kv_cache_type>;
-		using cache_v_kernel_traits = kernel_traits<config_new, core_trait_dims<config_new.default_max_sequence_length, mtt::block_count, mtt::n_embd_kv_gqa, 1, 0>,
-			kernel_types::weights, typename kernel_profile_type::kv_cache_type>;
+		using cache_k_kernel_traits =
+			kernel_traits<config_new, core_trait_dims<mtt::block_count, config_new.default_max_sequence_length, mtt::attention_head_count_kv, mtt::rope_dimension_count, 0>,
+				kernel_types::weights, typename kernel_profile_type::kv_cache_type>;
+		using cache_v_kernel_traits =
+			kernel_traits<config_new, core_trait_dims<mtt::block_count, config_new.default_max_sequence_length, mtt::attention_head_count_kv, mtt::rope_dimension_count, 0>,
+				kernel_types::weights, typename kernel_profile_type::kv_cache_type>;
 		using kq_mask_kernel_traits =
 			kernel_traits<config_new, core_trait_dims<mtt::block_count, mtt::block_count, 1, 1>, kernel_types::weights, typename kernel_profile_type::mask_type>;
 		using inp_out_ids_kernel_traits =
@@ -325,13 +339,29 @@ namespace nihilus {
 		composite_ops values{};
 
 		struct kernel_data_ptrs {
-			NIHILUS_ALIGN(16) const weight_type* weight_data;
-			NIHILUS_ALIGN(16) const index_type* token_ids;
-			NIHILUS_ALIGN(16) output_type* output_data;
-			NIHILUS_HOST void set_ptrs(output_type* output_data_new, const weight_type* weight_data_new, const index_type* token_ids_new) {
+		  protected:
+			NIHILUS_ALIGN(16) const void* weight_data;
+			NIHILUS_ALIGN(16) const void* token_data;
+			NIHILUS_ALIGN(16) void* output_data;
+
+		  public:
+
+			template<typename value_type> NIHILUS_HOST_DEVICE const value_type* get_weight_data() {
+				return static_cast<const value_type*>(weight_data);
+			}
+
+			template<typename value_type> NIHILUS_HOST_DEVICE const value_type* get_token_data() {
+				return static_cast<const value_type*>(token_data);
+			}
+
+			template<typename value_type> NIHILUS_HOST_DEVICE value_type* get_output_data() {
+				return static_cast<value_type*>(output_data);
+			}
+
+			NIHILUS_HOST void set_ptrs(void* output_data_new, const void* weight_data_new, const void* token_ids_new) {
 				output_data = output_data_new;
 				weight_data = weight_data_new;
-				token_ids	= token_ids_new;
+				token_data	= token_ids_new;
 			}
 		};
 
@@ -422,21 +452,62 @@ namespace nihilus {
 		composite_ops values{};
 
 		struct kernel_data_ptrs {
-			NIHILUS_ALIGN(16) const typename kernel_profile_type::compute_type* inp_embd_data;
-			NIHILUS_ALIGN(16) const typename kernel_profile_type::compute_type* attn_norm_w_data;
-			NIHILUS_ALIGN(16) const weight_type* attn_q_w_data;
-			NIHILUS_ALIGN(16) const weight_type* attn_k_w_data;
-			NIHILUS_ALIGN(16) const weight_type* attn_v_w_data;
-			NIHILUS_ALIGN(16) const typename kernel_profile_type::index_type* inp_pos_data;
-			NIHILUS_ALIGN(16) const typename kernel_profile_type::compute_type* rope_freqs_data;
-			NIHILUS_ALIGN(16) typename kernel_profile_type::kv_cache_type* cache_k_data;
-			NIHILUS_ALIGN(16) typename kernel_profile_type::kv_cache_type* cache_v_data;
-			NIHILUS_ALIGN(16) typename kernel_profile_type::compute_type* q_output_data;
+		  protected:
+			NIHILUS_ALIGN(16) const void* inp_embd_data;
+			NIHILUS_ALIGN(16) const void* attn_norm_w_data;
+			NIHILUS_ALIGN(16) const void* attn_q_w_data;
+			NIHILUS_ALIGN(16) const void* attn_k_w_data;
+			NIHILUS_ALIGN(16) const void* attn_v_w_data;
+			NIHILUS_ALIGN(16) const void* inp_pos_data;
+			NIHILUS_ALIGN(16) const void* rope_freqs_data;
+			NIHILUS_ALIGN(16) void* cache_k_data;
+			NIHILUS_ALIGN(16) void* cache_v_data;
+			NIHILUS_ALIGN(16) void* q_output_data;
 
-			NIHILUS_HOST void set_ptrs(compute_t* q_output_data_new, const compute_t* inp_embd_data_new, const compute_t* attn_norm_w_data_new,
-				const weight_type* attn_q_w_data_new, const weight_type* attn_k_w_data_new, const weight_type* attn_v_w_data_new,
-				const typename kernel_profile_type::index_type* inp_pos_data_new, const compute_t* rope_freqs_data_new, kv_store_t* cache_k_data_new,
-				kv_store_t* cache_v_data_new) {
+		  public:
+			template<typename value_type> NIHILUS_HOST_DEVICE const value_type* get_inp_embd_data() {
+				return static_cast<const value_type*>(inp_embd_data);
+			}
+
+			template<typename value_type> NIHILUS_HOST_DEVICE const value_type* get_attn_norm_w_data() {
+				return static_cast<const value_type*>(attn_norm_w_data);
+			}
+
+			template<typename value_type> NIHILUS_HOST_DEVICE const value_type* get_attn_q_w_data() {
+				return static_cast<const value_type*>(attn_q_w_data);
+			}
+
+			template<typename value_type> NIHILUS_HOST_DEVICE const value_type* get_attn_k_w_data() {
+				return static_cast<const value_type*>(attn_k_w_data);
+			}
+
+			template<typename value_type> NIHILUS_HOST_DEVICE const value_type* get_attn_v_w_data() {
+				return static_cast<const value_type*>(attn_v_w_data);
+			}
+
+			template<typename value_type> NIHILUS_HOST_DEVICE const value_type* get_inp_pos_data() {
+				return static_cast<const value_type*>(inp_pos_data);
+			}
+
+			template<typename value_type> NIHILUS_HOST_DEVICE const value_type* get_rope_freqs_data() {
+				return static_cast<const value_type*>(rope_freqs_data);
+			}
+
+			template<typename value_type> NIHILUS_HOST_DEVICE value_type* get_cache_k_data() {
+				return static_cast<value_type*>(cache_k_data);
+			}
+
+			template<typename value_type> NIHILUS_HOST_DEVICE value_type* get_cache_v_data() {
+				return static_cast<value_type*>(cache_v_data);
+			}
+
+			template<typename value_type> NIHILUS_HOST_DEVICE value_type* get_q_output_data() {
+				return static_cast<value_type*>(q_output_data);
+			}
+
+			NIHILUS_HOST void set_ptrs(void* q_output_data_new, const void* inp_embd_data_new, const void* attn_norm_w_data_new, const void* attn_q_w_data_new,
+				const void* attn_k_w_data_new, const void* attn_v_w_data_new, const void* inp_pos_data_new, const void* rope_freqs_data_new, void* cache_k_data_new,
+				void* cache_v_data_new) {
 				q_output_data	 = q_output_data_new;
 				inp_embd_data	 = inp_embd_data_new;
 				attn_norm_w_data = attn_norm_w_data_new;
@@ -514,16 +585,46 @@ namespace nihilus {
 		composite_ops values{};
 
 		struct kernel_data_ptrs {
-			NIHILUS_ALIGN(16) const compute_t* q_input_data;
-			NIHILUS_ALIGN(16) const kv_store_t* cache_k_data;
-			NIHILUS_ALIGN(16) const kv_store_t* cache_v_data;
-			NIHILUS_ALIGN(16) const compute_t* kq_mask_data;
-			NIHILUS_ALIGN(16) const weight_type* attn_output_w_data;
-			NIHILUS_ALIGN(16) const compute_t* inp_embd_data;
-			NIHILUS_ALIGN(16) compute_t* ffn_inp_data;
+		  protected:
+			NIHILUS_ALIGN(16) const void* q_input_data;
+			NIHILUS_ALIGN(16) const void* cache_k_data;
+			NIHILUS_ALIGN(16) const void* cache_v_data;
+			NIHILUS_ALIGN(16) const void* kq_mask_data;
+			NIHILUS_ALIGN(16) const void* attn_output_w_data;
+			NIHILUS_ALIGN(16) const void* inp_embd_data;
+			NIHILUS_ALIGN(16) void* ffn_inp_data;
 
-			NIHILUS_HOST void set_ptrs(compute_t* ffn_inp_data_new, const compute_t* q_input_data_new, const kv_store_t* cache_k_data_new, const kv_store_t* cache_v_data_new,
-				const compute_t* kq_mask_data_new, const weight_type* attn_output_w_data_new, const compute_t* inp_embd_data_new) {
+		  public:
+			template<typename value_type> NIHILUS_HOST_DEVICE const value_type* get_q_input_data() {
+				return static_cast<const value_type*>(q_input_data);
+			}
+
+			template<typename value_type> NIHILUS_HOST_DEVICE const value_type* get_cache_k_data() {
+				return static_cast<const value_type*>(cache_k_data);
+			}
+
+			template<typename value_type> NIHILUS_HOST_DEVICE const value_type* get_cache_v_data() {
+				return static_cast<const value_type*>(cache_v_data);
+			}
+
+			template<typename value_type> NIHILUS_HOST_DEVICE const value_type* get_kq_mask_data() {
+				return static_cast<const value_type*>(kq_mask_data);
+			}
+
+			template<typename value_type> NIHILUS_HOST_DEVICE const value_type* get_attn_output_w_data() {
+				return static_cast<const value_type*>(attn_output_w_data);
+			}
+
+			template<typename value_type> NIHILUS_HOST_DEVICE const value_type* get_inp_embd_data() {
+				return static_cast<const value_type*>(inp_embd_data);
+			}
+
+			template<typename value_type> NIHILUS_HOST_DEVICE value_type* get_ffn_inp_data() {
+				return static_cast<value_type*>(ffn_inp_data);
+			}
+
+			NIHILUS_HOST void set_ptrs(void* ffn_inp_data_new, const void* q_input_data_new, const void* cache_k_data_new, const void* cache_v_data_new,
+				const void* kq_mask_data_new, const void* attn_output_w_data_new, const void* inp_embd_data_new) {
 				ffn_inp_data	   = ffn_inp_data_new;
 				q_input_data	   = q_input_data_new;
 				cache_k_data	   = cache_k_data_new;
@@ -590,16 +691,41 @@ namespace nihilus {
 		composite_ops values{};
 
 		struct kernel_data_ptrs {
-			NIHILUS_ALIGN(16) const compute_t* ffn_inp_data;
-			NIHILUS_ALIGN(16) const typename kernel_profile_type::norm_type* ffn_norm_w_data;
-			NIHILUS_ALIGN(16) const typename kernel_profile_type::weight_type* ffn_gate_w_data;
-			NIHILUS_ALIGN(16) const typename kernel_profile_type::weight_type* ffn_up_w_data;
-			NIHILUS_ALIGN(16) const typename kernel_profile_type::weight_type* ffn_down_w_data;
-			NIHILUS_ALIGN(16) compute_t* l_out_data;
+		  protected:
+			NIHILUS_ALIGN(16) const void* ffn_inp_data;
+			NIHILUS_ALIGN(16) const void* ffn_norm_w_data;
+			NIHILUS_ALIGN(16) const void* ffn_gate_w_data;
+			NIHILUS_ALIGN(16) const void* ffn_up_w_data;
+			NIHILUS_ALIGN(16) const void* ffn_down_w_data;
+			NIHILUS_ALIGN(16) void* l_out_data;
 
-			NIHILUS_HOST void set_ptrs(compute_t* l_out_data_new, const compute_t* ffn_inp_data_new, const typename kernel_profile_type::norm_type* ffn_norm_w_data_new,
-				const typename kernel_profile_type::weight_type* ffn_gate_w_data_new, const typename kernel_profile_type::weight_type* ffn_up_w_data_new,
-				const typename kernel_profile_type::weight_type* ffn_down_w_data_new) {
+		  public:
+			template<typename value_type> NIHILUS_HOST_DEVICE const value_type* get_ffn_inp_data() {
+				return static_cast<const value_type*>(ffn_inp_data);
+			}
+
+			template<typename value_type> NIHILUS_HOST_DEVICE const value_type* get_ffn_norm_w_data() {
+				return static_cast<const value_type*>(ffn_norm_w_data);
+			}
+
+			template<typename value_type> NIHILUS_HOST_DEVICE const value_type* get_ffn_gate_w_data() {
+				return static_cast<const value_type*>(ffn_gate_w_data);
+			}
+
+			template<typename value_type> NIHILUS_HOST_DEVICE const value_type* get_ffn_up_w_data() {
+				return static_cast<const value_type*>(ffn_up_w_data);
+			}
+
+			template<typename value_type> NIHILUS_HOST_DEVICE const value_type* get_ffn_down_w_data() {
+				return static_cast<const value_type*>(ffn_down_w_data);
+			}
+
+			template<typename value_type> NIHILUS_HOST_DEVICE value_type* get_l_out_data() {
+				return static_cast<value_type*>(l_out_data);
+			}
+
+			NIHILUS_HOST void set_ptrs(void* l_out_data_new, const void* ffn_inp_data_new, const void* ffn_norm_w_data_new, const void* ffn_gate_w_data_new,
+				const void* ffn_up_w_data_new, const void* ffn_down_w_data_new) {
 				l_out_data		= l_out_data_new;
 				ffn_inp_data	= ffn_inp_data_new;
 				ffn_norm_w_data = ffn_norm_w_data_new;
@@ -693,27 +819,89 @@ namespace nihilus {
 		using composite_ops = get_core_base_t<config_new, result_token_id_type>;
 		composite_ops values{};
 
-		struct kernel_data_ptrs {
-			NIHILUS_ALIGN(16) const compute_t* l_out_data;
-			NIHILUS_ALIGN(16) const typename kernel_profile_type::norm_type* output_norm_w_data;
-			NIHILUS_ALIGN(16) const typename kernel_profile_type::weight_type* output_w_data;
-			NIHILUS_ALIGN(16) const float* temperature_data;
-			NIHILUS_ALIGN(16) const int32_t* top_k_data;
-			NIHILUS_ALIGN(16) const float* top_p_data;
-			NIHILUS_ALIGN(16) const float* repetition_penalty_data;
-			NIHILUS_ALIGN(16) const float* presence_penalty_data;
-			NIHILUS_ALIGN(16) const float* frequency_penalty_data;
-			NIHILUS_ALIGN(16) const int32_t* rep_window_data;
-			NIHILUS_ALIGN(16) const int32_t* token_history_data;
-			NIHILUS_ALIGN(16) uint64_t* rng_state_data;
-			NIHILUS_ALIGN(16) const float* logits_bias_data;
-			NIHILUS_ALIGN(16) const uint8_t* allowed_vocab_mask_data;
-			NIHILUS_ALIGN(16) int32_t* result_token_id_data;
+	struct kernel_data_ptrs {
+		  protected:
+			NIHILUS_ALIGN(16) const void* l_out_data;
+			NIHILUS_ALIGN(16) const void* output_norm_w_data;
+			NIHILUS_ALIGN(16) const void* output_w_data;
+			NIHILUS_ALIGN(16) const void* temperature_data;
+			NIHILUS_ALIGN(16) const void* top_k_data;
+			NIHILUS_ALIGN(16) const void* top_p_data;
+			NIHILUS_ALIGN(16) const void* repetition_penalty_data;
+			NIHILUS_ALIGN(16) const void* presence_penalty_data;
+			NIHILUS_ALIGN(16) const void* frequency_penalty_data;
+			NIHILUS_ALIGN(16) const void* rep_window_data;
+			NIHILUS_ALIGN(16) const void* token_history_data;
+			NIHILUS_ALIGN(16) const void* logits_bias_data;
+			NIHILUS_ALIGN(16) const void* allowed_vocab_mask_data;
+			NIHILUS_ALIGN(16) void* result_token_id_data;
+			NIHILUS_ALIGN(16) void* rng_state_data;
 
-			NIHILUS_HOST void set_ptrs(int32_t* result_token_id_data_new, const compute_t* l_out_data_new, const typename kernel_profile_type::norm_type* output_norm_w_data_new,
-				const typename kernel_profile_type::weight_type* output_w_data_new, const float* temperature_data_new, const int32_t* top_k_data_new, const float* top_p_data_new,
-				const float* repetition_penalty_data_new, const float* presence_penalty_data_new, const float* frequency_penalty_data_new, const int32_t* rep_window_data_new,
-				const int32_t* token_history_data_new, uint64_t* rng_state_data_new, const float* logits_bias_data_new, const uint8_t* allowed_vocab_mask_data_new) {
+		  public:
+			template<typename value_type> NIHILUS_HOST_DEVICE const value_type* get_l_out_data() {
+				return static_cast<const value_type*>(l_out_data);
+			}
+
+			template<typename value_type> NIHILUS_HOST_DEVICE const value_type* get_output_norm_w_data() {
+				return static_cast<const value_type*>(output_norm_w_data);
+			}
+
+			template<typename value_type> NIHILUS_HOST_DEVICE const value_type* get_output_w_data() {
+				return static_cast<const value_type*>(output_w_data);
+			}
+
+			template<typename value_type> NIHILUS_HOST_DEVICE const value_type* get_temperature_data() {
+				return static_cast<const value_type*>(temperature_data);
+			}
+
+			template<typename value_type> NIHILUS_HOST_DEVICE const value_type* get_top_k_data() {
+				return static_cast<const value_type*>(top_k_data);
+			}
+
+			template<typename value_type> NIHILUS_HOST_DEVICE const value_type* get_top_p_data() {
+				return static_cast<const value_type*>(top_p_data);
+			}
+
+			template<typename value_type> NIHILUS_HOST_DEVICE const value_type* get_repetition_penalty_data() {
+				return static_cast<const value_type*>(repetition_penalty_data);
+			}
+
+			template<typename value_type> NIHILUS_HOST_DEVICE const value_type* get_presence_penalty_data() {
+				return static_cast<const value_type*>(presence_penalty_data);
+			}
+
+			template<typename value_type> NIHILUS_HOST_DEVICE const value_type* get_frequency_penalty_data() {
+				return static_cast<const value_type*>(frequency_penalty_data);
+			}
+
+			template<typename value_type> NIHILUS_HOST_DEVICE const value_type* get_rep_window_data() {
+				return static_cast<const value_type*>(rep_window_data);
+			}
+
+			template<typename value_type> NIHILUS_HOST_DEVICE const value_type* get_token_history_data() {
+				return static_cast<const value_type*>(token_history_data);
+			}
+
+			template<typename value_type> NIHILUS_HOST_DEVICE const value_type* get_logits_bias_data() {
+				return static_cast<const value_type*>(logits_bias_data);
+			}
+
+			template<typename value_type> NIHILUS_HOST_DEVICE const value_type* get_allowed_vocab_mask_data() {
+				return static_cast<const value_type*>(allowed_vocab_mask_data);
+			}
+
+			template<typename value_type> NIHILUS_HOST_DEVICE value_type* get_result_token_id_data() {
+				return static_cast<value_type*>(result_token_id_data);
+			}
+
+			template<typename value_type> NIHILUS_HOST_DEVICE value_type* get_rng_state_data() {
+				return static_cast<value_type*>(rng_state_data);
+			}
+
+			NIHILUS_HOST void set_ptrs(void* result_token_id_data_new, const void* l_out_data_new, const void* output_norm_w_data_new, const void* output_w_data_new,
+				const void* temperature_data_new, const void* top_k_data_new, const void* top_p_data_new, const void* repetition_penalty_data_new,
+				const void* presence_penalty_data_new, const void* frequency_penalty_data_new, const void* rep_window_data_new, const void* token_history_data_new,
+				void* rng_state_data_new, const void* logits_bias_data_new, const void* allowed_vocab_mask_data_new) {
 				result_token_id_data	= result_token_id_data_new;
 				l_out_data				= l_out_data_new;
 				output_norm_w_data		= output_norm_w_data_new;

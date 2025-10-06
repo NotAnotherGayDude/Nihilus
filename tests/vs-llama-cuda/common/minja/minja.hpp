@@ -660,7 +660,7 @@ public:
     Location location;
 
     Expression(const Location & location) : location(location) {}
-    virtual ~Expression() = default;
+    virtual ~Expression() {}
 
     Value evaluate(const std::shared_ptr<Context> & context) const {
         try {
@@ -734,7 +734,7 @@ public:
     }
 
     TemplateToken(Type type, const Location & location, SpaceHandling pre, SpaceHandling post) : type(type), location(location), pre_space(pre), post_space(post) {}
-    virtual ~TemplateToken() = default;
+    virtual ~TemplateToken() {}
 
     Type type;
     Location location;
@@ -870,7 +870,7 @@ public:
         }
     }
     const Location & location() const { return location_; }
-    virtual ~TemplateNode() = default;
+    virtual ~TemplateNode() {}
     std::string render(const std::shared_ptr<Context> & context) const {
         std::ostringstream out;
         render(out, context);

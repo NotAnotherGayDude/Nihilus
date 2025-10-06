@@ -129,7 +129,7 @@ namespace nihilus {
 		}
 	};
 
-#if NIHILUS_CUDA_ENABLED
+#if NIHILUS_COMPILER_CUDA
 	template<model_config config>
 		requires(config.device_type == device_types::gpu)
 	struct stream_iterator<config> {
@@ -740,9 +740,9 @@ namespace nihilus {
 
 	struct core_base_creation_data {
 		array<uint64_t, 4> dimensions{ { 1, 1, 1, 1 } };
+		weight_types weight_type{};
 		uint32_t n_dimensions{};
 		uint64_t layer_number{};
-		weight_types op_type{};
 		uint64_t offset{};
 		data_types type{};
 
@@ -758,16 +758,16 @@ namespace nihilus {
 			return num_blocks * type_size_val;
 		}
 
-		template<core_traits_types op_traits> NIHILUS_HOST bool operator==(const op_traits&) const {
-			static constexpr auto other_dims = op_traits::get_array();
+		template<core_traits_types core_traits> NIHILUS_HOST bool operator==(const core_traits&) const {
+			static constexpr auto other_dims = core_traits::get_array();
 			return dimensions[0] == other_dims[0] && dimensions[1] == other_dims[1] && dimensions[2] == other_dims[2] && dimensions[3] == other_dims[3];
 		}
 
-		NIHILUS_HOST uint64_t block_size() const {
+		NIHILUS_HOST_DEVICE uint64_t block_size() const {
 			return get_type_traits(type).block_size;
 		}
 
-		NIHILUS_HOST uint64_t type_size() const {
+		NIHILUS_HOST_DEVICE uint64_t type_size() const {
 			return get_type_traits(type).type_size;
 		}
 	};
@@ -776,7 +776,7 @@ namespace nihilus {
 
 	template<model_config config> struct core_traits_comparitor<config, model_arches::llama> {
 		NIHILUS_HOST static bool impl(const core_base_creation_data& parse_core) noexcept {
-			switch (static_cast<uint64_t>(parse_core.op_type)) {
+			switch (static_cast<uint64_t>(parse_core.weight_type)) {
 				case static_cast<uint64_t>(weight_types::token_embd): {
 					return parse_core == typename core_traits<config, core_types::weights>::token_embd_weight_type{};
 				}
@@ -857,7 +857,7 @@ namespace nihilus {
 		NIHILUS_HOST static core_base_creation_data gather_value(stream_iterator<config>& input) {
 			core_base_creation_data value{};
 			std::string_view name{ value_reader<config, std::string_view>::gather_value(input) };
-			value.op_type					  = string_to_op_type<config>::impl(name);
+			value.weight_type					  = string_to_op_type<config>::impl(name);
 			value.n_dimensions				  = value_reader<config, uint32_t>::gather_value(input);
 			value.layer_number				  = extract_layer_number(name);
 			constexpr uint32_t MAX_DIMENSIONS = 4;
@@ -934,7 +934,7 @@ namespace nihilus {
 			sort_tensor_infos(tensor_infos);
 			for (uint64_t x = 0; x < gguf_file.tensor_count; ++x) {
 				uint64_t absolute_offset = align_offset(tensor_infos[x].offset, gguf_file.alignment);
-				ptr.map_pointer(data[tensor_infos[x].op_type][tensor_infos[x].layer_number], absolute_offset, tensor_infos[x].total_byte_size());
+				ptr.map_pointer(data[tensor_infos[x].weight_type][tensor_infos[x].layer_number], absolute_offset, tensor_infos[x].total_byte_size());
 			}
 			return gguf_file;
 		}

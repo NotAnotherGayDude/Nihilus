@@ -27,33 +27,6 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-	NIHILUS_HOST static consteval auto generate_model_config(model_generations model_generation = {}, model_sizes model_size = {}, kernel_type_profiles kernel_type_profile = {},
-		model_arches model_arch = {}, device_types device_type = {}, bool exceptions = {}, uint64_t default_max_sequence_length = 1024, uint64_t default_batch_size = {},
-		kv_cache_strategies kv_cache_strategy = {}, user_input_types user_input_type = {}, rope_scaling_types rope_scaling_type = {},
-		tokenizer_pre_types tokenizer_pre_type = tokenizer_pre_types::llama3, uint64_t kv_cache_block_size = {}, bool use_rotary_embeddings = {}, rms_norm_types rms_norm_type = {},
-		tokenizer_types tokenizer_type = tokenizer_types::bpe, model_formats model_format = model_formats::gguf, float norm_epsilon = 0.0f, bool benchmark = {}, bool dev = {}) {
-		return model_config{ .model_generation = model_generation,
-			.model_size						   = model_size,
-			.kernel_type_profile			   = kernel_type_profile,
-			.model_arch						   = model_arch,
-			.exceptions						   = exceptions,
-			.default_max_sequence_length	   = default_max_sequence_length,
-			.default_batch_size				   = default_batch_size,
-			.kv_cache_strategy				   = kv_cache_strategy,
-			.user_input_type				   = user_input_type,
-			.rope_scaling_type				   = rope_scaling_type,
-			.tokenizer_pre_type				   = tokenizer_pre_type,
-			.kv_cache_block_size			   = kv_cache_block_size,
-			.use_rotary_embeddings			   = use_rotary_embeddings,
-			.rms_norm_type					   = rms_norm_type,
-			.tokenizer_type					   = tokenizer_type,
-			.device_type					   = device_type,
-			.model_format					   = model_format,
-			.norm_epsilon					   = norm_epsilon,
-			.benchmark						   = benchmark,
-			.dev							   = dev };
-	}
-
 	template<const model_config& config> struct harbinger {
 		using model_t	   = model<config>;
 		using model_base_t = model_base;

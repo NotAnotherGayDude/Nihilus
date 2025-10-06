@@ -49,7 +49,7 @@ namespace nihilus {
 		using reverse_iterator		 = std::reverse_iterator<iterator>;
 		using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
-		NIHILUS_HOST constexpr array() = default;
+		NIHILUS_HOST_DEVICE constexpr array() {}
 
 		NIHILUS_HOST constexpr array& operator=(array&& other) noexcept
 			requires(std::is_move_assignable_v<value_type>)

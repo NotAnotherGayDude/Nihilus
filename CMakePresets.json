@@ -41,14 +41,14 @@
       "name": "release-nihilus-cuda",
       "inherits": "release-base",
       "cacheVariables": {
-        "NIHILUS_CUDA_ENABLED": true
+        "NIHILUS_COMPILER_CUDA": true
       }
     },
     {
       "name": "debug-nihilus-cuda",
       "inherits": "debug-base",
       "cacheVariables": {
-        "NIHILUS_CUDA_ENABLED": true
+        "NIHILUS_COMPILER_CUDA": true
       }
     },
     {

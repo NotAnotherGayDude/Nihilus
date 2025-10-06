@@ -28,12 +28,13 @@ set(NIHILUS_COMPILE_DEFINITIONS
     "NIHILUS_COMPILER_MSVC=$<IF:$<CXX_COMPILER_ID:MSVC>,1,0>"
     "NIHILUS_COMPILER_GNUCXX=$<IF:$<CXX_COMPILER_ID:GNU>,1,0>"
     "$<$<CXX_COMPILER_ID:MSVC>:NOMINMAX;WIN32_LEAN_AND_MEAN>"
-    "NIHILUS_CUDA_ENABLED=$<IF:$<CUDA_COMPILER_ID:NVIDIA>,1,0>"
     "NIHILUS_DEV=$<IF:$<STREQUAL:${NIHILUS_DEV},TRUE>,1,0>"
+    "NIHILUS_CUDA_TENSOR_CORES=$<IF:$<AND:$<CUDA_COMPILER_ID:NVIDIA>,$<VERSION_GREATER_EQUAL:${CMAKE_CUDA_COMPILER_VERSION},11.0>>,1,0>"
+    "NIHILUS_CUDA_MAX_REGISTERS=$<IF:$<CUDA_COMPILER_ID:NVIDIA>,128,0>"
     "NIHILUS_HOST_DEVICE=$<IF:$<CUDA_COMPILER_ID:NVIDIA>,$<IF:$<CONFIG:Release>,__forceinline__ __host__ __device__,__noinline__ __host__ __device__>,$<IF:$<CONFIG:Release>,$<IF:$<CXX_COMPILER_ID:MSVC>,[[msvc::forceinline]] inline,inline __attribute__((always_inline))>,$<IF:$<CXX_COMPILER_ID:MSVC>,[[msvc::noinline]],__attribute__((noinline))>>>"
     "NIHILUS_HOST=$<IF:$<CUDA_COMPILER_ID:NVIDIA>,$<IF:$<CONFIG:Release>,__forceinline__ __host__,__noinline__ __host__>,$<IF:$<CONFIG:Release>,$<IF:$<CXX_COMPILER_ID:MSVC>,[[msvc::forceinline]] inline,inline __attribute__((always_inline))>,$<IF:$<CXX_COMPILER_ID:MSVC>,[[msvc::noinline]],__attribute__((noinline))>>>"
     "NIHILUS_DEVICE=$<IF:$<CUDA_COMPILER_ID:NVIDIA>,$<IF:$<CONFIG:Release>,__forceinline__ __device__,__noinline__ __device__>,$<IF:$<CONFIG:Release>,$<IF:$<CXX_COMPILER_ID:MSVC>,[[msvc::forceinline]] inline,inline __attribute__((always_inline))>,$<IF:$<CXX_COMPILER_ID:MSVC>,[[msvc::noinline]],__attribute__((noinline))>>>"
-    "NIHILUS_GLOBAL=$<IF:$<CUDA_COMPILER_ID:NVIDIA>,$<IF:$<CONFIG:Release>,__global__, __global__>,$<IF:$<CONFIG:Release>,$<IF:$<CXX_COMPILER_ID:MSVC>,[[msvc::forceinline]] inline,inline __attribute__((always_inline))>,$<IF:$<CXX_COMPILER_ID:MSVC>,[[msvc::noinline]],__attribute__((noinline))>>>"
+    "NIHILUS_GLOBAL=__global__"
     "${NIHILUS_SIMD_DEFINITIONS}"
 )
 
@@ -56,8 +57,8 @@ set(NIHILUS_LINK_OPTIONS
     "$<$<AND:$<CXX_COMPILER_ID:Clang>,$<PLATFORM_ID:Darwin>>:-Wl,-dead_strip;-Wl,-x;-Wl,-S>"
     "$<$<AND:$<CXX_COMPILER_ID:AppleClang>,$<PLATFORM_ID:Darwin>>:-Wl,-dead_strip;-Wl,-x;-Wl,-S>"
     "$<$<AND:$<CXX_COMPILER_ID:GNU>,$<PLATFORM_ID:Darwin>>:-Wl,-dead_strip;-Wl,-x;-Wl,-S>"
-    "$<$<AND:$<CXX_COMPILER_ID:Clang>,$<PLATFORM_ID:Linux>>:-Wl,--gc-sections;-Wl,--strip-all;-Wl,--build-id=none;-Wl,--hash-style=gnu;-Wl,-z,now;-Wl,-z,relro>"
+    "$<$<AND:$<CXX_COMPILER_ID:Clang>,$<PLATFORM_ID:Linux>>:-Wl,--gc-sections;-Wl,--strip-all;-Wl,--build-id=none;-Wl,--hash-style=gnu;-Wl,-z,now;-Wl,-z,relro;-flto=thin;-fwhole-program-vtables>"
     "$<$<AND:$<CXX_COMPILER_ID:GNU>,$<PLATFORM_ID:Linux>>:-Wl,--gc-sections;-Wl,--strip-all;-Wl,--as-needed;-Wl,-O3>"
-    "$<$<AND:$<CXX_COMPILER_ID:MSVC>,$<PLATFORM_ID:Windows>>:/DYNAMICBASE:NO;/OPT:REF;/OPT:ICF;/INCREMENTAL:NO;/MACHINE:X64>"
+    "$<$<AND:$<CXX_COMPILER_ID:MSVC>,$<PLATFORM_ID:Windows>>:/DYNAMICBASE:NO;/OPT:REF;/OPT:ICF;/INCREMENTAL:NO;/MACHINE:X64;/LTCG>"
     "$<$<CUDA_COMPILER_ID:NVIDIA>:-lcudart_static;-lcublas_static;-lculibos;-lcudart;-lrt;-ldl;-lpthread;--relocatable-device-code=false>"
 )

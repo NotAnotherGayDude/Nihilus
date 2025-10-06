@@ -20,44 +20,33 @@ cmake_minimum_required(VERSION 3.28)
 
 option(NIHILUS_DETECT_CPU_PROPERTIES "Override cpu-cache-size selection" OFF)
 option(NIHILUS_DETECT_GPU_PROPERTIES "Override gpu-cache-size selection" OFF)
-option(NIHILUS_CUDA_ENABLED "Enable CUDA support" OFF)
+option(NIHILUS_COMPILER_CUDA "Enable CUDA support" OFF)
 
-if(NIHILUS_CUDA_ENABLED)
-    project(nihilus
-        VERSION "1.0.0"
-        DESCRIPTION "Nihilus: You trained the model. Nihilus gives it a voice."
-        LANGUAGES CUDA
-    )
-
-    set(CMAKE_CUDA_STANDARD 20)
-    set(CMAKE_CUDA_STANDARD_REQUIRED ON)
-    
+if(NIHILUS_COMPILER_CUDA)
+    set(NIHILUS_LANGUAGE "CUDA")    
     find_package(CUDAToolkit REQUIRED COMPONENTS cudart)
     include("cmake/detection/nihilus_detect_gpu_properties.cmake")
     set(CMAKE_CUDA_ARCHITECTURES "${NIHILUS_MAJOR_COMPUTE_CAPABILITY}${NIHILUS_MINOR_COMPUTE_CAPABILITY}" CACHE STRING "Cuda architectures." FORCE)
-
-    set(NIHILUS_COMPILER_ID "${CMAKE_CUDA_COMPILER_ID}")
     set(NIHILUS_MAIN_FILE_EXTENSION ".cu")
 else()
-    project(nihilus
-        VERSION "1.0.0"
-        DESCRIPTION "Nihilus: You trained the model. Nihilus gives it a voice."
-        LANGUAGES CXX
-    )
-    set(CMAKE_CXX_STANDARD 20)
-    set(CMAKE_CXX_STANDARD_REQUIRED ON)
-    
-    set(NIHILUS_COMPILER_ID "${CMAKE_CXX_COMPILER_ID}")
+    set(NIHILUS_LANGUAGE "CXX")
     set(NIHILUS_MAIN_FILE_EXTENSION ".cpp")
 endif()
 
+project(nihilus
+    VERSION "1.0.0"
+    DESCRIPTION "Nihilus: You trained the model. Nihilus gives it a voice."
+    LANGUAGES "${NIHILUS_LANGUAGE}"
+)
+
+set(CMAKE_${NIHILUS_LANGUAGE}_STANDARD 20)
+set(CMAKE_${NIHILUS_LANGUAGE}_STANDARD_REQUIRED ON)
+
+set(NIHILUS_COMPILER_ID "${CMAKE_${NIHILUS_LANGUAGE}_COMPILER_ID}")
+
 include("cmake/detection/nihilus_detect_cpu_properties.cmake")
 
-file(GLOB_RECURSE NIHILUS_HEADERS 
-    CONFIGURE_DEPENDS
-    "include/*.hpp" 
-    "include/*.cuh"
-)
+file(GLOB_RECURSE NIHILUS_HEADERS CONFIGURE_DEPENDS "include/*.hpp" "include/*.cuh")
 
 add_library("${PROJECT_NAME}" INTERFACE)
 add_library("${PROJECT_NAME}::${PROJECT_NAME}" ALIAS "${PROJECT_NAME}")
@@ -120,11 +109,11 @@ message(STATUS "Max Thread Count: ${NIHILUS_THREAD_COUNT}")
 message(STATUS "Architecture: ${CMAKE_SYSTEM_PROCESSOR}")
 message(STATUS "Compiler: ${NIHILUS_COMPILER_ID}")
 message(STATUS "CPU Variants: ${NIHILUS_INSTRUCTION_SET_NAME}")
-if("${NIHILUS_CUDA_ENABLED}")
+if("${NIHILUS_COMPILER_CUDA}")
     message(STATUS "CUDA Architectures: ${CMAKE_CUDA_ARCHITECTURES}")
 endif()
 
-if("${NIHILUS_CPU}" OR "${NIHILUS_CUDA_ENABLED}")
+if("${NIHILUS_CPU}" OR "${NIHILUS_COMPILER_CUDA}")
     add_subdirectory("src")
 elseif("${VS_LLAMA_CLEAN}")
     add_subdirectory("tests/vs-llama-clean")

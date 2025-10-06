@@ -33,13 +33,14 @@ RealTimeChris (Chris M.)
 namespace nihilus {
 
 	struct model_base {
-		NIHILUS_HOST model_base() noexcept					= default;
+		NIHILUS_HOST model_base() noexcept {
+		}
 		NIHILUS_HOST virtual bool process_input(std::string_view params) = 0;
 		NIHILUS_HOST virtual bool process_input()						 = 0;
-		NIHILUS_HOST virtual ~model_base();
+		virtual ~model_base();
 	};
 
-	NIHILUS_HOST model_base::~model_base(){};
+	model_base::~model_base() {};
 
 	template<const model_config& config_new> struct model : public input_collector<config_new>,
 															public thread_pool<config_new>,
@@ -49,7 +50,8 @@ namespace nihilus {
 		using core_bases_type  = get_core_bases_t<config_new>;
 		using tokenizer_type   = tokenizer<config_new, config_new.model_arch, config_new.tokenizer_type>;
 
-		NIHILUS_HOST model() noexcept = default;
+		NIHILUS_HOST model() noexcept {
+		}
 
 		NIHILUS_HOST model(cli_params params) : thread_pool<config_new>{ static_cast<int64_t>(params.thread_count) } {
 			exec_params.token_count = params.n_tokens;
@@ -62,14 +64,14 @@ namespace nihilus {
 		NIHILUS_HOST bool process_input(std::string_view input) override {
 			input = input.size() > config_new.default_max_sequence_length ? input.substr(0, config_new.default_max_sequence_length) : input;
 			tokenizer_type::tokenize_init(
-				this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::inp_tokens>().data);
+				this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::inp_tokens>().get_data());
 			using output_type = detail::remove_cvref_t<decltype(this->template get_core<core_types, core_types::global_inputs>()
 					.values.template get_core<global_input_types, global_input_types::inp_tokens>())>::output_type;
 			output_type val{ 1 };
 			memory_transfer<config_new>::host_to_device(val,
-				this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::inp_pos>().data + 1);
+				this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::inp_pos>().get_data() + 1);
 			memory_transfer<config_new>::host_to_device(val,
-				this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::inp_out_ids>().data);
+				this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::inp_out_ids>().get_data());
 			generate_causal_mask();
 			execute_model(input);
 			return false;
@@ -78,14 +80,14 @@ namespace nihilus {
 		NIHILUS_HOST bool process_input() override {
 			input_collector<config_new>::read_multiline();
 			tokenizer_type::tokenize_init(
-				this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::inp_tokens>().data);
+				this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::inp_tokens>().get_data());
 			using output_type = detail::remove_cvref_t<decltype(this->template get_core<core_types, core_types::global_inputs>()
 					.values.template get_core<global_input_types, global_input_types::inp_tokens>())>::output_type;
 			output_type val{ 1 };
 			memory_transfer<config_new>::host_to_device(val,
-				this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::inp_pos>().data + 1);
+				this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::inp_pos>().get_data() + 1);
 			memory_transfer<config_new>::host_to_device(val,
-				this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::inp_out_ids>().data);
+				this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::inp_out_ids>().get_data());
 			generate_causal_mask();
 			execute_model(input_collector<config_new>::get_view());
 			input_collector<config_new>::clear();
@@ -93,8 +95,15 @@ namespace nihilus {
 		}
 
 		NIHILUS_HOST void init(cli_params params) {
-			std::cout << "(Nihilus) Total Bytes Required for Intermediate Tensors at Context Length Of: " << config_new.default_max_sequence_length << ": "
-					  << core_bases_memory_plan<config_new>.peak_allocated_bytes << std::endl;
+			if constexpr (config_new.device_type == device_types::cpu) {
+				std::cout << "Model: " << model_traits_type<config_new>::name << "-" << kernel_type_profile_traits<config_new.kernel_type_profile>::name
+						  << " (Nihilus-CPU) Total Bytes Required for Intermediate Tensors + Weights + KV_cache at Context Length Of: " << config_new.default_max_sequence_length
+						  << ": " << core_bases_memory_plan<config_new>.peak_allocated_bytes << std::endl;
+			} else {
+				std::cout << "Model: " << model_traits_type<config_new>::name << "-" << kernel_type_profile_traits<config_new.kernel_type_profile>::name
+						  << " (Nihilus-CUDA) Total Bytes Required for All Tensors + Weights + KV_cache at Context Length Of: " << config_new.default_max_sequence_length << ": "
+						  << core_bases_memory_plan<config_new>.peak_allocated_bytes << std::endl;
+			}
 			memory.init(core_bases_memory_plan<config_new>.peak_allocated_bytes);
 			this->template impl<memory_mapper>(core_bases_memory_plan<config_new>, memory);
 			array<array<void*, model_traits_type<config_new>::block_count>, weight_types::count> data{};
@@ -126,18 +135,18 @@ namespace nihilus {
 			}
 
 			exec_params.sequence_length = tokenizer_type::tokenize(input,
-				this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::inp_tokens>().data);
+				this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::inp_tokens>().get_data());
 
 			for (uint64_t x = 0; x < exec_params.sequence_length; ++x) {
 				using core_type = detail::remove_cvref_t<
 					decltype(this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::inp_pos>())>;
 				memory_transfer<config_new>::host_to_device(static_cast<typename core_type::output_type>(x),
-					this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::inp_pos>().data + x);
+					this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::inp_pos>().get_data() + x);
 			}
 			using core_type = detail::remove_cvref_t<
 				decltype(this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::inp_out_ids>())>;
 			memory_transfer<config_new>::host_to_device(static_cast<typename core_type::output_type>(exec_params.sequence_length - 1),
-				this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::inp_out_ids>().data);
+				this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::inp_out_ids>().get_data());
 
 			if constexpr (config_new.benchmark || config_new.dev) {
 				perf_base<config_new>::perf_stats.prompt_token_count	= exec_params.sequence_length;
@@ -204,7 +213,7 @@ namespace nihilus {
 	  protected:
 		NIHILUS_HOST int32_t sample_next_token() {
 			//auto& result_output_tensor = get_core<core_types, core_types::result_output>();
-			//float* logits			   = static_cast<float*>(result_output_tensor.data);
+			//float* logits			   = static_cast<float*>(result_output_tensor.get_data());
 			//uint64_t vocab_size		   = model_traits_type::vocab_size;
 			return {};
 		}
@@ -215,7 +224,7 @@ namespace nihilus {
 			using output_type = typename core_type::output_type;
 
 			output_type* mask_data =
-				this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::kq_mask>().data;
+				this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::kq_mask>().get_data();
 			static constexpr auto dims = core_type::get_array();
 			const uint64_t total_dims  = dims[0] * dims[1] * dims[2] * dims[3];
 			output_type value{};

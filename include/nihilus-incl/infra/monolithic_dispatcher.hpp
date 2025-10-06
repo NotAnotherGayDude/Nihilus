@@ -29,7 +29,7 @@ namespace nihilus {
 
 	template<device_types device_type> constexpr uint64_t arch_index{ [] {
 		if constexpr (device_type == device_types::gpu) {
-#if NIHILUS_CUDA_ENABLED
+#if NIHILUS_COMPILER_CUDA
 			return gpu_properties::gpu_arch_index;
 #else
 			static_assert(false, "Sorry, but it appears as though you have selected device_types::gpu, without enabling CUDA.");

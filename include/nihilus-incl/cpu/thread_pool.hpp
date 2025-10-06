@@ -129,14 +129,14 @@ namespace nihilus {
 	template<const model_config& config> struct perf_base {};
 
 	template<const model_config& config>
-		requires(config.benchmark || config.dev)
+		requires(config.benchmark.operator bool() || config.dev.operator bool())
 	struct perf_base<config> {
 		benchmark_stats perf_stats{};
 	};
 
 	template<const model_config& config> struct thread_pool : public get_core_bases_t<config>, public perf_base<config> {
 		using core_bases_type											 = get_core_bases_t<config>;
-		NIHILUS_HOST thread_pool() noexcept								 = default;
+		NIHILUS_HOST thread_pool() noexcept								 {}
 		NIHILUS_HOST thread_pool& operator=(const thread_pool&) noexcept = delete;
 		NIHILUS_HOST thread_pool(const thread_pool&) noexcept			 = delete;
 

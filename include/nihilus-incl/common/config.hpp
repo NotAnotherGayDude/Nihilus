@@ -46,7 +46,7 @@ RealTimeChris (Chris M.)
 	#endif
 #endif
 
-#if NIHILUS_CUDA_ENABLED
+#if NIHILUS_COMPILER_CUDA
 	#define NIHILUS_ALIGN(x) __align__(x)
 #else
 	#define NIHILUS_ALIGN(x) alignas(x)

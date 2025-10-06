@@ -84,7 +84,7 @@ namespace nihilus {
 		using pointer	 = value_type*;
 		using size_type	 = uint64_t;
 
-		NIHILUS_HOST memory_buffer() noexcept								 = default;
+		NIHILUS_HOST memory_buffer() noexcept								 {}
 		NIHILUS_HOST memory_buffer& operator=(const memory_buffer&) noexcept = delete;
 		NIHILUS_HOST memory_buffer(const memory_buffer&) noexcept			 = delete;
 

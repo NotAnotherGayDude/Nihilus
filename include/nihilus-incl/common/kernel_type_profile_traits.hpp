@@ -20,6 +20,7 @@ RealTimeChris (Chris M.)
 
 #pragma once
 
+#include <nihilus-incl/common/concepts.hpp>
 #include <nihilus-incl/common/tuple.hpp>
 
 namespace nihilus {
@@ -63,6 +64,28 @@ namespace nihilus {
 																					 half,// kv_cache_type
 																					 float,// mask_type
 																					 int32_t,// index_type
-																					 uint64_t> {};// size_type
+																					 uint64_t> {
+		static constexpr kernel_type_profiles type{ kernel_type_profiles::q8_gqa };
+		static constexpr const char* name{ "Q8-GQA" };
+	};// size_type
 
+	template<> struct kernel_type_profile_traits<kernel_type_profiles::fp16_mha> : public kernel_type_profile_traits_impl<half,// weight_type
+																					   half,// activation_type
+																					   half,// compute_type
+																					   half,// embedding_type
+																					   half,// logit_type
+																					   int32_t,// input_token_type
+																					   int32_t,// output_token_type
+																					   int32_t,// position_type
+																					   half,// attention_type
+																					   half,// norm_type
+																					   half,// scale_type
+																					   int8_t,// zero_point_type
+																					   half,// kv_cache_type
+																					   half,// mask_type
+																					   int32_t,// index_type
+																					   uint64_t> {
+		static constexpr kernel_type_profiles type{ kernel_type_profiles::fp16_mha };
+		static constexpr const char* name{ "FP16-MHA" };
+	};
 }

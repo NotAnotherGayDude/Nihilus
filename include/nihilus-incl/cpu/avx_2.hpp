@@ -73,14 +73,14 @@ namespace nihilus {
 			auto& inputs_core						= get_adjacent_value<core_traits_type::config, core_types::global_inputs>::impl(params);
 			auto& token_embd_op						= weights_core.values.template get_core<weight_types, weight_types::token_embd>();
 			auto& inp_tokens_op						= inputs_core.values.template get_core<global_input_types, global_input_types::inp_tokens>();
-			const auto* __restrict weight_data		= token_embd_op.data;
-			const auto* __restrict token_ids		= inputs_core.values.template get_core<global_input_types, global_input_types::inp_tokens>().data;
+			const auto* __restrict weight_data		= token_embd_op.get_data();
+			const auto* __restrict token_ids		= inputs_core.values.template get_core<global_input_types, global_input_types::inp_tokens>().get_data();
 			constexpr uint64_t embedding_length		= model_traits_type<core_traits_type::config>::embedding_length;
 			constexpr uint64_t blocks_per_embedding = embedding_length / 32;
 			const uint64_t sequence_length			= inp_tokens_op.get_mutable_dim();
 			const uint64_t start_token				= static_cast<uint64_t>(current_chunk) * chunk_size;
 			const uint64_t end_token				= detail::min(start_token + chunk_size, sequence_length);
-			auto* __restrict output_data			= get_rows_op.data;
+			auto* __restrict output_data			= get_rows_op.get_data();
 			for (uint64_t token_idx = start_token; token_idx < end_token; ++token_idx) {
 				const int32_t token_id		   = token_ids[token_idx];
 				const auto* __restrict src_row = weight_data + (static_cast<uint64_t>(token_id) * blocks_per_embedding);
@@ -110,14 +110,14 @@ namespace nihilus {
 			auto& inputs_core						= get_adjacent_value<core_traits_type::config, core_types::global_inputs>::impl(params);
 			auto& token_embd_op						= weights_core.values.template get_core<weight_types, weight_types::token_embd>();
 			auto& inp_tokens_op						= inputs_core.values.template get_core<global_input_types, global_input_types::inp_tokens>();
-			const auto* __restrict weight_data		= token_embd_op.data;
-			const auto* __restrict token_ids		= inputs_core.values.template get_core<global_input_types, global_input_types::inp_tokens>().data;
+			const auto* __restrict weight_data		= token_embd_op.get_data();
+			const auto* __restrict token_ids		= inputs_core.values.template get_core<global_input_types, global_input_types::inp_tokens>().get_data();
 			constexpr uint64_t embedding_length		= model_traits_type<core_traits_type::config>::embedding_length;
 			constexpr uint64_t blocks_per_embedding = embedding_length / 32;
 			const uint64_t sequence_length			= inp_tokens_op.get_mutable_dim();
 			const uint64_t start_token				= static_cast<uint64_t>(current_chunk) * chunk_size;
 			const uint64_t end_token				= detail::min(start_token + chunk_size, sequence_length);
-			auto* __restrict output_data			= get_rows_op.data;
+			auto* __restrict output_data			= get_rows_op.get_data();
 			for (uint64_t token_idx = start_token; token_idx < end_token; ++token_idx) {
 				const int32_t token_id		   = token_ids[token_idx];
 				const auto* __restrict src_row = weight_data + (static_cast<uint64_t>(token_id) * blocks_per_embedding);
@@ -1247,9 +1247,9 @@ namespace nihilus {
 			const typename core_traits_type::input_02_type& input02) {
 			static constexpr uint64_t blocks_per_row = ne00 / Q_SIZE;
 			const uint64_t ne1						 = output[1];
-			const auto* src_base					 = input01.data;
-			float* dst_base							 = output.data;
-			const int32_t* token_ids				 = input02.data;
+			const auto* src_base					 = input01.get_data();
+			float* dst_base							 = output.get_data();
+			const int32_t* token_ids				 = input02.get_data();
 
 			for (uint64_t row_idx = 0; row_idx < ne1; ++row_idx) {
 				const int32_t token_id = static_cast<uint32_t>(token_ids[row_idx]);
@@ -1277,9 +1277,9 @@ namespace nihilus {
 		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02) {
 			static constexpr uint64_t blocks_per_row = ne00 / Q_SIZE;
-			const int32_t token_id					 = static_cast<uint32_t>(input02.data[0]);
-			const auto* src_blocks					 = input01.data + token_id * blocks_per_row;
-			float* dst_row							 = output.data;
+			const int32_t token_id					 = static_cast<uint32_t>(input02.get_data()[0]);
+			const auto* src_blocks					 = input01.get_data() + token_id * blocks_per_row;
+			float* dst_row							 = output.get_data();
 
 			for (uint64_t block_idx = 0; block_idx < blocks_per_row; ++block_idx) {
 				const auto& src_block = src_blocks[block_idx];
@@ -1902,9 +1902,9 @@ namespace nihilus {
 			const typename core_traits_type::input_02_type& input02) {
 			const uint64_t ne1		 = output[1];
 			const uint64_t ne0		 = output[0];
-			const float* src_base	 = input01.data;
-			float* dst_base			 = output.data;
-			const int32_t* token_ids = input02.data;
+			const float* src_base	 = input01.get_data();
+			float* dst_base			 = output.get_data();
+			const int32_t* token_ids = input02.get_data();
 
 			for (uint64_t row_idx = 0; row_idx < ne1; ++row_idx) {
 				const int32_t token_id = static_cast<uint32_t>(token_ids[row_idx]);
@@ -1928,9 +1928,9 @@ namespace nihilus {
 		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02) {
 			const uint64_t ne0		= output[0];
-			const int32_t token_id = static_cast<uint32_t>(input02.data[0]);
-			const float* src_row	= input01.data + token_id * ne0;
-			float* dst_row			= output.data;
+			const int32_t token_id = static_cast<uint32_t>(input02.get_data()[0]);
+			const float* src_row	= input01.get_data() + token_id * ne0;
+			float* dst_row			= output.get_data();
 
 			uint64_t i = 0;
 			for (; i + 8 <= ne0; i += 8) {
@@ -3098,15 +3098,15 @@ namespace nihilus {
 
 			const uint64_t thread_index			  = static_cast<uint64_t>(thread_index);
 			const uint64_t thread_count			  = static_cast<uint64_t>(thread_count);
-			const float* __restrict src01 = input02.data;
+			const float* __restrict src01 = input02.get_data();
 
 			const bool is_power_of_2 = ((ne01 & (ne01 - 1ULL)) == 0) && ((ne02 & (ne02 - 1ULL)) == 0) && ((ne10 & (ne10 - 1ULL)) == 0) && ((ne11 & (ne11 - 1ULL)) == 0) &&
 				((ne12 & (ne12 - 1ULL)) == 0) && ((ne13 & (ne13 - 1ULL)) == 0);
 
 			if (is_power_of_2) {
-				process_tensor_elements<true>(thread_index, thread_count, ne01, ne11, input01.data, src01, output.data);
+				process_tensor_elements<true>(thread_index, thread_count, ne01, ne11, input01.get_data(), src01, output.get_data());
 			} else {
-				process_tensor_elements<false>(thread_index, thread_count, ne01, ne11, input01.data, src01, output.data);
+				process_tensor_elements<false>(thread_index, thread_count, ne01, ne11, input01.get_data(), src01, output.get_data());
 			}
 		}
 	};
@@ -3580,17 +3580,17 @@ namespace nihilus {
 
 			const uint64_t thread_index						 = static_cast<uint64_t>(thread_index);
 			const uint64_t thread_count						 = static_cast<uint64_t>(thread_count);
-			const float* __restrict src01			 = input02.data;
-			const block_q8_0<half>* __restrict src02 = input03.data[current_block];
+			const float* __restrict src01			 = input02.get_data();
+			const block_q8_0<half>* __restrict src02 = input03.get_data()[current_block];
 
 			const bool is_power_of_2 = ((ne01 & (ne01 - 1ULL)) == 0) && ((ne02 & (ne02 - 1ULL)) == 0) && ((ne10 & (ne10 - 1ULL)) == 0) && ((ne11 & (ne11 - 1ULL)) == 0) &&
 				((ne12 & (ne12 - 1ULL)) == 0) && ((ne13 & (ne13 - 1ULL)) == 0) && ((ne20 & (ne20 - 1ULL)) == 0) && ((ne21 & (ne21 - 1ULL)) == 0) && ((ne22 & (ne22 - 1ULL)) == 0) &&
 				((ne23 & (ne23 - 1ULL)) == 0);
 
 			if (is_power_of_2) {
-				process_tensor_elements<true>(thread_index, thread_count, ne01, ne11, ne21, input01.data, src01, src02, output.data);
+				process_tensor_elements<true>(thread_index, thread_count, ne01, ne11, ne21, input01.get_data(), src01, src02, output.get_data());
 			} else {
-				process_tensor_elements<false>(thread_index, thread_count, ne01, ne11, ne21, input01.data, src01, src02, output.data);
+				process_tensor_elements<false>(thread_index, thread_count, ne01, ne11, ne21, input01.get_data(), src01, src02, output.get_data());
 			}
 		}
 	};
@@ -3968,15 +3968,15 @@ namespace nihilus {
 
 			const uint64_t thread_index			  = static_cast<uint64_t>(thread_index);
 			const uint64_t thread_count			  = static_cast<uint64_t>(thread_count);
-			const float* __restrict src01 = input02.data[current_block];
+			const float* __restrict src01 = input02.get_data()[current_block];
 
 			const bool is_power_of_2 = ((ne01 & (ne01 - 1ULL)) == 0) && ((ne02 & (ne02 - 1ULL)) == 0) && ((ne10 & (ne10 - 1ULL)) == 0) && ((ne11 & (ne11 - 1ULL)) == 0) &&
 				((ne12 & (ne12 - 1ULL)) == 0) && ((ne13 & (ne13 - 1ULL)) == 0);
 
 			if (is_power_of_2) {
-				process_tensor_elements<true>(thread_index, thread_count, ne01, ne11, input01.data, src01, output.data);
+				process_tensor_elements<true>(thread_index, thread_count, ne01, ne11, input01.get_data(), src01, output.get_data());
 			} else {
-				process_tensor_elements<false>(thread_index, thread_count, ne01, ne11, input01.data, src01, output.data);
+				process_tensor_elements<false>(thread_index, thread_count, ne01, ne11, input01.get_data(), src01, output.get_data());
 			}
 		}
 	};
@@ -4280,9 +4280,9 @@ namespace nihilus {
 				((ne12 & (ne12 - 1ULL)) == 0) && ((ne13 & (ne13 - 1ULL)) == 0);
 
 			if (is_power_of_2) {
-				process_tensor_elements<true>(thread_index, thread_count, nr, ne01, ne11, input01.data, input02.data, output.data);
+				process_tensor_elements<true>(thread_index, thread_count, nr, ne01, ne11, input01.get_data(), input02.get_data(), output.get_data());
 			} else {
-				process_tensor_elements<false>(thread_index, thread_count, nr, ne01, ne11, input01.data, input02.data, output.data);
+				process_tensor_elements<false>(thread_index, thread_count, nr, ne01, ne11, input01.get_data(), input02.get_data(), output.get_data());
 			}
 		}
 	};
@@ -4321,9 +4321,9 @@ namespace nihilus {
 			const uint64_t ir0 = dr * thread_index;
 			const uint64_t ir1 = detail::min(ir0 + dr, nr);
 
-			const block_q8_0<half>* __restrict input01_data = input01.data;
-			const int32_t* __restrict input02_data			= input02.data;
-			float* __restrict output_data					= output.data;
+			const block_q8_0<half>* __restrict input01_data = input01.get_data();
+			const int32_t* __restrict input02_data			= input02.get_data();
+			float* __restrict output_data					= output.get_data();
 
 			static constexpr uint64_t blocks_per_row	  = ne00 / Q_SIZE;
 			static constexpr uint64_t input01_stride_dim1 = blocks_per_row;
@@ -4390,9 +4390,9 @@ namespace nihilus {
 			const uint64_t ir0 = dr * thread_index;
 			const uint64_t ir1 = detail::min(ir0 + dr, nr);
 
-			const float* __restrict input01_data   = input01.data;
-			const int32_t* __restrict input02_data = input02.data;
-			float* __restrict output_data		   = output.data;
+			const float* __restrict input01_data   = input01.get_data();
+			const int32_t* __restrict input02_data = input02.get_data();
+			float* __restrict output_data		   = output.get_data();
 
 			const uint64_t blocks_per_row		   = ne00 / Q_SIZE;
 			const uint64_t output_elements_per_row = ne00;
@@ -4987,15 +4987,15 @@ namespace nihilus {
 			static constexpr uint64_t ne10 = core_traits_type::input_02_type::get_array()[0];
 			static constexpr uint64_t ne0  = core_traits_type::get_array()[0];
 
-			const float* __restrict src0_data = input02.data;
+			const float* __restrict src0_data = input02.get_data();
 			const block_q8_0<half>* __restrict src1_data;
-			if constexpr (array_types<decltype(input01.data)>) {
-				src1_data = input01.data[current_block];
+			if constexpr (array_types<decltype(input01.get_data())>) {
+				src1_data = input01.get_data()[current_block];
 			} else {
-				src1_data = input01.data;
+				src1_data = input01.get_data();
 			}
 
-			float* __restrict dst_data = output.data;
+			float* __restrict dst_data = output.get_data();
 
 			for (uint64_t i0 = 0; i0 < ne0; ++i0) {
 				dst_data[i0] = vec_dot_q8_f32<ne10>::impl(src0_data, src1_data, i0 * (ne10 / Q_SIZE) * Q_SIZE);
@@ -5019,9 +5019,9 @@ namespace nihilus {
 			static constexpr uint64_t ne13	  = input_type02::get_array()[3];
 			const uint64_t ne10				  = input02[0];
 			const uint64_t ne11				  = input02[1];
-			const half* src0_data			  = input01.data;
-			const float* __restrict src1_data = input02.data;
-			float* __restrict dst_data		  = output.data;
+			const half* src0_data			  = input01.get_data();
+			const float* __restrict src1_data = input02.get_data();
+			float* __restrict dst_data		  = output.get_data();
 
 			static constexpr uint64_t r2 = ne12 / ne02;
 			static constexpr uint64_t r3 = ne13 / ne03;
@@ -5064,9 +5064,9 @@ namespace nihilus {
 			static constexpr uint64_t ne02 = input_type01::get_array()[2];
 			static constexpr uint64_t ne03 = input_type01::get_array()[3];
 
-			const float* __restrict src_data  = input01.data;
-			const float* __restrict mask_data = input02.data;
-			float* __restrict dst_data		  = output.data;
+			const float* __restrict src_data  = input01.get_data();
+			const float* __restrict mask_data = input02.get_data();
+			float* __restrict dst_data		  = output.get_data();
 
 			for (uint64_t i03 = 0; i03 < ne03; ++i03) {
 				for (uint64_t i02 = 0; i02 < ne02; ++i02) {
@@ -5127,8 +5127,8 @@ namespace nihilus {
 			static constexpr uint64_t ne02 = input_type01::get_array()[2];
 			static constexpr uint64_t ne03 = input_type01::get_array()[3];
 
-			const half* src_data = input01.data;
-			half* dst_data		 = output.data;
+			const half* src_data = input01.get_data();
+			half* dst_data		 = output.get_data();
 
 			const uint64_t ne02_runtime	  = input01[2];
 			const uint64_t total_elements = ne00 * ne01 * ne02_runtime * ne03;
@@ -5200,10 +5200,10 @@ namespace nihilus {
 
 		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02, const typename core_traits_type::input_03_type& input03) {
-			const float* __restrict src_data		  = input01.data;
-			const int32_t* pos_data					  = input02.data;
-			const float* __restrict freq_scaling_data = input03.data;
-			float* __restrict dst_data				  = output.data;
+			const float* __restrict src_data		  = input01.get_data();
+			const int32_t* pos_data					  = input02.get_data();
+			const float* __restrict freq_scaling_data = input03.get_data();
+			float* __restrict dst_data				  = output.get_data();
 
 			const uint64_t seq_len = input01[1];
 
@@ -5270,8 +5270,8 @@ namespace nihilus {
 			static constexpr uint64_t ne02 = input_type01::get_array()[2];
 			static constexpr uint64_t ne03 = input_type01::get_array()[3];
 
-			const float* __restrict src_data = input01.data;
-			float* __restrict dst_data		 = output.data;
+			const float* __restrict src_data = input01.get_data();
+			float* __restrict dst_data		 = output.get_data();
 
 			const uint64_t ne02_runtime	  = input01[2];
 			const uint64_t total_elements = count_elements(output);
@@ -5292,8 +5292,8 @@ namespace nihilus {
 			static constexpr uint64_t ne01 = input_type01::get_array()[1];
 			static constexpr uint64_t ne03 = input_type01::get_array()[3];
 
-			const float* __restrict src_data = input01.data;
-			float* __restrict dst_data		 = output.data;
+			const float* __restrict src_data = input01.get_data();
+			float* __restrict dst_data		 = output.get_data();
 
 			const uint64_t ne02			  = input01[2];
 			const uint64_t total_elements = ne00 * ne01 * ne02 * ne03;
@@ -5340,26 +5340,26 @@ namespace nihilus {
 			static constexpr uint64_t ne10 = core_traits_type::input_02_type::get_array()[0];
 			static constexpr float eps	   = core_traits_type::model_traits_type::layer_norm_rms_epsilon;
 
-			const float sum	  = simd_sum_squares_add(input01.data, input02.data, ne00);
+			const float sum	  = simd_sum_squares_add(input01.get_data(), input02.get_data(), ne00);
 			const float mean  = sum / static_cast<float>(ne00);
 			const float scale = 1.0f / sqrtf_fast(mean + eps);
 
 			if constexpr (ne10 == ne00) {
-				vec_add_rms_norm_f32<ne00>::impl(output.data, input01.data, input02.data, scale);
+				vec_add_rms_norm_f32<ne00>::impl(output.get_data(), input01.get_data(), input02.get_data(), scale);
 			} else {
 				static constexpr bool is_power_of_2 = (ne10 & (ne10 - 1)) == 0;
 				if constexpr (is_power_of_2) {
 					static constexpr uint64_t log2_ne10 = tzcnt_constexpr(ne10);
 					for (uint64_t i0 = 0; i0 < ne00; ++i0) {
 						const uint64_t i10 = i0 & ((1ULL << log2_ne10) - 1ULL);
-						const float added  = input01.data[i0] + input02.data[i10];
-						output.data[i0]	   = added * scale;
+						const float added  = input01.get_data()[i0] + input02.get_data()[i10];
+						output.get_data()[i0]	   = added * scale;
 					}
 				} else {
 					for (uint64_t i0 = 0; i0 < ne00; ++i0) {
 						const uint64_t i10 = i0 % ne10;
-						const float added  = input01.data[i0] + input02.data[i10];
-						output.data[i0]	   = added * scale;
+						const float added  = input01.get_data()[i0] + input02.get_data()[i10];
+						output.get_data()[i0]	   = added * scale;
 					}
 				}
 			}
@@ -5379,11 +5379,11 @@ namespace nihilus {
 			static constexpr uint64_t ne20 = core_traits_type::input_03_type::get_array()[0];
 			static constexpr float eps	   = core_traits_type::model_traits_type::layer_norm_rms_epsilon;
 
-			const float sum	  = simd_sum_squares_add_for_q8(input01.data, input02.data, ne00);
+			const float sum	  = simd_sum_squares_add_for_q8(input01.get_data(), input02.get_data(), ne00);
 			const float mean  = sum / static_cast<float>(ne00);
 			const float scale = 1.0f / sqrtf_fast(mean + eps);
 
-			const block_q8_0<half>* src2_data	 = input03.data[current_block];
+			const block_q8_0<half>* src2_data	 = input03.get_data()[current_block];
 			static constexpr uint64_t num_blocks = ne00 / Q_SIZE;
 			float w_scales[num_blocks];
 			for (uint64_t block_idx = 0; block_idx < num_blocks; ++block_idx) {
@@ -5392,7 +5392,7 @@ namespace nihilus {
 			const int8_t* w_quants = static_cast<const int8_t*>(&src2_data[0].qs[0]);
 
 			if constexpr (ne10 == ne00 && ne20 == ne00) {
-				vec_add_rms_norm_mul_q8_f32<ne00>::impl(output.data, input01.data, input02.data, scale, w_scales, w_quants, 0);
+				vec_add_rms_norm_mul_q8_f32<ne00>::impl(output.get_data(), input01.get_data(), input02.get_data(), scale, w_scales, w_quants, 0);
 			} else {
 				static constexpr bool is_power_of_2 = ((ne10 & (ne10 - 1)) == 0) && ((ne20 & (ne20 - 1)) == 0);
 				if constexpr (is_power_of_2) {
@@ -5401,21 +5401,21 @@ namespace nihilus {
 					for (uint64_t i0 = 0; i0 < ne00; ++i0) {
 						const uint64_t i10			   = i0 & ((1ULL << log2_ne10) - 1ULL);
 						const uint64_t i20			   = i0 & ((1ULL << log2_ne20) - 1ULL);
-						const float added			   = input01.data[i0] + input02.data[i10];
+						const float added			   = input01.get_data()[i0] + input02.get_data()[i10];
 						const float normalized		   = added * scale;
 						const float block_scale		   = w_scales[i20 / Q_SIZE];
 						const float dequantized_weight = static_cast<float>(w_quants[i20]) * block_scale;
-						output.data[i0]				   = normalized * dequantized_weight;
+						output.get_data()[i0]				   = normalized * dequantized_weight;
 					}
 				} else {
 					for (uint64_t i0 = 0; i0 < ne00; ++i0) {
 						const uint64_t i10			   = i0 % ne10;
 						const uint64_t i20			   = i0 % ne20;
-						const float added			   = input01.data[i0] + input02.data[i10];
+						const float added			   = input01.get_data()[i0] + input02.get_data()[i10];
 						const float normalized		   = added * scale;
 						const float block_scale		   = w_scales[i20 / Q_SIZE];
 						const float dequantized_weight = static_cast<float>(w_quants[i20]) * block_scale;
-						output.data[i0]				   = normalized * dequantized_weight;
+						output.get_data()[i0]				   = normalized * dequantized_weight;
 					}
 				}
 			}
@@ -5432,24 +5432,24 @@ namespace nihilus {
 			static constexpr uint64_t ne00 = core_traits_type::input_01_type::get_array()[0];
 			static constexpr uint64_t ne10 = core_traits_type::input_02_type::get_array()[0];
 			static constexpr float eps	   = core_traits_type::model_traits_type::layer_norm_rms_epsilon;
-			const float sum				   = simd_sum_squares(input01.data, ne00);
+			const float sum				   = simd_sum_squares(input01.get_data(), ne00);
 			const float mean			   = sum / static_cast<float>(ne00);
 			const float scale			   = 1.0f / sqrtf_fast(mean + eps);
-			const float* src1_data		   = input02.data[current_block];
+			const float* src1_data		   = input02.get_data()[current_block];
 			if constexpr (ne10 == ne00) {
-				vec_scale_mul_f32<ne00>::impl(output.data, input01.data, scale, src1_data);
+				vec_scale_mul_f32<ne00>::impl(output.get_data(), input01.get_data(), scale, src1_data);
 			} else {
 				static constexpr bool is_power_of_2 = (ne10 & (ne10 - 1)) == 0;
 				if constexpr (is_power_of_2) {
 					static constexpr uint64_t log2_ne10 = tzcnt_constexpr(ne10);
 					for (uint64_t i0 = 0; i0 < ne00; ++i0) {
 						const uint64_t i10 = i0 & ((1ULL << log2_ne10) - 1ULL);
-						output.data[i0]	   = input01.data[i0] * scale * src1_data[i10];
+						output.get_data()[i0]	   = input01.get_data()[i0] * scale * src1_data[i10];
 					}
 				} else {
 					for (uint64_t i0 = 0; i0 < ne00; ++i0) {
 						const uint64_t i10 = i0 % ne10;
-						output.data[i0]	   = input01.data[i0] * scale * src1_data[i10];
+						output.get_data()[i0]	   = input01.get_data()[i0] * scale * src1_data[i10];
 					}
 				}
 			}
@@ -5466,19 +5466,19 @@ namespace nihilus {
 			static constexpr uint64_t ne00 = core_traits_type::input_01_type::get_array()[0];
 			static constexpr uint64_t ne10 = core_traits_type::input_02_type::get_array()[0];
 			if constexpr (ne10 == ne00) {
-				vec_mul_f32<ne00>::impl(output.data, input01.data, input02.data);
+				vec_mul_f32<ne00>::impl(output.get_data(), input01.get_data(), input02.get_data());
 			} else {
 				static constexpr bool is_power_of_2 = (ne10 & (ne10 - 1)) == 0;
 				if constexpr (is_power_of_2) {
 					static constexpr uint64_t log2_ne10 = tzcnt_constexpr(ne10);
 					for (uint64_t i0 = 0; i0 < ne00; ++i0) {
 						const uint64_t i10 = i0 & ((1ULL << log2_ne10) - 1ULL);
-						output.data[i0]	   = input01.data[i0] * input02.data[i10];
+						output.get_data()[i0]	   = input01.get_data()[i0] * input02.get_data()[i10];
 					}
 				} else {
 					for (uint64_t i0 = 0; i0 < ne00; ++i0) {
 						const uint64_t i10 = i0 % ne10;
-						output.data[i0]	   = input01.data[i0] * input02.data[i10];
+						output.get_data()[i0]	   = input01.get_data()[i0] * input02.get_data()[i10];
 					}
 				}
 			}
@@ -5494,8 +5494,8 @@ namespace nihilus {
 				return;
 			static constexpr uint64_t ne00			 = core_traits_type::input_01_type::get_array()[0];
 			static constexpr uint64_t blocks_per_row = ne00 / Q_SIZE;
-			const uint64_t token_id					 = static_cast<uint64_t>(input02.data[0]);
-			dequantize_row_q8_0(&input01.data[current_block], output.data, ne00);
+			const uint64_t token_id					 = static_cast<uint64_t>(input02.get_data()[0]);
+			dequantize_row_q8_0(&input01.get_data()[current_block], output.get_data(), ne00);
 		}
 	};
 
@@ -5507,8 +5507,8 @@ namespace nihilus {
 			if (thread_index != 0)
 				return;
 			const uint64_t ne00		= input01[0];
-			const uint64_t token_id = static_cast<uint64_t>(input02.data[0]);
-			vec_cpy_f32(ne00, output.data, &input01.data[token_id * ne00]);
+			const uint64_t token_id = static_cast<uint64_t>(input02.get_data()[0]);
+			vec_cpy_f32(ne00, output.get_data(), &input01.get_data()[token_id * ne00]);
 		}
 	};
 
@@ -5606,10 +5606,10 @@ namespace nihilus {
 
 		NIHILUS_HOST static void impl(int64_t thread_index, int64_t thread_count, int64_t current_block, core_traits_type& output, const typename core_traits_type::input_01_type& input01,
 			const typename core_traits_type::input_02_type& input02, const typename core_traits_type::input_03_type& input03) {
-			const float* __restrict src_data		  = input01.data;
-			const int32_t* pos_data					  = input02.data;
-			const float* __restrict freq_scaling_data = input03.data;
-			float* __restrict dst_data				  = output.data;
+			const float* __restrict src_data		  = input01.get_data();
+			const int32_t* pos_data					  = input02.get_data();
+			const float* __restrict freq_scaling_data = input03.get_data();
+			float* __restrict dst_data				  = output.get_data();
 
 			const uint64_t seq_len = input01[1];
 

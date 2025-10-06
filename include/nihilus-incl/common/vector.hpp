@@ -43,7 +43,7 @@ namespace nihilus {
 		using allocator_type		 = allocator<value_type>;
 		using allocator_traits		 = std::allocator_traits<allocator_type>;
 
-		NIHILUS_HOST aligned_vector() noexcept = default;
+		NIHILUS_HOST aligned_vector() noexcept {}
 
 		NIHILUS_HOST aligned_vector& operator=(aligned_vector&& other) noexcept
 			requires(std::is_move_assignable_v<value_type>)
@@ -226,7 +226,9 @@ namespace nihilus {
 			if NIHILUS_UNLIKELY (size_val <= position) {
 				throw std::runtime_error{ "invalid aligned_vector<value_type> subscript" };
 			}
-
+			if (!data_val) {
+				throw std::runtime_error{ "invalid data_val value" };
+			}
 			return data_val[static_cast<uint64_t>(position)];
 		}
 
@@ -234,7 +236,9 @@ namespace nihilus {
 			if NIHILUS_UNLIKELY (size_val <= position) {
 				throw std::runtime_error{ "invalid aligned_vector<value_type> subscript" };
 			}
-
+			if (!data_val) {
+				throw std::runtime_error{ "invalid data_val value" };
+			}
 			return data_val[static_cast<uint64_t>(position)];
 		}
 

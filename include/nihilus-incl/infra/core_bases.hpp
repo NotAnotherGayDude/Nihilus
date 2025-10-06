@@ -26,7 +26,7 @@ namespace nihilus {
 
 	template<const model_config& config, typename... bases> struct core_bases : public bases... {
 		using bases::operator[]...;
-		NIHILUS_HOST core_bases()				 = default;
+		NIHILUS_HOST core_bases()				 {}
 		core_bases& operator=(core_bases&&)		 = delete;
 		core_bases(core_bases&&)				 = delete;
 		core_bases& operator=(const core_bases&) = delete;

@@ -54,7 +54,7 @@ namespace nihilus {
 
 	template<model_config config> class memory_mapped_file {
 	  public:
-		NIHILUS_HOST explicit memory_mapped_file() noexcept = default;
+		NIHILUS_HOST explicit memory_mapped_file() noexcept {}
 
 		NIHILUS_HOST explicit memory_mapped_file(const std::string_view file_path_new, uint64_t file_offset = 0) {
 			const std::string_view file_pathstr(file_path_new);
@@ -166,7 +166,7 @@ namespace nihilus {
 #endif
 #if NIHILUS_PLATFORM_WINDOWS
 			if (mapped_data && mapped_size > 0) {
-	#if NIHILUS_CUDA_ENABLED
+	#if NIHILUS_COMPILER_CUDA
 				cudaError_t result = cudaHostRegister(mapped_data, mapped_size, cudaHostRegisterReadOnly);
 				if (result == cudaSuccess) {
 					if constexpr (config.device_type == device_types::gpu) {
@@ -181,7 +181,7 @@ namespace nihilus {
 			}
 #else
 			if (mapped_data && mapped_size > 0) {
-	#if NIHILUS_CUDA_ENABLED
+	#if NIHILUS_COMPILER_CUDA
 				cudaError_t result = cudaHostRegister(mapped_data, mapped_size, cudaHostRegisterReadOnly);
 				if (result == cudaSuccess) {
 					if constexpr (config.device_type == device_types::gpu) {
@@ -206,7 +206,7 @@ namespace nihilus {
 			if (this != &other) {
 				std::swap(mapped_data, other.mapped_data);
 				std::swap(mapped_size, other.mapped_size);
-#if NIHILUS_CUDA_ENABLED
+#if NIHILUS_COMPILER_CUDA
 				std::swap(transfer_stream, other.transfer_stream);
 #endif
 #if NIHILUS_PLATFORM_WINDOWS
@@ -232,7 +232,7 @@ namespace nihilus {
 		}
 
 		NIHILUS_HOST ~memory_mapped_file() {
-#if NIHILUS_CUDA_ENABLED
+#if NIHILUS_COMPILER_CUDA
 			if (mapped_data) {
 				cudaHostUnregister(mapped_data);
 			}
@@ -276,7 +276,7 @@ namespace nihilus {
 		uint64_t mapped_size{};
 		void* mapped_data{};
 
-#if NIHILUS_CUDA_ENABLED
+#if NIHILUS_COMPILER_CUDA
 		[[no_unique_address]] std::conditional_t<config.device_type == device_types::gpu, cudaStream_t, int8_t> transfer_stream{};
 #endif
 

@@ -107,7 +107,7 @@ namespace nihilus {
 	template<typename data_types> struct type_traits;
 
 	template<typename derived_type> struct get_dynamic_type_traits {
-		NIHILUS_HOST consteval static type_traits_dynamic get_dynamic_type_traits_impl() {
+		NIHILUS_HOST_DEVICE consteval static type_traits_dynamic get_dynamic_type_traits_impl() {
 			type_traits_dynamic return_values{};
 			return_values.block_size   = derived_type::block_size;
 			return_values.is_quantized = derived_type::is_quantized;
@@ -212,7 +212,7 @@ namespace nihilus {
 		return type_traits<typename value_type::output_type>::total_byte_size(dims);
 	}
 
-	template<typename enum_type> NIHILUS_HOST constexpr type_traits_dynamic get_type_traits(enum_type type) {
+	template<typename enum_type> NIHILUS_HOST_DEVICE constexpr type_traits_dynamic get_type_traits(enum_type type) {
 		switch (static_cast<uint64_t>(type)) {
 			case static_cast<uint64_t>(enum_type::f64): {
 				return type_traits<double>::get_dynamic_type_traits_impl();

@@ -40,7 +40,8 @@ namespace nihilus {
 
 		inline static constexpr static_aligned_const length{ size_val > 0 ? size_val - 1 : 0 };
 
-		NIHILUS_HOST constexpr string_literal() noexcept {}
+		NIHILUS_HOST constexpr string_literal() noexcept {
+		}
 
 		NIHILUS_HOST constexpr string_literal(const char (&str)[size_val]) noexcept {
 			for (uint64_t x = 0; x < length; ++x) {

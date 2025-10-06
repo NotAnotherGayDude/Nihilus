@@ -20,7 +20,7 @@ RealTimeChris (Chris M.)
 
 #pragma once
 
-#if NIHILUS_CUDA_ENABLED
+#if NIHILUS_COMPILER_CUDA
 
 	#include <nihilus-incl/infra/monolithic_dispatcher.hpp>
 	#include <nihilus-incl/cpu/nihilus_cpu_properties.hpp>
@@ -37,7 +37,7 @@ namespace nihilus {
 		requires(config.device_type == device_types::gpu)
 	struct thread_pool<config> : public get_core_bases_t<config>, public perf_base<config> {
 		using core_bases_type											 = get_core_bases_t<config>;
-		NIHILUS_HOST thread_pool() noexcept								 = default;
+		NIHILUS_HOST thread_pool() noexcept								 {}
 		NIHILUS_HOST thread_pool& operator=(const thread_pool&) noexcept = delete;
 		NIHILUS_HOST thread_pool(const thread_pool&) noexcept			 = delete;
 
