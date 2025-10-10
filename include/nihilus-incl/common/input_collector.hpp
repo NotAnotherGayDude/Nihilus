@@ -26,7 +26,7 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-	template<model_config config> struct input_collector {
+	template<const model_config& config> struct input_collector {
 	  protected:
 		aligned_vector<char> buffer;
 		size_t current_length = 0;
@@ -78,7 +78,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config>
+	template<const model_config& config>
 		requires(config.user_input_type == user_input_types::managed)
 	struct input_collector<config> {
 	  protected:

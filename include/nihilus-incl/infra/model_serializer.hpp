@@ -29,9 +29,9 @@ namespace nihilus {
 		uint64_t thread_count{};
 	};
 
-	template<model_config config> struct model_serializer_impl {};
+	template<const model_config& config> struct model_serializer_impl {};
 
-	template<model_config config>
+	template<const model_config& config>
 		requires((config.model_arch == model_arches::llama) && (config.model_format == model_formats::gguf))
 	struct model_serializer_impl<config> {
 		using model_traits_type = model_traits<config.model_arch, config.model_size, config.model_generation>;
@@ -71,6 +71,6 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config> struct model_serializer {};
+	template<const model_config& config> struct model_serializer {};
 
 }

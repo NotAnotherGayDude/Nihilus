@@ -38,13 +38,7 @@ namespace nihilus {
 		std::string_view pre{};
 	};
 
-	struct bpe_token {
-		std::string token{};
-		float score{};
-		int32_t id{};
-	};
-
-	template<model_config config, model_arches model_arch, tokenizer_types> struct tokenizer;
+	template<const model_config& config, model_arches model_arch, tokenizer_types> struct tokenizer;
 
 	struct nihilus_symbol {
 		const char* text{};
@@ -53,13 +47,78 @@ namespace nihilus {
 		uint64_t n{};
 	};
 
-	template<typename stored_type, typename comparator> struct priority_queue {
+	template<uint64_t max_token_length> struct static_string : public array<char, max_token_length> {
+		using size_type	 = uint64_t;
+		using value_type = char;
+		using pointer	 = const value_type*;
+
+		NIHILUS_HOST void set_values(pointer data_new, size_type count_new) {
+			std::memcpy(array<char, max_token_length>::data(), data_new, count_new);
+			current_size = count_new;
+		} 
+
+		NIHILUS_HOST operator std::string_view() const {
+			return { array<char, max_token_length>::data(), current_size };
+		}
+
+		NIHILUS_HOST static_string& operator+=(const static_string<max_token_length / 2>& str) {
+			std::memcpy(array<char, max_token_length>::data() + current_size, str.data(), str.size());
+			current_size += str.size();
+			return *this;
+		}
+
+		template<uint64_t size> NIHILUS_HOST static_string& operator+=(const char (&str)[size]) {
+			std::memcpy(array<char, max_token_length>::data() + current_size, str, size);
+			current_size += size;
+			return *this;
+		}
+
+		NIHILUS_HOST static_string& operator+=(const char value_new) {
+			array<char, max_token_length>::data()[current_size] = value_new;
+			++current_size;
+			return *this;
+		}
+
+		NIHILUS_HOST size_type size() const {
+			return current_size;
+		}
+
+		NIHILUS_HOST void clear() {
+			current_size = 0;
+		}
+
+		NIHILUS_HOST bool empty() {
+			return current_size == 0;
+		}
+
+	  protected:
+		uint64_t current_size{};
+	};
+
+	template<uint64_t max_token_length> struct bigram_bpe {
+		static_string<max_token_length> text{};
+		uint64_t size{};
+		int32_t right{};
+		int32_t left{};
+		int32_t rank{};
+	};
+	
+	struct comparator {
+		template<uint64_t max_token_length> NIHILUS_HOST_DEVICE bool operator()(const bigram_bpe<max_token_length>& l, const bigram_bpe<max_token_length>& r) const {
+			return l.rank > r.rank || (l.rank == r.rank && l.left > r.left);
+		}
+	};
+
+	template<typename stored_type, typename comparator> struct priority_queue : public comparator {
 		array<stored_type, 200> data{};
 		size_t currently_stored_size{};
-		comparator comp{};
 
 		NIHILUS_HOST bool empty() const {
 			return currently_stored_size == 0;
+		}
+
+		NIHILUS_HOST void clear() {
+			currently_stored_size = 0;
 		}
 
 		NIHILUS_HOST const stored_type& top() const {
@@ -86,7 +145,7 @@ namespace nihilus {
 		NIHILUS_HOST void bubble_up(size_t index) {
 			while (index > 0) {
 				size_t parent = (index - 1) / 2;
-				if (!comp(data[index], data[parent]))
+				if (!comparator::operator()(data[index], data[parent]))
 					break;
 				std::swap(data[index], data[parent]);
 				index = parent;
@@ -99,10 +158,10 @@ namespace nihilus {
 				size_t right   = 2 * index + 2;
 				size_t largest = index;
 
-				if (left < currently_stored_size && comp(data[left], data[largest])) {
+				if (left < currently_stored_size && comparator::operator()(data[left], data[largest])) {
 					largest = left;
 				}
-				if (right < currently_stored_size && comp(data[right], data[largest])) {
+				if (right < currently_stored_size && comparator::operator()(data[right], data[largest])) {
 					largest = right;
 				}
 				if (largest == index)
@@ -114,33 +173,19 @@ namespace nihilus {
 		}
 	};
 
-	struct nihilus_bigram_bpe {
-		struct comparator {
-			NIHILUS_HOST_DEVICE bool operator()(const nihilus_bigram_bpe& l, const nihilus_bigram_bpe& r) const {
-				return l.rank > r.rank || (l.rank == r.rank && l.left > r.left);
-			}
-		};
-
-		using queue = priority_queue<nihilus_bigram_bpe, comparator>;
-
-		std::string text{};
-		uint64_t size{};
-		int32_t right{};
-		int32_t left{};
-		int32_t rank{};
-	};
-
 	struct pair_hash {
 		NIHILUS_HOST uint64_t operator()(const std::pair<const std::string_view, const std::string_view>& p) const noexcept {
 			return std::hash<std::string_view>{}(p.first) ^ (std::hash<std::string_view>{}(p.second) << 1);
 		}
 	};
 
-	template<model_config config, tokenizer_types tokenizer_type> struct tokenizer<config, model_arches::llama, tokenizer_type>
+	template<const model_config& config, tokenizer_types tokenizer_type> struct tokenizer<config, model_arches::llama, tokenizer_type>
 		: public tokenizer_parameters<model_arches::llama>, public tokenizer_traits<config.model_arch, tokenizer_type, config.tokenizer_pre_type> {
-		using model_traits_type		= model_traits<config.model_arch, config.model_size, config.model_generation>;
-		using tokenizer_traits_type = tokenizer_traits<config.model_arch, config.tokenizer_type, config.tokenizer_pre_type>;
-
+		using model_traits_type		   = model_traits<config.model_arch, config.model_size, config.model_generation>;
+		using tokenizer_traits_type	   = tokenizer_traits<config.model_arch, config.tokenizer_type, config.tokenizer_pre_type>;
+		using static_string_type	   = static_string<tokenizer_traits_type::max_merge_result_length>;
+		using static_string_token_type = static_string<tokenizer_traits_type::max_token_length>;
+		using bigram_type			   = bigram_bpe<tokenizer_traits_type::max_merge_result_length>;
 		NIHILUS_HOST tokenizer() noexcept {
 			candidate_tokens.reserve(32768);
 			cumulative_probs.reserve(32768);
@@ -295,12 +340,12 @@ namespace nihilus {
 				return;
 
 			for (uint64_t i = 0; i < recent_count; ++i) {
-				int32_t token_new = recent_tokens[i];
-				if (token_new >= 0 && token_new < static_cast<int32_t>(tokens.size())) {
-					if (logits[token_new] > 0.0f) {
-						logits[token_new] /= penalty;
+				int32_t token_index = recent_tokens[i];
+				if (token_index >= 0 && token_index < static_cast<int32_t>(tokens.size())) {
+					if (logits[token_index] > 0.0f) {
+						logits[token_index] /= penalty;
 					} else {
-						logits[token_new] *= penalty;
+						logits[token_index] *= penalty;
 					}
 				}
 			}
@@ -451,8 +496,12 @@ namespace nihilus {
 			}
 		}() };
 		std::unordered_map<std::pair<const std::string_view, const std::string_view>, int32_t, pair_hash> bpe_ranks{};
-		nihilus_bigram_bpe::queue work_queue{};
+		priority_queue<bigram_bpe<tokenizer_traits_type::max_merge_result_length>, comparator> work_queue{};
 		aligned_vector<nihilus_symbol> symbols{};
+		static_string_token_type right_token{};
+		static_string_token_type left_token{};
+		static_string_type combined_token{};
+		static_string_type token_new{};
 
 		NIHILUS_HOST aligned_vector<std::string> gpt2_style_split(std::string_view text) {
 			aligned_vector<std::string> result;
@@ -470,7 +519,7 @@ namespace nihilus {
 			uint64_t i		   = 0;
 
 			while (i < text.length()) {
-				std::string token_new;
+				token_new.clear();
 				while (i < text.length() && is_space(text[i])) {
 					i++;
 				}
@@ -539,7 +588,7 @@ namespace nihilus {
 			}
 
 			symbols.clear();
-			work_queue = nihilus_bigram_bpe::queue();
+			work_queue.clear();
 
 			int32_t index	= 0;
 			uint64_t offset = 0;
@@ -571,10 +620,13 @@ namespace nihilus {
 					continue;
 				}
 
-				std::string left_token(left_symbol.text, left_symbol.n);
-				std::string right_token(right_symbol.text, right_symbol.n);
+				left_token.set_values(left_symbol.text, left_symbol.n);
+				right_token.set_values(right_symbol.text, right_symbol.n);
 
-				if (left_token + right_token != bigram.text) {
+				combined_token += left_token;
+				combined_token += right_token;
+
+				if (combined_token != bigram.text) {
 					continue;
 				}
 
@@ -616,17 +668,20 @@ namespace nihilus {
 			if (left == -1 || right == -1)
 				return;
 
-			const std::string_view left_token(symbols[static_cast<uint64_t>(left)].text, symbols[static_cast<uint64_t>(left)].n);
-			const std::string_view right_token(symbols[static_cast<uint64_t>(right)].text, symbols[static_cast<uint64_t>(right)].n);
+			left_token.set_values(symbols[static_cast<uint64_t>(left)].text, symbols[static_cast<uint64_t>(left)].n);
+			right_token.set_values(symbols[static_cast<uint64_t>(right)].text, symbols[static_cast<uint64_t>(right)].n);
 
 			auto it = bpe_ranks.find({ left_token, right_token });
 			if (it == bpe_ranks.end())
 				return;
 
-			nihilus_bigram_bpe bigram;
+			combined_token += left_token;
+			combined_token += right_token;
+
+			bigram_type bigram;
 			bigram.left	 = left;
 			bigram.right = right;
-			bigram.text	 = static_cast<std::string>(left_token) + static_cast<std::string>(right_token);
+			bigram.text	 = combined_token;
 			bigram.size	 = left_token.size() + right_token.size();
 			bigram.rank	 = it->second;
 

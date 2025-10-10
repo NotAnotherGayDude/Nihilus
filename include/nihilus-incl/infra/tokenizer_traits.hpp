@@ -40,7 +40,8 @@ namespace nihilus {
 	template<> struct tokenizer_traits<model_arches::llama, tokenizer_types::bpe, tokenizer_pre_types::llama3> {
 		static constexpr tokenizer_pre_types pre_type	 = tokenizer_pre_types::llama3;
 		static constexpr tokenizer_types type			 = tokenizer_types::bpe;
-		static constexpr int32_t max_token_len			 = 256;
+		static constexpr uint32_t max_token_length		  = 128;
+		static constexpr uint32_t max_merge_result_length = 256;
 		static constexpr token special_bos_id			 = 128000;
 		static constexpr token special_eos_id			 = 128009;
 		static constexpr token special_eot_id			 = 128009;

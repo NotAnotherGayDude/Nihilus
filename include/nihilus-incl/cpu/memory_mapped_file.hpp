@@ -52,7 +52,7 @@ namespace nihilus {
 	}
 #endif
 
-	template<model_config config> class memory_mapped_file {
+	template<const model_config& config> class memory_mapped_file {
 	  public:
 		NIHILUS_HOST explicit memory_mapped_file() noexcept {}
 

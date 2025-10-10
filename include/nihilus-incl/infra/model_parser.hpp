@@ -102,7 +102,7 @@ namespace nihilus {
 		aligned_vector<void_tensor_metadata> tensor_metadata{};
 	};
 
-	template<model_config config> struct stream_iterator {
+	template<const model_config& config> struct stream_iterator {
 		memory_mapped_file<config>* file{};
 		uint64_t current_index = 0;
 		uint64_t length		   = 0;
@@ -130,7 +130,7 @@ namespace nihilus {
 	};
 
 #if NIHILUS_COMPILER_CUDA
-	template<model_config config>
+	template<const model_config& config>
 		requires(config.device_type == device_types::gpu)
 	struct stream_iterator<config> {
 		memory_mapped_file<config>* file{};
@@ -160,9 +160,9 @@ namespace nihilus {
 	};
 #endif
 
-	template<model_config config, typename value_type, auto...> struct value_reader;
+	template<const model_config& config, typename value_type, auto...> struct value_reader;
 
-	template<model_config config, typename value_type>
+	template<const model_config& config, typename value_type>
 		requires(( std::is_standard_layout_v<value_type> && std::is_trivial_v<value_type> && !std::is_enum_v<value_type> ) || std::is_same_v<gguf_metadata_value_type, value_type>)
 	struct value_reader<config, value_type> {
 		NIHILUS_HOST static value_type gather_value(stream_iterator<config>& input) {
@@ -378,7 +378,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename value_type>
+	template<const model_config& config, typename value_type>
 		requires(std::is_enum_v<value_type> && !std::is_same_v<gguf_metadata_value_type, value_type>)
 	struct value_reader<config, value_type> {
 		NIHILUS_HOST static value_type gather_value(stream_iterator<config>& input) {
@@ -394,7 +394,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename value_type>
+	template<const model_config& config, typename value_type>
 		requires(is_specialization_v<value_type, std::unordered_map>)
 	struct value_reader<config, value_type> {
 		NIHILUS_HOST static value_type gather_value(stream_iterator<config>& input) {
@@ -414,7 +414,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config, typename value_type>
+	template<const model_config& config, typename value_type>
 		requires(is_specialization_v<value_type, aligned_vector>)
 	struct value_reader<config, value_type> {
 		NIHILUS_HOST static value_type gather_value(stream_iterator<config>& input) {
@@ -436,7 +436,7 @@ namespace nihilus {
 
 	using gguf_string_t = std::string_view;
 
-	template<model_config config> struct value_reader<config, gguf_string_t> {
+	template<const model_config& config> struct value_reader<config, gguf_string_t> {
 		NIHILUS_HOST static std::string_view gather_value(stream_iterator<config>& input) {
 			uint64_t length = value_reader<config, uint64_t>::gather_value(input);
 			if (!input.template has_bytes<uint8_t>(length)) {
@@ -478,12 +478,12 @@ namespace nihilus {
 		std::string_view ggml_model;
 	};
 
-	template<model_config config> struct gguf_metadata : public metadata_base,
+	template<const model_config& config> struct gguf_metadata : public metadata_base,
 														 public tokenizer_base<config.tokenizer_type>,
 														 public model_traits<config.model_arch, config.model_size, config.model_generation>,
 														 public tokenizer_traits<config.model_arch, config.tokenizer_type, config.tokenizer_pre_type> {};
 
-	template<model_config config> struct parse_core<gguf_metadata<config>> {
+	template<const model_config& config> struct parse_core<gguf_metadata<config>> {
 		using value_type				  = gguf_metadata<config>;
 		static constexpr auto parse_value = create_value<make_parse_entity<&value_type::architecture, "general.architecture">(),
 			make_parse_entity<&value_type::finetune, "general.finetune">(), make_parse_entity<&value_type::size_label, "general.size_label">(),
@@ -518,7 +518,7 @@ namespace nihilus {
 		}
 	}
 
-	template<model_config config, typename value_type> struct parse_types_impl {
+	template<const model_config& config, typename value_type> struct parse_types_impl {
 		inline static constexpr auto memberCount = core_tuple_size<value_type>;
 
 		template<uint64_t index> using member_type_t =
@@ -546,16 +546,16 @@ namespace nihilus {
 		}
 	};
 
-	template<template<model_config, typename> typename parsing_type, model_config config, typename value_type, size_t... indices>
+	template<template<const model_config&, typename> typename parsing_type, const model_config& config, typename value_type, size_t... indices>
 	inline static constexpr auto generate_function_ptrs(std::index_sequence<indices...>) noexcept {
 		using function_type = decltype(&parse_types_impl<config, value_type>::template process_index<0>);
 		return array<function_type, sizeof...(indices)>{ { &parsing_type<config, value_type>::template process_index<indices>... } };
 	}
 
-	template<template<model_config, typename> typename parsing_type, model_config config, typename value_type>
+	template<template<const model_config&, typename> typename parsing_type, const model_config& config, typename value_type>
 	static constexpr auto function_ptrs{ generate_function_ptrs<parsing_type, config, value_type>(std::make_index_sequence<core_tuple_size<value_type>>{}) };
 
-	template<model_config config, uint64_t current_index = 0, uint64_t max_index = 10, typename enum_type>
+	template<const model_config& config, uint64_t current_index = 0, uint64_t max_index = 10, typename enum_type>
 		requires(std::is_same_v<gguf_metadata_value_type, enum_type>)
 	NIHILUS_HOST void skip_unknown_value(stream_iterator<config>& input, enum_type type) {
 		switch (static_cast<uint64_t>(type)) {
@@ -633,7 +633,7 @@ namespace nihilus {
 		}
 	}
 
-	template<model_config config> struct value_reader<config, gguf_metadata<config>> {
+	template<const model_config& config> struct value_reader<config, gguf_metadata<config>> {
 		NIHILUS_HOST static gguf_metadata<config> gather_value(stream_iterator<config>& input) {
 			gguf_metadata<config> value{};
 			uint32_t magic = value_reader<config, uint32_t>::gather_value(input);
@@ -671,9 +671,9 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config> struct string_to_op_type;
+	template<const model_config& config> struct string_to_op_type;
 
-	template<model_config config>
+	template<const model_config& config>
 		requires(config.model_arch == model_arches::llama)
 	struct string_to_op_type<config> {
 		NIHILUS_HOST static weight_types impl(std::string_view input) noexcept {
@@ -772,9 +772,9 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config, model_arches> struct core_traits_comparitor;
+	template<const model_config&, model_arches> struct core_traits_comparitor;
 
-	template<model_config config> struct core_traits_comparitor<config, model_arches::llama> {
+	template<const model_config& config> struct core_traits_comparitor<config, model_arches::llama> {
 		NIHILUS_HOST static bool impl(const core_base_creation_data& parse_core) noexcept {
 			switch (static_cast<uint64_t>(parse_core.weight_type)) {
 				case static_cast<uint64_t>(weight_types::token_embd): {
@@ -853,7 +853,7 @@ namespace nihilus {
 		return 0;
 	}
 
-	template<model_config config> struct value_reader<config, core_base_creation_data> {
+	template<const model_config& config> struct value_reader<config, core_base_creation_data> {
 		NIHILUS_HOST static core_base_creation_data gather_value(stream_iterator<config>& input) {
 			core_base_creation_data value{};
 			std::string_view name{ value_reader<config, std::string_view>::gather_value(input) };
@@ -893,9 +893,9 @@ namespace nihilus {
 		return offset + (alignment - (offset % alignment)) % alignment;
 	}
 
-	template<model_config config> struct model_parser_impl {};
+	template<const model_config& config> struct model_parser_impl {};
 
-	template<model_config config>
+	template<const model_config& config>
 		requires((config.model_arch == model_arches::llama) && (config.model_format == model_formats::gguf))
 	struct model_parser_impl<config> {
 		using model_traits_type = model_traits<config.model_arch, config.model_size, config.model_generation>;
@@ -940,7 +940,7 @@ namespace nihilus {
 		}
 	};
 
-	template<model_config config> struct model_parser {
+	template<const model_config& config> struct model_parser {
 		using model_traits_type = model_traits<config.model_arch, config.model_size, config.model_generation>;
 
 		template<typename tokenizer_type> NIHILUS_HOST static gguf_metadata<config> parse_model(std::string_view model_path,

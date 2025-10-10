@@ -52,10 +52,9 @@ namespace nihilus {
 
 	NIHILUS_HOST static uint64_t get_time_based_seed() noexcept {
 		if constexpr (std::is_same_v<std::chrono::duration<uint64_t, std::nano>, clock_type::duration>) {
-			return static_cast<uint64_t>(std::chrono::high_resolution_clock::now().time_since_epoch().count());
+			return static_cast<uint64_t>(clock_type::now().time_since_epoch().count());
 		} else {
-			return static_cast<uint64_t>(
-				std::chrono::duration_cast<std::chrono::duration<uint64_t, std::nano>>(std::chrono::high_resolution_clock::now().time_since_epoch()).count());
+			return static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::duration<uint64_t, std::nano>>(clock_type::now().time_since_epoch()).count());
 		}
 	}
 

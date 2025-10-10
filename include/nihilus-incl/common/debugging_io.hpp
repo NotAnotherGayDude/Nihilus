@@ -838,7 +838,7 @@ namespace nihilus {
 
 	template<typename value_type>
 	concept has_mutable_dims = requires(detail::remove_cvref_t<value_type> value) { value.get_mutable_dim(); };
-	template<model_config config> struct tensor_debugger_impl {
+	template<const model_config& config> struct tensor_debugger_impl {
 		inline static jsonifier::jsonifier_core parser{};
 
 		template<typename tensor_type> static bool impl(tensor_type& tensor, uint64_t current_block, uint64_t iteration, uint64_t runtime_dim) {
@@ -875,7 +875,7 @@ namespace nihilus {
 
 	template<typename value_type>
 	concept has_mutable_dims = requires(detail::remove_cvref_t<value_type> value) { value.get_mutable_dim(); };
-	template<model_config config> struct tensor_debugger_impl {
+	template<const model_config& config> struct tensor_debugger_impl {
 		template<typename tensor_type> static void impl(tensor_type&, uint64_t, uint64_t, uint64_t) {
 			return;
 		}

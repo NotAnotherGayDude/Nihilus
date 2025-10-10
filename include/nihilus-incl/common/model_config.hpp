@@ -21,32 +21,28 @@ RealTimeChris (Chris M.)
 #pragma once
 
 #include <nihilus-incl/common/common.hpp>
-#include <filesystem>
-#include <iostream>
-#include <fstream>
 #include <cstdint>
-#include <chrono>
-#include <thread>
-#include <mutex>
-#include <latch>
-#include <cmath>
 
 namespace nihilus {
 
 	template<typename derived_type> struct uint64_base_class {
+	  protected:
 		template<typename, typename> friend struct is_same_enum_type;
+		friend derived_type;
 		enum class enum_type : uint64_t {
 			disabled = std::numeric_limits<uint64_t>::max(),
 			enabled	 = 0ull,
-		};
+		} value{};
 
-		static constexpr enum_type disabled{ enum_type::disabled };
-		static constexpr enum_type enabled{ enum_type::enabled };
-		enum_type value{};
 		NIHILUS_HOST constexpr uint64_base_class() noexcept {
 		}
+
 		NIHILUS_HOST constexpr uint64_base_class(enum_type value_new) noexcept : value{ value_new } {
 		}
+
+	  public:
+		static constexpr enum_type disabled{ enum_type::disabled };
+		static constexpr enum_type enabled{ enum_type::enabled };
 
 		NIHILUS_HOST constexpr operator uint64_t() const {
 			return static_cast<uint64_t>(value);
@@ -54,29 +50,32 @@ namespace nihilus {
 	};
 
 	template<typename derived_type> struct bool_base_class {
+	  protected:
 		template<typename, typename> friend struct is_same_enum_type;
+		friend derived_type;
 		enum class enum_type : bool {
 			disabled = false,
 			enabled	 = true,
-		};
+		} value{};
 
-		static constexpr enum_type disabled{ enum_type::disabled };
-		static constexpr enum_type enabled{ enum_type::enabled };
-		enum_type value{};
 		NIHILUS_HOST constexpr bool_base_class() noexcept {
 		}
+
 		NIHILUS_HOST constexpr bool_base_class(enum_type value_new) noexcept : value{ value_new } {
 		}
+
+	  public:
+		static constexpr enum_type disabled{ enum_type::disabled };
+		static constexpr enum_type enabled{ enum_type::enabled };
 
 		NIHILUS_HOST constexpr operator bool() const {
 			return value == enum_type::enabled;
 		}
 	};
 
-	struct exception_types : public bool_base_class<exception_types> {
-		template<typename, typename> friend struct is_same_enum_type;
-
+	struct exception_types : bool_base_class<exception_types> {
 	  protected:
+		template<typename, typename> friend struct is_same_enum_type;
 		using base_type = bool_base_class<exception_types>;
 
 	  public:
@@ -89,10 +88,9 @@ namespace nihilus {
 		}
 	};
 
-	struct benchmark_types : public bool_base_class<benchmark_types> {
-		template<typename, typename> friend struct is_same_enum_type;
-
+	struct benchmark_types : bool_base_class<benchmark_types> {
 	  protected:
+		template<typename, typename> friend struct is_same_enum_type;
 		using base_type = bool_base_class<benchmark_types>;
 
 	  public:
@@ -105,10 +103,9 @@ namespace nihilus {
 		}
 	};
 
-	struct dev_types : public bool_base_class<dev_types> {
-		template<typename, typename> friend struct is_same_enum_type;
-
+	struct dev_types : bool_base_class<dev_types> {
 	  protected:
+		template<typename, typename> friend struct is_same_enum_type;
 		using base_type = bool_base_class<dev_types>;
 
 	  public:
@@ -121,10 +118,9 @@ namespace nihilus {
 		}
 	};
 
-	struct use_rotary_embeddings_types : public bool_base_class<use_rotary_embeddings_types> {
-		template<typename, typename> friend struct is_same_enum_type;
-
+	struct use_rotary_embeddings_types : bool_base_class<use_rotary_embeddings_types> {
 	  protected:
+		template<typename, typename> friend struct is_same_enum_type;
 		using base_type = bool_base_class<use_rotary_embeddings_types>;
 
 	  public:
@@ -137,10 +133,9 @@ namespace nihilus {
 		}
 	};
 
-	struct default_max_sequence_length_types : public uint64_base_class<default_max_sequence_length_types> {
-		template<typename, typename> friend struct is_same_enum_type;
-
+	struct default_max_sequence_length_types : uint64_base_class<default_max_sequence_length_types> {
 	  protected:
+		template<typename, typename> friend struct is_same_enum_type;
 		using base_type = uint64_base_class<default_max_sequence_length_types>;
 
 	  public:
@@ -152,10 +147,9 @@ namespace nihilus {
 		}
 	};
 
-	struct default_batch_size_types : public uint64_base_class<default_batch_size_types> {
-		template<typename, typename> friend struct is_same_enum_type;
-
+	struct default_batch_size_types : uint64_base_class<default_batch_size_types> {
 	  protected:
+		template<typename, typename> friend struct is_same_enum_type;
 		using base_type = uint64_base_class<default_batch_size_types>;
 
 	  public:
@@ -167,10 +161,9 @@ namespace nihilus {
 		}
 	};
 
-	struct kv_cache_block_size_types : public uint64_base_class<kv_cache_block_size_types> {
-		template<typename, typename> friend struct is_same_enum_type;
-
+	struct kv_cache_block_size_types : uint64_base_class<kv_cache_block_size_types> {
 	  protected:
+		template<typename, typename> friend struct is_same_enum_type;
 		using base_type = uint64_base_class<kv_cache_block_size_types>;
 
 	  public:
