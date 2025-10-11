@@ -36,8 +36,9 @@ namespace nihilus {
 	template<const model_config& config>
 		requires(config.device_type == device_types::gpu)
 	struct thread_pool<config> : public get_core_bases_t<config>, public perf_base<config> {
-		using core_bases_type											 = get_core_bases_t<config>;
-		NIHILUS_HOST thread_pool() noexcept								 {}
+		using core_bases_type = get_core_bases_t<config>;
+		NIHILUS_HOST thread_pool() noexcept {
+		}
 		NIHILUS_HOST thread_pool& operator=(const thread_pool&) noexcept = delete;
 		NIHILUS_HOST thread_pool(const thread_pool&) noexcept			 = delete;
 
@@ -50,7 +51,7 @@ namespace nihilus {
 
 		template<processing_phases phase_new> NIHILUS_HOST void thread_function() {
 			core_bases_type::template impl_thread<global_input_thread_function, phase_new>(1);
-			execute_blocks<phase_new>(std::make_index_sequence<static_cast<size_t>(model_traits_type<config>::block_count)>{});
+			execute_blocks<phase_new>(std::make_index_sequence<static_cast<uint64_t>(model_traits_type<config>::block_count)>{});
 			core_bases_type::template impl_thread<global_output_thread_function, phase_new>(1);
 		}
 
@@ -61,7 +62,7 @@ namespace nihilus {
 				cudaError_t err = cudaGetLastError();
 				if (err != cudaSuccess) {
 					static constexpr auto location = std::source_location::current();
-					nihilus_exception<config, "Cuda Error: ", location>::impl(cudaGetErrorString(err));
+					nihilus_exception<config.exceptions, "Cuda Error: ", location>::impl(cudaGetErrorString(err));
 				}
 			}
 		}

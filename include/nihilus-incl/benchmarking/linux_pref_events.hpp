@@ -33,7 +33,7 @@ RealTimeChris (Chris M.)
 
 namespace nihilus::benchmarking {
 
-	NIHILUS_HOST size_t rdtsc() {
+	NIHILUS_HOST uint64_t rdtsc() {
 		uint32_t a, d;
 		__asm__ volatile("rdtsc" : "=a"(a), "=d"(d));
 		return static_cast<unsigned long>(a) | (static_cast<unsigned long>(d) << 32);
@@ -44,12 +44,13 @@ namespace nihilus::benchmarking {
 		aligned_vector<uint64_t> temp_result_vec{};
 		aligned_vector<uint64_t> ids{};
 		perf_event_attr attribs{};
-		size_t num_events{};
+		uint64_t num_events{};
 		bool working{};
 		int32_t fd{};
 
 	  public:
-		NIHILUS_HOST explicit linux_events(aligned_vector<int32_t> config_vec) : working(true) {
+		NIHILUS_HOST explicit linux_events(int32_t config_val01, int32_t config_val02, int32_t config_val03, int32_t config_val04, int32_t config_val05, int32_t config_val06)
+			: working(true) {
 			memset(&attribs, 0, sizeof(attribs));
 			attribs.type		   = PERF_TYPE_HARDWARE;
 			attribs.size		   = sizeof(attribs);
@@ -62,9 +63,9 @@ namespace nihilus::benchmarking {
 			const int32_t pid		  = 0;
 			const int32_t cpu		  = -1;
 			const unsigned long flags = 0;
-
+			aligned_vector<int32_t> config_vec{ config_val01, config_val02, config_val03, config_val04, config_val05, config_val06 };
 			int32_t group = -1;
-			num_events	  = config_vec.size();
+			num_events	  = 6;
 			ids.resize(config_vec.size());
 			uint32_t i = 0;
 			for (auto config: config_vec) {
@@ -141,8 +142,8 @@ namespace nihilus::benchmarking {
 		bool started{};
 
 		NIHILUS_HOST event_collector_type()
-			: linux_events{ aligned_vector<int32_t>{ PERF_COUNT_HW_CPU_CYCLES, PERF_COUNT_HW_INSTRUCTIONS, PERF_COUNT_HW_BRANCH_INSTRUCTIONS, PERF_COUNT_HW_BRANCH_MISSES,
-				  PERF_COUNT_HW_CACHE_REFERENCES, PERF_COUNT_HW_CACHE_MISSES } },
+			: linux_events{ PERF_COUNT_HW_CPU_CYCLES, PERF_COUNT_HW_INSTRUCTIONS, PERF_COUNT_HW_BRANCH_INSTRUCTIONS, PERF_COUNT_HW_BRANCH_MISSES, PERF_COUNT_HW_CACHE_REFERENCES,
+				  PERF_COUNT_HW_CACHE_MISSES },
 			  aligned_vector<event_count>{} {
 		}
 

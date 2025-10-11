@@ -30,10 +30,10 @@ namespace nihilus {
 	concept integral_types = std::is_integral_v<detail::remove_cvref_t<value_type>>;
 
 	template<typename value_type>
-	concept uint_types = std::is_unsigned_v<detail::remove_cvref_t<value_type>> && std::is_integral_v<detail::remove_cvref_t<value_type>>;
+	concept uint_types = std::is_unsigned_v<detail::remove_cvref_t<value_type>> && integral_types<detail::remove_cvref_t<value_type>>;
 
 	template<typename value_type>
-	concept int_types = std::is_signed_v<detail::remove_cvref_t<value_type>> && std::is_integral_v<detail::remove_cvref_t<value_type>> && !uint_types<value_type>;
+	concept int_types = std::is_signed_v<detail::remove_cvref_t<value_type>> && integral_types<detail::remove_cvref_t<value_type>> && !uint_types<value_type>;
 
 	template<typename value_type>
 	concept int8_types = int_types<detail::remove_cvref_t<value_type>> && sizeof(detail::remove_cvref_t<value_type>) == 1;
@@ -84,44 +84,42 @@ namespace nihilus {
 
 	template<typename value_type> using x_type = decltype(base_type<value_type>::x);
 
-	template<typename value_type>
-	concept uint_cuda_types = std::is_unsigned_v<x_type<value_type>> && std::is_integral_v<x_type<value_type>>;
+#if NIHILUS_COMPILER_CUDA
 
 	template<typename value_type>
-	concept int_cuda_types = std::is_signed_v<x_type<value_type>> && std::is_integral_v<x_type<value_type>> && !uint_cuda_types<value_type>;
+	concept half_cuda_types = std::is_same_v<__half, detail::remove_cvref_t<value_type>>;
 
 	template<typename value_type>
-	concept int8_cuda_types = int_cuda_types<x_type<value_type>> && sizeof(x_type<value_type>) == 1;
+	concept int8_cuda_types = int_types<x_type<value_type>> && sizeof(x_type<value_type>) == 1;
 
 	template<typename value_type>
-	concept int16_cuda_types = int_cuda_types<x_type<value_type>> && sizeof(x_type<value_type>) == 2;
+	concept int16_cuda_types = int_types<x_type<value_type>> && sizeof(x_type<value_type>) == 2;
 
 	template<typename value_type>
-	concept int32_cuda_types = int_cuda_types<x_type<value_type>> && sizeof(x_type<value_type>) == 4;
+	concept int32_cuda_types = int_types<x_type<value_type>> && sizeof(x_type<value_type>) == 4;
 
 	template<typename value_type>
-	concept int64_cuda_types = int_cuda_types<x_type<value_type>> && sizeof(x_type<value_type>) == 8;
+	concept int64_cuda_types = int_types<x_type<value_type>> && sizeof(x_type<value_type>) == 8;
 
 	template<typename value_type>
-	concept uint8_cuda_types = uint_cuda_types<x_type<value_type>> && sizeof(x_type<value_type>) == 1;
+	concept uint8_cuda_types = uint_types<x_type<value_type>> && sizeof(x_type<value_type>) == 1;
 
 	template<typename value_type>
-	concept uint16_cuda_types = uint_cuda_types<x_type<value_type>> && sizeof(x_type<value_type>) == 2;
+	concept uint16_cuda_types = uint_types<x_type<value_type>> && sizeof(x_type<value_type>) == 2;
 
 	template<typename value_type>
-	concept uint32_cuda_types = uint_cuda_types<x_type<value_type>> && sizeof(x_type<value_type>) == 4;
+	concept uint32_cuda_types = uint_types<x_type<value_type>> && sizeof(x_type<value_type>) == 4;
 
 	template<typename value_type>
-	concept uint64_cuda_types = uint_cuda_types<x_type<value_type>> && sizeof(x_type<value_type>) == 8;
+	concept uint64_cuda_types = uint_types<x_type<value_type>> && sizeof(x_type<value_type>) == 8;
 
 	template<typename value_type>
-	concept float_cuda_types = std::floating_point<x_type<value_type>>;
+	concept float32_cuda_types = float32_types<value_type> && sizeof(x_type<value_type>) == 4;
 
 	template<typename value_type>
-	concept float32_cuda_types = float_cuda_types<value_type> && sizeof(x_type<value_type>) == 4;
+	concept float64_cuda_types = float64_types<value_type> && sizeof(x_type<value_type>) == 8;
 
-	template<typename value_type>
-	concept float64_cuda_types = float_cuda_types<value_type> && sizeof(x_type<value_type>) == 8;
+#endif
 
 	template<typename value_type>
 	concept has_size_types = requires(detail::remove_cvref_t<value_type> value) {
@@ -150,9 +148,7 @@ namespace nihilus {
 	concept array_types = vector_subscriptable_types<value_type> && has_data_types<value_type> && has_size_types<value_type>;
 
 	template<typename value_type>
-	concept core_traits_types = requires(detail::remove_cvref_t<value_type> value) {
-		typename detail::remove_cvref_t<value_type>::output_type;
-	};
+	concept core_traits_types = requires(detail::remove_cvref_t<value_type> value) { typename detail::remove_cvref_t<value_type>::output_type; };
 
 	template<typename value_type>
 	concept blocking_types = requires(detail::remove_cvref_t<value_type> value) {
@@ -215,37 +211,6 @@ namespace nihilus {
 	template<typename, template<auto...> typename> constexpr bool is_specialization_val_v = false;
 
 	template<template<auto> typename value_type, auto... arg_types> constexpr bool is_specialization_val_v<value_type<arg_types...>, value_type> = true;
-
-	enum class input_types : uint8_t {
-		none  = 1 << 0,
-		one	  = 1 << 1,
-		two	  = 1 << 2,
-		three = 1 << 3,
-		four  = 1 << 4,
-		five  = 1 << 5,
-		six	  = 1 << 6,
-	};
-
-	template<typename value_type>
-	concept single_input_types = detail::remove_cvref_t<value_type>::input_type == input_types::one;
-
-	template<typename value_type>
-	concept double_input_types = detail::remove_cvref_t<value_type>::input_type == input_types::two && !single_input_types<value_type>;
-
-	template<typename value_type>
-	concept triple_input_types = detail::remove_cvref_t<value_type>::input_type == input_types::three && !double_input_types<value_type> && !single_input_types<value_type>;
-
-	template<typename value_type>
-	concept quadruple_input_types = detail::remove_cvref_t<value_type>::input_type == input_types::four && !triple_input_types<value_type> && !double_input_types<value_type> &&
-		!single_input_types<value_type>;
-
-	template<typename value_type>
-	concept quintuple_input_types = detail::remove_cvref_t<value_type>::input_type == input_types::five && !quadruple_input_types<value_type> && !triple_input_types<value_type> &&
-		!double_input_types<value_type> && !single_input_types<value_type>;
-
-	template<typename value_type>
-	concept sextuple_input_types = detail::remove_cvref_t<value_type>::input_type == input_types::six && !quintuple_input_types<value_type> && !quadruple_input_types<value_type> &&
-		!triple_input_types<value_type> && !double_input_types<value_type> && !single_input_types<value_type>;
 
 	template<typename value_type>
 	concept has_count = requires() { detail::remove_cvref_t<value_type>::count; } && static_cast<uint64_t>(detail::remove_cvref_t<value_type>::count) < 128;

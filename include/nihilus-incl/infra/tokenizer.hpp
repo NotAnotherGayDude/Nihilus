@@ -55,7 +55,7 @@ namespace nihilus {
 		NIHILUS_HOST void set_values(pointer data_new, size_type count_new) {
 			std::memcpy(array<char, max_token_length>::data(), data_new, count_new);
 			current_size = count_new;
-		} 
+		}
 
 		NIHILUS_HOST operator std::string_view() const {
 			return { array<char, max_token_length>::data(), current_size };
@@ -102,7 +102,7 @@ namespace nihilus {
 		int32_t left{};
 		int32_t rank{};
 	};
-	
+
 	struct comparator {
 		template<uint64_t max_token_length> NIHILUS_HOST_DEVICE bool operator()(const bigram_bpe<max_token_length>& l, const bigram_bpe<max_token_length>& r) const {
 			return l.rank > r.rank || (l.rank == r.rank && l.left > r.left);
@@ -111,7 +111,7 @@ namespace nihilus {
 
 	template<typename stored_type, typename comparator> struct priority_queue : public comparator {
 		array<stored_type, 200> data{};
-		size_t currently_stored_size{};
+		uint64_t currently_stored_size{};
 
 		NIHILUS_HOST bool empty() const {
 			return currently_stored_size == 0;
@@ -142,9 +142,9 @@ namespace nihilus {
 		}
 
 	  protected:
-		NIHILUS_HOST void bubble_up(size_t index) {
+		NIHILUS_HOST void bubble_up(uint64_t index) {
 			while (index > 0) {
-				size_t parent = (index - 1) / 2;
+				uint64_t parent = (index - 1) / 2;
 				if (!comparator::operator()(data[index], data[parent]))
 					break;
 				std::swap(data[index], data[parent]);
@@ -152,11 +152,11 @@ namespace nihilus {
 			}
 		}
 
-		NIHILUS_HOST void bubble_down(size_t index) {
+		NIHILUS_HOST void bubble_down(uint64_t index) {
 			while (true) {
-				size_t left	   = 2 * index + 1;
-				size_t right   = 2 * index + 2;
-				size_t largest = index;
+				uint64_t left	 = 2 * index + 1;
+				uint64_t right	 = 2 * index + 2;
+				uint64_t largest = index;
 
 				if (left < currently_stored_size && comparator::operator()(data[left], data[largest])) {
 					largest = left;
@@ -250,52 +250,23 @@ namespace nihilus {
 			return temp_tokens.size();
 		}
 
-		struct nihilus_rng {
-			uint64_t state[4]{};
-
-			NIHILUS_HOST nihilus_rng() noexcept {
-				static const uint64_t seed{ get_time_based_seed() };
-				auto x	   = seed >> 12ull;
-				auto x01   = x ^ x << 25ull;
-				auto x02   = x01 ^ x01 >> 27ull;
-				uint64_t s = x02 * 0x2545F4914F6CDD1Dull;
-				for (uint64_t y = 0; y < 4; ++y) {
-					state[y] = splitmix64(s);
-				}
+	  protected:
+		static constexpr const std::string_view regex_exprs{ [] {
+			if constexpr (tokenizer_traits_type::tokenizer_pre_type == tokenizer_pre_types::llama3) {
+				return "(?:'[sS]|'[tT]|'[rR][eE]|'[vV][eE]|'[mM]|'[lL][lL]|'[dD])|[^\\r\\n\\p{L}\\p{N}]?\\p{L}+|\\p{N}{1,3}| "
+					   "?[^\\s\\p{L}\\p{N}]+[\\r\\n]*|\\s*[\\r\\n]+|\\s+(?!\\S)|\\s+";
+			} else {
+				return std::string_view{};
 			}
-
-			constexpr uint64_t next() noexcept {
-				const uint64_t result = rotl(state[1ull] * 5ull, 7ull) * 9ull;
-				const uint64_t t	  = state[1ull] << 17ull;
-
-				state[2ull] ^= state[0ull];
-				state[3ull] ^= state[1ull];
-				state[1ull] ^= state[2ull];
-				state[0ull] ^= state[3ull];
-
-				state[2ull] ^= t;
-
-				state[3ull] = rotl(state[3ull], 45ull);
-
-				return result;
-			}
-
-			NIHILUS_HOST float next_float() {
-				return static_cast<float>(next()) / static_cast<float>(std::numeric_limits<uint64_t>::max());
-			}
-
-		  protected:
-			constexpr uint64_t rotl(const uint64_t x, const uint64_t k) const noexcept {
-				return (x << k) | (x >> (64ull - k));
-			}
-
-			constexpr uint64_t splitmix64(uint64_t& seed64) const noexcept {
-				uint64_t result = seed64 += 0x9E3779B97F4A7C15ull;
-				result			= (result ^ (result >> 30ull)) * 0xBF58476D1CE4E5B9ull;
-				result			= (result ^ (result >> 27ull)) * 0x94D049BB133111EBull;
-				return result ^ (result >> 31ull);
-			}
-		};
+		}() };
+		std::unordered_map<std::pair<const std::string_view, const std::string_view>, int32_t, pair_hash> bpe_ranks{};
+		priority_queue<bigram_bpe<tokenizer_traits_type::max_merge_result_length>, comparator> work_queue{};
+		aligned_vector<nihilus_symbol> symbols{};
+		static_string_token_type right_token{};
+		static_string_token_type left_token{};
+		static_string_type combined_token{};
+		static_string_type token_new{};
+		uint64_t rng_state[4]{};
 
 		struct sampling_params {
 			float temperature		 = 1.0f;
@@ -319,10 +290,10 @@ namespace nihilus {
 			}
 		};
 
-		mutable aligned_vector<token_prob> candidate_tokens{};
-		mutable aligned_vector<float> cumulative_probs{};
-		mutable float mirostat_mu{};
-		mutable nihilus_rng rng{};
+		aligned_vector<token_prob> candidate_tokens{};
+		aligned_vector<float> cumulative_probs{};
+		float mirostat_mu{};
+		uint64_t seed{};
 
 		NIHILUS_HOST void apply_temperature(float* logits, uint64_t vocab_size, float temperature) const {
 			if (temperature == 1.0f)
@@ -411,7 +382,7 @@ namespace nihilus {
 				candidates.end());
 		}
 
-		NIHILUS_HOST int32_t sample_from_candidates(const aligned_vector<token_prob>& candidates) const {
+		NIHILUS_HOST int32_t sample_from_candidates(const aligned_vector<token_prob>& candidates) {
 			if (candidates.empty())
 				return 0;
 			if (candidates.size() == 1)
@@ -426,7 +397,7 @@ namespace nihilus {
 				cumulative_probs.emplace_back(cumulative);
 			}
 
-			const float random_val = rng.next_float() * cumulative;
+			const float random_val = next_float() * cumulative;
 
 			auto it		   = std::lower_bound(cumulative_probs.begin(), cumulative_probs.end(), random_val);
 			uint64_t index = std::distance(cumulative_probs.begin(), it);
@@ -434,11 +405,7 @@ namespace nihilus {
 			return candidates[detail::min(index, candidates.size() - 1)].token_id;
 		}
 
-		NIHILUS_HOST int32_t sample_next_token(float* logits, uint64_t vocab_size, const int32_t* recent_tokens, uint64_t recent_count, const sampling_params& params) const {
-			if (params.seed != 0) {
-				rng = nihilus_rng(params.seed);
-			}
-
+		NIHILUS_HOST int32_t sample_next_token(float* logits, uint64_t vocab_size, const int32_t* recent_tokens, uint64_t recent_count, const sampling_params& params) {
 			apply_repetition_penalty(logits, recent_tokens, detail::min(recent_count, params.repeat_last_n), params.repetition_penalty);
 
 			apply_temperature(logits, vocab_size, params.temperature);
@@ -486,22 +453,40 @@ namespace nihilus {
 			return sample_next_token(logits, vocab_size, context.empty() ? nullptr : context.data(), context.size(), params);
 		}
 
-	  protected:
-		static constexpr const std::string_view regex_exprs{ [] {
-			if constexpr (tokenizer_traits_type::pre_type == tokenizer_pre_types::llama3) {
-				return "(?:'[sS]|'[tT]|'[rR][eE]|'[vV][eE]|'[mM]|'[lL][lL]|'[dD])|[^\\r\\n\\p{L}\\p{N}]?\\p{L}+|\\p{N}{1,3}| "
-					   "?[^\\s\\p{L}\\p{N}]+[\\r\\n]*|\\s*[\\r\\n]+|\\s+(?!\\S)|\\s+";
-			} else {
-				return std::string_view{};
+		NIHILUS_HOST void init_rng(uint64_t seed_new) {
+			auto x	   = seed_new >> 12ull;
+			auto x01   = x ^ x << 25ull;
+			auto x02   = x01 ^ x01 >> 27ull;
+			uint64_t s = x02 * 0x2545F4914F6CDD1Dull;
+			for (uint64_t y = 0; y < 4; ++y) {
+				rng_state[y] = splitmix64(s);
 			}
-		}() };
-		std::unordered_map<std::pair<const std::string_view, const std::string_view>, int32_t, pair_hash> bpe_ranks{};
-		priority_queue<bigram_bpe<tokenizer_traits_type::max_merge_result_length>, comparator> work_queue{};
-		aligned_vector<nihilus_symbol> symbols{};
-		static_string_token_type right_token{};
-		static_string_token_type left_token{};
-		static_string_type combined_token{};
-		static_string_type token_new{};
+		}
+
+		NIHILUS_HOST float next_float() {
+			const uint64_t result = rotl(rng_state[1] * 5ull, 7ull) * 9ull;
+			const uint64_t t	  = rng_state[1] << 17ull;
+
+			rng_state[2] ^= rng_state[0];
+			rng_state[3] ^= rng_state[1];
+			rng_state[1] ^= rng_state[2];
+			rng_state[0] ^= rng_state[3];
+			rng_state[2] ^= t;
+			rng_state[3] = rotl(rng_state[3], 45ull);
+
+			return static_cast<float>(result) / static_cast<float>(std::numeric_limits<uint64_t>::max());
+		}
+
+		constexpr uint64_t rotl(const uint64_t x, const uint64_t k) const noexcept {
+			return (x << k) | (x >> (64ull - k));
+		}
+
+		constexpr uint64_t splitmix64(uint64_t& seed64) const noexcept {
+			uint64_t result = seed64 += 0x9E3779B97F4A7C15ull;
+			result			= (result ^ (result >> 30ull)) * 0xBF58476D1CE4E5B9ull;
+			result			= (result ^ (result >> 27ull)) * 0x94D049BB133111EBull;
+			return result ^ (result >> 31ull);
+		}
 
 		NIHILUS_HOST aligned_vector<std::string> gpt2_style_split(std::string_view text) {
 			aligned_vector<std::string> result;
@@ -724,9 +709,6 @@ namespace nihilus {
 			}
 			std::cout << std::endl;
 			std::cout << "=================================" << std::endl;
-		}
-
-		NIHILUS_HOST ~tokenizer() {
 		}
 	};
 

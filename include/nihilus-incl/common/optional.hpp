@@ -31,7 +31,8 @@ namespace nihilus {
 		using const_reference = const value_type&;
 		using const_pointer	  = const value_type*;
 
-		NIHILUS_HOST optional() noexcept {}
+		NIHILUS_HOST optional() noexcept {
+		}
 
 		NIHILUS_HOST optional& operator=(optional&& other) noexcept {
 			if (this != &other) {
@@ -108,7 +109,8 @@ namespace nihilus {
 			std::swap(value, other.value);
 		}
 
-		NIHILUS_HOST ~optional() noexcept {}
+		NIHILUS_HOST ~optional() noexcept {
+		}
 
 	  protected:
 		bool constructed{ false };

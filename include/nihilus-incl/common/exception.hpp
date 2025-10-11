@@ -47,7 +47,32 @@ namespace nihilus {
 		}
 	}
 
-	template<const auto& config, string_literal error_type, const std::source_location& source_info> struct nihilus_exception {
+	template<bool exceptions, string_literal error_type, const std::source_location& source_info> struct nihilus_exception {
+		NIHILUS_HOST static void impl() {
+			static constexpr uint64_t str_length{ str_len(source_info.file_name()) };
+			static constexpr string_literal return_value{ "Error: " + error_type + "\nIn File: " + string_literal<str_length>{ source_info.file_name() } +
+				"\nOn Line: " + to_string_literal<source_info.line()>() + "\n" };
+			log<log_levels::error>(return_value);
+			throw nihilus_exception{};
+		}
+		NIHILUS_HOST static void impl(const std::string_view input_string) {
+			static constexpr uint64_t str_length{ str_len(source_info.file_name()) };
+			static constexpr string_literal return_value01{ "Error: " + error_type };
+			static constexpr string_literal return_value02{ "\nIn File: " + string_literal<str_length>{ source_info.file_name() } +
+				"\nOn Line: " + to_string_literal<source_info.line()>() + "\n" };
+			std::string new_string{ return_value01.operator std::string() + static_cast<std::string>(input_string) + return_value02.operator std::string() };
+			log<log_levels::error>(new_string);
+			throw nihilus_exception{};
+		}
+
+	  protected:
+		nihilus_exception() {
+		}
+	};
+
+	template<bool exceptions, string_literal error_type, const std::source_location& source_info>
+		requires(!exceptions)
+	struct nihilus_exception<exceptions, error_type, source_info> {
 		NIHILUS_HOST static void impl() {
 			static constexpr uint64_t str_length{ str_len(source_info.file_name()) };
 			static constexpr string_literal return_value{ "Error: " + error_type + "\nIn File: " + string_literal<str_length>{ source_info.file_name() } +
@@ -65,28 +90,5 @@ namespace nihilus {
 			std::exit(-1);
 		}
 		nihilus_exception() = delete;
-	};
-
-	template<const auto& config, string_literal error_type, const std::source_location& source_info>
-		requires(config.exceptions.operator bool())
-	struct nihilus_exception<config, error_type, source_info> : public std::runtime_error {
-		NIHILUS_HOST static void impl() {
-			static constexpr uint64_t str_length{ str_len(source_info.file_name()) };
-			static constexpr string_literal return_value{ "Error: " + error_type + "\nIn File: " + string_literal<str_length>{ source_info.file_name() } +
-				"\nOn Line: " + to_string_literal<source_info.line()>() + "\n" };
-			throw nihilus_exception(static_cast<const std::string_view>(return_value));
-		}
-		NIHILUS_HOST static void impl(const std::string_view input_string) {
-			static constexpr uint64_t str_length{ str_len(source_info.file_name()) };
-			static constexpr string_literal return_value01{ "Error: " + error_type };
-			static constexpr string_literal return_value02{ "\nIn File: " + string_literal<str_length>{ source_info.file_name() } +
-				"\nOn Line: " + to_string_literal<source_info.line()>() + "\n" };
-			std::string new_string{ return_value01.operator std::string() + static_cast<std::string>(input_string) + return_value02.operator std::string() };
-			throw nihilus_exception(static_cast<const std::string_view>(new_string));
-		}
-
-	  protected:
-		nihilus_exception(const std::string_view new_value) : std::runtime_error(static_cast<std::string>(new_value)) {
-		}
 	};
 }

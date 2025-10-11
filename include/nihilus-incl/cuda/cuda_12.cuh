@@ -576,8 +576,8 @@ namespace nihilus {
 		static constexpr uint64_t block_size		   = type_traits<typename core_traits_type::kernel_profile_type::weight_type>::block_size;
 		static constexpr uint64_t blocks_per_embedding = (embedding_length + block_size - 1) / block_size;
 
-		weight_type* __restrict weight_data  = params.template get_weight_data<weight_type>();
-		index_type* __restrict token_ids	   = params.template get_token_data<index_type>();
+		weight_type* __restrict weight_data	 = params.template get_weight_data<weight_type>();
+		index_type* __restrict token_ids	 = params.template get_token_data<index_type>();
 		compute_type* __restrict output_data = params.template get_output_data<compute_type>();
 
 		const uint64_t token_idx = blockIdx.x;
@@ -586,18 +586,18 @@ namespace nihilus {
 			return;
 		}
 
-		index_type token_id				   = token_ids[token_idx];
-		weight_type* __restrict src_row  = weight_data + (static_cast<uint64_t>(token_id) * blocks_per_embedding);
+		index_type token_id				 = token_ids[token_idx];
+		weight_type* __restrict src_row	 = weight_data + (static_cast<uint64_t>(token_id) * blocks_per_embedding);
 		compute_type* __restrict dst_row = output_data + (token_idx * embedding_length);
 
 		const uint64_t thread_id		 = threadIdx.x;
 		const uint64_t threads_per_block = blockDim.x;
 
 		for (uint64_t block_idx = thread_id; block_idx < blocks_per_embedding; block_idx += threads_per_block) {
-			const auto& block				   = src_row[block_idx];
-			const auto scale				   = __half2float(block.d);
+			const auto& block				 = src_row[block_idx];
+			const auto scale				 = __half2float(block.d);
 			const auto* __restrict quantized = block.qs;
-			const uint64_t base_offset		   = block_idx * block_size;
+			const uint64_t base_offset		 = block_idx * block_size;
 
 	#pragma unroll
 			for (uint64_t j = 0; j < block_size; ++j) {
@@ -619,8 +619,8 @@ namespace nihilus {
 		static constexpr uint64_t block_size		   = type_traits<typename core_traits_type::kernel_profile_type::weight_type>::block_size;
 		static constexpr uint64_t blocks_per_embedding = (embedding_length + block_size - 1) / block_size;
 
-		weight_type* __restrict weight_data  = params.template get_weight_data<weight_type>();
-		index_type* __restrict token_ids	   = params.template get_token_data<index_type>();
+		weight_type* __restrict weight_data	 = params.template get_weight_data<weight_type>();
+		index_type* __restrict token_ids	 = params.template get_token_data<index_type>();
 		compute_type* __restrict output_data = params.template get_output_data<compute_type>();
 
 		const uint64_t token_idx = blockIdx.x;
@@ -629,8 +629,8 @@ namespace nihilus {
 			return;
 		}
 
-		index_type token_id				   = token_ids[token_idx];
-		weight_type* __restrict src_row  = weight_data + (static_cast<uint64_t>(token_id) * blocks_per_embedding);
+		index_type token_id				 = token_ids[token_idx];
+		weight_type* __restrict src_row	 = weight_data + (static_cast<uint64_t>(token_id) * blocks_per_embedding);
 		compute_type* __restrict dst_row = output_data + (token_idx * embedding_length);
 
 		const uint64_t thread_id		 = threadIdx.x;
@@ -658,7 +658,7 @@ namespace nihilus {
 			if constexpr (config.dev) {
 				if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
 					static constexpr auto location = std::source_location::current();
-					nihilus_exception<config, "Cuda Error: ", location>::impl(cudaGetErrorString(err));
+					nihilus_exception<config.exceptions, "Cuda Error: ", location>::impl(cudaGetErrorString(err));
 				}
 			}
 
@@ -680,7 +680,7 @@ namespace nihilus {
 				if constexpr (config.dev) {
 					if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
 						static constexpr auto location = std::source_location::current();
-						nihilus_exception<config, "Cuda Kernel Launch Error: ", location>::impl(cudaGetErrorString(err));
+						nihilus_exception<config.exceptions, "Cuda Kernel Launch Error: ", location>::impl(cudaGetErrorString(err));
 					}
 				}
 
@@ -689,7 +689,7 @@ namespace nihilus {
 				if constexpr (config.dev) {
 					if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
 						static constexpr auto location = std::source_location::current();
-						nihilus_exception<config, "Cuda Synchronization Error: ", location>::impl(cudaGetErrorString(err));
+						nihilus_exception<config.exceptions, "Cuda Synchronization Error: ", location>::impl(cudaGetErrorString(err));
 					}
 				}
 			}
@@ -708,17 +708,17 @@ namespace nihilus {
 		static constexpr uint64_t blocks_per_embedding = (embedding_length + block_size - 1) / block_size;
 
 		const block_q8_0<half>* __restrict weight_data = params.template get_weight_data<block_q8_0<half>>();
-		const uint32_t* __restrict token_ids			 = params.template get_token_data<uint32_t>();
-		float* __restrict output_data					 = params.template get_output_data<float>();
+		const uint32_t* __restrict token_ids		   = params.template get_token_data<uint32_t>();
+		float* __restrict output_data				   = params.template get_output_data<float>();
 
 		const uint64_t thread_id		 = threadIdx.x;
 		const uint64_t threads_per_block = blockDim.x;
 
 		for (uint64_t block_idx = thread_id; block_idx < blocks_per_embedding; block_idx += threads_per_block) {
-			const auto& block				   = weight_data[block_idx];
-			const auto scale				   = __half2float(block.d);
+			const auto& block				 = weight_data[block_idx];
+			const auto scale				 = __half2float(block.d);
 			const auto* __restrict quantized = block.qs;
-			const uint64_t base_offset		   = block_idx * block_size;
+			const uint64_t base_offset		 = block_idx * block_size;
 
 	#pragma unroll
 			for (uint64_t j = 0; j < block_size; ++j) {
@@ -736,11 +736,11 @@ namespace nihilus {
 		using index_type   = uint32_t;
 		using compute_type = half;
 
-		static constexpr uint64_t embedding_length	   = core_traits_type::mtt::embedding_length;
+		static constexpr uint64_t embedding_length = core_traits_type::mtt::embedding_length;
 
-		const half* __restrict weight_data   = params.template get_weight_data<half>();
+		const half* __restrict weight_data	 = params.template get_weight_data<half>();
 		const uint32_t* __restrict token_ids = params.template get_token_data<uint32_t>();
-		half* __restrict output_data		   = params.template get_output_data<half>();
+		half* __restrict output_data		 = params.template get_output_data<half>();
 
 		const uint64_t thread_id		 = threadIdx.x;
 		const uint64_t threads_per_block = blockDim.x;
@@ -749,7 +749,7 @@ namespace nihilus {
 		const uint64_t vec_length		 = embedding_length / elems_per_vec;
 
 		auto* __restrict vec_weights = weight_data;
-		auto* __restrict vec_output  = output_data;
+		auto* __restrict vec_output	 = output_data;
 
 		for (uint64_t i = thread_id; i < vec_length; i += threads_per_block) {
 			vec_output[i] = vec_weights[i];
@@ -776,7 +776,7 @@ namespace nihilus {
 			if constexpr (config.dev) {
 				if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
 					static constexpr auto location = std::source_location::current();
-					nihilus_exception<config, "Cuda Error: ", location>::impl(cudaGetErrorString(err));
+					nihilus_exception<config.exceptions, "Cuda Error: ", location>::impl(cudaGetErrorString(err));
 				}
 			}
 
@@ -793,7 +793,7 @@ namespace nihilus {
 			if constexpr (config.dev) {
 				if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
 					static constexpr auto location = std::source_location::current();
-					nihilus_exception<config, "Cuda Kernel Launch Error: ", location>::impl(cudaGetErrorString(err));
+					nihilus_exception<config.exceptions, "Cuda Kernel Launch Error: ", location>::impl(cudaGetErrorString(err));
 				}
 			}
 
@@ -802,7 +802,7 @@ namespace nihilus {
 			if constexpr (config.dev) {
 				if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
 					static constexpr auto location = std::source_location::current();
-					nihilus_exception<config, "Cuda Synchronization Error: ", location>::impl(cudaGetErrorString(err));
+					nihilus_exception<config.exceptions, "Cuda Synchronization Error: ", location>::impl(cudaGetErrorString(err));
 				}
 			}
 		}
@@ -1041,7 +1041,7 @@ namespace nihilus {
 			if constexpr (config.dev) {
 				if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
 					static constexpr auto location = std::source_location::current();
-					nihilus_exception<config, "Cuda Error: ", location>::impl(cudaGetErrorString(err));
+					nihilus_exception<config.exceptions, "Cuda Error: ", location>::impl(cudaGetErrorString(err));
 				}
 			}
 
@@ -1051,7 +1051,7 @@ namespace nihilus {
 				if constexpr (config.dev) {
 					if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
 						static constexpr auto location = std::source_location::current();
-						nihilus_exception<config, "Cuda Kernel Launch Error: ", location>::impl(cudaGetErrorString(err));
+						nihilus_exception<config.exceptions, "Cuda Kernel Launch Error: ", location>::impl(cudaGetErrorString(err));
 					}
 				}
 
@@ -1060,7 +1060,7 @@ namespace nihilus {
 				if constexpr (config.dev) {
 					if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
 						static constexpr auto location = std::source_location::current();
-						nihilus_exception<config, "Cuda Synchronization Error: ", location>::impl(cudaGetErrorString(err));
+						nihilus_exception<config.exceptions, "Cuda Synchronization Error: ", location>::impl(cudaGetErrorString(err));
 					}
 				}
 			}
@@ -1312,7 +1312,7 @@ namespace nihilus {
 			if constexpr (config.dev) {
 				if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
 					static constexpr auto location = std::source_location::current();
-					nihilus_exception<config, "Cuda Error: ", location>::impl(cudaGetErrorString(err));
+					nihilus_exception<config.exceptions, "Cuda Error: ", location>::impl(cudaGetErrorString(err));
 				}
 			}
 
@@ -1321,7 +1321,7 @@ namespace nihilus {
 			if constexpr (config.dev) {
 				if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
 					static constexpr auto location = std::source_location::current();
-					nihilus_exception<config, "Cuda Kernel Launch Error: ", location>::impl(cudaGetErrorString(err));
+					nihilus_exception<config.exceptions, "Cuda Kernel Launch Error: ", location>::impl(cudaGetErrorString(err));
 				}
 			}
 
@@ -1330,7 +1330,7 @@ namespace nihilus {
 			if constexpr (config.dev) {
 				if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
 					static constexpr auto location = std::source_location::current();
-					nihilus_exception<config, "Cuda Synchronization Error: ", location>::impl(cudaGetErrorString(err));
+					nihilus_exception<config.exceptions, "Cuda Synchronization Error: ", location>::impl(cudaGetErrorString(err));
 				}
 			}
 		}

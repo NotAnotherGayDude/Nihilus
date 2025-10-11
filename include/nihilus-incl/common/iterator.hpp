@@ -149,12 +149,10 @@ namespace nihilus {
 		NIHILUS_HOST constexpr array_iterator() noexcept {
 		}
 
-		NIHILUS_HOST constexpr array_iterator(std::nullptr_t ptrNew) noexcept {
-			( void )ptrNew;
+		NIHILUS_HOST constexpr array_iterator([[maybe_unused]] std::nullptr_t ptrNew) noexcept {
 		}
 
-		NIHILUS_HOST constexpr bool operator==(const array_iterator& other) const noexcept {
-			( void )other;
+		NIHILUS_HOST constexpr bool operator==([[maybe_unused]] const array_iterator& other) const noexcept {
 			return true;
 		}
 

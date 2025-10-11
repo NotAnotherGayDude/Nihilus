@@ -158,8 +158,8 @@ namespace nihilus {
 		switch (static_cast<uint64_t>(type)) {
 			case static_cast<uint64_t>(data_types::f32): {
 				const float* values = static_cast<const float*>(data);
-				size_t count		= detail::min(size / sizeof(float), 8);
-				for (size_t i = offending_index; i < offending_index + count; ++i) {
+				uint64_t count		= detail::min(size / sizeof(float), 8);
+				for (uint64_t i = offending_index; i < offending_index + count; ++i) {
 					if (i > offending_index)
 						stream << ", ";
 					stream << std::fixed << std::setprecision(6) << values[i];
@@ -169,8 +169,8 @@ namespace nihilus {
 
 			case static_cast<uint64_t>(data_types::f16): {
 				const uint16_t* values = static_cast<const uint16_t*>(data);
-				size_t count		   = detail::min(size / sizeof(uint16_t), 8);
-				for (size_t i = offending_index; i < offending_index + count; ++i) {
+				uint64_t count		   = detail::min(size / sizeof(uint16_t), 8);
+				for (uint64_t i = offending_index; i < offending_index + count; ++i) {
 					if (i > offending_index)
 						stream << ", ";
 					stream << std::fixed << std::setprecision(6) << values[i];
@@ -180,8 +180,8 @@ namespace nihilus {
 
 			case static_cast<uint64_t>(data_types::q8_0): {
 				const uint8_t* values = static_cast<const uint8_t*>(data);
-				size_t count		  = detail::min(size, 8);
-				for (size_t i = offending_index; i < offending_index + count; ++i) {
+				uint64_t count		  = detail::min(size, 8);
+				for (uint64_t i = offending_index; i < offending_index + count; ++i) {
 					if (i > offending_index)
 						stream << ", ";
 					stream << std::fixed << std::setprecision(6) << values[i];
@@ -191,8 +191,8 @@ namespace nihilus {
 
 			case static_cast<uint64_t>(data_types::i8): {
 				const int8_t* values = static_cast<const int8_t*>(data);
-				size_t count		 = detail::min(size, 8);
-				for (size_t i = offending_index; i < offending_index + count; ++i) {
+				uint64_t count		 = detail::min(size, 8);
+				for (uint64_t i = offending_index; i < offending_index + count; ++i) {
 					if (i > offending_index)
 						stream << ", ";
 					stream << std::fixed << std::setprecision(6) << values[i];
@@ -202,8 +202,8 @@ namespace nihilus {
 
 			case static_cast<uint64_t>(data_types::i16): {
 				const int16_t* values = static_cast<const int16_t*>(data);
-				size_t count		  = detail::min(size / 2, 8);
-				for (size_t i = offending_index; i < offending_index + count; ++i) {
+				uint64_t count		  = detail::min(size / 2, 8);
+				for (uint64_t i = offending_index; i < offending_index + count; ++i) {
 					if (i > offending_index)
 						stream << ", ";
 					stream << std::fixed << std::setprecision(6) << values[i];
@@ -213,8 +213,8 @@ namespace nihilus {
 
 			case static_cast<uint64_t>(data_types::i32): {
 				const int32_t* values = static_cast<const int32_t*>(data);
-				size_t count		  = detail::min(size / 4, 8);
-				for (size_t i = offending_index; i < offending_index + count; ++i) {
+				uint64_t count		  = detail::min(size / 4, 8);
+				for (uint64_t i = offending_index; i < offending_index + count; ++i) {
 					if (i > offending_index)
 						stream << ", ";
 					stream << std::fixed << std::setprecision(6) << values[i];
@@ -224,8 +224,8 @@ namespace nihilus {
 
 			case static_cast<uint64_t>(data_types::i64): {
 				const int64_t* values = static_cast<const int64_t*>(data);
-				size_t count		  = detail::min(size / 8, 8);
-				for (size_t i = offending_index; i < offending_index + count; ++i) {
+				uint64_t count		  = detail::min(size / 8, 8);
+				for (uint64_t i = offending_index; i < offending_index + count; ++i) {
 					if (i > offending_index)
 						stream << ", ";
 					stream << std::fixed << std::setprecision(6) << values[i];
@@ -235,8 +235,8 @@ namespace nihilus {
 
 			case static_cast<uint64_t>(data_types::f64): {
 				const double* values = static_cast<const double*>(data);
-				size_t count		 = detail::min(size / 8, 8);
-				for (size_t i = offending_index; i < offending_index + count; ++i) {
+				uint64_t count		 = detail::min(size / 8, 8);
+				for (uint64_t i = offending_index; i < offending_index + count; ++i) {
 					if (i > offending_index)
 						stream << ", ";
 					stream << std::fixed << std::setprecision(6) << values[i];
@@ -263,8 +263,8 @@ namespace nihilus {
 		switch (static_cast<uint64_t>(type)) {
 			case static_cast<uint64_t>(data_types::f32): {
 				const float* values = static_cast<const float*>(data.data());
-				size_t count		= detail::min(data.size() / sizeof(uint16_t), 8);
-				for (size_t i = offending_index; i < offending_index + count; ++i) {
+				uint64_t count		= detail::min(data.size() / sizeof(uint16_t), 8);
+				for (uint64_t i = offending_index; i < offending_index + count; ++i) {
 					if (i > offending_index)// Only print comma after the first element of this range
 						stream << ", ";
 					float new_value{ values[i] };
@@ -275,8 +275,8 @@ namespace nihilus {
 
 			case static_cast<uint64_t>(data_types::f16): {
 				const uint16_t* values = static_cast<const uint16_t*>(data.data());
-				size_t count		   = detail::min(data.size() / sizeof(uint16_t), 8);
-				for (size_t i = offending_index; i < offending_index + count; ++i) {
+				uint64_t count		   = detail::min(data.size() / sizeof(uint16_t), 8);
+				for (uint64_t i = offending_index; i < offending_index + count; ++i) {
 					if (i > offending_index)// Only print comma after the first element of this range
 						stream << ", ";
 					stream << std::fixed << std::setprecision(6) << f16_to_f32(values[i]);
@@ -286,8 +286,8 @@ namespace nihilus {
 
 			case static_cast<uint64_t>(data_types::q8_0): {
 				const uint8_t* values = static_cast<const uint8_t*>(data.data());
-				size_t count		  = detail::min(data.size(), 8);
-				for (size_t i = offending_index; i < offending_index + count; ++i) {
+				uint64_t count		  = detail::min(data.size(), 8);
+				for (uint64_t i = offending_index; i < offending_index + count; ++i) {
 					if (i > offending_index)// Only print comma after the first element of this range
 						stream << ", ";
 					stream << static_cast<int32_t>(values[i]);
@@ -297,8 +297,8 @@ namespace nihilus {
 
 			case static_cast<uint64_t>(data_types::i8): {
 				const int8_t* values = static_cast<const int8_t*>(data.data());
-				size_t count		 = detail::min(data.size(), 8);
-				for (size_t i = offending_index; i < offending_index + count; ++i) {
+				uint64_t count		 = detail::min(data.size(), 8);
+				for (uint64_t i = offending_index; i < offending_index + count; ++i) {
 					if (i > offending_index)// Only print comma after the first element of this range
 						stream << ", ";
 					stream << static_cast<int32_t>(values[i]);
@@ -308,8 +308,8 @@ namespace nihilus {
 
 			case static_cast<uint64_t>(data_types::i16): {
 				const int16_t* values = static_cast<const int16_t*>(data.data());
-				size_t count		  = detail::min(data.size() / 2, 8);
-				for (size_t i = offending_index; i < offending_index + count; ++i) {
+				uint64_t count		  = detail::min(data.size() / 2, 8);
+				for (uint64_t i = offending_index; i < offending_index + count; ++i) {
 					if (i > offending_index)// Only print comma after the first element of this range
 						stream << ", ";
 					stream << values[i];
@@ -319,8 +319,8 @@ namespace nihilus {
 
 			case static_cast<uint64_t>(data_types::i32): {
 				const int32_t* values = static_cast<const int32_t*>(data.data());
-				size_t count		  = detail::min(data.size() / 4, 8);
-				for (size_t i = offending_index; i < offending_index + count; ++i) {
+				uint64_t count		  = detail::min(data.size() / 4, 8);
+				for (uint64_t i = offending_index; i < offending_index + count; ++i) {
 					if (i > offending_index)// Only print comma after the first element of this range
 						stream << ", ";
 					stream << values[i];
@@ -330,8 +330,8 @@ namespace nihilus {
 
 			case static_cast<uint64_t>(data_types::i64): {
 				const int64_t* values = static_cast<const int64_t*>(data.data());
-				size_t count		  = detail::min(data.size() / 8, 8);
-				for (size_t i = offending_index; i < offending_index + count; ++i) {
+				uint64_t count		  = detail::min(data.size() / 8, 8);
+				for (uint64_t i = offending_index; i < offending_index + count; ++i) {
 					if (i > offending_index)// Only print comma after the first element of this range
 						stream << ", ";
 					stream << values[i];
@@ -341,8 +341,8 @@ namespace nihilus {
 
 			case static_cast<uint64_t>(data_types::f64): {
 				const double* values = static_cast<const double*>(data.data());
-				size_t count		 = detail::min(data.size() / 8, 8);
-				for (size_t i = offending_index; i < count; ++i) {
+				uint64_t count		 = detail::min(data.size() / 8, 8);
+				for (uint64_t i = offending_index; i < count; ++i) {
 					if (i > offending_index)// Only print comma after the first element of this range
 						stream << ", ";
 					stream << std::fixed << std::setprecision(10) << values[i];
@@ -365,7 +365,7 @@ namespace nihilus {
 		}
 
 		stream << "[";
-		for (size_t i = 0; i < count; ++i) {
+		for (uint64_t i = 0; i < count; ++i) {
 			if (i % (count / 10) == 0) {
 				if (i > 0)
 					stream << ", ";
@@ -491,7 +491,8 @@ namespace nihilus {
 	struct intermediary_tensor {
 		array<uint64_t, 4> dims{};
 
-		NIHILUS_HOST intermediary_tensor() noexcept {}
+		NIHILUS_HOST intermediary_tensor() noexcept {
+		}
 
 		NIHILUS_HOST intermediary_tensor(const intermediary_tensor& other) {
 			*this = other;
@@ -541,7 +542,8 @@ namespace nihilus {
 	};
 
 	struct tensor_wrapper {
-		NIHILUS_HOST tensor_wrapper() noexcept {}
+		NIHILUS_HOST tensor_wrapper() noexcept {
+		}
 
 		NIHILUS_HOST tensor_wrapper(const tensor_wrapper& other) {
 			dims = other.dims;
@@ -621,7 +623,7 @@ namespace nihilus {
 		kernel_types op{};
 
 		bool compare_tensor_data_smart(const tensor_wrapper& data1, const intermediary_tensor& data2, data_types type, std::stringstream& stream,
-			size_t max_differences = 5) const {
+			uint64_t max_differences = 5) const {
 			if (data1.byte_size != data2.data.size()) {
 				stream << "Size mismatch: " << data1.byte_size << " vs " << data2.data.size() << std::endl;
 				return false;
@@ -632,16 +634,16 @@ namespace nihilus {
 				return false;
 			}
 
-			double tolerance		 = get_tolerance_for_type(type);
-			size_t differences_found = 0;
-			bool has_differences	 = false;
+			double tolerance		   = get_tolerance_for_type(type);
+			uint64_t differences_found = 0;
+			bool has_differences	   = false;
 
 			switch (static_cast<uint64_t>(type)) {
 				case static_cast<uint64_t>(data_types::f32): {
 					const float* vals1 = static_cast<const float*>(data1.data);
 					const float* vals2 = static_cast<const float*>(data2.data.data());
-					size_t count	   = data2.data.size() / sizeof(float);
-					for (size_t i = 0; i < count; ++i) {
+					uint64_t count	   = data2.data.size() / sizeof(float);
+					for (uint64_t i = 0; i < count; ++i) {
 						double diff = fabs(static_cast<double>(vals1[i]) - static_cast<double>(vals2[i]));
 
 						bool both_nan = std::isnan(vals1[i]) && std::isnan(vals2[i]);
@@ -672,9 +674,9 @@ namespace nihilus {
 				case static_cast<uint64_t>(data_types::f16): {
 					const uint16_t* vals1 = static_cast<const uint16_t*>(data1.data);
 					const uint16_t* vals2 = static_cast<const uint16_t*>(data2.data.data());
-					size_t count		  = data1.byte_size / sizeof(uint16_t);
+					uint64_t count		  = data1.byte_size / sizeof(uint16_t);
 
-					for (size_t i = 0; i < count; ++i) {
+					for (uint64_t i = 0; i < count; ++i) {
 						float f1	= f16_to_f32(vals1[i]);
 						float f2	= f16_to_f32(vals2[i]);
 						double diff = fabs(static_cast<double>(f1) - static_cast<double>(f2));
@@ -700,9 +702,9 @@ namespace nihilus {
 				case static_cast<uint64_t>(data_types::f64): {
 					const double* vals1 = static_cast<const double*>(data1.data);
 					const double* vals2 = static_cast<const double*>(data2.data.data());
-					size_t count		= data1.byte_size / sizeof(double);
+					uint64_t count		= data1.byte_size / sizeof(double);
 
-					for (size_t i = 0; i < count; ++i) {
+					for (uint64_t i = 0; i < count; ++i) {
 						double diff = fabs(vals1[i] - vals2[i]);
 
 						if (diff > tolerance) {
@@ -729,7 +731,7 @@ namespace nihilus {
 				case static_cast<uint64_t>(data_types::i64):
 				case static_cast<uint64_t>(data_types::q8_0):
 				default: {
-					for (size_t i = 0; i < data1.byte_size; ++i) {
+					for (uint64_t i = 0; i < data1.byte_size; ++i) {
 						if (static_cast<uint8_t*>(data1.data)[i] != data2.data[i]) {
 							has_differences = true;
 							if (differences_found < max_differences) {

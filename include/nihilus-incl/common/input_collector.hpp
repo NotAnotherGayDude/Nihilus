@@ -29,7 +29,7 @@ namespace nihilus {
 	template<const model_config& config> struct input_collector {
 	  protected:
 		aligned_vector<char> buffer;
-		size_t current_length = 0;
+		uint64_t current_length = 0;
 
 	  public:
 		NIHILUS_HOST input_collector() {
@@ -83,7 +83,7 @@ namespace nihilus {
 	struct input_collector<config> {
 	  protected:
 		aligned_vector<char> buffer;
-		size_t current_length = 0;
+		uint64_t current_length = 0;
 		atomic_flag_wrapper<uint64_t> in_signal{};
 		atomic_flag_wrapper<uint64_t> out_signal{};
 

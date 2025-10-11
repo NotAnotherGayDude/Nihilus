@@ -109,7 +109,6 @@ namespace nihilus {
 	}
 
 	struct benchmark_stats {
-		array<array<benchmarking::event_collector, core_types::count>, cpu_properties::thread_count> collector{};
 		clock_type::time_point sampling_start		= {};
 		clock_type::time_point prompt_start			= {};
 		clock_type::time_point token_start			= {};
@@ -123,7 +122,6 @@ namespace nihilus {
 		uint64_t prompt_token_count					= {};
 		uint64_t total_sampling_runs				= {};
 		uint64_t current_iteration					= {};
-		aligned_vector<uint64_t> runtime_dimensions = {};
 	};
 
 	template<const model_config& config> struct perf_base {};
@@ -135,8 +133,9 @@ namespace nihilus {
 	};
 
 	template<const model_config& config> struct thread_pool : public get_core_bases_t<config>, public perf_base<config> {
-		using core_bases_type											 = get_core_bases_t<config>;
-		NIHILUS_HOST thread_pool() noexcept								 {}
+		using core_bases_type = get_core_bases_t<config>;
+		NIHILUS_HOST thread_pool() noexcept {
+		}
 		NIHILUS_HOST thread_pool& operator=(const thread_pool&) noexcept = delete;
 		NIHILUS_HOST thread_pool(const thread_pool&) noexcept			 = delete;
 
@@ -144,9 +143,6 @@ namespace nihilus {
 			thread_count = thread_count_new;
 			threads.resize(static_cast<uint64_t>(thread_count));
 			thread_latch.init(static_cast<typename main_gate_latch::value_type>(thread_count_new));
-			if constexpr (config.benchmark) {
-				perf_base<config>::perf_stats.runtime_dimensions.resize(static_cast<uint64_t>(thread_count));
-			}
 
 			for (int64_t x = 0; x < thread_count; ++x) {
 				threads[x] = std::thread{ &thread_pool::thread_function, this, x };
@@ -166,11 +162,11 @@ namespace nihilus {
 				if (!stop.load()) {
 					if (processing_phase.load() == processing_phases::prompt_eval_time) {
 						core_bases_type::template impl_thread<global_input_thread_function, processing_phases::prompt_eval_time>(thread_count);
-						execute_blocks<processing_phases::prompt_eval_time>(std::make_index_sequence<static_cast<size_t>(model_traits_type<config>::block_count)>{});
+						execute_blocks<processing_phases::prompt_eval_time>(std::make_index_sequence<static_cast<uint64_t>(model_traits_type<config>::block_count)>{});
 						core_bases_type::template impl_thread<global_output_thread_function, processing_phases::prompt_eval_time>(thread_count);
 					} else {
 						core_bases_type::template impl_thread<global_input_thread_function, processing_phases::eval_time>(thread_count);
-						execute_blocks<processing_phases::eval_time>(std::make_index_sequence<static_cast<size_t>(model_traits_type<config>::block_count)>{});
+						execute_blocks<processing_phases::eval_time>(std::make_index_sequence<static_cast<uint64_t>(model_traits_type<config>::block_count)>{});
 						core_bases_type::template impl_thread<global_output_thread_function, processing_phases::eval_time>(thread_count);
 					}
 					thread_latch.arrive();

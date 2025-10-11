@@ -21,7 +21,7 @@ RealTimeChris (Chris M.)
 
 #include <nihilus-incl/common/string_literal.hpp>
 #include <nihilus-incl/benchmarking/event_count.hpp>
-#include <nihilus-incl/common/vector.hpp>
+#include <nihilus-incl/common/aligned_vector.hpp>
 #include <optional>
 #include <iomanip>
 #include <cstdint>
@@ -66,7 +66,7 @@ namespace nihilus::benchmarking {
 		return (byes_processed * 1000000000.0) / nanoseconds;
 	}
 
-	NIHILUS_HOST static performance_metrics collect_metrics(std::span<event_count>&& eventsNewer, size_t totalIterationCount) {
+	NIHILUS_HOST static performance_metrics collect_metrics(std::span<event_count>&& eventsNewer, uint64_t totalIterationCount) {
 		performance_metrics metrics{};
 		metrics.totalIterationCount.emplace(totalIterationCount);
 		double throughput{};

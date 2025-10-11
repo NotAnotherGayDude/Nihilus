@@ -35,8 +35,8 @@ namespace nihilus {
 	struct model_base {
 		NIHILUS_HOST model_base() noexcept {
 		}
-		NIHILUS_HOST virtual bool process_input(std::string_view params) = 0;
-		NIHILUS_HOST virtual bool process_input()						 = 0;
+		NIHILUS_HOST virtual bool process_input(std::string_view input, uint64_t seed) = 0;
+		NIHILUS_HOST virtual bool process_input()									   = 0;
 		virtual ~model_base();
 	};
 
@@ -61,7 +61,8 @@ namespace nihilus {
 		model& operator=(const model&) = delete;
 		model(const model&)			   = delete;
 
-		NIHILUS_HOST bool process_input(std::string_view input) override {
+		NIHILUS_HOST bool process_input(std::string_view input, uint64_t seed_new) override {
+			tokenizer_type::init_rng(seed_new);
 			input = input.size() > config_new.default_max_sequence_length ? input.substr(0, config_new.default_max_sequence_length) : input;
 			tokenizer_type::tokenize_init(
 				this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::inp_tokens>().get_data());
@@ -187,8 +188,7 @@ namespace nihilus {
 					auto token_time_ns = std::chrono::duration<double, std::nano>(token_end - perf_base<config_new>::perf_stats.token_start).count();
 					perf_base<config_new>::perf_stats.total_eval_time_ns += token_time_ns;
 				}
-				auto new_token = sample_next_token();
-				( void )(new_token);
+				[[maybe_unused]] auto new_token = sample_next_token();
 				if constexpr (config_new.benchmark || config_new.dev) {
 					auto sampling_end	  = clock_type::now();
 					auto sampling_time_ns = std::chrono::duration<double, std::nano>(sampling_end - perf_base<config_new>::perf_stats.sampling_start).count();

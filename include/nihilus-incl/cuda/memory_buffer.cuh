@@ -37,7 +37,7 @@ namespace nihilus {
 			if constexpr (config.dev) {
 				if (cudaError_t err = cudaMemcpy(static_cast<void*>(dst), static_cast<const void*>(src), sizeof(value_type) * count, cudaMemcpyHostToDevice); err != cudaSuccess) {
 					static constexpr auto location = std::source_location::current();
-					nihilus_exception<config, "Failed to copy from host to device (pointer types): ", location>::impl(cudaGetErrorString(err));
+					nihilus_exception<config.exceptions, "Failed to copy from host to device (pointer types): ", location>::impl(cudaGetErrorString(err));
 				}
 			} else {
 				cudaMemcpy(static_cast<void*>(dst), static_cast<const void*>(src), sizeof(value_type) * count, cudaMemcpyHostToDevice);
@@ -47,7 +47,7 @@ namespace nihilus {
 			if constexpr (config.dev) {
 				if (cudaError_t err = cudaMemcpy(static_cast<void*>(dst), static_cast<const void*>(&src), sizeof(value_type), cudaMemcpyHostToDevice); err != cudaSuccess) {
 					static constexpr auto location = std::source_location::current();
-					nihilus_exception<config, "Failed to copy from host to device: ", location>::impl(cudaGetErrorString(err));
+					nihilus_exception<config.exceptions, "Failed to copy from host to device: ", location>::impl(cudaGetErrorString(err));
 				}
 			} else {
 				cudaMemcpy(static_cast<void*>(dst), static_cast<const void*>(&src), sizeof(value_type), cudaMemcpyHostToDevice);
@@ -57,7 +57,7 @@ namespace nihilus {
 			if constexpr (config.dev) {
 				if (cudaError_t err = cudaMemcpy(static_cast<void*>(dst), static_cast<const void*>(src), sizeof(value_type) * count, cudaMemcpyDeviceToHost); err != cudaSuccess) {
 					static constexpr auto location = std::source_location::current();
-					nihilus_exception<config, "Failed to copy from device to host (pointer types): ", location>::impl(cudaGetErrorString(err));
+					nihilus_exception<config.exceptions, "Failed to copy from device to host (pointer types): ", location>::impl(cudaGetErrorString(err));
 				}
 			} else {
 				cudaMemcpy(static_cast<void*>(dst), static_cast<const void*>(src), sizeof(value_type) * count, cudaMemcpyDeviceToHost);
@@ -67,7 +67,7 @@ namespace nihilus {
 			if constexpr (config.dev) {
 				if (cudaError_t err = cudaMemcpy(static_cast<void*>(&dst), static_cast<const void*>(src), sizeof(value_type), cudaMemcpyDeviceToHost); err != cudaSuccess) {
 					static constexpr auto location = std::source_location::current();
-					nihilus_exception<config, "Failed to copy from device to host: ", location>::impl(cudaGetErrorString(err));
+					nihilus_exception<config.exceptions, "Failed to copy from device to host: ", location>::impl(cudaGetErrorString(err));
 				}
 			} else {
 				cudaMemcpy(static_cast<void*>(&dst), static_cast<const void*>(src), sizeof(value_type), cudaMemcpyDeviceToHost);
@@ -84,7 +84,8 @@ namespace nihilus {
 		using pointer	 = value_type*;
 		using size_type	 = uint64_t;
 
-		NIHILUS_HOST memory_buffer() noexcept								 {}
+		NIHILUS_HOST memory_buffer() noexcept {
+		}
 		NIHILUS_HOST memory_buffer& operator=(const memory_buffer&) noexcept = delete;
 		NIHILUS_HOST memory_buffer(const memory_buffer&) noexcept			 = delete;
 
@@ -109,7 +110,7 @@ namespace nihilus {
 			if (result != cudaSuccess) {
 				data_val					   = nullptr;
 				static constexpr auto location = std::source_location::current();
-				nihilus_exception<config, "memory_buffer - failed to allocate GPU memory", location>::impl();
+				nihilus_exception<config.exceptions, "memory_buffer - failed to allocate GPU memory", location>::impl();
 			}
 
 			size_val = size;
@@ -131,7 +132,7 @@ namespace nihilus {
 			uint64_t aligned_amount = round_up_to_multiple<64>(offset_to_claim);
 			if (aligned_amount > size_val) {
 				static constexpr auto location = std::source_location::current();
-				nihilus_exception<config, "memory_buffer - not enough memory allocated!", location>::impl();
+				nihilus_exception<config.exceptions, "memory_buffer - not enough memory allocated!", location>::impl();
 			}
 			pointer return_value = data_val + aligned_amount;
 			return return_value;

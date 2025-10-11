@@ -52,9 +52,10 @@ namespace nihilus {
 			using other = allocator<U>;
 		};
 
-		NIHILUS_HOST allocator() noexcept {}
+		NIHILUS_HOST allocator() noexcept {
+		}
 
-		template<typename U> allocator(const allocator<U>&) noexcept {
+		template<typename U> NIHILUS_HOST allocator(const allocator<U>&) noexcept {
 		}
 
 		NIHILUS_HOST static pointer allocate(size_type count_new) noexcept {

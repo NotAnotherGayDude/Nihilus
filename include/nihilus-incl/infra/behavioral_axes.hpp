@@ -89,7 +89,7 @@ namespace nihilus {
 				values.peak_allocated_bytes = values.currently_allocated_bytes;
 			}
 			if constexpr (current_index > 0) {
-				for (size_t x = 0; x < current_index; ++x) {
+				for (uint64_t x = 0; x < current_index; ++x) {
 					if (values.footprints[x].is_active && values.footprints[x].depth <= threshold && values.footprints[x].depth != std::numeric_limits<uint64_t>::max()) {
 						values.footprints[x].is_active = false;
 						values.currently_allocated_bytes -= values.footprints[x].total_required_bytes;
@@ -105,7 +105,8 @@ namespace nihilus {
 	template<const model_config& config> struct thread_pool;
 
 	template<const model_config& config, typename base_type_new> struct memory_mapper_impl {
-		NIHILUS_HOST memory_mapper_impl() noexcept									   {}
+		NIHILUS_HOST memory_mapper_impl() noexcept {
+		}
 		NIHILUS_HOST memory_mapper_impl& operator=(const memory_mapper_impl&) noexcept = delete;
 		NIHILUS_HOST memory_mapper_impl(const memory_mapper_impl&) noexcept			   = delete;
 		NIHILUS_HOST memory_mapper_impl& operator=(memory_mapper_impl&&) noexcept	   = delete;
@@ -124,15 +125,16 @@ namespace nihilus {
 					core_traits.set_data(ptr, x);
 				}
 			} else {
-				data_type* ptr	 = static_cast<data_type*>(memory_buffer.claim_memory(plan.footprints[base_type::derived_type::core_type].offset + internal_offset));
-				internal_offset	 = core_traits.total_required_bytes;
+				data_type* ptr	= static_cast<data_type*>(memory_buffer.claim_memory(plan.footprints[base_type::derived_type::core_type].offset + internal_offset));
+				internal_offset = core_traits.total_required_bytes;
 				core_traits.set_data(ptr);
 			}
 		}
 	};
 
 	template<const model_config& config, typename base_type_new> struct memory_mapper {
-		NIHILUS_HOST memory_mapper() noexcept								 {}
+		NIHILUS_HOST memory_mapper() noexcept {
+		}
 		NIHILUS_HOST memory_mapper& operator=(const memory_mapper&) noexcept = delete;
 		NIHILUS_HOST memory_mapper(const memory_mapper&) noexcept			 = delete;
 		NIHILUS_HOST memory_mapper& operator=(memory_mapper&&) noexcept		 = delete;
@@ -149,7 +151,8 @@ namespace nihilus {
 	};
 
 	template<const model_config& config, typename base_type_new> struct tensor_debugger {
-		NIHILUS_HOST tensor_debugger() noexcept									 {}
+		NIHILUS_HOST tensor_debugger() noexcept {
+		}
 		NIHILUS_HOST tensor_debugger& operator=(const tensor_debugger&) noexcept = delete;
 		NIHILUS_HOST tensor_debugger(const tensor_debugger&) noexcept			 = delete;
 		NIHILUS_HOST tensor_debugger& operator=(tensor_debugger&&) noexcept		 = delete;
@@ -164,7 +167,8 @@ namespace nihilus {
 	};
 
 	template<const model_config& config, typename base_type_new> struct sync_resetter {
-		NIHILUS_HOST sync_resetter() noexcept								 {}
+		NIHILUS_HOST sync_resetter() noexcept {
+		}
 		NIHILUS_HOST sync_resetter& operator=(const sync_resetter&) noexcept = delete;
 		NIHILUS_HOST sync_resetter(const sync_resetter&) noexcept			 = delete;
 		NIHILUS_HOST sync_resetter& operator=(sync_resetter&&) noexcept		 = delete;
@@ -191,7 +195,8 @@ namespace nihilus {
 	};
 
 	template<const model_config& config, typename base_type_new> struct dim_updater_impl {
-		NIHILUS_HOST dim_updater_impl() noexcept								   {}
+		NIHILUS_HOST dim_updater_impl() noexcept {
+		}
 		NIHILUS_HOST dim_updater_impl& operator=(const dim_updater_impl&) noexcept = delete;
 		NIHILUS_HOST dim_updater_impl(const dim_updater_impl&) noexcept			   = delete;
 		NIHILUS_HOST dim_updater_impl& operator=(dim_updater_impl&&) noexcept	   = delete;
@@ -209,7 +214,8 @@ namespace nihilus {
 	};
 
 	template<const model_config& config, typename base_type_new> struct dim_updater {
-		NIHILUS_HOST dim_updater() noexcept								 {}
+		NIHILUS_HOST dim_updater() noexcept {
+		}
 		NIHILUS_HOST dim_updater& operator=(const dim_updater&) noexcept = delete;
 		NIHILUS_HOST dim_updater(const dim_updater&) noexcept			 = delete;
 		NIHILUS_HOST dim_updater& operator=(dim_updater&&) noexcept		 = delete;
@@ -227,7 +233,8 @@ namespace nihilus {
 	};
 
 	template<const model_config& config, typename base_type_new> struct weight_mapper_impl {
-		NIHILUS_HOST weight_mapper_impl() noexcept									   {}
+		NIHILUS_HOST weight_mapper_impl() noexcept {
+		}
 		NIHILUS_HOST weight_mapper_impl& operator=(const weight_mapper_impl&) noexcept = delete;
 		NIHILUS_HOST weight_mapper_impl(const weight_mapper_impl&) noexcept			   = delete;
 		NIHILUS_HOST weight_mapper_impl& operator=(weight_mapper_impl&&) noexcept	   = delete;
@@ -255,7 +262,8 @@ namespace nihilus {
 	};
 
 	template<const model_config& config, typename base_type_new, processing_phases processing_phase> struct global_input_thread_function {
-		NIHILUS_HOST global_input_thread_function() noexcept											   {}
+		NIHILUS_HOST global_input_thread_function() noexcept {
+		}
 		NIHILUS_HOST global_input_thread_function& operator=(const global_input_thread_function&) noexcept = delete;
 		NIHILUS_HOST global_input_thread_function(const global_input_thread_function&) noexcept			   = delete;
 		NIHILUS_HOST global_input_thread_function& operator=(global_input_thread_function&&) noexcept	   = delete;
@@ -288,7 +296,8 @@ namespace nihilus {
 	};
 
 	template<const model_config& config, typename base_type_new, processing_phases processing_phase> struct per_block_thread_function {
-		NIHILUS_HOST per_block_thread_function() noexcept											 {}
+		NIHILUS_HOST per_block_thread_function() noexcept {
+		}
 		NIHILUS_HOST per_block_thread_function& operator=(const per_block_thread_function&) noexcept = delete;
 		NIHILUS_HOST per_block_thread_function(const per_block_thread_function&) noexcept			 = delete;
 		NIHILUS_HOST per_block_thread_function& operator=(per_block_thread_function&&) noexcept		 = delete;
@@ -322,7 +331,8 @@ namespace nihilus {
 	};
 
 	template<const model_config& config, typename base_type_new, processing_phases processing_phase> struct global_output_thread_function {
-		NIHILUS_HOST global_output_thread_function() noexcept												 {}
+		NIHILUS_HOST global_output_thread_function() noexcept {
+		}
 		NIHILUS_HOST global_output_thread_function& operator=(const global_output_thread_function&) noexcept = delete;
 		NIHILUS_HOST global_output_thread_function(const global_output_thread_function&) noexcept			 = delete;
 		NIHILUS_HOST global_output_thread_function& operator=(global_output_thread_function&&) noexcept		 = delete;

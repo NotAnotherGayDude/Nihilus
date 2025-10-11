@@ -22,6 +22,7 @@ RealTimeChris (Chris M.)
 
 #include <nihilus-incl/common/string_literal.hpp>
 #include <nihilus-incl/common/concepts.hpp>
+#include <nihilus-incl/common/exception.hpp>
 #include <nihilus-incl/common/iterator.hpp>
 #include <nihilus-incl/common/config.hpp>
 #include <algorithm>
@@ -49,7 +50,8 @@ namespace nihilus {
 		using reverse_iterator		 = std::reverse_iterator<iterator>;
 		using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
-		NIHILUS_HOST_DEVICE constexpr array() {}
+		NIHILUS_HOST_DEVICE constexpr array() {
+		}
 
 		NIHILUS_HOST constexpr array& operator=(array&& other) noexcept
 			requires(std::is_move_assignable_v<value_type>)
@@ -103,15 +105,9 @@ namespace nihilus {
 			requires(!std::is_copy_assignable_v<value_type>)
 		= delete;
 
-		NIHILUS_HOST constexpr array(std::initializer_list<value_type> values) {
-			for (size_type x = 0; x < values.size(); ++x) {
-				data_val[x] = values.begin()[x];
-			}
-		}
-
 		template<typename... arg_types> NIHILUS_HOST constexpr array(arg_types&&... args)
 			requires(sizeof...(arg_types) == size_val && (std::is_constructible_v<value_type, arg_types> && ...) && std::is_copy_constructible_v<value_type>)
-			: data_val{ static_cast<value_type>(forward<arg_types>(args))... } {
+			: data_val{ static_cast<value_type>(detail::forward<arg_types>(args))... } {
 		}
 
 		NIHILUS_HOST constexpr void swap(array& other) noexcept {
@@ -184,21 +180,23 @@ namespace nihilus {
 			return false;
 		}
 
-		template<integral_or_enum_types index_type> NIHILUS_HOST constexpr reference at(index_type position) {
+		template<integral_or_enum_types index_type> NIHILUS_HOST reference at(index_type position) {
 			static_assert(static_assert_printer<is_indexable<index_type, decltype(size_new)>, array_static_assert_errors::invalid_index_type, index_type>::impl,
 				"Sorry, but please index into this array using the correct enum type!");
 			if (size_new <= position) {
-				throw std::runtime_error{ "invalid array<value_type, N> subscript" };
+				static constexpr auto location = std::source_location::current();
+				nihilus_exception<true, "Invalid array<value_type, N> subscript", location>::impl();
 			}
 
 			return data_val[static_cast<size_type>(position)];
 		}
 
-		template<integral_or_enum_types index_type> NIHILUS_HOST constexpr const_reference at(index_type position) const {
+		template<integral_or_enum_types index_type> NIHILUS_HOST const_reference at(index_type position) const {
 			static_assert(static_assert_printer<is_indexable<index_type, decltype(size_new)>, array_static_assert_errors::invalid_index_type, index_type>::impl,
 				"Sorry, but please index into this array using the correct enum type!");
 			if (size_new <= position) {
-				throw std::runtime_error{ "invalid array<value_type, N> subscript" };
+				static constexpr auto location = std::source_location::current();
+				nihilus_exception<true, "Invalid array<value_type, N> subscript", location>::impl();
 			}
 
 			return data_val[static_cast<size_type>(position)];
@@ -348,12 +346,14 @@ namespace nihilus {
 			return true;
 		}
 
-		NIHILUS_HOST constexpr reference at(size_type) {
-			throw std::runtime_error{ "invalid array<value_type, N> subscript" };
+		NIHILUS_HOST reference at(size_type) {
+			static constexpr auto location = std::source_location::current();
+			nihilus_exception<true, "Invalid array<value_type, N> subscript", location>::impl();
 		}
 
-		NIHILUS_HOST constexpr const_reference at(size_type) const {
-			throw std::runtime_error{ "invalid array<value_type, N> subscript" };
+		NIHILUS_HOST const_reference at(size_type) const {
+			static constexpr auto location = std::source_location::current();
+			nihilus_exception<true, "Invalid array<value_type, N> subscript", location>::impl();
 		}
 
 		NIHILUS_HOST constexpr value_type* data() noexcept {
@@ -364,9 +364,7 @@ namespace nihilus {
 			return nullptr;
 		}
 
-		NIHILUS_HOST constexpr friend bool operator==(const array& lhs, const array& rhs) {
-			( void )lhs;
-			( void )rhs;
+		NIHILUS_HOST constexpr friend bool operator==([[maybe_unused]] const array& lhs, [[maybe_unused]] const array& rhs) {
 			return true;
 		}
 	};

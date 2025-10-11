@@ -54,7 +54,8 @@ namespace nihilus {
 		using pointer	 = value_type*;
 		using size_type	 = uint64_t;
 
-		NIHILUS_HOST memory_buffer() noexcept {}
+		NIHILUS_HOST memory_buffer() noexcept {
+		}
 
 		NIHILUS_HOST memory_buffer& operator=(const memory_buffer&) noexcept = delete;
 		NIHILUS_HOST memory_buffer(const memory_buffer&) noexcept			 = delete;
@@ -78,7 +79,7 @@ namespace nihilus {
 			data_val = alloc::allocate(size);
 			if (!data_val) {
 				static constexpr auto location = std::source_location::current();
-				nihilus_exception<config, "memory_buffer - failed to allocate memory", location>::impl();
+				nihilus_exception<config.exceptions, "memory_buffer - failed to allocate memory", location>::impl();
 			}
 			size_val = size;
 		}
@@ -99,7 +100,7 @@ namespace nihilus {
 			uint64_t aligned_amount = round_up_to_multiple<64>(offset_to_claim);
 			if (aligned_amount > size_val) {
 				static constexpr auto location = std::source_location::current();
-				nihilus_exception<config, "memory_buffer - not enough memory allocated!", location>::impl();
+				nihilus_exception<config.exceptions, "memory_buffer - not enough memory allocated!", location>::impl();
 			}
 			pointer return_value = data_val + aligned_amount;
 			return return_value;

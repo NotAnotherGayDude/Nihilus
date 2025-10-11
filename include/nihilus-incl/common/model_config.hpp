@@ -20,7 +20,7 @@ RealTimeChris (Chris M.)
 
 #pragma once
 
-#include <nihilus-incl/common/common.hpp>
+#include <nihilus-incl/common/config.hpp>
 #include <cstdint>
 
 namespace nihilus {
@@ -28,7 +28,6 @@ namespace nihilus {
 	template<typename derived_type> struct uint64_base_class {
 	  protected:
 		template<typename, typename> friend struct is_same_enum_type;
-		friend derived_type;
 		enum class enum_type : uint64_t {
 			disabled = std::numeric_limits<uint64_t>::max(),
 			enabled	 = 0ull,
@@ -52,7 +51,6 @@ namespace nihilus {
 	template<typename derived_type> struct bool_base_class {
 	  protected:
 		template<typename, typename> friend struct is_same_enum_type;
-		friend derived_type;
 		enum class enum_type : bool {
 			disabled = false,
 			enabled	 = true,
@@ -83,9 +81,6 @@ namespace nihilus {
 		}
 		NIHILUS_HOST constexpr exception_types(enum_type value_new) noexcept : base_type{ value_new } {
 		}
-		NIHILUS_HOST constexpr operator bool() const {
-			return base_type::operator bool();
-		}
 	};
 
 	struct benchmark_types : bool_base_class<benchmark_types> {
@@ -97,9 +92,6 @@ namespace nihilus {
 		NIHILUS_HOST constexpr benchmark_types() noexcept {
 		}
 		NIHILUS_HOST constexpr benchmark_types(enum_type value_new) noexcept : base_type{ value_new } {
-		}
-		NIHILUS_HOST constexpr operator bool() const {
-			return base_type::operator bool();
 		}
 	};
 
@@ -113,9 +105,6 @@ namespace nihilus {
 		}
 		NIHILUS_HOST constexpr dev_types(enum_type value_new) noexcept : base_type{ value_new } {
 		}
-		NIHILUS_HOST constexpr operator bool() const {
-			return base_type::operator bool();
-		}
 	};
 
 	struct use_rotary_embeddings_types : bool_base_class<use_rotary_embeddings_types> {
@@ -128,9 +117,6 @@ namespace nihilus {
 		}
 		NIHILUS_HOST constexpr use_rotary_embeddings_types(enum_type value_new) noexcept : base_type{ value_new } {
 		}
-		NIHILUS_HOST constexpr operator bool() const {
-			return base_type::operator bool();
-		}
 	};
 
 	struct default_max_sequence_length_types : uint64_base_class<default_max_sequence_length_types> {
@@ -140,8 +126,6 @@ namespace nihilus {
 
 	  public:
 		NIHILUS_HOST constexpr default_max_sequence_length_types() noexcept {
-		}
-		NIHILUS_HOST constexpr default_max_sequence_length_types(enum_type value_new) noexcept : base_type{ value_new } {
 		}
 		NIHILUS_HOST constexpr explicit default_max_sequence_length_types(uint64_t value_new) noexcept : base_type{ static_cast<enum_type>(value_new) } {
 		}
@@ -155,8 +139,6 @@ namespace nihilus {
 	  public:
 		NIHILUS_HOST constexpr default_batch_size_types() noexcept {
 		}
-		NIHILUS_HOST constexpr default_batch_size_types(typename base_type::enum_type value_new) noexcept : base_type{ value_new } {
-		}
 		NIHILUS_HOST constexpr explicit default_batch_size_types(uint64_t value_new) noexcept : base_type{ static_cast<enum_type>(value_new) } {
 		}
 	};
@@ -168,8 +150,6 @@ namespace nihilus {
 
 	  public:
 		NIHILUS_HOST constexpr kv_cache_block_size_types() noexcept {
-		}
-		NIHILUS_HOST constexpr kv_cache_block_size_types(typename base_type::enum_type value_new) noexcept : base_type{ value_new } {
 		}
 		NIHILUS_HOST constexpr explicit kv_cache_block_size_types(uint64_t value_new) noexcept : base_type{ static_cast<enum_type>(value_new) } {
 		}
@@ -228,126 +208,158 @@ namespace nihilus {
 		benchmark_types benchmark{};
 		dev_types dev{};
 
-		template<std::same_as<model_generations> value_type> NIHILUS_HOST consteval auto update(const value_type value) const {
+		template<std::same_as<model_generations> value_type> consteval auto update(const value_type value) const {
 			model_config return_value{ *this };
 			return_value.model_generation = value;
 			return return_value;
 		}
 
-		template<std::same_as<model_sizes> value_type> NIHILUS_HOST consteval auto update(const value_type value) const {
+		template<std::same_as<model_sizes> value_type> consteval auto update(const value_type value) const {
 			model_config return_value{ *this };
 			return_value.model_size = value;
 			return return_value;
 		}
 
-		template<std::same_as<kernel_type_profiles> value_type> NIHILUS_HOST consteval auto update(const value_type value) const {
+		template<std::same_as<kernel_type_profiles> value_type> consteval auto update(const value_type value) const {
 			model_config return_value{ *this };
 			return_value.kernel_type_profile = value;
 			return return_value;
 		}
 
-		template<std::same_as<model_arches> value_type> NIHILUS_HOST consteval auto update(const value_type value) const {
+		template<std::same_as<model_arches> value_type> consteval auto update(const value_type value) const {
 			model_config return_value{ *this };
 			return_value.model_arch = value;
 			return return_value;
 		}
 
-		template<exception_types_types value_type> NIHILUS_HOST consteval auto update(const value_type value) const {
+		template<exception_types_types value_type> consteval auto update(const value_type value) const {
 			model_config return_value{ *this };
 			return_value.exceptions = value;
 			return return_value;
 		}
 
-		template<default_max_sequence_length_types_types value_type> NIHILUS_HOST consteval auto update(const value_type value) const {
+		template<default_max_sequence_length_types_types value_type> consteval auto update(const value_type value) const {
 			model_config return_value{ *this };
 			return_value.default_max_sequence_length = value;
 			return return_value;
 		}
 
-		template<default_batch_size_types_types value_type> NIHILUS_HOST consteval auto update(const value_type value) const {
+		template<default_batch_size_types_types value_type> consteval auto update(const value_type value) const {
 			model_config return_value{ *this };
 			return_value.default_batch_size = value;
 			return return_value;
 		}
 
-		template<std::same_as<kv_cache_strategies> value_type> NIHILUS_HOST consteval auto update(const value_type value) const {
+		template<std::same_as<kv_cache_strategies> value_type> consteval auto update(const value_type value) const {
 			model_config return_value{ *this };
 			return_value.kv_cache_strategy = value;
 			return return_value;
 		}
 
-		template<std::same_as<user_input_types> value_type> NIHILUS_HOST consteval auto update(const value_type value) const {
+		template<std::same_as<user_input_types> value_type> consteval auto update(const value_type value) const {
 			model_config return_value{ *this };
 			return_value.user_input_type = value;
 			return return_value;
 		}
 
-		template<std::same_as<rope_scaling_types> value_type> NIHILUS_HOST consteval auto update(const value_type value) const {
+		template<std::same_as<rope_scaling_types> value_type> consteval auto update(const value_type value) const {
 			model_config return_value{ *this };
 			return_value.rope_scaling_type = value;
 			return return_value;
 		}
 
-		template<std::same_as<tokenizer_pre_types> value_type> NIHILUS_HOST consteval auto update(const value_type value) const {
+		template<std::same_as<tokenizer_pre_types> value_type> consteval auto update(const value_type value) const {
 			model_config return_value{ *this };
 			return_value.tokenizer_pre_type = value;
 			return return_value;
 		}
 
-		template<kv_cache_block_size_types_types value_type> NIHILUS_HOST consteval auto update(const value_type value) const {
+		template<kv_cache_block_size_types_types value_type> consteval auto update(const value_type value) const {
 			model_config return_value{ *this };
 			return_value.kv_cache_block_size = value;
 			return return_value;
 		}
 
-		template<use_rotary_embeddings_types_types value_type> NIHILUS_HOST consteval auto update(const value_type value) const {
+		template<use_rotary_embeddings_types_types value_type> consteval auto update(const value_type value) const {
 			model_config return_value{ *this };
 			return_value.use_rotary_embeddings = value;
 			return return_value;
 		}
 
-		template<std::same_as<rms_norm_types> value_type> NIHILUS_HOST consteval auto update(const value_type value) const {
+		template<std::same_as<rms_norm_types> value_type> consteval auto update(const value_type value) const {
 			model_config return_value{ *this };
 			return_value.rms_norm_type = value;
 			return return_value;
 		}
 
-		template<std::same_as<tokenizer_types> value_type> NIHILUS_HOST consteval auto update(const value_type value) const {
+		template<std::same_as<tokenizer_types> value_type> consteval auto update(const value_type value) const {
 			model_config return_value{ *this };
 			return_value.tokenizer_type = value;
 			return return_value;
 		}
 
-		template<std::same_as<device_types> value_type> NIHILUS_HOST consteval auto update(const value_type value) const {
+		template<std::same_as<device_types> value_type> consteval auto update(const value_type value) const {
 			model_config return_value{ *this };
 			return_value.device_type = value;
 			return return_value;
 		}
 
-		template<std::same_as<model_formats> value_type> NIHILUS_HOST consteval auto update(const value_type value) const {
+		template<std::same_as<model_formats> value_type> consteval auto update(const value_type value) const {
 			model_config return_value{ *this };
 			return_value.model_format = value;
 			return return_value;
 		}
 
-		template<std::same_as<float> value_type> NIHILUS_HOST consteval auto update(const value_type value) const {
+		template<std::same_as<float> value_type> consteval auto update(const value_type value) const {
 			model_config return_value{ *this };
 			return_value.norm_epsilon = value;
 			return return_value;
 		}
 
-		template<benchmark_types_types value_type> NIHILUS_HOST consteval auto update(const value_type value) const {
+		template<benchmark_types_types value_type> consteval auto update(const value_type value) const {
 			model_config return_value{ *this };
 			return_value.benchmark = value;
 			return return_value;
 		}
 
-		template<dev_types_types value_type> NIHILUS_HOST consteval auto update(const value_type value) const {
+		template<dev_types_types value_type> consteval auto update(const value_type value) const {
 			model_config return_value{ *this };
 			return_value.dev = value;
 			return return_value;
 		}
 	};
+
+	template<const model_config& config> struct model_config_type {
+		static constexpr model_generations model_generation		  = config.model_generation;
+		static constexpr model_sizes model_size					  = config.model_size;
+		static constexpr kernel_type_profiles kernel_type_profile = config.kernel_type_profile;
+		static constexpr model_arches model_arch				  = config.model_arch;
+		static constexpr bool exceptions						  = config.exceptions;
+		static constexpr uint64_t default_max_sequence_length	  = config.default_max_sequence_length;
+		static constexpr uint64_t default_batch_size			  = config.default_batch_size;
+		static constexpr kv_cache_strategies kv_cache_strategy	  = config.kv_cache_strategy;
+		static constexpr rope_scaling_types rope_scaling_type	  = config.rope_scaling_type;
+		static constexpr tokenizer_pre_types tokenizer_pre_type	  = config.tokenizer_pre_type;
+		static constexpr uint64_t kv_cache_block_size			  = config.kv_cache_block_size;
+		static constexpr bool use_rotary_embeddings				  = config.use_rotary_embeddings;
+		static constexpr rms_norm_types rms_norm_type			  = config.rms_norm_type;
+		static constexpr tokenizer_types tokenizer_type			  = config.tokenizer_type;
+		static constexpr device_types device_type				  = config.device_type;
+		static constexpr model_formats model_format				  = config.model_format;
+		static constexpr float norm_epsilon						  = config.norm_epsilon;
+		static constexpr bool benchmark							  = config.benchmark;
+		static constexpr bool dev								  = config.dev;
+
+		NIHILUS_HOST static constexpr model_config get_config() {
+			return config;
+		}
+	};
+
+	template<typename value_type>
+	concept gpu_config = detail::remove_cvref_t<value_type>::device_type == device_types::gpu;
+
+	template<typename value_type>
+	concept cpu_config = detail::remove_cvref_t<value_type>::device_type == device_types::cpu;
 
 	template<typename... arg_types> NIHILUS_HOST static consteval auto generate_model_config(arg_types... args) {
 		model_config config_new{};

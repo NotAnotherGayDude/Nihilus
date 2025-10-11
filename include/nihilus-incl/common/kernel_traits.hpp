@@ -129,7 +129,7 @@ namespace nihilus {
 		mutable uint64_t total_required_bytes{};
 
 		NIHILUS_HOST static constexpr array<uint64_t, 4> get_array() {
-			return { { dim00_new, dim01_new, dim02_new, dim03_new } };
+			return { dim00_new, dim01_new, dim02_new, dim03_new };
 		}
 	};
 
@@ -142,7 +142,7 @@ namespace nihilus {
 		mutable uint64_t total_required_bytes{};
 
 		NIHILUS_HOST static constexpr array<uint64_t, 4> get_array() {
-			return { { dim00_new, dim01_new, dim02_new, dim03_new } };
+			return { dim00_new, dim01_new, dim02_new, dim03_new };
 		}
 	};
 
@@ -157,11 +157,11 @@ namespace nihilus {
 		const uint64_t* dims[4]{ &dim00, &dim01, &dim02, &dim03 };
 
 		NIHILUS_HOST static constexpr array<uint64_t, 4> get_array() {
-			return { { dim00_new, dim01_new, dim02_new, dim03_new } };
+			return { dim00_new, dim01_new, dim02_new, dim03_new };
 		}
 
 		NIHILUS_HOST array<uint64_t, 4> get_array_rt() {
-			return { { *dims[0], *dims[1], *dims[2], *dims[3] } };
+			return { *dims[0], *dims[1], *dims[2], *dims[3] };
 		}
 
 		NIHILUS_HOST uint64_t& get_mutable_dim() const {
@@ -180,11 +180,11 @@ namespace nihilus {
 		const uint64_t* dims[4]{ &dim00, &dim01, &dim02, &dim03 };
 
 		NIHILUS_HOST static constexpr array<uint64_t, 4> get_array() {
-			return { { dim00_new, dim01_new, dim02_new, dim03_new } };
+			return { dim00_new, dim01_new, dim02_new, dim03_new };
 		}
 
 		NIHILUS_HOST array<uint64_t, 4> get_array_rt() {
-			return { { *dims[0], *dims[1], *dims[2], *dims[3] } };
+			return { *dims[0], *dims[1], *dims[2], *dims[3] };
 		}
 
 		NIHILUS_HOST uint64_t& get_mutable_dim() const {
@@ -203,11 +203,11 @@ namespace nihilus {
 		const uint64_t* dims[4]{ &dim00, &dim01, &dim02, &dim03 };
 
 		NIHILUS_HOST static constexpr array<uint64_t, 4> get_array() {
-			return { { dim00_new, dim01_new, dim02_new, dim03_new } };
+			return { dim00_new, dim01_new, dim02_new, dim03_new };
 		}
 
 		NIHILUS_HOST array<uint64_t, 4> get_array_rt() {
-			return { { *dims[0], *dims[1], *dims[2], *dims[3] } };
+			return { *dims[0], *dims[1], *dims[2], *dims[3] };
 		}
 
 		NIHILUS_HOST uint64_t& get_mutable_dim() const {
@@ -763,9 +763,9 @@ namespace nihilus {
 
 		using input_types_tuple = std::tuple<input_kernel_traits_types...>;
 
-		template<size_t N> using input_type = std::conditional_t<(N < sizeof...(input_kernel_traits_types)), std::tuple_element_t<N, input_types_tuple>, void>;
+		template<uint64_t N> using input_type = std::conditional_t<(N < sizeof...(input_kernel_traits_types)), std::tuple_element_t<N, input_types_tuple>, void>;
 
-		static constexpr size_t input_count = sizeof...(input_kernel_traits_types);
+		static constexpr uint64_t input_count = sizeof...(input_kernel_traits_types);
 	};
 
 }

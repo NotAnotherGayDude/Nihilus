@@ -345,7 +345,6 @@ namespace nihilus {
 			NIHILUS_ALIGN(16) void* output_data;
 
 		  public:
-
 			template<typename value_type> NIHILUS_HOST_DEVICE const value_type* get_weight_data() {
 				return static_cast<const value_type*>(weight_data);
 			}
@@ -819,7 +818,7 @@ namespace nihilus {
 		using composite_ops = get_core_base_t<config_new, result_token_id_type>;
 		composite_ops values{};
 
-	struct kernel_data_ptrs {
+		struct kernel_data_ptrs {
 		  protected:
 			NIHILUS_ALIGN(16) const void* l_out_data;
 			NIHILUS_ALIGN(16) const void* output_norm_w_data;

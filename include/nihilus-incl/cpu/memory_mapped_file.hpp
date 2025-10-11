@@ -54,7 +54,8 @@ namespace nihilus {
 
 	template<const model_config& config> class memory_mapped_file {
 	  public:
-		NIHILUS_HOST explicit memory_mapped_file() noexcept {}
+		NIHILUS_HOST explicit memory_mapped_file() noexcept {
+		}
 
 		NIHILUS_HOST explicit memory_mapped_file(const std::string_view file_path_new, uint64_t file_offset = 0) {
 			const std::string_view file_pathstr(file_path_new);
@@ -65,24 +66,24 @@ namespace nihilus {
 			file_handle = CreateFileA(file_pathstr.data(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
 			if (file_handle == INVALID_HANDLE_VALUE) {
 				static constexpr auto location = std::source_location::current();
-				nihilus_exception<config, "Failed to open file", location>::impl(format_win_error(GetLastError()));
+				nihilus_exception<config.exceptions, "Failed to open file", location>::impl(format_win_error(GetLastError()));
 			}
 			LARGE_INTEGER file_size_new;
 			if (!GetFileSizeEx(file_handle, &file_size_new)) {
 				CloseHandle(file_handle);
 				static constexpr auto location = std::source_location::current();
-				nihilus_exception<config, "Failed to get file size", location>::impl(format_win_error(GetLastError()));
+				nihilus_exception<config.exceptions, "Failed to get file size", location>::impl(format_win_error(GetLastError()));
 			}
 			uint64_t file_size = static_cast<uint64_t>(file_size_new.QuadPart);
 			if (file_size == 0) {
 				CloseHandle(file_handle);
 				static constexpr auto location = std::source_location::current();
-				nihilus_exception<config, "Cannot map empty file", location>::impl("");
+				nihilus_exception<config.exceptions, "Cannot map empty file", location>::impl("");
 			}
 			if (file_offset >= file_size) {
 				CloseHandle(file_handle);
 				static constexpr auto location = std::source_location::current();
-				nihilus_exception<config, "Offset exceeds file size", location>::impl("");
+				nihilus_exception<config.exceptions, "Offset exceeds file size", location>::impl("");
 			}
 			SYSTEM_INFO sys_info;
 			GetSystemInfo(&sys_info);
@@ -93,7 +94,7 @@ namespace nihilus {
 			if (mapping_handle == nullptr) {
 				CloseHandle(file_handle);
 				static constexpr auto location = std::source_location::current();
-				nihilus_exception<config, "Failed to create file mapping", location>::impl(format_win_error(GetLastError()));
+				nihilus_exception<config.exceptions, "Failed to create file mapping", location>::impl(format_win_error(GetLastError()));
 			}
 			void* raw_mapped_data = MapViewOfFile(mapping_handle, FILE_MAP_READ, static_cast<DWORD>(aligned_offset >> 32), static_cast<DWORD>(aligned_offset & 0xFFFFFFFF),
 				mapped_size + offset_adjustment);
@@ -101,7 +102,7 @@ namespace nihilus {
 				CloseHandle(mapping_handle);
 				CloseHandle(file_handle);
 				static constexpr auto location = std::source_location::current();
-				nihilus_exception<config, "Failed to map view of file", location>::impl(format_win_error(GetLastError()));
+				nihilus_exception<config.exceptions, "Failed to map view of file", location>::impl(format_win_error(GetLastError()));
 			}
 			mapped_data = static_cast<uint8_t*>(raw_mapped_data) + offset_adjustment;
 			if (std::bit_cast<std::uintptr_t>(mapped_data) % 32 != 0) {
@@ -109,30 +110,30 @@ namespace nihilus {
 				CloseHandle(mapping_handle);
 				CloseHandle(file_handle);
 				static constexpr auto location = std::source_location::current();
-				nihilus_exception<config, "Memory mapping failed to achieve required SIMD alignment", location>::impl("");
+				nihilus_exception<config.exceptions, "Memory mapping failed to achieve required SIMD alignment", location>::impl("");
 			}
 #else
 			file_descriptor = open(file_pathstr.data(), O_RDONLY);
 			if (file_descriptor == -1) {
 				static constexpr auto location = std::source_location::current();
-				nihilus_exception<config, "Failed to open file", location>::impl(std::string(std::strerror(errno)));
+				nihilus_exception<config.exceptions, "Failed to open file", location>::impl(std::string(std::strerror(errno)));
 			}
 			struct stat file_stat;
 			if (fstat(file_descriptor, &file_stat) == -1) {
 				close(file_descriptor);
 				static constexpr auto location = std::source_location::current();
-				nihilus_exception<config, "Failed to get file statistics", location>::impl(std::string(std::strerror(errno)));
+				nihilus_exception<config.exceptions, "Failed to get file statistics", location>::impl(std::string(std::strerror(errno)));
 			}
 			uint64_t file_size = static_cast<uint64_t>(file_stat.st_size);
 			if (file_size == 0) {
 				close(file_descriptor);
 				static constexpr auto location = std::source_location::current();
-				nihilus_exception<config, "Cannot map empty file", location>::impl("");
+				nihilus_exception<config.exceptions, "Cannot map empty file", location>::impl("");
 			}
 			if (file_offset >= file_size) {
 				close(file_descriptor);
 				static constexpr auto location = std::source_location::current();
-				nihilus_exception<config, "Offset exceeds file size", location>::impl("");
+				nihilus_exception<config.exceptions, "Offset exceeds file size", location>::impl("");
 			}
 			uint64_t page_size		   = static_cast<uint64_t>(getpagesize());
 			uint64_t aligned_offset	   = (file_offset / page_size) * page_size;
@@ -150,14 +151,14 @@ namespace nihilus {
 				close(file_descriptor);
 				mapped_data					   = nullptr;
 				static constexpr auto location = std::source_location::current();
-				nihilus_exception<config, "Failed to memory map file", location>::impl(std::string(std::strerror(errno)));
+				nihilus_exception<config.exceptions, "Failed to memory map file", location>::impl(std::string(std::strerror(errno)));
 			}
 			mapped_data = static_cast<uint8_t*>(raw_mapped_data) + offset_adjustment;
 			if (std::bit_cast<std::uintptr_t>(mapped_data) % 32 != 0) {
 				munmap(raw_mapped_data, aligned_map_size);
 				close(file_descriptor);
 				static constexpr auto location = std::source_location::current();
-				nihilus_exception<config, "Memory mapping failed to achieve required SIMD alignment", location>::impl("");
+				nihilus_exception<config.exceptions, "Memory mapping failed to achieve required SIMD alignment", location>::impl("");
 			}
 	#if NIHILUS_PLATFORM_MAC
 			madvise(raw_mapped_data, aligned_map_size, MADV_SEQUENTIAL);

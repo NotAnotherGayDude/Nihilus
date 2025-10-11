@@ -170,7 +170,7 @@ namespace nihilus {
 				return input.template read<value_type>();
 			} else {
 				static constexpr auto location = std::source_location::current();
-				nihilus_exception<config, "Sorry, but that index is out of range!", location>::impl();
+				nihilus_exception<config.exceptions, "Sorry, but that index is out of range!", location>::impl();
 				return {};
 			}
 		}
@@ -385,7 +385,7 @@ namespace nihilus {
 			uint64_t length = value_reader<config, uint64_t>::gather_value(input);
 			if (!input.template has_bytes<uint8_t>(length)) {
 				static constexpr auto location = std::source_location::current();
-				nihilus_exception<config, "Sorry, but that index is out of range!", location>::impl();
+				nihilus_exception<config.exceptions, "Sorry, but that index is out of range!", location>::impl();
 			}
 			const char* string_ptr{ static_cast<const char*>(input.file->data()) + input.current_index };
 			input.current_index += length;
@@ -403,7 +403,7 @@ namespace nihilus {
 			constexpr uint64_t max_array_length = 1024 * 1024;
 			if (length > max_array_length) {
 				static constexpr auto location = std::source_location::current();
-				nihilus_exception<config, "Sorry, but that index is out of range!", location>::impl();
+				nihilus_exception<config.exceptions, "Sorry, but that index is out of range!", location>::impl();
 			}
 			value_type value{};
 			value.reserve(length);
@@ -423,7 +423,7 @@ namespace nihilus {
 			constexpr uint64_t max_array_length = 1024 * 1024;
 			if (length > max_array_length) {
 				static constexpr auto location = std::source_location::current();
-				nihilus_exception<config, "Array length exceeds maximum allowed size!", location>::impl();
+				nihilus_exception<config.exceptions, "Array length exceeds maximum allowed size!", location>::impl();
 			}
 			value_type value{};
 			value.reserve(length);
@@ -441,7 +441,7 @@ namespace nihilus {
 			uint64_t length = value_reader<config, uint64_t>::gather_value(input);
 			if (!input.template has_bytes<uint8_t>(length)) {
 				static constexpr auto location = std::source_location::current();
-				nihilus_exception<config, "Sorry, but that index is out of range!", location>::impl();
+				nihilus_exception<config.exceptions, "Sorry, but that index is out of range!", location>::impl();
 			}
 			const char* string_ptr{ static_cast<const char*>(input.file->data()) + input.current_index };
 			input.current_index += length;
@@ -479,9 +479,9 @@ namespace nihilus {
 	};
 
 	template<const model_config& config> struct gguf_metadata : public metadata_base,
-														 public tokenizer_base<config.tokenizer_type>,
-														 public model_traits<config.model_arch, config.model_size, config.model_generation>,
-														 public tokenizer_traits<config.model_arch, config.tokenizer_type, config.tokenizer_pre_type> {};
+																public tokenizer_base<config.tokenizer_type>,
+																public model_traits<config.model_arch, config.model_size, config.model_generation>,
+																public tokenizer_traits<config.model_arch, config.tokenizer_type, config.tokenizer_pre_type> {};
 
 	template<const model_config& config> struct parse_core<gguf_metadata<config>> {
 		using value_type				  = gguf_metadata<config>;
@@ -495,7 +495,7 @@ namespace nihilus {
 			make_parse_entity<&value_type::attention_head_count_kv, "llama.attention.head_count_kv">(), make_parse_entity<&value_type::rope_freq_base, "llama.rope.freq_base">(),
 			make_parse_entity<&value_type::layer_norm_rms_epsilon, "llama.attention.layer_norm_rms_epsilon">(), make_parse_entity<&value_type::file_type, "general.file_type">(),
 			make_parse_entity<&value_type::vocab_size, "llama.vocab_size">(), make_parse_entity<&value_type::rope_dimension_count, "llama.rope.dimension_count">(),
-			make_parse_entity<&value_type::type, "tokenizer.ggml.model">(), make_parse_entity<&value_type::pre_type, "tokenizer.ggml.pre">(),
+			make_parse_entity<&value_type::tokenizer_type, "tokenizer.ggml.model">(), make_parse_entity<&value_type::tokenizer_pre_type, "tokenizer.ggml.pre">(),
 			make_parse_entity<&value_type::ggml_tokens, "tokenizer.ggml.tokens">(), make_parse_entity<&value_type::ggml_token_type, "tokenizer.ggml.token_type">(),
 			make_parse_entity<&value_type::ggml_merges, "tokenizer.ggml.merges">(), make_parse_entity<&value_type::ggml_model, "tokenizer.ggml.model">(),
 			make_parse_entity<&value_type::special_bos_id, "tokenizer.ggml.bos_token_id">(), make_parse_entity<&value_type::special_eos_id, "tokenizer.ggml.eos_token_id">(),
@@ -538,7 +538,7 @@ namespace nihilus {
 					if (!compare_equal(value_new, ref)) {
 						static constexpr string_literal sl_new{ "Sorry, but member of name: " + string_lit + " was not equal!" };
 						static constexpr auto location = std::source_location::current();
-						nihilus_exception<config, sl_new, location>::impl();
+						nihilus_exception<config.exceptions, sl_new, location>::impl();
 						return;
 					}
 				}
@@ -549,7 +549,7 @@ namespace nihilus {
 	template<template<const model_config&, typename> typename parsing_type, const model_config& config, typename value_type, size_t... indices>
 	inline static constexpr auto generate_function_ptrs(std::index_sequence<indices...>) noexcept {
 		using function_type = decltype(&parse_types_impl<config, value_type>::template process_index<0>);
-		return array<function_type, sizeof...(indices)>{ { &parsing_type<config, value_type>::template process_index<indices>... } };
+		return array<function_type, sizeof...(indices)>{ &parsing_type<config, value_type>::template process_index<indices>... };
 	}
 
 	template<template<const model_config&, typename> typename parsing_type, const model_config& config, typename value_type>
@@ -585,14 +585,14 @@ namespace nihilus {
 			case static_cast<uint64_t>(enum_type::string): {
 				if (!input.template has_bytes<uint64_t>()) {
 					static constexpr auto location = std::source_location::current();
-					nihilus_exception<config, "Insufficient bytes for string length!", location>::impl();
+					nihilus_exception<config.exceptions, "Insufficient bytes for string length!", location>::impl();
 					return;
 				}
 				uint64_t string_length = input.template read<uint64_t>();
 
 				if (!input.template has_bytes<uint8_t>(string_length)) {
 					static constexpr auto location = std::source_location::current();
-					nihilus_exception<config, "Insufficient bytes for string content!", location>::impl();
+					nihilus_exception<config.exceptions, "Insufficient bytes for string content!", location>::impl();
 					return;
 				}
 				input.current_index += string_length;
@@ -601,14 +601,14 @@ namespace nihilus {
 			case static_cast<uint64_t>(enum_type::array): {
 				if (!input.template has_bytes<gguf_metadata_value_type>()) {
 					static constexpr auto location = std::source_location::current();
-					nihilus_exception<config, "Insufficient bytes for array type!", location>::impl();
+					nihilus_exception<config.exceptions, "Insufficient bytes for array type!", location>::impl();
 					return;
 				}
 				gguf_metadata_value_type array_types = input.template read<gguf_metadata_value_type>();
 
 				if (!input.template has_bytes<uint64_t>()) {
 					static constexpr auto location = std::source_location::current();
-					nihilus_exception<config, "Insufficient bytes for array length!", location>::impl();
+					nihilus_exception<config.exceptions, "Insufficient bytes for array length!", location>::impl();
 					return;
 				}
 				uint64_t array_length = input.template read<uint64_t>();
@@ -616,7 +616,7 @@ namespace nihilus {
 				constexpr uint64_t max_array_length = 1024 * 1024;
 				if (array_length > max_array_length) {
 					static constexpr auto location = std::source_location::current();
-					nihilus_exception<config, "Array length exceeds maximum allowed size during skip!", location>::impl();
+					nihilus_exception<config.exceptions, "Array length exceeds maximum allowed size during skip!", location>::impl();
 					return;
 				}
 
@@ -639,7 +639,7 @@ namespace nihilus {
 			uint32_t magic = value_reader<config, uint32_t>::gather_value(input);
 			if (magic != 0x46554747) {
 				static constexpr auto location = std::source_location::current();
-				nihilus_exception<config, "Sorry, but that magic value was incorrect!", location>::impl();
+				nihilus_exception<config.exceptions, "Sorry, but that magic value was incorrect!", location>::impl();
 			}
 			value_reader<config, uint32_t>::gather_value(input);
 			value.tensor_count		= value_reader<config, uint64_t>::gather_value(input);
@@ -650,11 +650,11 @@ namespace nihilus {
 
 			if (value.tensor_count > max_tensor_count) {
 				static constexpr auto location = std::source_location::current();
-				nihilus_exception<config, "Tensor count exceeds reasonable maximum!", location>::impl();
+				nihilus_exception<config.exceptions, "Tensor count exceeds reasonable maximum!", location>::impl();
 			}
 			if (value.metadata_kv_count > max_metadata_count) {
 				static constexpr auto location = std::source_location::current();
-				nihilus_exception<config, "Metadata count exceeds reasonable maximum!", location>::impl();
+				nihilus_exception<config.exceptions, "Metadata count exceeds reasonable maximum!", location>::impl();
 			}
 
 			for (uint64_t x = 0; x < value.metadata_kv_count; ++x) {
@@ -733,18 +733,18 @@ namespace nihilus {
 			}
 
 			static constexpr auto location = std::source_location::current();
-			nihilus_exception<config, "Incorrect op type!", location>::impl();
+			nihilus_exception<config.exceptions, "Incorrect op type!", location>::impl();
 			return weight_types::count;
 		}
 	};
 
 	struct core_base_creation_data {
-		array<uint64_t, 4> dimensions{ { 1, 1, 1, 1 } };
+		array<uint64_t, 4> dimensions{ 1, 1, 1, 1 };
 		weight_types weight_type{};
 		uint32_t n_dimensions{};
 		uint64_t layer_number{};
+		data_types data_type{};
 		uint64_t offset{};
-		data_types type{};
 
 		NIHILUS_HOST_DEVICE uint64_t total_dims() const {
 			return dimensions[0] * dimensions[1] * dimensions[2] * dimensions[3];
@@ -764,11 +764,11 @@ namespace nihilus {
 		}
 
 		NIHILUS_HOST_DEVICE uint64_t block_size() const {
-			return get_type_traits(type).block_size;
+			return get_type_traits(data_type).block_size;
 		}
 
 		NIHILUS_HOST_DEVICE uint64_t type_size() const {
-			return get_type_traits(type).type_size;
+			return get_type_traits(data_type).type_size;
 		}
 	};
 
@@ -857,25 +857,25 @@ namespace nihilus {
 		NIHILUS_HOST static core_base_creation_data gather_value(stream_iterator<config>& input) {
 			core_base_creation_data value{};
 			std::string_view name{ value_reader<config, std::string_view>::gather_value(input) };
-			value.weight_type					  = string_to_op_type<config>::impl(name);
+			value.weight_type				  = string_to_op_type<config>::impl(name);
 			value.n_dimensions				  = value_reader<config, uint32_t>::gather_value(input);
 			value.layer_number				  = extract_layer_number(name);
 			constexpr uint32_t MAX_DIMENSIONS = 4;
 			if (value.n_dimensions > MAX_DIMENSIONS) {
 				static constexpr auto location = std::source_location::current();
-				nihilus_exception<config, "Tensor dimensions exceed maximum!", location>::impl();
+				nihilus_exception<config.exceptions, "Tensor dimensions exceed maximum!", location>::impl();
 			}
 			for (uint64_t x = 0; x < value.n_dimensions; ++x) {
 				uint64_t dim					= value_reader<config, uint64_t>::gather_value(input);
 				constexpr uint64_t MAX_DIM_SIZE = 1ULL << 32;
 				if (dim > MAX_DIM_SIZE) {
 					static constexpr auto location = std::source_location::current();
-					nihilus_exception<config, "Tensor dimensions size too large!", location>::impl();
+					nihilus_exception<config.exceptions, "Tensor dimensions size too large!", location>::impl();
 				}
 				value.dimensions[x] = dim;
 			}
-			value.type	 = static_cast<data_types>(value_reader<config, uint32_t>::gather_value(input));
-			value.offset = value_reader<config, uint64_t>::gather_value(input);
+			value.data_type = static_cast<data_types>(value_reader<config, uint32_t>::gather_value(input));
+			value.offset	= value_reader<config, uint64_t>::gather_value(input);
 			return value;
 		}
 	};
@@ -916,7 +916,7 @@ namespace nihilus {
 				auto new_tensor{ value_reader<config, core_base_creation_data>::gather_value(ptr) };
 				if (!core_traits_comparitor<config, model_arches::llama>::impl(new_tensor)) {
 					static constexpr auto location = std::source_location::current();
-					nihilus_exception<config, "Tensor dimensions incorrect!", location>::impl();
+					nihilus_exception<config.exceptions, "Tensor dimensions incorrect!", location>::impl();
 				}
 				tensor_infos.emplace_back(new_tensor);
 			}
