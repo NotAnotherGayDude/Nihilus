@@ -85,11 +85,15 @@ namespace nihilus {
 			return &value;
 		}
 
-		NIHILUS_HOST operator reference() noexcept {
+		NIHILUS_HOST operator bool() const noexcept {
+			return constructed;
+		}
+
+		NIHILUS_HOST explicit operator reference() noexcept {
 			return value;
 		}
 
-		NIHILUS_HOST operator const_reference() const noexcept {
+		NIHILUS_HOST explicit operator const_reference() const noexcept {
 			return value;
 		}
 

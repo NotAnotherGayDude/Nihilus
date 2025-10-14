@@ -24,7 +24,7 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-	template<const model_config& config, typename... bases> struct core_bases : public bases... {
+	template<typename config_type, typename... bases> struct core_bases : public bases... {
 		using bases::operator[]...;
 		NIHILUS_HOST core_bases() {
 		}
@@ -33,11 +33,11 @@ namespace nihilus {
 		core_bases& operator=(const core_bases&) = delete;
 		core_bases(const core_bases&)			 = delete;
 
-		template<template<const model_config&, typename> typename mixin_type, typename... arg_types> NIHILUS_HOST constexpr void impl(arg_types&&... args) noexcept {
+		template<template<typename config_type_new, typename> typename mixin_type, typename... arg_types> NIHILUS_HOST constexpr void impl(arg_types&&... args) noexcept {
 			(impl_internal_filtered<mixin_type, bases>(detail::forward<arg_types>(args)...), ...);
 		}
 
-		template<template<const model_config&, typename, auto...> typename mixin_type, auto... values, typename... arg_types>
+		template<template<typename config_type_new, typename, auto...> typename mixin_type, auto... values, typename... arg_types>
 		NIHILUS_HOST constexpr void impl_thread(arg_types&&... args) noexcept {
 			(impl_internal_filtered_thread<mixin_type, bases, values...>(detail::forward<arg_types>(args)...), ...);
 		}
@@ -47,34 +47,34 @@ namespace nihilus {
 		}
 
 	  protected:
-		template<template<const model_config&, typename> typename mixin_type, typename base_type, typename... arg_types>
+		template<template<typename config_type_new, typename> typename mixin_type, typename base_type, typename... arg_types>
 		NIHILUS_HOST constexpr void impl_internal_filtered([[maybe_unused]] arg_types&&... args) noexcept {
-			if constexpr (mixin_type<config, base_type>::filter()) {
-				mixin_type<config, base_type>::impl(*static_cast<typename base_type::derived_type*>(this), detail::forward<arg_types>(args)...);
+			if constexpr (mixin_type<config_type, base_type>::filter()) {
+				mixin_type<config_type, base_type>::impl(*static_cast<typename base_type::derived_type*>(this), detail::forward<arg_types>(args)...);
 			}
 		}
 
-		template<template<const model_config&, typename, auto...> typename mixin_type, typename base_type, auto... values, typename... arg_types>
+		template<template<typename config_type_new, typename, auto...> typename mixin_type, typename base_type, auto... values, typename... arg_types>
 		NIHILUS_HOST constexpr void impl_internal_filtered_thread([[maybe_unused]] arg_types&&... args) noexcept {
-			if constexpr (mixin_type<config, base_type, values...>::filter()) {
-				mixin_type<config, base_type, values...>::impl(*static_cast<typename base_type::derived_type*>(this), detail::forward<arg_types>(args)...);
+			if constexpr (mixin_type<config_type, base_type, values...>::filter()) {
+				mixin_type<config_type, base_type, values...>::impl(*static_cast<typename base_type::derived_type*>(this), detail::forward<arg_types>(args)...);
 			}
 		}
 	};
 
-	template<const model_config& config, typename... value_type> struct get_core_bases {
-		using type = core_bases<config, value_type...>;
+	template<typename config_type, typename... value_type> struct get_core_bases {
+		using type = core_bases<config_type, value_type...>;
 	};
 
-	template<const model_config& config, size_t... index> struct get_core_bases<config, std::index_sequence<index...>> {
-		using type = core_bases<config, core_traits<config, static_cast<core_types>(index)>...>;
+	template<typename config_type, size_t... index> struct get_core_bases<config_type, std::index_sequence<index...>> {
+		using type = core_bases<config_type, core_traits<config_type, static_cast<core_types>(index)>...>;
 	};
 
-	template<const model_config& config, typename... value_type> using get_core_base_t = typename get_core_bases<config, value_type...>::type;
+	template<typename config_type, typename... value_type> using get_core_base_t = typename get_core_bases<config_type, value_type...>::type;
 
-	template<const model_config& config> using get_core_bases_t = typename get_core_bases<config, std::make_index_sequence<static_cast<uint64_t>(core_types::count)>>::type;
+	template<typename config_type> using get_core_bases_t = typename get_core_bases<config_type, std::make_index_sequence<static_cast<uint64_t>(core_types::count)>>::type;
 
-	template<const model_config& config> static constexpr memory_plan core_bases_memory_plan{ []() {
-		return get_memory_plan<config>();
+	template<typename config_type> static constexpr memory_plan core_bases_memory_plan{ []() {
+		return get_memory_plan<config_type>();
 	}() };
 }

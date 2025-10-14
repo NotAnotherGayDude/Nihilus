@@ -76,14 +76,6 @@ namespace nihilus {
 		return params;
 	}
 
-	template<typename value_type> NIHILUS_DEVICE constexpr decltype(auto) device_forward(value_type&& arg) noexcept {
-		return static_cast<value_type&&>(arg);
-	}
-
-	template<typename value_type> NIHILUS_DEVICE constexpr decltype(auto) device_forward(value_type& arg) noexcept {
-		return static_cast<value_type&&>(arg);
-	}
-
 	enum class get_value_type_errors {
 		invalid_type,
 	};
@@ -96,7 +88,7 @@ namespace nihilus {
 		requires(dim01_types<value_type>)
 	struct get_value<value_type> {
 		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
-			return make_char1(device_forward<value_types>(args)...);
+			return make_char1(detail::forward<value_types>(args)...);
 		}
 	};
 
@@ -104,7 +96,7 @@ namespace nihilus {
 		requires(dim02_types<value_type>)
 	struct get_value<value_type> {
 		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
-			return make_char2(device_forward<value_types>(args)...);
+			return make_char2(detail::forward<value_types>(args)...);
 		}
 	};
 
@@ -112,7 +104,7 @@ namespace nihilus {
 		requires(dim03_types<value_type>)
 	struct get_value<value_type> {
 		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
-			return make_char3(device_forward<value_types>(args)...);
+			return make_char3(detail::forward<value_types>(args)...);
 		}
 	};
 
@@ -120,7 +112,7 @@ namespace nihilus {
 		requires(dim04_types<value_type>)
 	struct get_value<value_type> {
 		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
-			return make_char4(device_forward<value_types>(args)...);
+			return make_char4(detail::forward<value_types>(args)...);
 		}
 	};
 
@@ -128,7 +120,7 @@ namespace nihilus {
 		requires(dim01_types<value_type>)
 	struct get_value<value_type> {
 		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
-			return make_short1(device_forward<value_types>(args)...);
+			return make_short1(detail::forward<value_types>(args)...);
 		}
 	};
 
@@ -136,7 +128,7 @@ namespace nihilus {
 		requires(dim02_types<value_type>)
 	struct get_value<value_type> {
 		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
-			return make_short2(device_forward<value_types>(args)...);
+			return make_short2(detail::forward<value_types>(args)...);
 		}
 	};
 
@@ -144,7 +136,7 @@ namespace nihilus {
 		requires(dim03_types<value_type>)
 	struct get_value<value_type> {
 		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
-			return make_short3(device_forward<value_types>(args)...);
+			return make_short3(detail::forward<value_types>(args)...);
 		}
 	};
 
@@ -152,7 +144,7 @@ namespace nihilus {
 		requires(dim04_types<value_type>)
 	struct get_value<value_type> {
 		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
-			return make_short4(device_forward<value_types>(args)...);
+			return make_short4(detail::forward<value_types>(args)...);
 		}
 	};
 
@@ -160,7 +152,7 @@ namespace nihilus {
 		requires(dim01_types<value_type>)
 	struct get_value<value_type> {
 		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
-			return make_int1(device_forward<value_types>(args)...);
+			return make_int1(detail::forward<value_types>(args)...);
 		}
 	};
 
@@ -168,7 +160,7 @@ namespace nihilus {
 		requires(dim02_types<value_type>)
 	struct get_value<value_type> {
 		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
-			return make_int2(device_forward<value_types>(args)...);
+			return make_int2(detail::forward<value_types>(args)...);
 		}
 	};
 
@@ -176,7 +168,7 @@ namespace nihilus {
 		requires(dim03_types<value_type>)
 	struct get_value<value_type> {
 		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
-			return make_int3(device_forward<value_types>(args)...);
+			return make_int3(detail::forward<value_types>(args)...);
 		}
 	};
 
@@ -184,7 +176,7 @@ namespace nihilus {
 		requires(dim04_types<value_type>)
 	struct get_value<value_type> {
 		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
-			return make_int4(device_forward<value_types>(args)...);
+			return make_int4(detail::forward<value_types>(args)...);
 		}
 	};
 
@@ -192,7 +184,7 @@ namespace nihilus {
 		requires(dim01_types<value_type>)
 	struct get_value<value_type> {
 		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
-			return make_long1(device_forward<value_types>(args)...);
+			return make_long1(detail::forward<value_types>(args)...);
 		}
 	};
 
@@ -200,7 +192,7 @@ namespace nihilus {
 		requires(dim02_types<value_type>)
 	struct get_value<value_type> {
 		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
-			return make_long2(device_forward<value_types>(args)...);
+			return make_long2(detail::forward<value_types>(args)...);
 		}
 	};
 
@@ -208,7 +200,7 @@ namespace nihilus {
 		requires(dim03_types<value_type>)
 	struct get_value<value_type> {
 		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
-			return make_long3(device_forward<value_types>(args)...);
+			return make_long3(detail::forward<value_types>(args)...);
 		}
 	};
 
@@ -216,7 +208,7 @@ namespace nihilus {
 		requires(dim04_types<value_type>)
 	struct get_value<value_type> {
 		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
-			return make_long4(device_forward<value_types>(args)...);
+			return make_long4(detail::forward<value_types>(args)...);
 		}
 	};
 
@@ -224,7 +216,7 @@ namespace nihilus {
 		requires(dim01_types<value_type>)
 	struct get_value<value_type> {
 		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
-			return make_uchar1(device_forward<value_types>(args)...);
+			return make_uchar1(detail::forward<value_types>(args)...);
 		}
 	};
 
@@ -232,7 +224,7 @@ namespace nihilus {
 		requires(dim02_types<value_type>)
 	struct get_value<value_type> {
 		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
-			return make_uchar2(device_forward<value_types>(args)...);
+			return make_uchar2(detail::forward<value_types>(args)...);
 		}
 	};
 
@@ -240,7 +232,7 @@ namespace nihilus {
 		requires(dim03_types<value_type>)
 	struct get_value<value_type> {
 		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
-			return make_uchar3(device_forward<value_types>(args)...);
+			return make_uchar3(detail::forward<value_types>(args)...);
 		}
 	};
 
@@ -248,7 +240,7 @@ namespace nihilus {
 		requires(dim04_types<value_type>)
 	struct get_value<value_type> {
 		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
-			return make_uchar4(device_forward<value_types>(args)...);
+			return make_uchar4(detail::forward<value_types>(args)...);
 		}
 	};
 
@@ -256,7 +248,7 @@ namespace nihilus {
 		requires(dim01_types<value_type>)
 	struct get_value<value_type> {
 		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
-			return make_ushort1(device_forward<value_types>(args)...);
+			return make_ushort1(detail::forward<value_types>(args)...);
 		}
 	};
 
@@ -264,7 +256,7 @@ namespace nihilus {
 		requires(dim02_types<value_type>)
 	struct get_value<value_type> {
 		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
-			return make_ushort2(device_forward<value_types>(args)...);
+			return make_ushort2(detail::forward<value_types>(args)...);
 		}
 	};
 
@@ -272,7 +264,7 @@ namespace nihilus {
 		requires(dim03_types<value_type>)
 	struct get_value<value_type> {
 		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
-			return make_ushort3(device_forward<value_types>(args)...);
+			return make_ushort3(detail::forward<value_types>(args)...);
 		}
 	};
 
@@ -280,7 +272,7 @@ namespace nihilus {
 		requires(dim04_types<value_type>)
 	struct get_value<value_type> {
 		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
-			return make_ushort4(device_forward<value_types>(args)...);
+			return make_ushort4(detail::forward<value_types>(args)...);
 		}
 	};
 
@@ -288,7 +280,7 @@ namespace nihilus {
 		requires(dim01_types<value_type>)
 	struct get_value<value_type> {
 		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
-			return make_uint1(device_forward<value_types>(args)...);
+			return make_uint1(detail::forward<value_types>(args)...);
 		}
 	};
 
@@ -296,7 +288,7 @@ namespace nihilus {
 		requires(dim02_types<value_type>)
 	struct get_value<value_type> {
 		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
-			return make_uint2(device_forward<value_types>(args)...);
+			return make_uint2(detail::forward<value_types>(args)...);
 		}
 	};
 
@@ -304,7 +296,7 @@ namespace nihilus {
 		requires(dim03_types<value_type>)
 	struct get_value<value_type> {
 		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
-			return make_uint3(device_forward<value_types>(args)...);
+			return make_uint3(detail::forward<value_types>(args)...);
 		}
 	};
 
@@ -312,7 +304,7 @@ namespace nihilus {
 		requires(dim04_types<value_type>)
 	struct get_value<value_type> {
 		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
-			return make_uint4(device_forward<value_types>(args)...);
+			return make_uint4(detail::forward<value_types>(args)...);
 		}
 	};
 
@@ -320,7 +312,7 @@ namespace nihilus {
 		requires(dim01_types<value_type>)
 	struct get_value<value_type> {
 		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
-			return make_ulong1(device_forward<value_types>(args)...);
+			return make_ulong1(detail::forward<value_types>(args)...);
 		}
 	};
 
@@ -328,7 +320,7 @@ namespace nihilus {
 		requires(dim02_types<value_type>)
 	struct get_value<value_type> {
 		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
-			return make_ulong2(device_forward<value_types>(args)...);
+			return make_ulong2(detail::forward<value_types>(args)...);
 		}
 	};
 
@@ -336,7 +328,7 @@ namespace nihilus {
 		requires(dim03_types<value_type>)
 	struct get_value<value_type> {
 		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
-			return make_ulong3(device_forward<value_types>(args)...);
+			return make_ulong3(detail::forward<value_types>(args)...);
 		}
 	};
 
@@ -344,7 +336,7 @@ namespace nihilus {
 		requires(dim04_types<value_type>)
 	struct get_value<value_type> {
 		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
-			return make_ulong4(device_forward<value_types>(args)...);
+			return make_ulong4(detail::forward<value_types>(args)...);
 		}
 	};
 
@@ -352,7 +344,7 @@ namespace nihilus {
 		requires(dim01_types<value_type>)
 	struct get_value<value_type> {
 		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
-			return make_float1(device_forward<value_types>(args)...);
+			return make_float1(detail::forward<value_types>(args)...);
 		}
 	};
 
@@ -360,7 +352,7 @@ namespace nihilus {
 		requires(dim02_types<value_type>)
 	struct get_value<value_type> {
 		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
-			return make_float2(device_forward<value_types>(args)...);
+			return make_float2(detail::forward<value_types>(args)...);
 		}
 	};
 
@@ -368,7 +360,7 @@ namespace nihilus {
 		requires(dim03_types<value_type>)
 	struct get_value<value_type> {
 		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
-			return make_float3(device_forward<value_types>(args)...);
+			return make_float3(detail::forward<value_types>(args)...);
 		}
 	};
 
@@ -376,7 +368,7 @@ namespace nihilus {
 		requires(dim04_types<value_type>)
 	struct get_value<value_type> {
 		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
-			return make_float4(device_forward<value_types>(args)...);
+			return make_float4(detail::forward<value_types>(args)...);
 		}
 	};
 
@@ -384,7 +376,7 @@ namespace nihilus {
 		requires(dim01_types<value_type>)
 	struct get_value<value_type> {
 		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
-			return make_double1(device_forward<value_types>(args)...);
+			return make_double1(detail::forward<value_types>(args)...);
 		}
 	};
 
@@ -392,7 +384,7 @@ namespace nihilus {
 		requires(dim02_types<value_type>)
 	struct get_value<value_type> {
 		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
-			return make_double2(device_forward<value_types>(args)...);
+			return make_double2(detail::forward<value_types>(args)...);
 		}
 	};
 
@@ -400,7 +392,7 @@ namespace nihilus {
 		requires(dim03_types<value_type>)
 	struct get_value<value_type> {
 		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
-			return make_double3(device_forward<value_types>(args)...);
+			return make_double3(detail::forward<value_types>(args)...);
 		}
 	};
 
@@ -408,7 +400,7 @@ namespace nihilus {
 		requires(dim04_types<value_type>)
 	struct get_value<value_type> {
 		template<typename... value_types> NIHILUS_DEVICE static constexpr decltype(auto) impl(value_types&&... args) {
-			return make_double4(device_forward<value_types>(args)...);
+			return make_double4(detail::forward<value_types>(args)...);
 		}
 	};
 
@@ -423,41 +415,41 @@ namespace nihilus {
 
 	template<> struct binary_op_core<binary_op_types::add> {
 		template<typename value_type01, typename value_type02> NIHILUS_DEVICE static decltype(auto) impl(value_type01&& val01, value_type02&& val02) {
-			return device_forward<value_type01>(val01) + static_cast<base_type<value_type01>>(device_forward<value_type02>(val02));
+			return detail::forward<value_type01>(val01) + static_cast<base_type<value_type01>>(detail::forward<value_type02>(val02));
 		}
 
 		template<typename value_type01, typename value_type02> NIHILUS_DEVICE static void impl_in_place(value_type01& val01, value_type02&& val02) {
-			val01 += static_cast<base_type<value_type01>>(device_forward<value_type02>(val02));
+			val01 += static_cast<base_type<value_type01>>(detail::forward<value_type02>(val02));
 		}
 	};
 
 	template<> struct binary_op_core<binary_op_types::mul> {
 		template<typename value_type01, typename value_type02> NIHILUS_DEVICE static decltype(auto) impl(value_type01&& val01, value_type02&& val02) {
-			return device_forward<value_type01>(val01) * static_cast<base_type<value_type01>>(device_forward<value_type02>(val02));
+			return detail::forward<value_type01>(val01) * static_cast<base_type<value_type01>>(detail::forward<value_type02>(val02));
 		}
 
 		template<typename value_type01, typename value_type02> NIHILUS_DEVICE static void impl_in_place(value_type01& val01, value_type02&& val02) {
-			val01 *= static_cast<base_type<value_type01>>(device_forward<value_type02>(val02));
+			val01 *= static_cast<base_type<value_type01>>(detail::forward<value_type02>(val02));
 		}
 	};
 
 	template<> struct binary_op_core<binary_op_types::sub> {
 		template<typename value_type01, typename value_type02> NIHILUS_DEVICE static decltype(auto) impl(value_type01&& val01, value_type02&& val02) {
-			return device_forward<value_type01>(val01) - static_cast<base_type<value_type01>>(device_forward<value_type02>(val02));
+			return detail::forward<value_type01>(val01) - static_cast<base_type<value_type01>>(detail::forward<value_type02>(val02));
 		}
 
 		template<typename value_type01, typename value_type02> NIHILUS_DEVICE static void impl_in_place(value_type01& val01, value_type02&& val02) {
-			val01 -= static_cast<base_type<value_type01>>(device_forward<value_type02>(val02));
+			val01 -= static_cast<base_type<value_type01>>(detail::forward<value_type02>(val02));
 		}
 	};
 
 	template<> struct binary_op_core<binary_op_types::div> {
 		template<typename value_type01, typename value_type02> NIHILUS_DEVICE static decltype(auto) impl(value_type01&& val01, value_type02&& val02) {
-			return device_forward<value_type01>(val01) / static_cast<base_type<value_type01>>(device_forward<value_type02>(val02));
+			return detail::forward<value_type01>(val01) / static_cast<base_type<value_type01>>(detail::forward<value_type02>(val02));
 		}
 
 		template<typename value_type01, typename value_type02> NIHILUS_DEVICE static void impl_in_place(value_type01& val01, value_type02&& val02) {
-			val01 /= static_cast<base_type<value_type01>>(device_forward<value_type02>(val02));
+			val01 /= static_cast<base_type<value_type01>>(detail::forward<value_type02>(val02));
 		}
 	};
 
@@ -466,103 +458,103 @@ namespace nihilus {
 	template<dim01_types value_type, binary_op_types binary_op_type> struct binary_op_base<value_type, binary_op_type> {
 		template<typename value_type01, typename value_type02> NIHILUS_DEVICE static decltype(auto) impl(value_type01&& val01, value_type02&& val02) {
 			using op_core_type = binary_op_core<binary_op_type>;
-			return get_value<value_type01>::impl(op_core_type::impl(device_forward<value_type01>(val01).x, device_forward<value_type02>(val02).x));
+			return get_value<value_type01>::impl(op_core_type::impl(detail::forward<value_type01>(val01).x, detail::forward<value_type02>(val02).x));
 		}
 
 		template<typename value_type01, typename value_type02> NIHILUS_DEVICE static void impl_in_place(value_type01& val01, value_type02&& val02) {
 			using op_core_type = binary_op_core<binary_op_type>;
-			op_core_type::impl_in_place(val01.x, device_forward<value_type02>(val02).x);
+			op_core_type::impl_in_place(val01.x, detail::forward<value_type02>(val02).x);
 		}
 	};
 
 	template<dim02_types value_type, binary_op_types binary_op_type> struct binary_op_base<value_type, binary_op_type> {
 		template<typename value_type01, typename value_type02> NIHILUS_DEVICE static decltype(auto) impl(value_type01&& val01, value_type02&& val02) {
 			using op_core_type = binary_op_core<binary_op_type>;
-			return get_value<value_type01>::impl(op_core_type::impl(device_forward<value_type01>(val01).x, device_forward<value_type02>(val02).x),
-				op_core_type::impl(device_forward<value_type01>(val01).y, device_forward<value_type02>(val02).y));
+			return get_value<value_type01>::impl(op_core_type::impl(detail::forward<value_type01>(val01).x, detail::forward<value_type02>(val02).x),
+				op_core_type::impl(detail::forward<value_type01>(val01).y, detail::forward<value_type02>(val02).y));
 		}
 
 		template<typename value_type01, typename value_type02> NIHILUS_DEVICE static void impl_in_place(value_type01& val01, value_type02&& val02) {
 			using op_core_type = binary_op_core<binary_op_type>;
-			op_core_type::impl_in_place(val01.x, device_forward<value_type02>(val02).x);
-			op_core_type::impl_in_place(val01.y, device_forward<value_type02>(val02).y);
+			op_core_type::impl_in_place(val01.x, detail::forward<value_type02>(val02).x);
+			op_core_type::impl_in_place(val01.y, detail::forward<value_type02>(val02).y);
 		}
 	};
 
 	template<dim03_types value_type, binary_op_types binary_op_type> struct binary_op_base<value_type, binary_op_type> {
 		template<typename value_type01, typename value_type02> NIHILUS_DEVICE static decltype(auto) impl(value_type01&& val01, value_type02&& val02) {
 			using op_core_type = binary_op_core<binary_op_type>;
-			return get_value<value_type01>::impl(op_core_type::impl(device_forward<value_type01>(val01).x, device_forward<value_type02>(val02).x),
-				op_core_type::impl(device_forward<value_type01>(val01).y, device_forward<value_type02>(val02).y),
-				op_core_type::impl(device_forward<value_type01>(val01).z, device_forward<value_type02>(val02).z));
+			return get_value<value_type01>::impl(op_core_type::impl(detail::forward<value_type01>(val01).x, detail::forward<value_type02>(val02).x),
+				op_core_type::impl(detail::forward<value_type01>(val01).y, detail::forward<value_type02>(val02).y),
+				op_core_type::impl(detail::forward<value_type01>(val01).z, detail::forward<value_type02>(val02).z));
 		}
 
 		template<typename value_type01, typename value_type02> NIHILUS_DEVICE static void impl_in_place(value_type01& val01, value_type02&& val02) {
 			using op_core_type = binary_op_core<binary_op_type>;
-			op_core_type::impl_in_place(val01.x, device_forward<value_type02>(val02).x);
-			op_core_type::impl_in_place(val01.y, device_forward<value_type02>(val02).y);
-			op_core_type::impl_in_place(val01.z, device_forward<value_type02>(val02).z);
+			op_core_type::impl_in_place(val01.x, detail::forward<value_type02>(val02).x);
+			op_core_type::impl_in_place(val01.y, detail::forward<value_type02>(val02).y);
+			op_core_type::impl_in_place(val01.z, detail::forward<value_type02>(val02).z);
 		}
 	};
 
 	template<dim04_types value_type, binary_op_types binary_op_type> struct binary_op_base<value_type, binary_op_type> {
 		template<typename value_type01, typename value_type02> NIHILUS_DEVICE static decltype(auto) impl(value_type01&& val01, value_type02&& val02) {
 			using op_core_type = binary_op_core<binary_op_type>;
-			return get_value<value_type01>::impl(op_core_type::impl(device_forward<value_type01>(val01).x, device_forward<value_type02>(val02).x),
-				op_core_type::impl(device_forward<value_type01>(val01).y, device_forward<value_type02>(val02).y),
-				op_core_type::impl(device_forward<value_type01>(val01).z, device_forward<value_type02>(val02).z),
-				op_core_type::impl(device_forward<value_type01>(val01).w, device_forward<value_type02>(val02).w));
+			return get_value<value_type01>::impl(op_core_type::impl(detail::forward<value_type01>(val01).x, detail::forward<value_type02>(val02).x),
+				op_core_type::impl(detail::forward<value_type01>(val01).y, detail::forward<value_type02>(val02).y),
+				op_core_type::impl(detail::forward<value_type01>(val01).z, detail::forward<value_type02>(val02).z),
+				op_core_type::impl(detail::forward<value_type01>(val01).w, detail::forward<value_type02>(val02).w));
 		}
 
 		template<typename value_type01, typename value_type02> NIHILUS_DEVICE static void impl_in_place(value_type01& val01, value_type02&& val02) {
 			using op_core_type = binary_op_core<binary_op_type>;
-			op_core_type::impl_in_place(val01.x, device_forward<value_type02>(val02).x);
-			op_core_type::impl_in_place(val01.y, device_forward<value_type02>(val02).y);
-			op_core_type::impl_in_place(val01.z, device_forward<value_type02>(val02).z);
-			op_core_type::impl_in_place(val01.w, device_forward<value_type02>(val02).w);
+			op_core_type::impl_in_place(val01.x, detail::forward<value_type02>(val02).x);
+			op_core_type::impl_in_place(val01.y, detail::forward<value_type02>(val02).y);
+			op_core_type::impl_in_place(val01.z, detail::forward<value_type02>(val02).z);
+			op_core_type::impl_in_place(val01.w, detail::forward<value_type02>(val02).w);
 		}
 	};
 
 	template<binary_op_types binary_op_type> struct binary_op {
 		template<typename value_type01, typename value_type02> NIHILUS_DEVICE static decltype(auto) impl(value_type01&& val01, value_type02&& val02) {
-			return binary_op_base<value_type01, binary_op_type>::impl(device_forward<value_type01>(val01), device_forward<value_type02>(val02));
+			return binary_op_base<value_type01, binary_op_type>::impl(detail::forward<value_type01>(val01), detail::forward<value_type02>(val02));
 		}
 
 		template<typename value_type01, typename value_type02> NIHILUS_DEVICE static decltype(auto) impl_in_place(value_type01& val01, value_type02&& val02) {
-			return binary_op_base<value_type01, binary_op_type>::impl_in_place(val01, device_forward<value_type02>(val02));
+			return binary_op_base<value_type01, binary_op_type>::impl_in_place(val01, detail::forward<value_type02>(val02));
 		}
 	};
 
 	template<dim_types value_type01, dim_types value_type02> NIHILUS_DEVICE decltype(auto) operator+=(value_type01& val01, value_type02&& val02) {
-		return binary_op<binary_op_types::add>::impl_in_place(val01, device_forward<value_type02>(val02));
+		return binary_op<binary_op_types::add>::impl_in_place(val01, detail::forward<value_type02>(val02));
 	}
 
 	template<dim_types value_type01, dim_types value_type02> NIHILUS_DEVICE decltype(auto) operator+(value_type01&& val01, value_type02&& val02) {
-		return binary_op<binary_op_types::add>::impl(device_forward<value_type01>(val01), device_forward<value_type02>(val02));
+		return binary_op<binary_op_types::add>::impl(detail::forward<value_type01>(val01), detail::forward<value_type02>(val02));
 	}
 
 	template<dim_types value_type01, dim_types value_type02> NIHILUS_DEVICE decltype(auto) operator*=(value_type01& val01, value_type02&& val02) {
-		return binary_op<binary_op_types::mul>::impl_in_place(val01, device_forward<value_type02>(val02));
+		return binary_op<binary_op_types::mul>::impl_in_place(val01, detail::forward<value_type02>(val02));
 	}
 
 	template<dim_types value_type01, dim_types value_type02> NIHILUS_DEVICE decltype(auto) operator*(value_type01&& val01, value_type02&& val02) {
-		return binary_op<binary_op_types::mul>::impl(device_forward<value_type01>(val01), device_forward<value_type02>(val02));
+		return binary_op<binary_op_types::mul>::impl(detail::forward<value_type01>(val01), detail::forward<value_type02>(val02));
 	}
 
 	template<dim_types value_type01, dim_types value_type02> NIHILUS_DEVICE decltype(auto) operator-=(value_type01& val01, value_type02&& val02) {
-		return binary_op<binary_op_types::sub>::impl_in_place(val01, device_forward<value_type02>(val02));
+		return binary_op<binary_op_types::sub>::impl_in_place(val01, detail::forward<value_type02>(val02));
 	}
 
 	template<dim_types value_type01, dim_types value_type02> NIHILUS_DEVICE decltype(auto) operator-(value_type01&& val01, value_type02&& val02) {
-		return binary_op<binary_op_types::sub>::impl(device_forward<value_type01>(val01), device_forward<value_type02>(val02));
+		return binary_op<binary_op_types::sub>::impl(detail::forward<value_type01>(val01), detail::forward<value_type02>(val02));
 	}
 
 	template<dim_types value_type01, dim_types value_type02> NIHILUS_DEVICE decltype(auto) operator/=(value_type01& val01, value_type02&& val02) {
-		return binary_op<binary_op_types::div>::impl_in_place(val01, device_forward<value_type02>(val02));
+		return binary_op<binary_op_types::div>::impl_in_place(val01, detail::forward<value_type02>(val02));
 	}
 
 	template<dim_types value_type01, dim_types value_type02> NIHILUS_DEVICE decltype(auto) operator/(value_type01&& val01, value_type02&& val02) {
-		return binary_op<binary_op_types::div>::impl(device_forward<value_type01>(val01), device_forward<value_type02>(val02));
+		return binary_op<binary_op_types::div>::impl(detail::forward<value_type01>(val01), detail::forward<value_type02>(val02));
 	}
 
 	template<typename core_traits_type>
@@ -642,23 +634,23 @@ namespace nihilus {
 		}
 	}
 
-	template<const model_config& config, typename core_traits_type>
-	struct kernel_dispatcher_impl<config, core_traits_type, device_types::gpu, 4, core_types::token_embeddings, processing_phases::prompt_eval_time> {
+	template<typename config_type, typename core_traits_type>
+	struct kernel_dispatcher_impl<config_type, core_traits_type, device_types::gpu, 4, core_types::token_embeddings, processing_phases::prompt_eval_time> {
 		NIHILUS_HOST static void impl(core_traits_type& params) {
 			auto& get_rows_op = params.values.template get_core<token_embeddings_types, token_embeddings_types::get_rows>();
 
 			const uint64_t sequence_length = get_rows_op.get_mutable_dim();
-			auto& weights_core			   = get_adjacent_value<core_traits_type::config, core_types::weights>::impl(params);
-			auto& inputs_core			   = get_adjacent_value<core_traits_type::config, core_types::global_inputs>::impl(params);
+			auto& weights_core			   = get_adjacent_value<typename core_traits_type::config_type, core_types::weights>::impl(params);
+			auto& inputs_core			   = get_adjacent_value<typename core_traits_type::config_type, core_types::global_inputs>::impl(params);
 			auto& token_embd_op			   = weights_core.values.template get_core<weight_types, weight_types::token_embd>();
 			auto& inp_tokens_op			   = inputs_core.values.template get_core<global_input_types, global_input_types::inp_tokens>();
 
 			params.data_ptrs.set_ptrs(get_rows_op.get_data(), token_embd_op.get_data(), inp_tokens_op.get_data());
 
-			if constexpr (config.dev) {
+			if constexpr (config_type::dev) {
 				if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
 					static constexpr auto location = std::source_location::current();
-					nihilus_exception<config.exceptions, "Cuda Error: ", location>::impl(cudaGetErrorString(err));
+					nihilus_exception<config_type::exceptions, "Cuda Error: ", location>::impl(cudaGetErrorString(err));
 				}
 			}
 
@@ -677,19 +669,19 @@ namespace nihilus {
 
 				token_embeddings_prompt_eval_time<core_traits_type><<<blocks_per_grid, threads_per_block>>>(sequence_length, params.data_ptrs);
 
-				if constexpr (config.dev) {
+				if constexpr (config_type::dev) {
 					if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
 						static constexpr auto location = std::source_location::current();
-						nihilus_exception<config.exceptions, "Cuda Kernel Launch Error: ", location>::impl(cudaGetErrorString(err));
+						nihilus_exception<config_type::exceptions, "Cuda Kernel Launch Error: ", location>::impl(cudaGetErrorString(err));
 					}
 				}
 
 				cudaDeviceSynchronize();
 
-				if constexpr (config.dev) {
+				if constexpr (config_type::dev) {
 					if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
 						static constexpr auto location = std::source_location::current();
-						nihilus_exception<config.exceptions, "Cuda Synchronization Error: ", location>::impl(cudaGetErrorString(err));
+						nihilus_exception<config_type::exceptions, "Cuda Synchronization Error: ", location>::impl(cudaGetErrorString(err));
 					}
 				}
 			}
@@ -761,22 +753,22 @@ namespace nihilus {
 		}
 	}
 
-	template<const model_config& config, typename core_traits_type>
-	struct kernel_dispatcher_impl<config, core_traits_type, device_types::gpu, 4, core_types::token_embeddings, processing_phases::eval_time> {
+	template<typename config_type, typename core_traits_type>
+	struct kernel_dispatcher_impl<config_type, core_traits_type, device_types::gpu, 4, core_types::token_embeddings, processing_phases::eval_time> {
 		NIHILUS_HOST static void impl(core_traits_type& params) {
 			auto& get_rows_op			   = params.values.template get_core<token_embeddings_types, token_embeddings_types::get_rows>();
-			auto& weights_core			   = get_adjacent_value<core_traits_type::config, core_types::weights>::impl(params);
-			auto& inputs_core			   = get_adjacent_value<core_traits_type::config, core_types::global_inputs>::impl(params);
+			auto& weights_core			   = get_adjacent_value<typename core_traits_type::config_type, core_types::weights>::impl(params);
+			auto& inputs_core			   = get_adjacent_value<typename core_traits_type::config_type, core_types::global_inputs>::impl(params);
 			auto& token_embd_op			   = weights_core.values.template get_core<weight_types, weight_types::token_embd>();
 			auto& inp_tokens_op			   = inputs_core.values.template get_core<global_input_types, global_input_types::inp_tokens>();
 			const uint64_t sequence_length = get_rows_op.get_mutable_dim();
 
 			params.data_ptrs.set_ptrs(get_rows_op.get_data(), token_embd_op.get_data(), inp_tokens_op.get_data());
 
-			if constexpr (config.dev) {
+			if constexpr (config_type::dev) {
 				if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
 					static constexpr auto location = std::source_location::current();
-					nihilus_exception<config.exceptions, "Cuda Error: ", location>::impl(cudaGetErrorString(err));
+					nihilus_exception<config_type::exceptions, "Cuda Error: ", location>::impl(cudaGetErrorString(err));
 				}
 			}
 
@@ -790,19 +782,19 @@ namespace nihilus {
 
 			token_embeddings_eval_time<core_traits_type><<<blocks_per_grid, threads_per_block>>>(sequence_length, params.data_ptrs);
 
-			if constexpr (config.dev) {
+			if constexpr (config_type::dev) {
 				if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
 					static constexpr auto location = std::source_location::current();
-					nihilus_exception<config.exceptions, "Cuda Kernel Launch Error: ", location>::impl(cudaGetErrorString(err));
+					nihilus_exception<config_type::exceptions, "Cuda Kernel Launch Error: ", location>::impl(cudaGetErrorString(err));
 				}
 			}
 
 			cudaDeviceSynchronize();
 
-			if constexpr (config.dev) {
+			if constexpr (config_type::dev) {
 				if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
 					static constexpr auto location = std::source_location::current();
-					nihilus_exception<config.exceptions, "Cuda Synchronization Error: ", location>::impl(cudaGetErrorString(err));
+					nihilus_exception<config_type::exceptions, "Cuda Synchronization Error: ", location>::impl(cudaGetErrorString(err));
 				}
 			}
 		}
@@ -810,217 +802,15 @@ namespace nihilus {
 
 	template<typename core_traits_type>
 	NIHILUS_GLOBAL void mega_qkv_prep_and_cache_publish_prompt_eval_time(uint64_t sequence_length, typename core_traits_type::kernel_data_ptrs params) {
-		/*
-		static constexpr uint64_t embedding_length = core_traits_type::mtt::embedding_length;
-		static constexpr uint64_t rope_dim		   = core_traits_type::mtt::rope_dimension_count;
-		static constexpr uint64_t n_head		   = core_traits_type::mtt::attention_head_count;
-		static constexpr uint64_t n_head_kv		   = core_traits_type::mtt::attention_head_count_kv;
-		static constexpr uint64_t n_embd_kv_gqa	   = core_traits_type::mtt::n_embd_kv_gqa;
-
-		static constexpr uint64_t block_size	 = type_traits<typename core_traits_type::kernel_profile_type::weight_type>::block_size;
-		static constexpr uint64_t blocks_per_row = (embedding_length + block_size - 1) / block_size;
-
-		const auto* __restrict inp_embd_data	  = params.inp_embd_data;
-		const auto* __restrict attn_norm_w_data = params.attn_norm_w_data;
-		const auto* __restrict attn_q_w_data	  = params.attn_q_w_data;
-		const auto* __restrict attn_k_w_data	  = params.attn_k_w_data;
-		const auto* __restrict attn_v_w_data	  = params.attn_v_w_data;
-		const auto* __restrict inp_pos_data	  = params.inp_pos_data;
-		const auto* __restrict rope_freqs_data  = params.rope_freqs_data;
-		auto* __restrict cache_k_data			  = params.cache_k_data;
-		auto* __restrict cache_v_data			  = params.cache_v_data;
-		auto* __restrict q_output_data		  = params.q_output_data;
-
-		const uint64_t thread_id	 = blockIdx.x * blockDim.x + threadIdx.x;
-		const uint64_t total_threads = gridDim.x * blockDim.x;
-
-		for (uint64_t token_idx = thread_id; token_idx < sequence_length; token_idx += total_threads) {
-			// RMS Norm
-			typename core_traits_type::compute_t sum_sq = 0;
-			for (uint64_t i = 0; i < embedding_length; ++i) {
-				const auto val = inp_embd_data[token_idx * embedding_length + i];
-				sum_sq += val * val;
-			}
-			typename core_traits_type::compute_t rms = rsqrtf(sum_sq / embedding_length + 1e-6f);
-			// Mul with attention norm weights (plain floats, no dequantization needed)
-			typename core_traits_type::compute_t normed[embedding_length];
-			for (uint64_t i = 0; i < embedding_length; ++i) {
-				normed[i] = inp_embd_data[token_idx * embedding_length + i] * rms * attn_norm_w_data[i];
-			}
-
-			// Q: mul_mat, reshape, rope (dequantize Q weights)
-			for (uint64_t h = 0; h < n_head; ++h) {
-				for (uint64_t d = 0; d < rope_dim; ++d) {
-					typename core_traits_type::compute_t q_val = 0;
-					const auto* __restrict weight_row		   = attn_q_w_data + ((h * rope_dim + d) * blocks_per_row);
-
-					for (uint64_t block_idx = 0; block_idx < blocks_per_row; ++block_idx) {
-						const auto& block				   = weight_row[block_idx];
-						const auto scale				   = __half2float(block.d);
-						const auto* __restrict quantized = block.qs;
-						const uint64_t base_offset		   = block_idx * block_size;
-
-	#pragma unroll
-						for (uint64_t j = 0; j < block_size; ++j) {
-							if (base_offset + j < embedding_length) {
-								const auto dequantized_weight = scale * static_cast<typename core_traits_type::kernel_profile_type::compute_type>(quantized[j]);
-								q_val += dequantized_weight * normed[base_offset + j];
-							}
-						}
-					}
-
-					// Apply RoPE
-					const uint64_t pos								   = inp_pos_data[token_idx];
-					const typename core_traits_type::compute_t freq	   = rope_freqs_data[d];
-					const typename core_traits_type::compute_t cos_val = cosf(pos * freq);
-					const typename core_traits_type::compute_t sin_val = sinf(pos * freq);
-
-					if (d % 2 == 0) {
-						typename core_traits_type::compute_t q_pair = 0;
-						if (d + 1 < rope_dim) {
-							const auto* __restrict weight_row_pair = attn_q_w_data + ((h * rope_dim + d + 1) * blocks_per_row);
-							for (uint64_t block_idx = 0; block_idx < blocks_per_row; ++block_idx) {
-								const auto& block				   = weight_row_pair[block_idx];
-								const auto scale				   = __half2float(block.d);
-								const auto* __restrict quantized = block.qs;
-								const uint64_t base_offset		   = block_idx * block_size;
-
-	#pragma unroll
-								for (uint64_t j = 0; j < block_size; ++j) {
-									if (base_offset + j < embedding_length) {
-										const auto dequantized_weight = scale * static_cast<typename core_traits_type::kernel_profile_type::compute_type>(quantized[j]);
-										q_pair += dequantized_weight * normed[base_offset + j];
-									}
-								}
-							}
-						}
-						q_output_data[token_idx * n_head * rope_dim + h * rope_dim + d] = q_val * cos_val - q_pair * sin_val;
-					} else {
-						typename core_traits_type::compute_t q_pair = 0;
-						const auto* __restrict weight_row_pair	= attn_q_w_data + ((h * rope_dim + d - 1) * blocks_per_row);
-						for (uint64_t block_idx = 0; block_idx < blocks_per_row; ++block_idx) {
-							const auto& block				   = weight_row_pair[block_idx];
-							const auto scale				   = __half2float(block.d);
-							const auto* __restrict quantized = block.qs;
-							const uint64_t base_offset		   = block_idx * block_size;
-
-	#pragma unroll
-							for (uint64_t j = 0; j < block_size; ++j) {
-								if (base_offset + j < embedding_length) {
-									const auto dequantized_weight = scale * static_cast<typename core_traits_type::kernel_profile_type::compute_type>(quantized[j]);
-									q_pair += dequantized_weight * normed[base_offset + j];
-								}
-							}
-						}
-						q_output_data[token_idx * n_head * rope_dim + h * rope_dim + d] = q_val * cos_val + q_pair * sin_val;
-					}
-				}
-			}
-
-			// K: mul_mat, reshape, rope, cache (dequantize K weights)
-			for (uint64_t h = 0; h < n_head_kv; ++h) {
-				for (uint64_t d = 0; d < rope_dim; ++d) {
-					typename core_traits_type::compute_t k_val = 0;
-					const auto* __restrict weight_row		   = attn_k_w_data + ((h * rope_dim + d) * blocks_per_row);
-
-					for (uint64_t block_idx = 0; block_idx < blocks_per_row; ++block_idx) {
-						const auto& block				   = weight_row[block_idx];
-						const auto scale				   = __half2float(block.d);
-						const auto* __restrict quantized = block.qs;
-						const uint64_t base_offset		   = block_idx * block_size;
-
-	#pragma unroll
-						for (uint64_t j = 0; j < block_size; ++j) {
-							if (base_offset + j < embedding_length) {
-								const auto dequantized_weight = scale * static_cast<typename core_traits_type::kernel_profile_type::compute_type>(quantized[j]);
-								k_val += dequantized_weight * normed[base_offset + j];
-							}
-						}
-					}
-
-					// Apply RoPE and store to cache
-					const uint64_t pos								   = inp_pos_data[token_idx];
-					const typename core_traits_type::compute_t freq	   = rope_freqs_data[d];
-					const typename core_traits_type::compute_t cos_val = cosf(pos * freq);
-					const typename core_traits_type::compute_t sin_val = sinf(pos * freq);
-
-					typename core_traits_type::kv_store_t k_cached;
-					if (d % 2 == 0) {
-						typename core_traits_type::compute_t k_pair = 0;
-						if (d + 1 < rope_dim) {
-							const auto* __restrict weight_row_pair = attn_k_w_data + ((h * rope_dim + d + 1) * blocks_per_row);
-							for (uint64_t block_idx = 0; block_idx < blocks_per_row; ++block_idx) {
-								const auto& block				   = weight_row_pair[block_idx];
-								const auto scale				   = __half2float(block.d);
-								const auto* __restrict quantized = block.qs;
-								const uint64_t base_offset		   = block_idx * block_size;
-
-	#pragma unroll
-								for (uint64_t j = 0; j < block_size; ++j) {
-									if (base_offset + j < embedding_length) {
-										const auto dequantized_weight = scale * static_cast<typename core_traits_type::kernel_profile_type::compute_type>(quantized[j]);
-										k_pair += dequantized_weight * normed[base_offset + j];
-									}
-								}
-							}
-						}
-						k_cached = static_cast<typename core_traits_type::kv_store_t>(k_val * cos_val - k_pair * sin_val);
-					} else {
-						typename core_traits_type::compute_t k_pair = 0;
-						const auto* __restrict weight_row_pair	= attn_k_w_data + ((h * rope_dim + d - 1) * blocks_per_row);
-						for (uint64_t block_idx = 0; block_idx < blocks_per_row; ++block_idx) {
-							const auto& block				   = weight_row_pair[block_idx];
-							const auto scale				   = __half2float(block.d);
-							const auto* __restrict quantized = block.qs;
-							const uint64_t base_offset		   = block_idx * block_size;
-
-	#pragma unroll
-							for (uint64_t j = 0; j < block_size; ++j) {
-								if (base_offset + j < embedding_length) {
-									const auto dequantized_weight = scale * static_cast<typename core_traits_type::kernel_profile_type::compute_type>(quantized[j]);
-									k_pair += dequantized_weight * normed[base_offset + j];
-								}
-							}
-						}
-						k_cached = static_cast<typename core_traits_type::kv_store_t>(k_val * cos_val + k_pair * sin_val);
-					}
-					cache_k_data[h * rope_dim * sequence_length + d * sequence_length + token_idx] = k_cached;
-				}
-			}
-
-			// V: mul_mat, transpose, cache (dequantize V weights)
-			for (uint64_t h = 0; h < n_head_kv; ++h) {
-				for (uint64_t d = 0; d < rope_dim; ++d) {
-					typename core_traits_type::compute_t v_val = 0;
-					const auto* __restrict weight_row		   = attn_v_w_data + ((h * rope_dim + d) * blocks_per_row);
-
-					for (uint64_t block_idx = 0; block_idx < blocks_per_row; ++block_idx) {
-						const auto& block				   = weight_row[block_idx];
-						const auto scale				   = __half2float(block.d);
-						const auto* __restrict quantized = block.qs;
-						const uint64_t base_offset		   = block_idx * block_size;
-
-	#pragma unroll
-						for (uint64_t j = 0; j < block_size; ++j) {
-							if (base_offset + j < embedding_length) {
-								const auto dequantized_weight = scale * static_cast<typename core_traits_type::kernel_profile_type::compute_type>(quantized[j]);
-								v_val += dequantized_weight * normed[base_offset + j];
-							}
-						}
-					}
-					cache_v_data[h * rope_dim * sequence_length + token_idx * rope_dim + d] = static_cast<typename core_traits_type::kv_store_t>(v_val);
-				}
-			}
-		}*/
 	}
 
-	template<const model_config& config, typename core_traits_type>
-	struct kernel_dispatcher_impl<config, core_traits_type, device_types::gpu, 4, core_types::mega_qkv_prep_and_cache_publish, processing_phases::prompt_eval_time> {
+	template<typename config_type, typename core_traits_type>
+	struct kernel_dispatcher_impl<config_type, core_traits_type, device_types::gpu, 4, core_types::mega_qkv_prep_and_cache_publish, processing_phases::prompt_eval_time> {
 		NIHILUS_HOST static void impl(core_traits_type& params, int64_t current_block) {
 			auto& q_out_op		  = params.values.template get_core<mega_qkv_prep_and_cache_publish_types, mega_qkv_prep_and_cache_publish_types::q_out>();
-			auto& weights_core	  = get_adjacent_value<core_traits_type::config, core_types::weights>::impl(params);
-			auto& inputs_core	  = get_adjacent_value<core_traits_type::config, core_types::global_inputs>::impl(params);
-			auto& token_embd_core = get_adjacent_value<core_traits_type::config, core_types::token_embeddings>::impl(params);
+			auto& weights_core	  = get_adjacent_value<typename core_traits_type::config_type, core_types::weights>::impl(params);
+			auto& inputs_core	  = get_adjacent_value<typename core_traits_type::config_type, core_types::global_inputs>::impl(params);
+			auto& token_embd_core = get_adjacent_value<typename core_traits_type::config_type, core_types::token_embeddings>::impl(params);
 			auto& inp_embd_op	  = token_embd_core.values.template get_core<token_embeddings_types, token_embeddings_types::get_rows>();
 			auto& attn_norm_w_op  = weights_core.values.template get_core<weight_types, weight_types::attn_norm>();
 			auto& attn_q_w_op	  = weights_core.values.template get_core<weight_types, weight_types::attn_q>();
@@ -1038,29 +828,29 @@ namespace nihilus {
 			const uint64_t max_threads_needed = sequence_length;
 			const uint64_t actual_blocks = detail::min(launch_params.blocks_per_grid, (max_threads_needed + launch_params.threads_per_block - 1) / launch_params.threads_per_block);
 
-			if constexpr (config.dev) {
+			if constexpr (config_type::dev) {
 				if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
 					static constexpr auto location = std::source_location::current();
-					nihilus_exception<config.exceptions, "Cuda Error: ", location>::impl(cudaGetErrorString(err));
+					nihilus_exception<config_type::exceptions, "Cuda Error: ", location>::impl(cudaGetErrorString(err));
 				}
 			}
 
 			if (sequence_length > 0) {
-				//mega_qkv_prep_and_cache_publish_prompt_eval_time<core_traits_type><<<actual_blocks, launch_params.threads_per_block>>>(sequence_length, params.data_ptrs);
+				mega_qkv_prep_and_cache_publish_prompt_eval_time<core_traits_type><<<actual_blocks, launch_params.threads_per_block>>>(sequence_length, params.data_ptrs);
 
-				if constexpr (config.dev) {
+				if constexpr (config_type::dev) {
 					if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
 						static constexpr auto location = std::source_location::current();
-						nihilus_exception<config.exceptions, "Cuda Kernel Launch Error: ", location>::impl(cudaGetErrorString(err));
+						nihilus_exception<config_type::exceptions, "Cuda Kernel Launch Error: ", location>::impl(cudaGetErrorString(err));
 					}
 				}
 
 				cudaDeviceSynchronize();
 
-				if constexpr (config.dev) {
+				if constexpr (config_type::dev) {
 					if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
 						static constexpr auto location = std::source_location::current();
-						nihilus_exception<config.exceptions, "Cuda Synchronization Error: ", location>::impl(cudaGetErrorString(err));
+						nihilus_exception<config_type::exceptions, "Cuda Synchronization Error: ", location>::impl(cudaGetErrorString(err));
 					}
 				}
 			}
@@ -1068,227 +858,16 @@ namespace nihilus {
 	};
 
 	template<typename core_traits_type>
-	NIHILUS_GLOBAL void mega_qkv_prep_and_cache_publish_eval_time(uint64_t sequence_length, typename core_traits_type::kernel_data_ptrs params) { /*
-		static constexpr uint64_t embedding_length = core_traits_type::mtt::embedding_length;
-		static constexpr uint64_t rope_dim		   = core_traits_type::mtt::rope_dimension_count;
-		static constexpr uint64_t n_head		   = core_traits_type::mtt::attention_head_count;
-		static constexpr uint64_t n_head_kv		   = core_traits_type::mtt::attention_head_count_kv;
-		static constexpr uint64_t n_embd_kv_gqa	   = core_traits_type::mtt::n_embd_kv_gqa;
-
-		static constexpr uint64_t block_size	 = type_traits<typename core_traits_type::kernel_profile_type::weight_type>::block_size;
-		static constexpr uint64_t blocks_per_row = (embedding_length + block_size - 1) / block_size;
-
-		const auto* __restrict inp_embd_data	  = params.inp_embd_data;
-		const auto* __restrict attn_norm_w_data = params.attn_norm_w_data;
-		const auto* __restrict attn_q_w_data	  = params.attn_q_w_data;
-		const auto* __restrict attn_k_w_data	  = params.attn_k_w_data;
-		const auto* __restrict attn_v_w_data	  = params.attn_v_w_data;
-		const auto* __restrict inp_pos_data	  = params.inp_pos_data;
-		const auto* __restrict rope_freqs_data  = params.rope_freqs_data;
-		auto* __restrict cache_k_data			  = params.cache_k_data;
-		auto* __restrict cache_v_data			  = params.cache_v_data;
-		auto* __restrict q_output_data		  = params.q_output_data;
-
-		const uint64_t thread_id	 = blockIdx.x * blockDim.x + threadIdx.x;
-		const uint64_t total_threads = gridDim.x * blockDim.x;
-
-		// Process only the last token
-		const uint64_t token_idx = sequence_length - 1;
-
-		// Total output elements to compute: Q (n_head * rope_dim) + K (n_head_kv * rope_dim) + V (n_head_kv * rope_dim)
-		const uint64_t total_elements = n_head * rope_dim + n_head_kv * rope_dim * 2;
-
-		// Precompute RMS norm (all threads do this, but it's small and efficient)
-		typename core_traits_type::compute_t sum_sq = 0;
-		//for (uint64_t i = 0; i < embedding_length; ++i) {
-		//const auto val = inp_embd_data[i];
-		//			sum_sq += val * val;
-		//}
-		//typename core_traits_type::compute_t rms = rsqrtf(sum_sq / embedding_length + 1e-6f);
-		
-		// Precompute normalized input (shared across all threads)
-		__shared__ typename core_traits_type::compute_t normed[embedding_length];
-		for (uint64_t i = thread_id; i < embedding_length; i += total_threads) {
-			normed[i] = inp_embd_data[i] * rms * attn_norm_w_data[i];
-		}
-		__syncthreads();
-
-		// Partition work across threads
-		for (uint64_t elem_idx = thread_id; elem_idx < total_elements; elem_idx += total_threads) {
-			if (elem_idx < n_head * rope_dim) {
-				// Process Q
-				const uint64_t h = elem_idx / rope_dim;
-				const uint64_t d = elem_idx % rope_dim;
-
-				typename core_traits_type::compute_t q_val = 0;
-				const auto* __restrict weight_row		   = attn_q_w_data + ((h * rope_dim + d) * blocks_per_row);
-
-				for (uint64_t block_idx = 0; block_idx < blocks_per_row; ++block_idx) {
-					const auto& block				   = weight_row[block_idx];
-					const auto scale				   = __half2float(block.d);
-					const auto* __restrict quantized = block.qs;
-					const uint64_t base_offset		   = block_idx * block_size;
-
-	#pragma unroll
-					for (uint64_t j = 0; j < block_size; ++j) {
-						if (base_offset + j < embedding_length) {
-							const auto dequantized_weight = scale * static_cast<typename core_traits_type::kernel_profile_type::compute_type>(quantized[j]);
-							q_val += dequantized_weight * normed[base_offset + j];
-						}
-					}
-				}
-
-				// Apply RoPE
-				const uint64_t pos								   = inp_pos_data[token_idx];
-				const typename core_traits_type::compute_t freq	   = rope_freqs_data[d];
-				const typename core_traits_type::compute_t cos_val = cosf(pos * freq);
-				const typename core_traits_type::compute_t sin_val = sinf(pos * freq);
-
-				if (d % 2 == 0) {
-					typename core_traits_type::compute_t q_pair = 0;
-					if (d + 1 < rope_dim) {
-						const auto* __restrict weight_row_pair = attn_q_w_data + ((h * rope_dim + d + 1) * blocks_per_row);
-						for (uint64_t block_idx = 0; block_idx < blocks_per_row; ++block_idx) {
-							const auto& block				   = weight_row_pair[block_idx];
-							const auto scale				   = __half2float(block.d);
-							const auto* __restrict quantized = block.qs;
-							const uint64_t base_offset		   = block_idx * block_size;
-
-	#pragma unroll
-							for (uint64_t j = 0; j < block_size; ++j) {
-								if (base_offset + j < embedding_length) {
-									const auto dequantized_weight = scale * static_cast<typename core_traits_type::kernel_profile_type::compute_type>(quantized[j]);
-									q_pair += dequantized_weight * normed[base_offset + j];
-								}
-							}
-						}
-					}
-					q_output_data[h * rope_dim + d] = q_val * cos_val - q_pair * sin_val;
-				} else {
-					typename core_traits_type::compute_t q_pair = 0;
-					const auto* __restrict weight_row_pair	= attn_q_w_data + ((h * rope_dim + d - 1) * blocks_per_row);
-					for (uint64_t block_idx = 0; block_idx < blocks_per_row; ++block_idx) {
-						const auto& block				   = weight_row_pair[block_idx];
-						const auto scale				   = __half2float(block.d);
-						const auto* __restrict quantized = block.qs;
-						const uint64_t base_offset		   = block_idx * block_size;
-
-	#pragma unroll
-						for (uint64_t j = 0; j < block_size; ++j) {
-							if (base_offset + j < embedding_length) {
-								const auto dequantized_weight = scale * static_cast<typename core_traits_type::kernel_profile_type::compute_type>(quantized[j]);
-								q_pair += dequantized_weight * normed[base_offset + j];
-							}
-						}
-					}
-					q_output_data[h * rope_dim + d] = q_val * cos_val + q_pair * sin_val;
-				}
-			} else if (elem_idx < n_head * rope_dim + n_head_kv * rope_dim) {
-				// Process K
-				const uint64_t k_elem_idx = elem_idx - n_head * rope_dim;
-				const uint64_t h		  = k_elem_idx / rope_dim;
-				const uint64_t d		  = k_elem_idx % rope_dim;
-
-				typename core_traits_type::compute_t k_val = 0;
-				const auto* __restrict weight_row		   = attn_k_w_data + ((h * rope_dim + d) * blocks_per_row);
-
-				for (uint64_t block_idx = 0; block_idx < blocks_per_row; ++block_idx) {
-					const auto& block				   = weight_row[block_idx];
-					const auto scale				   = __half2float(block.d);
-					const auto* __restrict quantized = block.qs;
-					const uint64_t base_offset		   = block_idx * block_size;
-
-	#pragma unroll
-					for (uint64_t j = 0; j < block_size; ++j) {
-						if (base_offset + j < embedding_length) {
-							const auto dequantized_weight = scale * static_cast<typename core_traits_type::kernel_profile_type::compute_type>(quantized[j]);
-							k_val += dequantized_weight * normed[base_offset + j];
-						}
-					}
-				}
-
-				// Apply RoPE and store to cache
-				const uint64_t pos								   = inp_pos_data[token_idx];
-				const typename core_traits_type::compute_t freq	   = rope_freqs_data[d];
-				const typename core_traits_type::compute_t cos_val = cosf(pos * freq);
-				const typename core_traits_type::compute_t sin_val = sinf(pos * freq);
-
-				typename core_traits_type::kv_store_t k_cached;
-				if (d % 2 == 0) {
-					typename core_traits_type::compute_t k_pair = 0;
-					if (d + 1 < rope_dim) {
-						const auto* __restrict weight_row_pair = attn_k_w_data + ((h * rope_dim + d + 1) * blocks_per_row);
-						for (uint64_t block_idx = 0; block_idx < blocks_per_row; ++block_idx) {
-							const auto& block				   = weight_row_pair[block_idx];
-							const auto scale				   = __half2float(block.d);
-							const auto* __restrict quantized = block.qs;
-							const uint64_t base_offset		   = block_idx * block_size;
-
-	#pragma unroll
-							for (uint64_t j = 0; j < block_size; ++j) {
-								if (base_offset + j < embedding_length) {
-									const auto dequantized_weight = scale * static_cast<typename core_traits_type::kernel_profile_type::compute_type>(quantized[j]);
-									k_pair += dequantized_weight * normed[base_offset + j];
-								}
-							}
-						}
-					}
-					k_cached = static_cast<typename core_traits_type::kv_store_t>(k_val * cos_val - k_pair * sin_val);
-				} else {
-					typename core_traits_type::compute_t k_pair = 0;
-					const auto* __restrict weight_row_pair	= attn_k_w_data + ((h * rope_dim + d - 1) * blocks_per_row);
-					for (uint64_t block_idx = 0; block_idx < blocks_per_row; ++block_idx) {
-						const auto& block				   = weight_row_pair[block_idx];
-						const auto scale				   = __half2float(block.d);
-						const auto* __restrict quantized = block.qs;
-						const uint64_t base_offset		   = block_idx * block_size;
-
-	#pragma unroll
-						for (uint64_t j = 0; j < block_size; ++j) {
-							if (base_offset + j < embedding_length) {
-								const auto dequantized_weight = scale * static_cast<typename core_traits_type::kernel_profile_type::compute_type>(quantized[j]);
-								k_pair += dequantized_weight * normed[base_offset + j];
-							}
-						}
-					}
-					k_cached = static_cast<typename core_traits_type::kv_store_t>(k_val * cos_val + k_pair * sin_val);
-				}
-				cache_k_data[h * rope_dim * sequence_length + d * sequence_length + token_idx] = k_cached;
-			} else {
-				// Process V
-				const uint64_t v_elem_idx = elem_idx - n_head * rope_dim - n_head_kv * rope_dim;
-				const uint64_t h		  = v_elem_idx / rope_dim;
-				const uint64_t d		  = v_elem_idx % rope_dim;
-
-				typename core_traits_type::compute_t v_val = 0;
-				const auto* __restrict weight_row		   = attn_v_w_data + ((h * rope_dim + d) * blocks_per_row);
-
-				for (uint64_t block_idx = 0; block_idx < blocks_per_row; ++block_idx) {
-					const auto& block				   = weight_row[block_idx];
-					const auto scale				   = __half2float(block.d);
-					const auto* __restrict quantized = block.qs;
-					const uint64_t base_offset		   = block_idx * block_size;
-
-	#pragma unroll
-					for (uint64_t j = 0; j < block_size; ++j) {
-						if (base_offset + j < embedding_length) {
-							const auto dequantized_weight = scale * static_cast<typename core_traits_type::kernel_profile_type::compute_type>(quantized[j]);
-							v_val += dequantized_weight * normed[base_offset + j];
-						}
-					}
-				}
-				cache_v_data[h * rope_dim * sequence_length + token_idx * rope_dim + d] = static_cast<typename core_traits_type::kv_store_t>(v_val);
-			}
-		}*/
+	NIHILUS_GLOBAL void mega_qkv_prep_and_cache_publish_eval_time(uint64_t sequence_length, typename core_traits_type::kernel_data_ptrs params) {
 	}
 
-	template<const model_config& config, typename core_traits_type>
-	struct kernel_dispatcher_impl<config, core_traits_type, device_types::gpu, 4, core_types::mega_qkv_prep_and_cache_publish, processing_phases::eval_time> {
+	template<typename config_type, typename core_traits_type>
+	struct kernel_dispatcher_impl<config_type, core_traits_type, device_types::gpu, 4, core_types::mega_qkv_prep_and_cache_publish, processing_phases::eval_time> {
 		NIHILUS_HOST static void impl(core_traits_type& params, int64_t current_block) {
 			auto& q_out_op		  = params.values.template get_core<mega_qkv_prep_and_cache_publish_types, mega_qkv_prep_and_cache_publish_types::q_out>();
-			auto& weights_core	  = get_adjacent_value<core_traits_type::config, core_types::weights>::impl(params);
-			auto& inputs_core	  = get_adjacent_value<core_traits_type::config, core_types::global_inputs>::impl(params);
-			auto& token_embd_core = get_adjacent_value<core_traits_type::config, core_types::token_embeddings>::impl(params);
+			auto& weights_core	  = get_adjacent_value<typename core_traits_type::config_type, core_types::weights>::impl(params);
+			auto& inputs_core	  = get_adjacent_value<typename core_traits_type::config_type, core_types::global_inputs>::impl(params);
+			auto& token_embd_core = get_adjacent_value<typename core_traits_type::config_type, core_types::token_embeddings>::impl(params);
 			auto& inp_embd_op	  = token_embd_core.values.template get_core<token_embeddings_types, token_embeddings_types::get_rows>();
 			auto& attn_norm_w_op  = weights_core.values.template get_core<weight_types, weight_types::attn_norm>();
 			auto& attn_q_w_op	  = weights_core.values.template get_core<weight_types, weight_types::attn_q>();
@@ -1309,65 +888,65 @@ namespace nihilus {
 			const uint64_t max_threads_needed = n_head * rope_dim + n_head_kv * rope_dim * 2;
 			const uint64_t actual_blocks = detail::min(launch_params.blocks_per_grid, (max_threads_needed + launch_params.threads_per_block - 1) / launch_params.threads_per_block);
 
-			if constexpr (config.dev) {
+			if constexpr (config_type::dev) {
 				if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
 					static constexpr auto location = std::source_location::current();
-					nihilus_exception<config.exceptions, "Cuda Error: ", location>::impl(cudaGetErrorString(err));
+					nihilus_exception<config_type::exceptions, "Cuda Error: ", location>::impl(cudaGetErrorString(err));
 				}
 			}
 
-			//mega_qkv_prep_and_cache_publish_eval_time<core_traits_type><<<actual_blocks, launch_params.threads_per_block>>>(sequence_length, params.data_ptrs);
+			mega_qkv_prep_and_cache_publish_eval_time<core_traits_type><<<actual_blocks, launch_params.threads_per_block>>>(sequence_length, params.data_ptrs);
 
-			if constexpr (config.dev) {
+			if constexpr (config_type::dev) {
 				if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
 					static constexpr auto location = std::source_location::current();
-					nihilus_exception<config.exceptions, "Cuda Kernel Launch Error: ", location>::impl(cudaGetErrorString(err));
+					nihilus_exception<config_type::exceptions, "Cuda Kernel Launch Error: ", location>::impl(cudaGetErrorString(err));
 				}
 			}
 
 			cudaDeviceSynchronize();
 
-			if constexpr (config.dev) {
+			if constexpr (config_type::dev) {
 				if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
 					static constexpr auto location = std::source_location::current();
-					nihilus_exception<config.exceptions, "Cuda Synchronization Error: ", location>::impl(cudaGetErrorString(err));
+					nihilus_exception<config_type::exceptions, "Cuda Synchronization Error: ", location>::impl(cudaGetErrorString(err));
 				}
 			}
 		}
 	};
 
-	template<const model_config& config, typename core_traits_type>
-	struct kernel_dispatcher_impl<config, core_traits_type, device_types::gpu, 4, core_types::mega_attention_apply, processing_phases::eval_time> {
+	template<typename config_type, typename core_traits_type>
+	struct kernel_dispatcher_impl<config_type, core_traits_type, device_types::gpu, 4, core_types::mega_attention_apply, processing_phases::eval_time> {
 		NIHILUS_HOST static void impl(core_traits_type& params, int64_t current_block) {
 		}
 	};
 
-	template<const model_config& config, typename core_traits_type>
-	struct kernel_dispatcher_impl<config, core_traits_type, device_types::gpu, 4, core_types::mega_attention_apply, processing_phases::prompt_eval_time> {
+	template<typename config_type, typename core_traits_type>
+	struct kernel_dispatcher_impl<config_type, core_traits_type, device_types::gpu, 4, core_types::mega_attention_apply, processing_phases::prompt_eval_time> {
 		NIHILUS_HOST static void impl(core_traits_type& params, int64_t current_block) {
 		}
 	};
 
-	template<const model_config& config, typename core_traits_type>
-	struct kernel_dispatcher_impl<config, core_traits_type, device_types::gpu, 4, core_types::mega_ffn, processing_phases::eval_time> {
+	template<typename config_type, typename core_traits_type>
+	struct kernel_dispatcher_impl<config_type, core_traits_type, device_types::gpu, 4, core_types::mega_ffn, processing_phases::eval_time> {
 		NIHILUS_HOST static void impl(core_traits_type& params, int64_t current_block) {
 		}
 	};
 
-	template<const model_config& config, typename core_traits_type>
-	struct kernel_dispatcher_impl<config, core_traits_type, device_types::gpu, 4, core_types::mega_ffn, processing_phases::prompt_eval_time> {
+	template<typename config_type, typename core_traits_type>
+	struct kernel_dispatcher_impl<config_type, core_traits_type, device_types::gpu, 4, core_types::mega_ffn, processing_phases::prompt_eval_time> {
 		NIHILUS_HOST static void impl(core_traits_type& params, int64_t current_block) {
 		}
 	};
 
-	template<const model_config& config, typename core_traits_type>
-	struct kernel_dispatcher_impl<config, core_traits_type, device_types::gpu, 4, core_types::final_norm_and_sampling, processing_phases::eval_time> {
+	template<typename config_type, typename core_traits_type>
+	struct kernel_dispatcher_impl<config_type, core_traits_type, device_types::gpu, 4, core_types::final_norm_and_sampling, processing_phases::eval_time> {
 		NIHILUS_HOST static void impl(core_traits_type& params) {
 		}
 	};
 
-	template<const model_config& config, typename core_traits_type>
-	struct kernel_dispatcher_impl<config, core_traits_type, device_types::gpu, 4, core_types::final_norm_and_sampling, processing_phases::prompt_eval_time> {
+	template<typename config_type, typename core_traits_type>
+	struct kernel_dispatcher_impl<config_type, core_traits_type, device_types::gpu, 4, core_types::final_norm_and_sampling, processing_phases::prompt_eval_time> {
 		NIHILUS_HOST static void impl(core_traits_type& params) {
 		}
 	};

@@ -34,26 +34,21 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-	template<const model_config& config_new> struct config_holder {
-		static constexpr const model_config& config{ config_new };
-	};
+	template<typename config_type> class file_loader;
 
-	template<const model_config& config> class file_loader;
-
-	template<const model_config& config>
-		requires(config.exceptions.operator bool())
-	class file_loader<config> {
+	template<typename config_type>
+	class file_loader {
 	  public:
 		explicit file_loader(const std::filesystem::path& file_path) {
 			if (!std::filesystem::exists(file_path)) {
 				static constexpr auto location = std::source_location::current();
-				nihilus_exception<config.exceptions, "file_loader - Path does not exist", location>::impl(file_path.string());
+				nihilus_exception<config_type::exceptions, "file_loader - Path does not exist", location>::impl(file_path.string());
 			}
 
 			std::ifstream file(file_path, std::ios::binary | std::ios::ate);
 			if (!file) {
 				static constexpr auto location = std::source_location::current();
-				nihilus_exception<config.exceptions, "file_loader - Failed to open file", location>::impl();
+				nihilus_exception<config_type::exceptions, "file_loader - Failed to open file", location>::impl();
 			}
 
 			const std::streamsize size = file.tellg();
@@ -62,7 +57,7 @@ namespace nihilus {
 				contents.resize(static_cast<uint64_t>(size));
 				if (!file.read(contents.data(), size)) {
 					static constexpr auto location = std::source_location::current();
-					nihilus_exception<config.exceptions, "file_loader - Failed to read file", location>::impl();
+					nihilus_exception<config_type::exceptions, "file_loader - Failed to read file", location>::impl();
 				}
 			}
 		}
@@ -79,63 +74,24 @@ namespace nihilus {
 		std::string contents;
 	};
 
-	template<const model_config& config>
-		requires(!config.exceptions)
-	class file_loader<config> {
-	  public:
-		explicit file_loader(const std::filesystem::path& file_path) {
-			if (!std::filesystem::exists(file_path)) {
-				static constexpr auto location = std::source_location::current();
-				nihilus_exception<config.exceptions, "file_loader - Path does not exist: ", location>::impl(file_path.string());
-			}
-
-			std::ifstream file(file_path, std::ios::binary | std::ios::ate);
-			if (!file) {
-				static constexpr auto location = std::source_location::current();
-				nihilus_exception<config.exceptions, "file_loader - Failed to open file: ", location>::impl(file_path.string());
-			}
-
-			const std::streamsize size = file.tellg();
-			file.seekg(0, std::ios::beg);
-			if (size != -1) {
-				contents.resize(static_cast<uint64_t>(size));
-				if (!file.read(contents.data(), size)) {
-					static constexpr auto location = std::source_location::current();
-					nihilus_exception<config.exceptions, "file_loader - Failed to read file: ", location>::impl(file_path.string());
-				}
-			}
-		}
-
-		operator const std::string&() const noexcept {
-			return contents;
-		}
-
-		uint64_t size() const noexcept {
-			return contents.size();
-		}
-
-	  protected:
-		std::string contents;
-	};
-
-	template<const model_config& config> class file_saver {
+	template<typename config_type> class file_saver {
 	  public:
 		file_saver(const std::filesystem::path& path, const void* data, uint64_t size) {
 			if (!data || size == 0) {
 				static constexpr auto location = std::source_location::current();
-				nihilus_exception<config.exceptions, "file_saver - Cannot save null or empty data to file: ", location>::impl(path.string());
+				nihilus_exception<config_type::exceptions, "file_saver - Cannot save null or empty data to file: ", location>::impl(path.string());
 			}
 
 			std::ofstream file(path, std::ios::binary | std::ios::trunc);
 			if (!file) {
 				static constexpr auto location = std::source_location::current();
-				nihilus_exception<config.exceptions, "file_saver - Cannot save null or empty data to file: ", location>::impl(path.string());
+				nihilus_exception<config_type::exceptions, "file_saver - Cannot save null or empty data to file: ", location>::impl(path.string());
 			}
 
 			file.write(static_cast<const char*>(data), static_cast<std::streamsize>(size));
 			if (!file) {
 				static constexpr auto location = std::source_location::current();
-				nihilus_exception<config.exceptions, "file_saver - Cannot save null or empty data to file: ", location>::impl(path.string());
+				nihilus_exception<config_type::exceptions, "file_saver - Cannot save null or empty data to file: ", location>::impl(path.string());
 			}
 		}
 	};

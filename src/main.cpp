@@ -414,11 +414,10 @@ int32_t main(int32_t argc, char** argv) {
 		std::cout << "Written bytes (Nihilus): " << result02.written_bytes << std::endl;
 		static constexpr auto model_config_00 =
 			nihilus::generate_model_config(nihilus::model_generations::v3_1, nihilus::model_sizes::llm_8B, nihilus::kernel_type_profiles::q8_gqa, nihilus::model_arches::llama,
-				nihilus::device_types::cpu, nihilus::exception_types::enabled, nihilus::default_max_sequence_length_types{ 4096 }, nihilus::benchmark_types::enabled);
+				nihilus::device_types::cpu, nihilus::exception_types::enabled, nihilus::default_max_sequence_length_types{ 1024 }, nihilus::benchmark_types::enabled);
 		cli_params cli_args = harbinger<model_config_00>::parse_cli_arguments(argc, argv);
-		auto model_new_01{ harbinger<model_config_00>::parse_model_graph_data(cli_args) };
-		while (model_new_01->process_input(cli_args.prompt, 0)) {
-		}
+		nihilus::model_collection_type<model_config_00> collection{ cli_args };
+		collection.process_input(cli_args.prompt);
 	} catch (const std::exception& e) {
 		std::cout << "Error: " << e.what() << std::endl;
 	}

@@ -28,9 +28,9 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-	template<const model_config& config> struct memory_transfer;
+	template<typename config_type> struct memory_transfer;
 
-	template<const model_config& config> struct memory_transfer {
+	template<typename config_type> struct memory_transfer {
 		template<pointer_types value_type> NIHILUS_HOST static void host_to_device(const value_type& src, value_type* dst, uint64_t count) noexcept {
 			memcpy_wrapper(dst, &src, sizeof(value_type) * count);
 		}
@@ -48,7 +48,7 @@ namespace nihilus {
 		}
 	};
 
-	template<const model_config& config> struct memory_buffer : public allocator<uint8_t> {
+	template<typename config_type> struct memory_buffer : public allocator<uint8_t> {
 		using value_type = uint8_t;
 		using alloc		 = allocator<value_type>;
 		using pointer	 = value_type*;
@@ -79,7 +79,7 @@ namespace nihilus {
 			data_val = alloc::allocate(size);
 			if (!data_val) {
 				static constexpr auto location = std::source_location::current();
-				nihilus_exception<config.exceptions, "memory_buffer - failed to allocate memory", location>::impl();
+				nihilus_exception<config_type::exceptions, "memory_buffer - failed to allocate memory", location>::impl();
 			}
 			size_val = size;
 		}
@@ -100,7 +100,7 @@ namespace nihilus {
 			uint64_t aligned_amount = round_up_to_multiple<64>(offset_to_claim);
 			if (aligned_amount > size_val) {
 				static constexpr auto location = std::source_location::current();
-				nihilus_exception<config.exceptions, "memory_buffer - not enough memory allocated!", location>::impl();
+				nihilus_exception<config_type::exceptions, "memory_buffer - not enough memory allocated!", location>::impl();
 			}
 			pointer return_value = data_val + aligned_amount;
 			return return_value;

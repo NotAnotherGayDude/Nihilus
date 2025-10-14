@@ -240,9 +240,13 @@ namespace nihilus {
 				data_val			   = allocator_traits::allocate(*this, size_new);
 				capacity_val		   = size_new;
 				if constexpr (std::is_move_constructible_v<value_type>) {
-					std::uninitialized_move_n(old_data, size_val, data_val);
+					if (old_data && data_val) {
+						std::uninitialized_move_n(old_data, size_val, data_val);
+					}
 				} else if constexpr (std::is_copy_constructible_v<value_type>) {
-					std::copy_n(old_data, size_val, data_val);
+					if (old_data && data_val) {
+						std::uninitialized_copy_n(old_data, size_val, data_val);
+					}
 				}
 				allocator_traits::deallocate(*this, old_data, old_capacity);
 			}

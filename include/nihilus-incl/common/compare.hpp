@@ -140,7 +140,7 @@ namespace nihilus {
 			} else if constexpr (new_size == 5) {
 				static constexpr static_aligned_const values_new{ static_cast<uint32_t>(pack_values<string_lit>()) };
 				static_aligned_const<uint32_t> l;
-				constexpr_memcpy<5>(&l, str);
+				constexpr_memcpy<4>(&l, str);
 				return !(l ^ values_new) && (str[4] == string_lit[4]);
 			} else if constexpr (new_size == 4) {
 				static constexpr static_aligned_const values_new{ static_cast<uint32_t>(pack_values<string_lit>()) };
@@ -150,7 +150,7 @@ namespace nihilus {
 			} else if constexpr (new_size == 3) {
 				static constexpr static_aligned_const values_new{ static_cast<uint16_t>(pack_values<string_lit>()) };
 				static_aligned_const<uint16_t> l;
-				constexpr_memcpy<3>(&l, str);
+				constexpr_memcpy<2>(&l, str);
 				return !(l ^ values_new) && (str[2] == string_lit[2]);
 			} else if constexpr (new_size == 2) {
 				static constexpr static_aligned_const values_new{ static_cast<uint16_t>(pack_values<string_lit>()) };

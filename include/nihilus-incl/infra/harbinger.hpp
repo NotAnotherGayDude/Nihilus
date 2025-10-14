@@ -28,22 +28,6 @@ RealTimeChris (Chris M.)
 namespace nihilus {
 
 	template<const model_config& config> struct harbinger {
-		using model_t	   = model<config>;
-		using model_base_t = model_base;
-
-		NIHILUS_HOST static auto parse_model_graph_data(cli_params params) {
-			std::unique_ptr<model_base_t> return_value{ new model_t{ params } };
-			return return_value;
-		}
-
-		NIHILUS_HOST static auto serialize_model(serializer_params) {
-			//return model_serializer<config>::impl(params);
-		}
-
-		NIHILUS_HOST static auto get_model_graph() {
-			std::unique_ptr<model_base_t> return_value{ new model_t{} };
-			return return_value;
-		}
 
 		inline static cli_params parse_cli_arguments(int32_t argc, char** argv) {
 			aligned_vector<std::string> cli_args{};

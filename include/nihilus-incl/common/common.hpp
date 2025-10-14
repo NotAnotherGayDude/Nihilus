@@ -344,7 +344,7 @@ namespace nihilus {
 	};
 
 	template<printable_enum_types auto current_index> consteval std::string_view get_enum_name() {
-#if NIHILUS_COMPILER_MSVC || (defined(NIHILUS_COMPILER_CUDA) && NIHILUS_COMPILER_CUDA)
+#if NIHILUS_COMPILER_MSVC || NIHILUS_COMPILER_CUDA
 		NIHILUS_ALIGN(64) constexpr static_aligned_const<const char*> pretty_function_tail[]{ { ">(void)" } };
 #else
 		NIHILUS_ALIGN(64) constexpr static_aligned_const<const char*> pretty_function_tail[]{ { "]" } };
@@ -401,24 +401,7 @@ namespace nihilus {
 	};
 
 	struct execution_parameters {
-		const int32_t* input_tokens{};
-		uint64_t kv_cache_seq_len{};
-		uint64_t position_offset{};
 		uint64_t sequence_length{};
-		std::atomic<float> seed{};
-		uint64_t max_new_tokens{};
-		std::string_view prompt{};
-		uint64_t thread_count{};
 		uint64_t token_count{};
-		uint64_t random_seed{};
-		int32_t eos_token_id{};
-		uint64_t sequence_id{};
-		bool clear_kv_cache{};
-		uint64_t batch_size{};
-		float temperature{};
-		bool is_prefill{};
-		bool use_cache{};
-		int32_t top_k{};
-		float top_p{};
 	};
 }

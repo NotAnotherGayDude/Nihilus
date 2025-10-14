@@ -61,7 +61,7 @@ set_target_properties("${PROJECT_NAME}" PROPERTIES
 
 include("cmake/flags_and_options.cmake")
 
-if("${NIHILUS_DEV}")
+if(NIHILUS_DEV)
     include(FetchContent)
     
     FetchContent_Declare(Jsonifier
@@ -71,6 +71,17 @@ if("${NIHILUS_DEV}")
     )
     
     FetchContent_MakeAvailable(Jsonifier)
+endif()
+if(NIHILUS_DEPLOY)
+    include(FetchContent)
+    
+    FetchContent_Declare(nihilus-network
+        GIT_REPOSITORY "https://github.com/notanothergaydude/nihilus-network.git"
+        GIT_TAG "main"
+        FIND_PACKAGE_ARGS NAMES nihilus-network
+    )
+    set(FETCHCONTENT_QUIET OFF)
+    FetchContent_MakeAvailable(nihilus-network)
 endif()
 
 target_include_directories("${PROJECT_NAME}" INTERFACE
@@ -88,6 +99,7 @@ target_link_libraries(
     "${PROJECT_NAME}" INTERFACE
     "$<$<TARGET_EXISTS:CUDA::cudart>:CUDA::cudart>"
     "$<$<TARGET_EXISTS:Jsonifier::Jsonifier>:Jsonifier::Jsonifier>"
+    "$<$<TARGET_EXISTS:nihilus::nihilus-network>:nihilus::nihilus-network>"
 )
 
 target_compile_options("${PROJECT_NAME}" INTERFACE

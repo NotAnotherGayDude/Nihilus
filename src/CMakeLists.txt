@@ -27,6 +27,7 @@ add_executable(
 target_link_libraries(
 	"nihilus-main" PUBLIC 
 	"nihilus::nihilus"
+	"$<$<TARGET_EXISTS:nihilus::network>:nihilus::network>"
 )
 
 install(

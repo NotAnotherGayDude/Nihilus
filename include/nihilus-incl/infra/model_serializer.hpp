@@ -29,17 +29,17 @@ namespace nihilus {
 		uint64_t thread_count{};
 	};
 
-	template<const model_config& config> struct model_serializer_impl {};
+	template<typename config_type> struct model_serializer_impl {};
 
-	template<const model_config& config>
-		requires((config.model_arch == model_arches::llama) && (config.model_format == model_formats::gguf))
-	struct model_serializer_impl<config> {
-		using model_traits_type = model_traits<config.model_arch, config.model_size, config.model_generation>;
+	template<typename config_type>
+		requires((config_type::model_arch == model_arches::llama) && (config_type::model_format == model_formats::gguf))
+	struct model_serializer_impl<config_type> {
+		using model_traits_type = model_traits<config_type::model_arch, config_type::model_size, config_type::model_generation>;
 		static_assert((std::endian::native == std::endian::little), "Sorry, but big-endian is not yet supported by the library");
-		template<typename tokenizer_type> NIHILUS_HOST static gguf_metadata<config> parse_model(array<array<void*, model_traits_type::block_count>, core_types::count>& data,
-			memory_mapped_file<config>* memory_file, tokenizer_type& tokenizer) {
-			stream_iterator<config> ptr{ memory_file };
-			gguf_metadata<config> gguf_file{ value_reader<config, gguf_metadata<config>>::gather_value(ptr) };
+		template<typename tokenizer_type> NIHILUS_HOST static gguf_metadata<config_type> parse_model(array<array<void*, model_traits_type::block_count>, core_types::count>& data,
+			memory_mapped_file<config_type>* memory_file, tokenizer_type& tokenizer) {
+			stream_iterator<config_type> ptr{ memory_file };
+			gguf_metadata<config_type> gguf_file{ value_reader<config_type, gguf_metadata<config_type>>::gather_value(ptr) };
 			tokenizer.tokens		= detail::move(gguf_file.tokenizer_ggml_tokens);
 			tokenizer.merges		= detail::move(gguf_file.tokenizer_ggml_merges);
 			tokenizer.token_types	= detail::move(gguf_file.tokenizer_ggml_token_type);
@@ -47,8 +47,8 @@ namespace nihilus {
 			aligned_vector<core_base_creation_data> tensor_infos{};
 			tensor_infos.reserve(gguf_file.tensor_count);
 			for (uint64_t x = 0; x < gguf_file.tensor_count; ++x) {
-				auto new_tensor{ value_reader<config, core_base_creation_data, model_arches::llama>::gather_value(ptr) };
-				if (!core_traits_comparitor<config, model_arches::llama>::impl(new_tensor)) {
+				auto new_tensor{ value_reader<config_type, core_base_creation_data, model_arches::llama>::gather_value(ptr) };
+				if (!core_traits_comparitor<config_type>::impl(new_tensor)) {
 					throw std::runtime_error{ "Tensor dimensions incorrect!" };
 				}
 				tensor_infos.emplace_back(new_tensor);
@@ -71,6 +71,6 @@ namespace nihilus {
 		}
 	};
 
-	template<const model_config& config> struct model_serializer {};
+	template<typename config_type> struct model_serializer {};
 
 }

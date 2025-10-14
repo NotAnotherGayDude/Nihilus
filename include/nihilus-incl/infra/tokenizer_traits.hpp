@@ -35,9 +35,9 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-	template<model_arches model_arch, tokenizer_types tokenizer_type, tokenizer_pre_types tokenizer_pre_type> struct tokenizer_traits;
+	template<tokenizer_types tokenizer_type, tokenizer_pre_types tokenizer_pre_type> struct tokenizer_traits;
 
-	template<> struct tokenizer_traits<model_arches::llama, tokenizer_types::bpe, tokenizer_pre_types::llama3> {
+	template<> struct tokenizer_traits<tokenizer_types::bpe, tokenizer_pre_types::llama3> {
 		static constexpr tokenizer_pre_types tokenizer_pre_type = tokenizer_pre_types::llama3;
 		static constexpr tokenizer_types tokenizer_type			= tokenizer_types::bpe;
 		static constexpr uint32_t max_token_length				= 128;

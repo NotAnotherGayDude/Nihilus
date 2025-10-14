@@ -20,7 +20,7 @@ RealTimeChris (Chris M.)
 
 #pragma once
 
-#include <nihilus-incl/common/utility.hpp>
+#include <nihilus-incl/common/model_config.hpp>
 #include <type_traits>
 #include <concepts>
 
@@ -82,9 +82,9 @@ namespace nihilus {
 
 	template<typename value_type> using base_type = std::remove_cvref_t<value_type>;
 
-	template<typename value_type> using x_type = decltype(base_type<value_type>::x);
-
 #if NIHILUS_COMPILER_CUDA
+
+	template<typename value_type> using x_type = decltype(base_type<value_type>::x);
 
 	template<typename value_type>
 	concept half_cuda_types = std::is_same_v<__half, detail::remove_cvref_t<value_type>>;
@@ -243,5 +243,20 @@ namespace nihilus {
 	concept dim_types = requires() { base_type<value_type>::x; };
 
 	template<integral_or_enum_types auto index> using tag = std::integral_constant<uint64_t, static_cast<uint64_t>(index)>;
+
+	template<typename value_type>
+	concept managed_user_input_types = detail::remove_cvref_t<value_type>::user_input_type == user_input_types::managed;
+
+	template<typename value_type>
+	concept gpu_device_types = detail::remove_cvref_t<value_type>::device_type == device_types::gpu;
+
+	template<typename value_type>
+	concept cpu_device_types = detail::remove_cvref_t<value_type>::device_type == device_types::cpu;
+
+	template<typename value_type>
+	concept llama_arch_types = detail::remove_cvref_t<value_type>::model_arch == model_arches::llama;
+
+	template<typename value_type>
+	concept dev_or_benchmark = detail::remove_cvref_t<value_type>::benchmark || detail::remove_cvref_t<value_type>::dev;
 
 }

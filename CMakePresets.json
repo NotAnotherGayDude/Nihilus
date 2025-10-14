@@ -45,6 +45,14 @@
       }
     },
     {
+      "name": "deploy-nihilus-cuda",
+      "inherits": "release-base",
+      "cacheVariables": {
+        "NIHILUS_COMPILER_CUDA": true,
+        "NIHILUS_DEPLOY": true
+      }
+    },
+    {
       "name": "debug-nihilus-cuda",
       "inherits": "debug-base",
       "cacheVariables": {
@@ -56,6 +64,14 @@
       "inherits": "release-base",
       "cacheVariables": {
         "NIHILUS_CPU": true
+      }
+    },
+    {
+      "name": "deploy-nihilus-cpu",
+      "inherits": "release-base",
+      "cacheVariables": {
+        "NIHILUS_CPU": true,
+        "NIHILUS_DEPLOY": true
       }
     },
     {

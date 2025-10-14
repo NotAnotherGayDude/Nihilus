@@ -34,14 +34,14 @@ namespace nihilus {
 		using compute_type		= compute_type_new;
 		using embedding_type	= embedding_type_new;
 		using logit_type		= logit_type_new;
-		using attention_type	= attention_type_new;
-		using norm_type			= norm_type_new;
-		using kv_cache_type		= kv_cache_type_new;
 		using input_token_type	= input_token_type_new;
 		using output_token_type = output_token_type_new;
 		using position_type		= position_type_new;
+		using attention_type	= attention_type_new;
+		using norm_type			= norm_type_new;
 		using scale_type		= scale_type_new;
 		using zero_point_type	= zero_point_type_new;
+		using kv_cache_type		= kv_cache_type_new;
 		using mask_type			= mask_type_new;
 		using index_type		= index_type_new;
 		using size_type			= size_type_new;
@@ -64,10 +64,11 @@ namespace nihilus {
 																					 half,// kv_cache_type
 																					 float,// mask_type
 																					 int32_t,// index_type
-																					 uint64_t> {
+																					 uint64_t// size_type
+																					 > {
 		static constexpr kernel_type_profiles type{ kernel_type_profiles::q8_gqa };
 		static constexpr const char* name{ "Q8-GQA" };
-	};// size_type
+	};
 
 	template<> struct kernel_type_profile_traits<kernel_type_profiles::fp16_mha> : public kernel_type_profile_traits_impl<half,// weight_type
 																					   half,// activation_type
@@ -84,7 +85,8 @@ namespace nihilus {
 																					   half,// kv_cache_type
 																					   half,// mask_type
 																					   int32_t,// index_type
-																					   uint64_t> {
+																					   uint64_t// size_type
+																					   > {
 		static constexpr kernel_type_profiles type{ kernel_type_profiles::fp16_mha };
 		static constexpr const char* name{ "FP16-MHA" };
 	};

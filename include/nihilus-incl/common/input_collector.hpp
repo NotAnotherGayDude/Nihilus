@@ -26,14 +26,14 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-	template<const model_config& config> struct input_collector {
+	template<typename config_type> struct input_collector {
 	  protected:
 		aligned_vector<char> buffer;
 		uint64_t current_length = 0;
 
 	  public:
 		NIHILUS_HOST input_collector() {
-			buffer.resize(config.default_max_sequence_length);
+			buffer.resize(config_type::max_sequence_length);
 			terminate();
 		}
 
@@ -47,7 +47,7 @@ namespace nihilus {
 		}
 
 		NIHILUS_HOST void terminate() noexcept {
-			if (current_length < config.default_max_sequence_length) {
+			if (current_length < config_type::max_sequence_length) {
 				buffer.at(current_length) = '\0';
 			}
 		}
@@ -62,13 +62,13 @@ namespace nihilus {
 						terminate();
 						return true;
 					}
-					if (current_length < config.default_max_sequence_length - 1) {
+					if (current_length < config_type::max_sequence_length - 1) {
 						buffer[current_length++] = '\n';
 					}
 					last_was_newline = true;
 				} else {
 					last_was_newline = false;
-					if (current_length < config.default_max_sequence_length - 1) {
+					if (current_length < config_type::max_sequence_length - 1) {
 						buffer[current_length++] = static_cast<char>(c);
 					}
 				}
@@ -78,9 +78,7 @@ namespace nihilus {
 		}
 	};
 
-	template<const model_config& config>
-		requires(config.user_input_type == user_input_types::managed)
-	struct input_collector<config> {
+	template<managed_user_input_types config_type> struct input_collector<config_type> {
 	  protected:
 		aligned_vector<char> buffer;
 		uint64_t current_length = 0;
@@ -89,7 +87,7 @@ namespace nihilus {
 
 	  public:
 		NIHILUS_HOST input_collector() {
-			buffer.resize(config.default_max_sequence_length);
+			buffer.resize(config_type::max_sequence_length);
 			terminate();
 		}
 
@@ -99,13 +97,13 @@ namespace nihilus {
 		}
 
 		NIHILUS_HOST void terminate() noexcept {
-			if (current_length < config.default_max_sequence_length) {
+			if (current_length < config_type::max_sequence_length) {
 				buffer[current_length] = '\0';
 			}
 		}
 
 		NIHILUS_HOST uint64_t remaining_length() noexcept {
-			return (config.default_max_sequence_length - current_length) - 1;
+			return (config_type::max_sequence_length - current_length) - 1;
 		}
 
 		NIHILUS_HOST uint64_t write_input(const char* string, uint64_t length) noexcept {
@@ -132,6 +130,5 @@ namespace nihilus {
 			return string;
 		}
 	};
-
 
 }

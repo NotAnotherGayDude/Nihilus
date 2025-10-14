@@ -109,31 +109,29 @@ namespace nihilus {
 	}
 
 	struct benchmark_stats {
-		clock_type::time_point sampling_start		= {};
-		clock_type::time_point prompt_start			= {};
-		clock_type::time_point token_start			= {};
-		clock_type::time_point eval_start			= {};
-		clock_type::time_point load_start			= {};
-		double total_prompt_eval_time_ns			= {};
-		double total_sampling_time_ns				= {};
-		double total_eval_time_ns					= {};
-		double total_load_time_ns					= {};
-		uint64_t generated_token_count				= {};
-		uint64_t prompt_token_count					= {};
-		uint64_t total_sampling_runs				= {};
-		uint64_t current_iteration					= {};
+		clock_type::time_point sampling_start = {};
+		clock_type::time_point prompt_start	  = {};
+		clock_type::time_point token_start	  = {};
+		clock_type::time_point eval_start	  = {};
+		clock_type::time_point load_start	  = {};
+		double total_prompt_eval_time_ns	  = {};
+		double total_sampling_time_ns		  = {};
+		double total_eval_time_ns			  = {};
+		double total_load_time_ns			  = {};
+		uint64_t generated_token_count		  = {};
+		uint64_t prompt_token_count			  = {};
+		uint64_t total_sampling_runs		  = {};
+		uint64_t current_iteration			  = {};
 	};
 
-	template<const model_config& config> struct perf_base {};
+	template<typename config_type> struct perf_base {};
 
-	template<const model_config& config>
-		requires(config.benchmark.operator bool() || config.dev.operator bool())
-	struct perf_base<config> {
+	template<dev_or_benchmark config_type> struct perf_base<config_type> {
 		benchmark_stats perf_stats{};
 	};
 
-	template<const model_config& config> struct thread_pool : public get_core_bases_t<config>, public perf_base<config> {
-		using core_bases_type = get_core_bases_t<config>;
+	template<typename config_type> struct thread_pool : public get_core_bases_t<config_type>, public perf_base<config_type> {
+		using core_bases_type = get_core_bases_t<config_type>;
 		NIHILUS_HOST thread_pool() noexcept {
 		}
 		NIHILUS_HOST thread_pool& operator=(const thread_pool&) noexcept = delete;
@@ -162,11 +160,11 @@ namespace nihilus {
 				if (!stop.load()) {
 					if (processing_phase.load() == processing_phases::prompt_eval_time) {
 						core_bases_type::template impl_thread<global_input_thread_function, processing_phases::prompt_eval_time>(thread_count);
-						execute_blocks<processing_phases::prompt_eval_time>(std::make_index_sequence<static_cast<uint64_t>(model_traits_type<config>::block_count)>{});
+						execute_blocks<processing_phases::prompt_eval_time>(std::make_index_sequence<static_cast<uint64_t>(model_traits_type<config_type>::block_count)>{});
 						core_bases_type::template impl_thread<global_output_thread_function, processing_phases::prompt_eval_time>(thread_count);
 					} else {
 						core_bases_type::template impl_thread<global_input_thread_function, processing_phases::eval_time>(thread_count);
-						execute_blocks<processing_phases::eval_time>(std::make_index_sequence<static_cast<uint64_t>(model_traits_type<config>::block_count)>{});
+						execute_blocks<processing_phases::eval_time>(std::make_index_sequence<static_cast<uint64_t>(model_traits_type<config_type>::block_count)>{});
 						core_bases_type::template impl_thread<global_output_thread_function, processing_phases::eval_time>(thread_count);
 					}
 					thread_latch.arrive();
