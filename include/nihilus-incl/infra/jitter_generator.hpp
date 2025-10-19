@@ -82,50 +82,6 @@ namespace nihilus {
 		NIHILUS_HOST ring_buffer_interface() noexcept {
 		}
 
-		struct iterator {
-			using iterator_category = std::forward_iterator_tag;
-			using value_type		= value_type_new;
-			using difference_type	= std::ptrdiff_t;
-			using pointer			= value_type*;
-			using reference			= value_type&;
-
-		  protected:
-			size_type start{};
-			size_type count{};
-			size_type pos{};
-			pointer data{};
-
-		  public:
-			NIHILUS_HOST iterator() noexcept {}
-			NIHILUS_HOST iterator(ring_buffer_interface* ptr_new) noexcept : start{ ptr_new->tail }, count{ ptr_new->get_used_space() }, pos{}, data{ ptr_new->values.data() } {}
-
-			NIHILUS_HOST reference operator*() const noexcept {
-				return data[(start + pos) & (size_new - 1)];
-			}
-			NIHILUS_HOST iterator& operator++() noexcept {
-				++pos;
-				return *this;
-			}
-			NIHILUS_HOST iterator operator++(int) noexcept {
-				iterator temp{ *this };
-				++pos;
-				return temp;
-			}
-			NIHILUS_HOST bool operator==([[maybe_unused]] const iterator&) const noexcept {
-				return pos == count;
-			}
-			NIHILUS_HOST bool operator!=(const iterator& other) const noexcept {
-				return !(*this == other);
-			}
-		};
-
-		NIHILUS_HOST iterator begin() noexcept {
-			return iterator(this);
-		}
-		NIHILUS_HOST iterator end() noexcept {
-			return iterator(this);
-		}
-
 		NIHILUS_HOST size_type get_used_space() noexcept {
 			if (full_val) {
 				return size_new;
@@ -137,21 +93,22 @@ namespace nihilus {
 			return evicted_value;
 		}
 
-		template<typename value_type_newer> NIHILUS_HOST bool write_data(value_type_newer&& data) noexcept {
-			bool evicted{};
-			if (full_val) {
-				evicted_value = values[tail];
-				tail		  = (tail + 1) & (size_new - 1);
-				evicted		  = true;
-			} else {
-				evicted = false;
-			}
-
+		template<typename value_type_newer> NIHILUS_HOST void write_data_impl(value_type_newer&& data) noexcept {
 			values[head] = detail::forward<value_type_newer>(data);
 			head		 = (head + 1) & (size_new - 1);
 			full_val	 = head == tail;
+		}
 
-			return evicted;
+		template<typename value_type_newer> NIHILUS_HOST bool write_data(value_type_newer&& data) noexcept {
+			if (full_val) {
+				evicted_value = values[tail];
+				tail		  = (tail + 1) & (size_new - 1);
+				write_data_impl(data);
+				return true;
+			} else {
+				write_data_impl(data);
+				return false;
+			}
 		}
 
 		array<std::remove_cvref_t<value_type>, size_new> values{};

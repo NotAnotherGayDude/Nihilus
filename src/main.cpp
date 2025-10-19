@@ -69,18 +69,18 @@ static read_write get_read_writes(std::vector<tensor_op> inputs) {
 }
 
 template<uint64_t seq_length> static std::vector<tensor_op> create_original_llama_cpp_layer_tensor_ops_with_seqlen() {
-	constexpr uint32_t embedding_length		   = 4096;
+	constexpr uint32_t embedding_length		   = 16384;
 	constexpr uint32_t vocab_size			   = 128256;
-	constexpr uint32_t feed_forward_length	   = 14336;
-	constexpr uint32_t attention_head_count	   = 32;
-	constexpr uint32_t block_count			   = 32;
+	constexpr uint32_t feed_forward_length	   = 53248;
+	constexpr uint32_t attention_head_count	   = 128;
+	constexpr uint32_t block_count			   = 126;
 	constexpr uint32_t attention_head_count_kv = 8;
-	constexpr uint32_t rope_dimension_count	   = 128;
+	constexpr uint32_t rope_dimension_count	   = embedding_length / attention_head_count;
 	constexpr uint64_t n_embd_kv_gqa		   = rope_dimension_count * attention_head_count_kv;
 	std::vector<tensor_op> ops;
 
 	ops.emplace_back(tensor_op{ .name = "inp_embd",
-		.inputs = { { .element_count = embedding_length * vocab_size, .data_type = data_types::q8_0 }, { .element_count = seq_length, .data_type = data_types::i32 } },
+		.inputs = { { .element_count = embedding_length * vocab_size, .data_type = data_types::i16 }, { .element_count = seq_length, .data_type = data_types::i32 } },
 		.output = { .element_count = embedding_length * seq_length, .data_type = data_types::f32 } });
 
 	for (uint64_t x = 0; x < block_count; ++x) {
@@ -93,7 +93,7 @@ template<uint64_t seq_length> static std::vector<tensor_op> create_original_llam
 			.output = { .element_count = embedding_length * seq_length, .data_type = data_types::f32 } });
 
 		ops.emplace_back(tensor_op{ .name = "Qcur-0",
-			.inputs						  = { { .element_count = embedding_length * embedding_length, .data_type = data_types::q8_0 },
+			.inputs						  = { { .element_count = embedding_length * embedding_length, .data_type = data_types::i16 },
 									  { .element_count = embedding_length * seq_length, .data_type = data_types::f32 } },
 			.output						  = { .element_count = embedding_length * seq_length, .data_type = data_types::f32 } });
 		/*
@@ -107,7 +107,7 @@ template<uint64_t seq_length> static std::vector<tensor_op> create_original_llam
 			.output						  = { .element_count = rope_dimension_count * attention_head_count * seq_length, .data_type = data_types::f32 } });
 
 		ops.emplace_back(tensor_op{ .name = "Kcur-0",
-			.inputs						  = { { .element_count = embedding_length * n_embd_kv_gqa, .data_type = data_types::q8_0 },
+			.inputs						  = { { .element_count = embedding_length * n_embd_kv_gqa, .data_type = data_types::i16 },
 									  { .element_count = embedding_length * seq_length, .data_type = data_types::f32 } },
 			.output						  = { .element_count = n_embd_kv_gqa * seq_length, .data_type = data_types::f32 } });
 		/*
@@ -121,7 +121,7 @@ template<uint64_t seq_length> static std::vector<tensor_op> create_original_llam
 			.output						  = { .element_count = rope_dimension_count * attention_head_count_kv * seq_length, .data_type = data_types::f32 } });
 
 		ops.emplace_back(tensor_op{ .name = "Vcur-0",
-			.inputs						  = { { .element_count = embedding_length * n_embd_kv_gqa, .data_type = data_types::q8_0 },
+			.inputs						  = { { .element_count = embedding_length * n_embd_kv_gqa, .data_type = data_types::i16 },
 									  { .element_count = embedding_length * seq_length, .data_type = data_types::f32 } },
 			.output						  = { .element_count = n_embd_kv_gqa * seq_length, .data_type = data_types::f32 } });
 		/*
@@ -183,7 +183,7 @@ template<uint64_t seq_length> static std::vector<tensor_op> create_original_llam
 			.output						  = { .element_count = embedding_length * seq_length, .data_type = data_types::f32 } });
 
 		ops.emplace_back(tensor_op{ .name = "kqv_out-0",
-			.inputs						  = { { .element_count = embedding_length * embedding_length, .data_type = data_types::q8_0 },
+			.inputs						  = { { .element_count = embedding_length * embedding_length, .data_type = data_types::i16 },
 									  { .element_count = embedding_length * seq_length, .data_type = data_types::f32 } },
 			.output						  = { .element_count = embedding_length * seq_length, .data_type = data_types::f32 } });
 
@@ -201,7 +201,7 @@ template<uint64_t seq_length> static std::vector<tensor_op> create_original_llam
 			.output = { .element_count = embedding_length * seq_length, .data_type = data_types::f32 } });
 
 		ops.emplace_back(tensor_op{ .name = "ffn_gate-0",
-			.inputs						  = { { .element_count = embedding_length * feed_forward_length, .data_type = data_types::q8_0 },
+			.inputs						  = { { .element_count = embedding_length * feed_forward_length, .data_type = data_types::i16 },
 									  { .element_count = embedding_length * seq_length, .data_type = data_types::f32 } },
 			.output						  = { .element_count = feed_forward_length * seq_length, .data_type = data_types::f32 } });
 
@@ -210,7 +210,7 @@ template<uint64_t seq_length> static std::vector<tensor_op> create_original_llam
 			.output						  = { .element_count = feed_forward_length * seq_length, .data_type = data_types::f32 } });
 
 		ops.emplace_back(tensor_op{ .name = "ffn_up-0",
-			.inputs						  = { { .element_count = embedding_length * feed_forward_length, .data_type = data_types::q8_0 },
+			.inputs						  = { { .element_count = embedding_length * feed_forward_length, .data_type = data_types::i16 },
 									  { .element_count = embedding_length * seq_length, .data_type = data_types::f32 } },
 			.output						  = { .element_count = feed_forward_length * seq_length, .data_type = data_types::f32 } });
 
@@ -220,7 +220,7 @@ template<uint64_t seq_length> static std::vector<tensor_op> create_original_llam
 			.output						  = { .element_count = feed_forward_length * seq_length, .data_type = data_types::f32 } });
 
 		ops.emplace_back(tensor_op{ .name = "ffn_out-0",
-			.inputs						  = { { .element_count = feed_forward_length * embedding_length, .data_type = data_types::q8_0 },
+			.inputs						  = { { .element_count = feed_forward_length * embedding_length, .data_type = data_types::i16 },
 									  { .element_count = feed_forward_length * seq_length, .data_type = data_types::f32 } },
 			.output						  = { .element_count = embedding_length * seq_length, .data_type = data_types::f32 } });
 
@@ -239,20 +239,20 @@ template<uint64_t seq_length> static std::vector<tensor_op> create_original_llam
 		.output = { .element_count = embedding_length, .data_type = data_types::f32 } });
 
 	ops.emplace_back(tensor_op{ .name = "result_output",
-		.inputs = { { .element_count = embedding_length * vocab_size, .data_type = data_types::q8_0 }, { .element_count = embedding_length, .data_type = data_types::f32 } },
+		.inputs = { { .element_count = embedding_length * vocab_size, .data_type = data_types::i16 }, { .element_count = embedding_length, .data_type = data_types::f32 } },
 		.output = { .element_count = vocab_size, .data_type = data_types::f32 } });
 
 	return ops;
 }
 
 template<uint64_t seq_length> static std::vector<tensor_op> create_mega_pipeline_layer_tensor_ops_with_seqlen() {
-	constexpr uint32_t embedding_length			= 4096;
+	constexpr uint32_t embedding_length		   = 16384;
 	constexpr uint32_t vocab_size			   = 128256;
-	constexpr uint32_t feed_forward_length	   = 14336;
-	constexpr uint32_t attention_head_count	   = 32;
-	constexpr uint32_t block_count			   = 32;
+	constexpr uint32_t feed_forward_length	   = 53248;
+	constexpr uint32_t attention_head_count	   = 128;
+	constexpr uint32_t block_count			   = 126;
 	constexpr uint32_t attention_head_count_kv = 8;
-	constexpr uint32_t rope_dimension_count	   = 128;
+	constexpr uint32_t rope_dimension_count	   = embedding_length / attention_head_count;
 	constexpr uint64_t n_embd_kv_gqa		   = rope_dimension_count * attention_head_count_kv;
 	constexpr uint64_t total_cache_size_k	   = seq_length * n_embd_kv_gqa;
 	constexpr uint64_t total_cache_size_v	   = seq_length * n_embd_kv_gqa;
@@ -263,7 +263,7 @@ template<uint64_t seq_length> static std::vector<tensor_op> create_mega_pipeline
 	ops.emplace_back(tensor_op{
         .name   = "token_embeddings/GET_ROWS",
         .inputs = {
-            { .element_count = embedding_length * vocab_size, .data_type = data_types::q8_0 }, // token_embd.weight
+            { .element_count = embedding_length * vocab_size, .data_type = data_types::i16 }, // token_embd.weight
             { .element_count = seq_length,                   .data_type = data_types::i32  }  // inp_tokens
         },
         .output = { .element_count = embedding_length * seq_length, .data_type = data_types::f32 } // inp_embd
@@ -278,9 +278,9 @@ template<uint64_t seq_length> static std::vector<tensor_op> create_mega_pipeline
             .inputs = {
                 { .element_count = embedding_length * seq_length,          .data_type = data_types::f32  }, // inp_embd
                 { .element_count = embedding_length,                       .data_type = data_types::f32  }, // attn_norm.weight
-                { .element_count = embedding_length * embedding_length,    .data_type = data_types::q8_0 }, // attn_q.weight
-                { .element_count = n_embd_kv_gqa * embedding_length,       .data_type = data_types::q8_0 }, // attn_k.weight
-                { .element_count = n_embd_kv_gqa * embedding_length,       .data_type = data_types::q8_0 }, // attn_v.weight
+                { .element_count = embedding_length * embedding_length,    .data_type = data_types::i16 }, // attn_q.weight
+                { .element_count = n_embd_kv_gqa * embedding_length,       .data_type = data_types::i16 }, // attn_k.weight
+                { .element_count = n_embd_kv_gqa * embedding_length,       .data_type = data_types::i16 }, // attn_v.weight
                 { .element_count = seq_length,                              .data_type = data_types::i32  }, // inp_pos
                 { .element_count = (rope_dimension_count / 2),             .data_type = data_types::f32  }, // rope_freqs.weight
                 { .element_count = total_cache_size_k,                      .data_type = data_types::f16  }, // cache_k_l0 (dest view)
@@ -316,7 +316,7 @@ template<uint64_t seq_length> static std::vector<tensor_op> create_mega_pipeline
                 // KQ mask (context_length × seq_length) — keep as you model it
                 { .element_count = block_count * block_count,                                .data_type = data_types::f32  },
                 // attn_output.weight
-                { .element_count = embedding_length * embedding_length,                      .data_type = data_types::q8_0 },
+                { .element_count = embedding_length * embedding_length,                      .data_type = data_types::i16 },
                 // residual (inp_embd)
                 { .element_count = embedding_length * seq_length,                            .data_type = data_types::f32  }
             },
@@ -331,9 +331,9 @@ template<uint64_t seq_length> static std::vector<tensor_op> create_mega_pipeline
             .inputs = {
                 { .element_count = embedding_length * seq_length,          .data_type = data_types::f32  }, // ffn_inp
                 { .element_count = embedding_length,                       .data_type = data_types::f32  }, // ffn_norm.weight
-                { .element_count = feed_forward_length * embedding_length, .data_type = data_types::q8_0 }, // ffn_gate.weight
-                { .element_count = feed_forward_length * embedding_length, .data_type = data_types::q8_0 }, // ffn_up.weight
-                { .element_count = embedding_length * feed_forward_length, .data_type = data_types::q8_0 }  // ffn_down.weight
+                { .element_count = feed_forward_length * embedding_length, .data_type = data_types::i16 }, // ffn_gate.weight
+                { .element_count = feed_forward_length * embedding_length, .data_type = data_types::i16 }, // ffn_up.weight
+                { .element_count = embedding_length * feed_forward_length, .data_type = data_types::i16 }  // ffn_down.weight
             },
             // l_out [embedding_length * seq_length] (f32)
             .output = { .element_count = embedding_length * seq_length, .data_type = data_types::f32 }
@@ -347,7 +347,7 @@ template<uint64_t seq_length> static std::vector<tensor_op> create_mega_pipeline
             // last position of l_out is selected internally by index math
             { .element_count = embedding_length,               .data_type = data_types::f32  }, // l_out (selected pos)
             { .element_count = embedding_length,               .data_type = data_types::f32  }, // output_norm.weight
-            { .element_count = vocab_size * embedding_length,  .data_type = data_types::q8_0 }, // output.weight
+            { .element_count = vocab_size * embedding_length,  .data_type = data_types::i16 }, // output.weight
 
             // Sampler params
             { .element_count = 1, .data_type = data_types::f32  }, // temperature

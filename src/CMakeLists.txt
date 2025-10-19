@@ -21,13 +21,13 @@
 
 add_executable(
 	"nihilus-main" 
-	"main${NIHILUS_MAIN_FILE_EXTENSION}"
+	"$<IF:$<STREQUAL:${NIHILUS_DEPLOY},TRUE>,main_deploy${NIHILUS_MAIN_FILE_EXTENSION},main${NIHILUS_MAIN_FILE_EXTENSION}>"
 )
 
 target_link_libraries(
 	"nihilus-main" PUBLIC 
 	"nihilus::nihilus"
-	"$<$<TARGET_EXISTS:nihilus::network>:nihilus::network>"
+	"$<$<TARGET_EXISTS:nihilus::nihilus-network>:nihilus::nihilus-network>"
 )
 
 install(

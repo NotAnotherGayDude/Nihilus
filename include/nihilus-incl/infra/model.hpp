@@ -38,7 +38,8 @@ namespace nihilus {
 		template<typename... arg_types> NIHILUS_HOST explicit model_collection(arg_types&&... params) : bases(params)... {
 		}
 
-		NIHILUS_HOST explicit model_collection(){}
+		NIHILUS_HOST model_collection() {
+		}
 
 		NIHILUS_HOST bool process_input() noexcept {
 			return (... && bases::process_input_impl());
@@ -47,42 +48,38 @@ namespace nihilus {
 		NIHILUS_HOST bool process_input(std::string_view prompt) noexcept {
 			return (... && bases::process_input_impl(prompt));
 		}
-	};
 
-	template<uint64_t max_sequence_length> struct user_prompt {
-		NIHILUS_HOST user_prompt() {}
-		array<char, max_sequence_length> prompt{};
-		uint64_t user_id{};
-	};
-
-	template<typename https_server, typename... bases> struct https_model_collection : public bases... {
-		template<typename... arg_types> NIHILUS_HOST explicit https_model_collection(arg_types&&... params) : bases(params)... {
+		NIHILUS_HOST void wait() {
+			std::cout << "[Model Collection] Waiting on " << sizeof...(bases) << " model(s)...\n";
+			(bases::wait(), ...);
+			std::cout << "[Model Collection] All models have completed\n";
 		}
 
-		NIHILUS_HOST explicit https_model_collection(){}
-
-		NIHILUS_HOST bool process_input() noexcept {
-			return (... && (https_ptr->template get_next_prompts<bases>(bases::user_prompts), bases::process_prompts_impl()));
+		NIHILUS_HOST void signal_shutdown() {
+			std::cout << "[Model Collection] Signaling shutdown to all models...\n";
+			(bases::signal_shutdown(), ...);
 		}
 
-	  protected:
-		https_server* https_ptr{};
+		NIHILUS_HOST void stop_all() {
+			std::cout << "[Model Collection] Stopping all models...\n";
+			(bases::stop_threads(), ...);
+			std::cout << "[Model Collection] All models stopped\n";
+		}
 	};
 
-	template<uint64_t index_new, typename config_type>
-	struct model : public input_collector<config_type>, public thread_pool<config_type>, public tokenizer<config_type, config_type::model_arch, config_type::tokenizer_type> {
+	template<uint64_t index_new, typename... types> struct model;
+
+	template<uint64_t index_new, typename config_type> struct model<index_new, config_type>
+		: public input_collector<config_type>, public thread_pool<config_type>, public tokenizer<config_type, config_type::model_arch, config_type::tokenizer_type> {
 		using thread_pool_type = thread_pool<config_type>;
 		using core_bases_type  = get_core_bases_t<config_type>;
 		using tokenizer_type   = tokenizer<config_type, config_type::model_arch, config_type::tokenizer_type>;
-
-		aligned_vector<user_prompt<config_type::max_sequence_length>> user_prompts{};
 
 		NIHILUS_HOST model() noexcept {
 		}
 
 		NIHILUS_HOST model(cli_params params) : thread_pool<config_type>{ static_cast<int64_t>(params.thread_count) } {
 			exec_params.token_count = params.n_tokens;
-			user_prompts.resize(config_type::batch_size);
 			init(params);
 		}
 
@@ -245,9 +242,29 @@ namespace nihilus {
 			return {};
 		}
 
+		NIHILUS_HOST void generate_causal_mask() {
+			using core_type = detail::remove_cvref_t<
+				decltype(this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::kq_mask>())>;
+			using output_type = typename core_type::output_type;
+
+			output_type* mask_data =
+				this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::kq_mask>().get_data();
+			static constexpr auto dims = core_type::get_array();
+			const uint64_t total_dims  = dims[0] * dims[1] * dims[2] * dims[3];
+			output_type value{};
+			for (uint64_t x = 0; x < total_dims; ++x) {
+				if (x == 0 || x == 32 || x == 33) {
+					value = 0.0f;
+					memory_transfer<config_type>::host_to_device(value, mask_data + x);
+				} else {
+					value = -std::numeric_limits<output_type>::infinity();
+					memory_transfer<config_type>::host_to_device(value, mask_data + x);
+				}
+			}
+		}
+
 		NIHILUS_HOST void print_performance_stats() {
 			if constexpr (config_type::benchmark || config_type::dev) {
-
 				double prompt_eval_time_ms = perf_base<config_type>::perf_stats.total_prompt_eval_time_ns * 1e-6;
 				double eval_time_ms		   = perf_base<config_type>::perf_stats.total_eval_time_ns * 1e-6;
 
@@ -302,6 +319,226 @@ namespace nihilus {
 		}
 	};
 
+	inline constexpr size_t round_to_power_of_two(size_t value) {
+		if (value == 0)
+			return 1;
+		value--;
+		value |= value >> 1;
+		value |= value >> 2;
+		value |= value >> 4;
+		value |= value >> 8;
+		value |= value >> 16;
+		value |= value >> 32;
+		return value + 1;
+	}
+
+	template<typename config_type> struct cli_params_config {
+		config_type config{};
+		cli_params params{};
+	};
+
+	template<uint64_t index_new, typename config_type, typename connection_type> struct model<index_new, config_type, connection_type> : public model<index_new, config_type> {
+		using output_queue_type		 = typename connection_type::output_queue_type;
+		using input_queue_type		 = typename connection_type::input_queue_type;
+		using response_type			 = typename connection_type::response_type;
+		using request_type			 = typename connection_type::request_type;
+		using connection_config_type = typename connection_type::config_type;
+		using flag_type				 = typename connection_type::flag_type;
+		using base_model_type		 = model<index_new, config_type>;
+
+		flag_type threads_running{};
+		connection_type connection;
+		output_queue_type internal_output_queue;
+		std::thread input_reader_thread;
+		std::thread output_writer_thread;
+
+		NIHILUS_HOST model() = default;
+
+		NIHILUS_HOST model(cli_params params, connection_config_type conn_config)
+			: base_model_type{ params }, threads_running{ false }, connection{ conn_config },
+			  internal_output_queue(round_to_power_of_two(64), config_type::max_sequence_length, &threads_running) {
+			threads_running.store(true, std::memory_order_release);
+
+			input_reader_thread	 = std::thread(&model::input_reader_loop, this);
+			output_writer_thread = std::thread(&model::output_writer_loop, this);
+
+			log<log_levels::status>("[Model] Initialized with connection threads");
+		}
+
+		NIHILUS_HOST model(cli_params_config<connection_config_type> params) : model(params.params, params.config) {
+		}
+
+		NIHILUS_HOST ~model() {
+			stop_threads();
+		}
+
+		NIHILUS_HOST void wait() {
+			log<log_levels::status>("[Model] Main thread waiting for shutdown signal...");
+
+			while (threads_running.load(std::memory_order_relaxed)) {
+				std::this_thread::sleep_for(std::chrono::milliseconds(100));
+			}
+
+			log<log_levels::status>("[Model] Shutdown signal received");
+		}
+
+		NIHILUS_HOST void stop_threads() {
+			bool was_running = threads_running.exchange(false, std::memory_order_acq_rel);
+			if (!was_running)
+				return;
+
+			log<log_levels::status>("[Model] Stopping threads...");
+
+			internal_output_queue.wake_all();
+			connection.input_queue.wake_all();
+			connection.output_queue.wake_all();
+
+			if (input_reader_thread.joinable()) {
+				input_reader_thread.join();
+			}
+
+			if (output_writer_thread.joinable()) {
+				output_writer_thread.join();
+			}
+
+			log<log_levels::status>("[Model] Threads stopped");
+		}
+
+		NIHILUS_HOST void signal_shutdown() {
+			log<log_levels::status>("[Model] Shutdown signal received, stopping threads...");
+			threads_running.store(false, std::memory_order_release);
+		}
+
+	  private:
+		NIHILUS_HOST void input_reader_loop() {
+			log<log_levels::status>("[Input Reader] Thread started");
+
+			while (threads_running.load(std::memory_order_relaxed)) {
+				auto* input_slot = connection.input_queue.get_read_slot();
+				if (!input_slot) {
+					if constexpr (config_type::dev) {
+						log<log_levels::status>("[Input Reader] Queue shutdown");
+					}
+					break;
+				}
+
+				if (!threads_running.load(std::memory_order_relaxed)) {
+					connection.input_queue.commit_read();
+					break;
+				}
+
+				auto& request = input_slot->value;
+
+				if constexpr (config_type::dev) {
+					log<log_levels::status>("[Input Reader] Processing request " + std::to_string(request.request_id) + " (seed: " + std::to_string(request.seed) +
+						", max_tokens: " + std::to_string(request.max_tokens) + ")");
+				}
+
+				std::string_view prompt(request.prompt.data(), request.prompt_length);
+
+				auto* output_slot = internal_output_queue.get_write_slot();
+				if (output_slot) {
+					process_inference_request(request, prompt, output_slot->value);
+					internal_output_queue.commit_write();
+				}
+
+				connection.input_queue.commit_read();
+			}
+			if constexpr (config_type::dev) {
+				log<log_levels::status>("[Input Reader] Thread stopped");
+			}
+		}
+
+		NIHILUS_HOST void output_writer_loop() {
+			log<log_levels::status>("[Output Writer] Thread started");
+
+			while (threads_running.load(std::memory_order_relaxed)) {
+				auto* internal_slot = internal_output_queue.get_read_slot();
+				if (!internal_slot) {
+					if constexpr (config_type::dev) {
+						log<log_levels::status>("[Output Writer] Internal queue shutdown");
+					}
+					break;
+				}
+
+				if (!threads_running.load(std::memory_order_relaxed)) {
+					internal_output_queue.commit_read();
+					break;
+				}
+
+				auto& response = internal_slot->value;
+				if constexpr (config_type::dev) {
+					log<log_levels::status>("[Output Writer] Writing response " + std::to_string(response.response_id));
+				}
+
+				auto* output_slot = connection.output_queue.get_write_slot();
+				if (!output_slot) {
+					if constexpr (config_type::dev) {
+						log<log_levels::status>("[Output Writer] Connection queue shutdown");
+					}
+					internal_output_queue.commit_read();
+					break;
+				}
+
+				output_slot->value.response_id	   = response.response_id;
+				output_slot->value.user_id		   = response.user_id;
+				output_slot->value.response_length = response.response_length;
+				std::memcpy(output_slot->value.response.data(), response.response.data(), response.response_length);
+				output_slot->value.eval_tokens_per_sec		  = response.eval_tokens_per_sec;
+				output_slot->value.prompt_eval_tokens_per_sec = response.prompt_eval_tokens_per_sec;
+				output_slot->value.tokens_generated			  = response.tokens_generated;
+				output_slot->value.prompt_tokens			  = response.prompt_tokens;
+				output_slot->value.total_time_ms			  = response.total_time_ms;
+
+				connection.output_queue.commit_write();
+
+				internal_output_queue.commit_read();
+			}
+
+			log<log_levels::status>("[Output Writer] Thread stopped");
+		}
+
+		NIHILUS_HOST void process_inference_request(const request_type& request, std::string_view prompt, response_type& response) {
+			base_model_type::process_input_impl(prompt, request.seed);
+
+			response.response_id = request.request_id;
+			response.user_id	 = request.user_id;
+
+			// TODO: Extract actual generated text and timing stats from base model
+			// For now, placeholder response
+			const char* placeholder = "Generated response placeholder";
+			size_t len				= std::strlen(placeholder);
+			std::memcpy(response.response.data(), placeholder, len);
+			response.response_length = len;
+
+			if constexpr (config_type::benchmark || config_type::dev) {
+				response.eval_tokens_per_sec = static_cast<uint64_t>(
+					static_cast<double>(perf_base<config_type>::perf_stats.generated_token_count) / (perf_base<config_type>::perf_stats.total_eval_time_ns * 1e-9));
+
+				response.prompt_eval_tokens_per_sec = static_cast<uint64_t>(
+					static_cast<double>(perf_base<config_type>::perf_stats.prompt_token_count) / (perf_base<config_type>::perf_stats.total_prompt_eval_time_ns * 1e-9));
+
+				response.tokens_generated = static_cast<uint32_t>(perf_base<config_type>::perf_stats.generated_token_count);
+				response.prompt_tokens	  = static_cast<uint32_t>(perf_base<config_type>::perf_stats.prompt_token_count);
+				response.total_time_ms	  = (perf_base<config_type>::perf_stats.total_prompt_eval_time_ns + perf_base<config_type>::perf_stats.total_eval_time_ns) * 1e-6;
+			}
+		}
+	};
+
+	template<template<bool> typename connection_type, const model_config&... configs> struct server_model_collection_builder {
+		template<size_t... Is> static auto build_impl(std::index_sequence<Is...>) {
+			return model_collection<model<Is, model_config_type<configs>, connection_type<model_config_type<configs>::dev>>...>{};
+		}
+
+		static auto build() {
+			return build_impl(std::make_index_sequence<sizeof...(configs)>{});
+		}
+
+		using type = decltype(build());
+	};
+
+	template<template<bool> typename connection_type, const model_config&... configs> using server_model_collection_type = server_model_collection_builder<connection_type, configs...>::type;
+
 	template<const model_config&... configs> struct model_collection_builder {
 		template<size_t... Is> static auto build_impl(std::index_sequence<Is...>) {
 			return model_collection<model<Is, model_config_type<configs>>...>{};
@@ -315,19 +552,5 @@ namespace nihilus {
 	};
 
 	template<const model_config&... configs> using model_collection_type = model_collection_builder<configs...>::type;
-
-	template<const model_config&... configs> struct https_model_collection_builder {
-		template<size_t... Is> static auto build_impl(std::index_sequence<Is...>) {
-			return https_model_collection<model<Is, model_config_type<configs>>...>{};
-		}
-
-		static auto build() {
-			return build_impl(std::make_index_sequence<sizeof...(configs)>{});
-		}
-
-		using type = decltype(build());
-	};
-
-	template<const model_config&... configs> using https_model_collection_type = https_model_collection_builder<configs...>::type;
 
 }

@@ -249,6 +249,10 @@ namespace nihilus {
 			flag.store(static_cast<value_type>(value_new), std::memory_order_release);
 		}
 
+		NIHILUS_HOST value_type exchange(value_type_new value_new) {
+			return flag.exchange(static_cast<value_type>(value_new), std::memory_order_release);
+		}
+
 		NIHILUS_HOST value_type_new load() {
 			return static_cast<value_type_new>(flag.load(std::memory_order_acquire));
 		}
