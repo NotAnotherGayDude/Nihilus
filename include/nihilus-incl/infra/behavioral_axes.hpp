@@ -337,7 +337,7 @@ namespace nihilus {
 		}
 	};
 
-	template<gpu_device_types config_type, typename base_type_new, processing_phases processing_phase>
+	template<gpu_device_config_types config_type, typename base_type_new, processing_phases processing_phase>
 	struct global_input_thread_function<config_type, base_type_new, processing_phase> {
 		NIHILUS_HOST global_input_thread_function() noexcept {
 		}
@@ -355,7 +355,7 @@ namespace nihilus {
 		}
 	};
 
-	template<gpu_device_types config_type, typename base_type_new, processing_phases processing_phase>
+	template<gpu_device_config_types config_type, typename base_type_new, processing_phases processing_phase>
 	struct per_block_thread_function<config_type, base_type_new, processing_phase> {
 		NIHILUS_HOST per_block_thread_function() noexcept {
 		}
@@ -374,7 +374,7 @@ namespace nihilus {
 		}
 	};
 
-	template<gpu_device_types config_type, typename base_type_new, processing_phases processing_phase>
+	template<gpu_device_config_types config_type, typename base_type_new, processing_phases processing_phase>
 	struct global_output_thread_function<config_type, base_type_new, processing_phase> {
 		NIHILUS_HOST global_output_thread_function() noexcept {
 		}

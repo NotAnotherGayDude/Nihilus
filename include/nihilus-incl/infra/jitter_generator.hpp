@@ -27,8 +27,6 @@ RealTimeChris (Chris M.)
 namespace nihilus {
 
 	struct xoshiro_256 {
-		array<uint64_t, 4ull> state{};
-
 		NIHILUS_HOST xoshiro_256() noexcept
 			: state{ [&] {
 				  array<uint64_t, 4ull> return_values{};
@@ -60,6 +58,8 @@ namespace nihilus {
 		}
 
 	  protected:
+		array<uint64_t, 4ull> state{};
+
 		NIHILUS_HOST uint64_t rotl(const uint64_t x, const uint64_t k) const noexcept {
 			return (x << k) | (x >> (64ull - k));
 		}
@@ -74,9 +74,7 @@ namespace nihilus {
 
 	template<typename value_type_new, uint64_t size_new> struct ring_buffer_interface {
 		using value_type = value_type_new;
-		using pointer	 = value_type*;
 		using size_type	 = uint64_t;
-		friend class iterator;
 
 		static_assert(std::has_single_bit(size_new));
 		NIHILUS_HOST ring_buffer_interface() noexcept {
@@ -146,8 +144,8 @@ namespace nihilus {
 			return *this;
 		}
 
-		NIHILUS_HOST double get_next_jitter_amount() noexcept {
-			return (static_cast<double>(xoshiro_256::operator()()) / static_cast<double>(std::numeric_limits<uint64_t>::max()) * 0.05) * moving_averager::operator double();
+		NIHILUS_HOST double get_next_jitter_amount(double amount = 0.05) noexcept {
+			return (static_cast<double>(xoshiro_256::operator()()) / static_cast<double>(std::numeric_limits<uint64_t>::max()) * amount) * moving_averager::operator double();
 		}
 	};
 

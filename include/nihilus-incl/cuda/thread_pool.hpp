@@ -33,7 +33,7 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-	template<gpu_device_types config_type> struct thread_pool<config_type> : public get_core_bases_t<config_type>, public perf_base<config_type> {
+	template<gpu_device_config_types config_type> struct thread_pool<config_type> : public get_core_bases_t<config_type>, public perf_base<config_type> {
 		using core_bases_type = get_core_bases_t<config_type>;
 		NIHILUS_HOST thread_pool() noexcept {
 		}

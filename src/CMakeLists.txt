@@ -19,20 +19,19 @@
 # RealTimeChris (Chris M.)  
 # 2025
 
-add_executable(
-	"nihilus-main" 
-	"$<IF:$<STREQUAL:${NIHILUS_DEPLOY},TRUE>,main_deploy${NIHILUS_MAIN_FILE_EXTENSION},main${NIHILUS_MAIN_FILE_EXTENSION}>"
-)
+# Determine which source file to use at CONFIGURE time, not generate time
+set(MAIN_SOURCE $<IF:$<BOOL:${NIHILUS_DEPLOY}>,main_deploy,main>${NIHILUS_MAIN_FILE_EXTENSION})
 
-target_link_libraries(
-	"nihilus-main" PUBLIC 
-	"nihilus::nihilus"
-	"$<$<TARGET_EXISTS:nihilus::nihilus-network>:nihilus::nihilus-network>"
+add_executable(nihilus-main ${MAIN_SOURCE})
+
+target_link_libraries(nihilus-main
+    PUBLIC
+        nihilus::nihilus
 )
 
 install(
-	FILES 
-	"$<TARGET_FILE:nihilus-main>"
-	DESTINATION "bin"
-	OPTIONAL
+    FILES
+        $<TARGET_FILE:nihilus-main>
+    DESTINATION bin
+    OPTIONAL
 )

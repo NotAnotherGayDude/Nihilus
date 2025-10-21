@@ -30,7 +30,7 @@ namespace nihilus {
 
 	template<typename config_type> struct memory_transfer;
 
-	template<gpu_device_types config_type>
+	template<gpu_device_config_types config_type>
 	struct memory_transfer<config_type> {
 		template<typename value_type> NIHILUS_HOST static void host_to_device(const value_type* src, value_type* dst, uint64_t count) noexcept {
 			if constexpr (config_type::dev) {
@@ -76,7 +76,7 @@ namespace nihilus {
 
 	template<typename config_type> struct memory_buffer;
 
-	template<gpu_device_types config_type> struct memory_buffer<config_type> {
+	template<gpu_device_config_types config_type> struct memory_buffer<config_type> {
 		using value_type = uint8_t;
 		using pointer	 = value_type*;
 		using size_type	 = uint64_t;

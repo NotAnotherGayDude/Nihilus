@@ -233,36 +233,27 @@ namespace nihilus {
 		return static_cast<uint8_t>(c - '0') < 10;
 	}
 
-	template<integral_or_enum_types value_type_new> struct NIHILUS_ALIGN(64) atomic_flag_wrapper {
-		static constexpr static_aligned_const spin_cycles{ 500000ull };
+	template<typename value_type_new> struct alignas(64) atomic_flag_wrapper {
+		static constexpr uint64_t spin_cycles{ 500000ull };
 		using value_type = typename std::atomic_signed_lock_free::value_type;
+
 		NIHILUS_HOST constexpr atomic_flag_wrapper() noexcept {
 		}
-		NIHILUS_HOST constexpr atomic_flag_wrapper& operator=(const atomic_flag_wrapper&) noexcept {
-			return *this;
+
+		NIHILUS_HOST void store(value_type_new value_new, std::memory_order order = std::memory_order_release) {
+			flag.store(static_cast<value_type>(value_new), order);
 		}
 
-		NIHILUS_HOST constexpr atomic_flag_wrapper(const atomic_flag_wrapper&) noexcept {
+		NIHILUS_HOST value_type exchange(value_type_new value_new, std::memory_order order = std::memory_order_release) {
+			return flag.exchange(static_cast<value_type>(value_new), order);
 		}
 
-		NIHILUS_HOST void store(value_type_new value_new) {
-			flag.store(static_cast<value_type>(value_new), std::memory_order_release);
+		NIHILUS_HOST value_type_new load(std::memory_order order = std::memory_order_acquire) const {
+			return static_cast<value_type_new>(flag.load(order));
 		}
 
-		NIHILUS_HOST value_type exchange(value_type_new value_new) {
-			return flag.exchange(static_cast<value_type>(value_new), std::memory_order_release);
-		}
-
-		NIHILUS_HOST value_type_new load() {
-			return static_cast<value_type_new>(flag.load(std::memory_order_acquire));
-		}
-
-		NIHILUS_HOST void clear() {
-			flag.store(0, std::memory_order_release);
-		}
-
-		NIHILUS_HOST void test_and_set() {
-			flag.store(1, std::memory_order_release);
+		NIHILUS_HOST void clear(std::memory_order order = std::memory_order_release) {
+			flag.store(0, order);
 		}
 
 		NIHILUS_HOST void notify_one() {
@@ -273,16 +264,20 @@ namespace nihilus {
 			flag.notify_all();
 		}
 
-		NIHILUS_HOST value_type_new fetch_add(value_type value) {
-			return static_cast<value_type_new>(flag.fetch_add(value, std::memory_order_seq_cst));
+		NIHILUS_HOST value_type_new fetch_add(value_type value, std::memory_order order = std::memory_order_seq_cst) {
+			return static_cast<value_type_new>(flag.fetch_add(value, order));
 		}
 
-		NIHILUS_HOST value_type_new fetch_sub(value_type value) {
-			return static_cast<value_type_new>(flag.fetch_sub(value, std::memory_order_seq_cst));
+		NIHILUS_HOST value_type_new fetch_sub(value_type value, std::memory_order order = std::memory_order_seq_cst) {
+			return static_cast<value_type_new>(flag.fetch_sub(value, order));
 		}
 
-		NIHILUS_HOST bool test() {
-			return flag.load(std::memory_order_acquire) == 1;
+		NIHILUS_HOST bool test(std::memory_order order = std::memory_order_acquire) {
+			return flag.load(order) == 1;
+		}
+
+		NIHILUS_HOST void test_and_set() {
+			flag.store(1, std::memory_order_release);
 		}
 
 		NIHILUS_HOST void hybrid_wait(value_type expected) {
@@ -306,7 +301,7 @@ namespace nihilus {
 		}
 
 	  protected:
-		NIHILUS_ALIGN(64) std::atomic_signed_lock_free flag {};
+		alignas(64) std::atomic_signed_lock_free flag{};
 	};
 
 	struct NIHILUS_ALIGN(64) main_gate_latch {
@@ -402,6 +397,8 @@ namespace nihilus {
 		uint64_t n_tokens{ 0 };
 		std::string prompt{};
 		uint64_t seed{ 0 };
+		uint16_t port{ 0 };
+		std::string ip{};
 	};
 
 	struct execution_parameters {

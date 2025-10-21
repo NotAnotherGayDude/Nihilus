@@ -126,7 +126,7 @@ namespace nihilus {
 
 	template<typename config_type> struct perf_base {};
 
-	template<dev_or_benchmark config_type> struct perf_base<config_type> {
+	template<dev_or_benchmark_config_types config_type> struct perf_base<config_type> {
 		benchmark_stats perf_stats{};
 	};
 

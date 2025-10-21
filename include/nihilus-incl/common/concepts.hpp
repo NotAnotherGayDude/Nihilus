@@ -245,18 +245,21 @@ namespace nihilus {
 	template<integral_or_enum_types auto index> using tag = std::integral_constant<uint64_t, static_cast<uint64_t>(index)>;
 
 	template<typename value_type>
-	concept managed_user_input_types = detail::remove_cvref_t<value_type>::user_input_type == user_input_types::managed;
+	concept managed_user_input_config_types = detail::remove_cvref_t<value_type>::user_input_type == user_input_types::managed;
 
 	template<typename value_type>
-	concept gpu_device_types = detail::remove_cvref_t<value_type>::device_type == device_types::gpu;
+	concept gpu_device_config_types = detail::remove_cvref_t<value_type>::device_type == device_types::gpu;
 
 	template<typename value_type>
-	concept cpu_device_types = detail::remove_cvref_t<value_type>::device_type == device_types::cpu;
+	concept cpu_device_config_types = detail::remove_cvref_t<value_type>::device_type == device_types::cpu;
 
 	template<typename value_type>
-	concept llama_arch_types = detail::remove_cvref_t<value_type>::model_arch == model_arches::llama;
+	concept batched_processing_config_types = detail::remove_cvref_t<value_type>::batched_processing == true;
 
 	template<typename value_type>
-	concept dev_or_benchmark = detail::remove_cvref_t<value_type>::benchmark || detail::remove_cvref_t<value_type>::dev;
+	concept llama_arch_config_types = detail::remove_cvref_t<value_type>::model_arch == model_arches::llama;
+
+	template<typename value_type>
+	concept dev_or_benchmark_config_types = detail::remove_cvref_t<value_type>::benchmark || detail::remove_cvref_t<value_type>::dev;
 
 }

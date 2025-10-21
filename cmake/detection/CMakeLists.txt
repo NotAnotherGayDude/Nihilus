@@ -19,9 +19,8 @@
 
 cmake_minimum_required(VERSION 3.28)
 
-project(
-    feature_detector 
-    VERSION "1.0.0"
+project(feature_detector
+    VERSION 1.0.0
     LANGUAGES CXX
 )
 
@@ -32,11 +31,24 @@ endif()
 
 add_executable(feature_detector main.cpp)
 
-include("${CMAKE_SOURCE_DIR}/../flags_and_options.cmake")
+include(${CMAKE_SOURCE_DIR}/../flags_and_options.cmake)
 
 if(NIHILUS_DETECT_CPU_PROPERTIES)
-    target_compile_definitions(feature_detector PUBLIC "NIHILUS_DETECT_CPU_PROPERTIES;${NIHILUS_COMPILE_DEFINITIONS}")    
+    target_compile_definitions(feature_detector
+        PUBLIC
+            NIHILUS_DETECT_CPU_PROPERTIES
+            ${NIHILUS_COMPILE_DEFINITIONS}
+    )
+    
 elseif(NIHILUS_DETECT_GPU_PROPERTIES)
-    target_link_libraries(feature_detector PUBLIC CUDA::cudart)
-    target_compile_definitions(feature_detector PUBLIC "NIHILUS_DETECT_GPU_PROPERTIES;${NIHILUS_COMPILE_DEFINITIONS}")
+    target_link_libraries(feature_detector
+        PUBLIC
+            CUDA::cudart
+    )
+    
+    target_compile_definitions(feature_detector
+        PUBLIC
+            NIHILUS_DETECT_GPU_PROPERTIES
+            ${NIHILUS_COMPILE_DEFINITIONS}
+    )
 endif()

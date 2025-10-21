@@ -27,7 +27,7 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-	template<const model_config& config> struct harbinger {
+	struct harbinger {
 
 		inline static cli_params parse_cli_arguments(int32_t argc, char** argv) {
 			aligned_vector<std::string> cli_args{};
@@ -48,7 +48,8 @@ namespace nihilus {
 
 				if (token_new[0] == '-') {
 					current_flag = token_new;
-					if (token_new == "-m" || token_new == "-t" || token_new == "-p" || token_new == "-s" || token_new == "-n" || token_new == "-b") {
+					if (token_new == "-m" || token_new == "-t" || token_new == "-p" || token_new == "-s" || token_new == "-n" || token_new == "-b" || token_new == "-i" ||
+						token_new == "-r") {
 						expect_value = true;
 					} else {
 						expect_value = false;
@@ -64,6 +65,10 @@ namespace nihilus {
 						}
 					} else if (current_flag == "-p") {
 						result.prompt = token_new;
+					} else if (current_flag == "-i") {
+						result.ip = token_new;
+					} else if (current_flag == "-r") {
+						result.port = static_cast<uint16_t>(std::stoi(token_new));
 					} else if (current_flag == "-s") {
 						try {
 							result.seed = std::stoull(token_new);

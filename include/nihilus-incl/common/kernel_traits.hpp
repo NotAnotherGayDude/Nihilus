@@ -144,6 +144,66 @@ namespace nihilus {
 		}
 	};
 
+	template<uint64_t dim00_new, uint64_t dim01_new, uint64_t dim02_new, uint64_t dim03_new> struct core_trait_dims<dim00_new, dim01_new, dim02_new, dim03_new, 0, 1> {
+		static constexpr uint64_t runtime_dims{ 0 };
+		mutable uint64_t dim00{ dim00_new };
+		mutable uint64_t dim01{ dim01_new };
+		static constexpr uint64_t dim02{ dim02_new };
+		static constexpr uint64_t dim03{ dim03_new };
+
+		NIHILUS_HOST static constexpr array<uint64_t, 4> get_array() {
+			return { dim00_new, dim01_new, dim02_new, dim03_new };
+		}
+
+		NIHILUS_HOST uint64_t& get_mutable_dim(uint64_t index) const {
+			if (index == 0) {
+				return dim00;
+			} else {
+				return dim01;
+			}
+		}
+	};
+
+	template<uint64_t dim00_new, uint64_t dim01_new, uint64_t dim02_new, uint64_t dim03_new> struct core_trait_dims<dim00_new, dim01_new, dim02_new, dim03_new, 1, 2> {
+		static constexpr uint64_t runtime_dims{ 0 };
+		static constexpr uint64_t dim00{ dim00_new };
+		mutable uint64_t dim01{ dim01_new };
+		mutable uint64_t dim02{ dim02_new };
+		static constexpr uint64_t dim03{ dim03_new };
+
+		NIHILUS_HOST static constexpr array<uint64_t, 4> get_array() {
+			return { dim00_new, dim01_new, dim02_new, dim03_new };
+		}
+
+		NIHILUS_HOST uint64_t& get_mutable_dim(uint64_t index) const {
+			if (index == 1) {
+				return dim01;
+			} else {
+				return dim02;
+			}
+		}
+	};
+
+	template<uint64_t dim00_new, uint64_t dim01_new, uint64_t dim02_new, uint64_t dim03_new> struct core_trait_dims<dim00_new, dim01_new, dim02_new, dim03_new, 2, 3> {
+		static constexpr uint64_t runtime_dims{ 0 };
+		static constexpr uint64_t dim00{ dim00_new };
+		static constexpr uint64_t dim01{ dim01_new };
+		mutable uint64_t dim02{ dim02_new };
+		mutable uint64_t dim03{ dim03_new };
+
+		NIHILUS_HOST static constexpr array<uint64_t, 4> get_array() {
+			return { dim00_new, dim01_new, dim02_new, dim03_new };
+		}
+
+		NIHILUS_HOST uint64_t& get_mutable_dim(uint64_t index) const {
+			if (index == 2) {
+				return dim02;
+			} else {
+				return dim03;
+			}
+		}
+	};
+
 	template<uint64_t dim00_new, uint64_t dim01_new, uint64_t dim02_new, uint64_t dim03_new> struct core_trait_dims<dim00_new, dim01_new, dim02_new, dim03_new, 0> {
 		static constexpr uint64_t runtime_dims{ 0 };
 		mutable uint64_t dim00{ dim00_new };

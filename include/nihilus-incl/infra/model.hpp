@@ -35,7 +35,7 @@ RealTimeChris (Chris M.)
 namespace nihilus {
 
 	template<typename... bases> struct model_collection : public bases... {
-		template<typename... arg_types> NIHILUS_HOST explicit model_collection(arg_types&&... params) : bases(params)... {
+		template<typename arg_types> NIHILUS_HOST explicit model_collection(arg_types&& params) : bases(params)... {
 		}
 
 		NIHILUS_HOST model_collection() {
@@ -62,7 +62,7 @@ namespace nihilus {
 
 		NIHILUS_HOST void stop_all() {
 			std::cout << "[Model Collection] Stopping all models...\n";
-			(bases::stop_threads(), ...);
+			(bases::stop_all(), ...);
 			std::cout << "[Model Collection] All models stopped\n";
 		}
 	};
@@ -332,9 +332,100 @@ namespace nihilus {
 		return value + 1;
 	}
 
-	template<typename config_type> struct cli_params_config {
-		config_type config{};
-		cli_params params{};
+	template<typename config_type, typename request_type> struct batch_queue {
+		using request_ptr = request_type*;
+
+		struct batch {
+			array<request_ptr, config_type::batch_size> requests{};
+			atomic_flag_wrapper<uint64_t> sequence{};
+			atomic_flag_wrapper<uint64_t> count{};
+
+			NIHILUS_HOST void add(request_ptr req) {
+				requests[count.fetch_add(1)] = req;
+			}
+
+			NIHILUS_HOST void mark_ready(uint64_t seq) {
+				sequence.store(seq);
+				sequence.notify_one();
+			}
+
+			NIHILUS_HOST void wait_until_ready(uint64_t expected_seq) {
+				sequence.hybrid_wait(expected_seq);
+			}
+
+			NIHILUS_HOST void reset() {
+				count.store(0);
+			}
+
+			NIHILUS_HOST bool is_full() const {
+				return count.load() >= config_type::batch_size;
+			}
+
+			NIHILUS_HOST bool is_empty() const {
+				return count.load() == 0;
+			}
+		};
+
+	  private:
+		static constexpr auto batch_timeout = std::chrono::milliseconds{ 10 };
+		atomic_flag_wrapper<uint64_t> currently_active_batch{};
+		atomic_flag_wrapper<uint64_t> batch_start_time_ns{};
+		atomic_flag_wrapper<uint64_t> global_sequence{};
+		atomic_flag_wrapper<bool> shutdown{};
+		array<batch, 2> current_batch{};
+
+		NIHILUS_HOST uint64_t get_current_time_ns() {
+			return std::chrono::duration_cast<std::chrono::duration<uint64_t, std::nano>>(clock_type::now().time_since_epoch()).count();
+		}
+
+	  public:
+		NIHILUS_HOST bool try_add_request(request_ptr req) {
+			uint64_t batch_idx = currently_active_batch.load() & 1;
+			auto& batch		   = current_batch[batch_idx];
+
+			if (batch.is_empty()) {
+				batch_start_time_ns.store(get_current_time_ns());
+			}
+
+			if (!batch.is_full()) {
+				batch.add(req);
+
+				if (batch.is_full()) {
+					uint64_t seq = global_sequence.fetch_add(1);
+					batch.mark_ready(seq);
+					return true;
+				}
+
+				uint64_t start_time	  = batch_start_time_ns.load();
+				uint64_t current_time = get_current_time_ns();
+				uint64_t elapsed_ns	  = current_time - start_time;
+
+				if (elapsed_ns >= batch_timeout.count() * 1'000'000) {
+					uint64_t seq = global_sequence.fetch_add(1);
+					batch.mark_ready(seq);
+				}
+
+				return true;
+			}
+
+			return false;
+		}
+
+		NIHILUS_HOST batch* get_batch() {
+			uint64_t old_idx	  = currently_active_batch.fetch_add(1);
+			uint64_t batch_idx	  = old_idx & 1;
+			uint64_t expected_seq = old_idx;
+
+			current_batch[batch_idx].wait_until_ready(expected_seq);
+
+			return &current_batch[batch_idx];
+		}
+
+		NIHILUS_HOST void signal_shutdown() {
+			shutdown.store(true, std::memory_order_release);
+			current_batch[0].sequence.notify_all();
+			current_batch[1].sequence.notify_all();
+		}
 	};
 
 	template<uint64_t index_new, typename config_type, typename connection_type> struct model<index_new, config_type, connection_type> : public model<index_new, config_type> {
@@ -347,29 +438,32 @@ namespace nihilus {
 		using base_model_type		 = model<index_new, config_type>;
 
 		flag_type threads_running{};
-		connection_type connection;
-		output_queue_type internal_output_queue;
-		std::thread input_reader_thread;
-		std::thread output_writer_thread;
+		connection_type connection{};
+		std::thread output_writer_thread{};
+		std::thread input_reader_thread{};
 
-		NIHILUS_HOST model() = default;
+		NIHILUS_HOST model() {
+		}
 
-		NIHILUS_HOST model(cli_params params, connection_config_type conn_config)
-			: base_model_type{ params }, threads_running{ false }, connection{ conn_config },
-			  internal_output_queue(round_to_power_of_two(64), config_type::max_sequence_length, &threads_running) {
+		NIHILUS_HOST connection_config_type get_connection_config(const cli_params& params) {
+			connection_config_type return_values{};
+			return_values.max_sequence_length = decltype(return_values.max_sequence_length){ config_type::max_sequence_length };
+			return_values.max_queue_size	  = decltype(return_values.max_queue_size){ config_type::batch_size };
+			return_values.port				  = decltype(return_values.port){ static_cast<uint16_t>(params.port + static_cast<uint16_t>(index_new)) };
+			return_values.ip				  = decltype(return_values.ip){ params.ip };
+			return return_values;
+		}
+
+		NIHILUS_HOST model(cli_params params) : base_model_type{ params }, threads_running{ false }, connection{ get_connection_config(params) } {
 			threads_running.store(true, std::memory_order_release);
-
 			input_reader_thread	 = std::thread(&model::input_reader_loop, this);
 			output_writer_thread = std::thread(&model::output_writer_loop, this);
 
 			log<log_levels::status>("[Model] Initialized with connection threads");
 		}
 
-		NIHILUS_HOST model(cli_params_config<connection_config_type> params) : model(params.params, params.config) {
-		}
-
 		NIHILUS_HOST ~model() {
-			stop_threads();
+			stop_all();
 		}
 
 		NIHILUS_HOST void wait() {
@@ -382,14 +476,13 @@ namespace nihilus {
 			log<log_levels::status>("[Model] Shutdown signal received");
 		}
 
-		NIHILUS_HOST void stop_threads() {
+		NIHILUS_HOST void stop_all() {
 			bool was_running = threads_running.exchange(false, std::memory_order_acq_rel);
 			if (!was_running)
 				return;
 
 			log<log_levels::status>("[Model] Stopping threads...");
 
-			internal_output_queue.wake_all();
 			connection.input_queue.wake_all();
 			connection.output_queue.wake_all();
 
@@ -414,7 +507,7 @@ namespace nihilus {
 			log<log_levels::status>("[Input Reader] Thread started");
 
 			while (threads_running.load(std::memory_order_relaxed)) {
-				auto* input_slot = connection.input_queue.get_read_slot();
+				auto input_slot = connection.input_queue.get_read_buffer();
 				if (!input_slot) {
 					if constexpr (config_type::dev) {
 						log<log_levels::status>("[Input Reader] Queue shutdown");
@@ -423,27 +516,32 @@ namespace nihilus {
 				}
 
 				if (!threads_running.load(std::memory_order_relaxed)) {
-					connection.input_queue.commit_read();
 					break;
 				}
 
-				auto& request = input_slot->value;
+				request_type* request;
+				while (input_slot.clear_slot(request)) {
+					if (!threads_running.load(std::memory_order_relaxed)) {
+						break;
+					}
 
-				if constexpr (config_type::dev) {
-					log<log_levels::status>("[Input Reader] Processing request " + std::to_string(request.request_id) + " (seed: " + std::to_string(request.seed) +
-						", max_tokens: " + std::to_string(request.max_tokens) + ")");
+					if constexpr (config_type::dev) {
+						log<log_levels::status>("[Input Reader] Processing request " + std::to_string(request->request_id));
+					}
+
+					std::string_view prompt(request->prompt.data(), request->prompt_length);
+
+					auto output_slot = connection.output_queue.get_write_buffer();
+					response_type* response;
+					if (output_slot.add_slot(response)) {
+						process_inference_request(*request, prompt, *response);
+						output_slot.mark_one_ready();
+					}
+
+					input_slot.mark_one_ready();
 				}
-
-				std::string_view prompt(request.prompt.data(), request.prompt_length);
-
-				auto* output_slot = internal_output_queue.get_write_slot();
-				if (output_slot) {
-					process_inference_request(request, prompt, output_slot->value);
-					internal_output_queue.commit_write();
-				}
-
-				connection.input_queue.commit_read();
 			}
+
 			if constexpr (config_type::dev) {
 				log<log_levels::status>("[Input Reader] Thread stopped");
 			}
@@ -453,7 +551,7 @@ namespace nihilus {
 			log<log_levels::status>("[Output Writer] Thread started");
 
 			while (threads_running.load(std::memory_order_relaxed)) {
-				auto* internal_slot = internal_output_queue.get_read_slot();
+				auto internal_slot = connection.output_queue.get_write_buffer();
 				if (!internal_slot) {
 					if constexpr (config_type::dev) {
 						log<log_levels::status>("[Output Writer] Internal queue shutdown");
@@ -462,37 +560,30 @@ namespace nihilus {
 				}
 
 				if (!threads_running.load(std::memory_order_relaxed)) {
-					internal_output_queue.commit_read();
 					break;
 				}
 
-				auto& response = internal_slot->value;
-				if constexpr (config_type::dev) {
-					log<log_levels::status>("[Output Writer] Writing response " + std::to_string(response.response_id));
-				}
-
-				auto* output_slot = connection.output_queue.get_write_slot();
-				if (!output_slot) {
-					if constexpr (config_type::dev) {
-						log<log_levels::status>("[Output Writer] Connection queue shutdown");
+				response_type* response;
+				while (internal_slot.add_slot(response)) {
+					if (!threads_running.load(std::memory_order_relaxed)) {
+						break;
 					}
-					internal_output_queue.commit_read();
-					break;
+
+					if constexpr (config_type::dev) {
+						log<log_levels::status>("[Output Writer] Writing response " + std::to_string(response->response_id));
+					}
+					response->response_id	  = response->response_id;
+					response->user_id		  = response->user_id;
+					response->response_length = response->response_length;
+					std::memcpy(response->response.data(), response->response.data(), response->response_length);
+					response->eval_tokens_per_sec		 = response->eval_tokens_per_sec;
+					response->prompt_eval_tokens_per_sec = response->prompt_eval_tokens_per_sec;
+					response->tokens_generated			 = response->tokens_generated;
+					response->prompt_tokens				 = response->prompt_tokens;
+					response->total_time_ms				 = response->total_time_ms;
+
+					internal_slot.mark_one_ready();
 				}
-
-				output_slot->value.response_id	   = response.response_id;
-				output_slot->value.user_id		   = response.user_id;
-				output_slot->value.response_length = response.response_length;
-				std::memcpy(output_slot->value.response.data(), response.response.data(), response.response_length);
-				output_slot->value.eval_tokens_per_sec		  = response.eval_tokens_per_sec;
-				output_slot->value.prompt_eval_tokens_per_sec = response.prompt_eval_tokens_per_sec;
-				output_slot->value.tokens_generated			  = response.tokens_generated;
-				output_slot->value.prompt_tokens			  = response.prompt_tokens;
-				output_slot->value.total_time_ms			  = response.total_time_ms;
-
-				connection.output_queue.commit_write();
-
-				internal_output_queue.commit_read();
 			}
 
 			log<log_levels::status>("[Output Writer] Thread stopped");
@@ -504,8 +595,6 @@ namespace nihilus {
 			response.response_id = request.request_id;
 			response.user_id	 = request.user_id;
 
-			// TODO: Extract actual generated text and timing stats from base model
-			// For now, placeholder response
 			const char* placeholder = "Generated response placeholder";
 			size_t len				= std::strlen(placeholder);
 			std::memcpy(response.response.data(), placeholder, len);
@@ -537,7 +626,8 @@ namespace nihilus {
 		using type = decltype(build());
 	};
 
-	template<template<bool> typename connection_type, const model_config&... configs> using server_model_collection_type = server_model_collection_builder<connection_type, configs...>::type;
+	template<template<bool> typename connection_type, const model_config&... configs> using server_model_collection_type =
+		server_model_collection_builder<connection_type, configs...>::type;
 
 	template<const model_config&... configs> struct model_collection_builder {
 		template<size_t... Is> static auto build_impl(std::index_sequence<Is...>) {

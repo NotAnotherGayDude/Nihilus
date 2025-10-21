@@ -87,12 +87,12 @@ namespace nihilus {
 	enum class void_device_types { cpu = 0, gpu = 1 };
 
 	struct void_tensor_metadata {
-		std::string_view name{};
 		uint64_t offset_into_tensor_data{};
 		void_device_types device_type{};
 		uint64_t offset_per_thread{};
 		array<uint64_t, 4> dims{};
-		int64_t layer_number{};// -1 for "Per-Model" tensors.
+		std::string_view name{};
+		int64_t layer_number{};
 		data_types type{};
 	};
 
@@ -130,7 +130,7 @@ namespace nihilus {
 	};
 
 #if NIHILUS_COMPILER_CUDA
-	template<gpu_device_types config_type>
+	template<gpu_device_config_types config_type>
 	struct stream_iterator<config_type> {
 		memory_mapped_file<config_type>* file{};
 		uint64_t current_index = 0;
@@ -773,7 +773,7 @@ namespace nihilus {
 
 	template<typename config_type> struct core_traits_comparitor;
 
-	template<llama_arch_types config_type> struct core_traits_comparitor<config_type> {
+	template<llama_arch_config_types config_type> struct core_traits_comparitor<config_type> {
 		NIHILUS_HOST static bool impl(const core_base_creation_data& parse_core) noexcept {
 			switch (static_cast<uint64_t>(parse_core.weight_type)) {
 				case static_cast<uint64_t>(weight_types::token_embd): {

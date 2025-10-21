@@ -22,7 +22,7 @@ RealTimeChris (Chris M.)
 
 #include <nihilus-incl/common/kernel_traits.hpp>
 #include <nihilus-incl/cpu/nihilus_cpu_properties.hpp>
-#include <nihilus-incl/cuda/common.cuh>
+#include <nihilus-incl/cuda/common.hpp>
 #include <nihilus-incl/common/common.hpp>
 
 namespace nihilus {
@@ -49,7 +49,7 @@ namespace nihilus {
 		}
 	};
 
-	template<gpu_device_types config_type, processing_phases processing_phase, typename core_type>
+	template<gpu_device_config_types config_type, processing_phases processing_phase, typename core_type>
 	struct kernel_dispatcher<config_type, processing_phase, core_type> {
 		NIHILUS_HOST static void impl(core_type& params, int64_t current_block) {
 			kernel_dispatcher_impl<config_type, core_type, config_type::device_type, arch_index<config_type::device_type>, core_type::core_type, processing_phase>::impl(params, current_block);

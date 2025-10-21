@@ -78,7 +78,7 @@ namespace nihilus {
 		}
 	};
 
-	template<managed_user_input_types config_type> struct input_collector<config_type> {
+	template<managed_user_input_config_types config_type> struct input_collector<config_type> {
 	  protected:
 		aligned_vector<char> buffer;
 		uint64_t current_length = 0;

@@ -6,7 +6,8 @@
       "hidden": true,
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/out/build/${presetName}",
-      "installDir": "${sourceDir}/out/install/${presetName}",
+      "installDir": "${sourceDir}/out/install/",
+      "toolchainFile": "C:/vcpkg/scripts/buildsystems/vcpkg.cmake",
       "cacheVariables": {
         "CMAKE_C_COMPILER": "cl.exe",
         "CMAKE_CXX_COMPILER": "cl.exe"
@@ -41,14 +42,22 @@
       "name": "release-nihilus-cuda",
       "inherits": "release-base",
       "cacheVariables": {
-        "NIHILUS_COMPILER_CUDA": true
+        "NIHILUS_CUDA": true
       }
     },
     {
-      "name": "deploy-nihilus-cuda",
+      "name": "release-deploy-nihilus-cuda",
       "inherits": "release-base",
       "cacheVariables": {
-        "NIHILUS_COMPILER_CUDA": true,
+        "NIHILUS_CUDA": true,
+        "NIHILUS_DEPLOY": true
+      }
+    },
+    {
+      "name": "debug-deploy-nihilus-cuda",
+      "inherits": "debug-base",
+      "cacheVariables": {
+        "NIHILUS_CUDA": true,
         "NIHILUS_DEPLOY": true
       }
     },
@@ -56,7 +65,7 @@
       "name": "debug-nihilus-cuda",
       "inherits": "debug-base",
       "cacheVariables": {
-        "NIHILUS_COMPILER_CUDA": true
+        "NIHILUS_CUDA": true
       }
     },
     {
@@ -67,8 +76,16 @@
       }
     },
     {
-      "name": "deploy-nihilus-cpu",
+      "name": "release-deploy-nihilus-cpu",
       "inherits": "release-base",
+      "cacheVariables": {
+        "NIHILUS_CPU": true,
+        "NIHILUS_DEPLOY": true
+      }
+    },
+    {
+      "name": "debug-deploy-nihilus-cpu",
+      "inherits": "debug-base",
       "cacheVariables": {
         "NIHILUS_CPU": true,
         "NIHILUS_DEPLOY": true
