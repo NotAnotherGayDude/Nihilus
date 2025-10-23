@@ -47,13 +47,203 @@ namespace nihilus {
 		uint64_t n{};
 	};
 
-	template<typename stored_type, typename comparator> struct priority_queue {
+	struct rt_string : allocator<char> {
+		using value_type			 = char;
+		using size_type				 = uint64_t;
+		using difference_type		 = ptrdiff_t;
+		using pointer				 = value_type*;
+		using const_pointer			 = const value_type*;
+		using reference				 = value_type&;
+		using const_reference		 = const value_type&;
+		using iterator				 = basic_iterator<value_type>;
+		using const_iterator		 = basic_iterator<const value_type>;
+		using reverse_iterator		 = std::reverse_iterator<iterator>;
+		using const_reverse_iterator = std::reverse_iterator<const_iterator>;
+		using allocator_type		 = allocator<value_type>;
+		using allocator_traits		 = std::allocator_traits<allocator_type>;
+
+		NIHILUS_HOST rt_string() {
+		}
+
+		NIHILUS_HOST rt_string(char value) {
+			resize(1);
+			if (data_val) {
+				data_val[0] = value;
+			}
+		}
+
+		NIHILUS_HOST rt_string& operator=(rt_string&& other) {
+			if (this != &other) {
+				std::swap(capacity_val, other.capacity_val);
+				std::swap(data_val, other.data_val);
+				std::swap(size_val, other.size_val);
+			}
+			return *this;
+		}
+
+		NIHILUS_HOST rt_string(rt_string&& other) noexcept : allocator_type{} {
+			*this = std::move(other);
+		}
+
+		NIHILUS_HOST rt_string& operator=(const rt_string& other) {
+			if (this != &other) {
+				resize(other.size_val);
+				std::memcpy(data_val, other.data_val, size_val);
+			}
+			return *this;
+		}
+
+		NIHILUS_HOST rt_string(const rt_string& other) noexcept : allocator_type{} {
+			*this = other;
+		}
+
+		NIHILUS_HOST void resize(size_type size_new) noexcept {
+			if NIHILUS_LIKELY (size_new > size_val) {
+				reserve(size_new);
+				if (data_val) {
+					std::uninitialized_value_construct_n(data_val + size_val, size_new - size_val);
+				}
+				size_val = size_new;
+			} else if NIHILUS_UNLIKELY (size_new < size_val) {
+				std::destroy(data_val + size_new, data_val + size_val);
+				size_val = size_new;
+			}
+			return;
+		}
+
+		NIHILUS_HOST void reserve(size_type size_new) noexcept {
+			if NIHILUS_UNLIKELY (size_new > capacity_val) {
+				size_type old_capacity = capacity_val;
+				pointer old_data	   = data_val;
+				data_val			   = allocator_traits::allocate(*this, size_new);
+				capacity_val		   = size_new;
+				if (old_data && data_val) {
+					std::uninitialized_move_n(old_data, size_val, data_val);
+				}
+				allocator_traits::deallocate(*this, old_data, old_capacity);
+			}
+			return;
+		}
+
+		NIHILUS_HOST auto begin() {
+			return iterator{ data_val };
+		}
+
+		NIHILUS_HOST auto end() {
+			return iterator{ data_val + size_val };
+		}
+
+		NIHILUS_HOST auto begin() const {
+			return const_iterator{ data_val };
+		}
+
+		NIHILUS_HOST auto end() const {
+			return const_iterator{ data_val + size_val };
+		}
+
+		NIHILUS_HOST reference operator[](size_type index) {
+			return data_val[index];
+		}
+
+		NIHILUS_HOST const_reference operator[](size_type index) const {
+			return data_val[index];
+		}
+
+		NIHILUS_HOST rt_string operator+(const rt_string& other) const {
+			rt_string new_string{};
+			new_string.resize(size_val + other.size_val);
+			std::memcpy(new_string.data(), data_val, size_val);
+			std::memcpy(new_string.data() + size_val, other.data_val, other.size_val);
+			return new_string;
+		}
+
+		NIHILUS_HOST rt_string& operator+=(value_type other) {
+			size_type old_size = size_val;
+			resize(size_val + 1);
+			if (data_val) {
+				data_val[old_size] = other;
+			}
+			return *this;
+		}
+
+		NIHILUS_HOST rt_string& operator+=(const rt_string& other) {
+			size_type old_size = size_val;
+			resize(size_val + other.size_val);
+			std::memcpy(data_val + old_size, other.data_val, other.size_val);
+			return *this;
+		}
+
+		template<size_type size> NIHILUS_HOST rt_string& operator+=(const char (&other)[size]) {
+			size_type old_size = size_val;
+			resize(size_val + size - 1);
+			std::memcpy(data_val + old_size, other, size - 1);
+			return *this;
+		}
+
+		NIHILUS_HOST bool empty() const {
+			return size_val == 0;
+		}
+
+		NIHILUS_HOST size_type size() const {
+			return size_val;
+		}
+
+		NIHILUS_HOST const_pointer data() const {
+			return data_val;
+		}
+
+		NIHILUS_HOST pointer data() {
+			return data_val;
+		}
+
+		NIHILUS_HOST void set_values(const_pointer string, size_type size_new) {
+			resize(size_new);
+			std::memcpy(data_val, string, size_new);
+		}
+
+		NIHILUS_HOST void set_values(value_type value_new) {
+			resize(1);
+			data_val[0] = value_new;
+		}
+
+		NIHILUS_HOST void clear() {
+			size_val = 0;
+		}
+
+		NIHILUS_HOST bool operator==(const rt_string& other) const {
+			if (size_val == other.size_val) {
+				return comparison::compare(data_val, other.data_val, size_val);
+			} else {
+				return false;
+			}
+		}
+
+		NIHILUS_HOST operator std::string_view() const {
+			return { data_val, size_val };
+		}
+
+		NIHILUS_HOST ~rt_string() {
+			if (data_val && size_val && capacity_val) {
+				allocator_traits::deallocate(*this, data_val, capacity_val);
+			}
+		}
+
+	  protected:
+		size_type capacity_val{};
+		size_type size_val{};
+		pointer data_val{};
+	};
+
+	template<typename stored_type, typename comparator> struct priority_queue : comparator {
 		array<stored_type, 200> data{};
 		size_t currently_stored_size{};
-		comparator comp{};
 
 		NIHILUS_HOST bool empty() const {
 			return currently_stored_size == 0;
+		}
+
+		NIHILUS_HOST void clear() {
+			currently_stored_size = 0;
 		}
 
 		NIHILUS_HOST const stored_type& top() const {
@@ -80,7 +270,7 @@ namespace nihilus {
 		NIHILUS_HOST void bubble_up(size_t index) {
 			while (index > 0) {
 				size_t parent = (index - 1) / 2;
-				if (!comp(data[index], data[parent]))
+				if (!comparator::operator()(data[index], data[parent]))
 					break;
 				std::swap(data[index], data[parent]);
 				index = parent;
@@ -93,10 +283,10 @@ namespace nihilus {
 				size_t right   = 2 * index + 2;
 				size_t largest = index;
 
-				if (left < currently_stored_size && comp(data[left], data[largest])) {
+				if (left < currently_stored_size && comparator::operator()(data[left], data[largest])) {
 					largest = left;
 				}
-				if (right < currently_stored_size && comp(data[right], data[largest])) {
+				if (right < currently_stored_size && comparator::operator()(data[right], data[largest])) {
 					largest = right;
 				}
 				if (largest == index)
@@ -117,16 +307,16 @@ namespace nihilus {
 
 		using queue = priority_queue<nihilus_bigram_bpe, comparator>;
 
-		std::string text{};
+		rt_string text{};
 		uint64_t size{};
 		int32_t right{};
 		int32_t left{};
 		int32_t rank{};
 	};
 
-	struct pair_hash {
+	struct pair_hash : std::hash<std::string_view> {
 		NIHILUS_HOST uint64_t operator()(const std::pair<const std::string_view, const std::string_view>& p) const noexcept {
-			return std::hash<std::string_view>{}(p.first) ^ (std::hash<std::string_view>{}(p.second) << 1);
+			return std::hash<std::string_view>::operator()(p.first) ^ (std::hash<std::string_view>::operator()(p.second) << 1);
 		}
 	};
 
@@ -150,36 +340,9 @@ namespace nihilus {
 			}
 		}
 
-		NIHILUS_HOST void tokenize_init(int32_t* output_tokens) {
+		NIHILUS_HOST void tokenizer_init(int32_t* output_tokens) {
 			memory_transfer<config_type>::host_to_device(tokenizer_traits_type::special_bos_id, output_tokens);
 			memory_transfer<config_type>::host_to_device(tokenizer_traits_type::special_eos_id, output_tokens + 1);
-		}
-
-		NIHILUS_HOST uint64_t tokenize(char input_text, int32_t* output_tokens) {
-			aligned_vector<int32_t> temp_tokens;
-			if constexpr (tokenizer_traits_type::add_bos && tokenizer_traits_type::special_bos_id > 0) {
-				temp_tokens.emplace_back(static_cast<int32_t>(tokenizer_traits_type::special_bos_id));
-			}
-
-			aligned_vector<std::string> word_collection = gpt2_style_split(input_text);
-
-			for (const auto& word: word_collection) {
-				tokenize_word(word, temp_tokens);
-			}
-
-			if constexpr (tokenizer_traits_type::add_eos && tokenizer_traits_type::special_eos_id > 0) {
-				temp_tokens.emplace_back(static_cast<int32_t>(tokenizer_traits_type::special_eos_id));
-			}
-
-			for (uint64_t i = 0; i < temp_tokens.size(); ++i) {
-				memory_transfer<config_type>::host_to_device(temp_tokens[i], output_tokens + i);
-			}
-
-			if constexpr (config_type::dev) {
-				print_tokenization_debug(input_text, temp_tokens);
-			}
-
-			return temp_tokens.size();
 		}
 
 		NIHILUS_HOST uint64_t tokenize(const std::string_view input_text, int32_t* output_tokens) {
@@ -188,9 +351,9 @@ namespace nihilus {
 				temp_tokens.emplace_back(static_cast<int32_t>(tokenizer_traits_type::special_bos_id));
 			}
 
-			aligned_vector<std::string> word_collection = gpt2_style_split(input_text);
+			gpt2_style_split(input_text);
 
-			for (const auto& word: word_collection) {
+			for (const auto& word: result) {
 				tokenize_word(word, temp_tokens);
 			}
 
@@ -403,11 +566,16 @@ namespace nihilus {
 		aligned_vector<float> cumulative_probs{};
 		aligned_vector<nihilus_symbol> symbols{};
 		nihilus_bigram_bpe::queue work_queue{};
+		aligned_vector<rt_string> result{};
+		rt_string right_token{};
+		rt_string left_token{};
+		rt_string byte_str{};
 		float mirostat_mu{};
 		uint64_t state[4]{};
+		rt_string str{};
 
 		constexpr uint64_t next() noexcept {
-			const uint64_t result = rotl(state[1ull] * 5ull, 7ull) * 9ull;
+			const uint64_t result_new = rotl(state[1ull] * 5ull, 7ull) * 9ull;
 			const uint64_t t	  = state[1ull] << 17ull;
 
 			state[2ull] ^= state[0ull];
@@ -419,7 +587,7 @@ namespace nihilus {
 
 			state[3ull] = rotl(state[3ull], 45ull);
 
-			return result;
+			return result_new;
 		}
 
 		NIHILUS_HOST float next_float() {
@@ -431,17 +599,17 @@ namespace nihilus {
 		}
 
 		constexpr uint64_t splitmix64(uint64_t& seed64) const noexcept {
-			uint64_t result = seed64 += 0x9E3779B97F4A7C15ull;
-			result			= (result ^ (result >> 30ull)) * 0xBF58476D1CE4E5B9ull;
-			result			= (result ^ (result >> 27ull)) * 0x94D049BB133111EBull;
-			return result ^ (result >> 31ull);
+			uint64_t result_new = seed64 += 0x9E3779B97F4A7C15ull;
+			result_new			= (result_new ^ (result_new >> 30ull)) * 0xBF58476D1CE4E5B9ull;
+			result_new			= (result_new ^ (result_new >> 27ull)) * 0x94D049BB133111EBull;
+			return result_new ^ (result_new >> 31ull);
 		}
 
-		NIHILUS_HOST aligned_vector<std::string> gpt2_style_split(std::string_view text) {
-			aligned_vector<std::string> result;
+		NIHILUS_HOST void gpt2_style_split(std::string_view text) {
 			uint64_t start = text.find_first_not_of(" \t\n\r");
+			result.clear();
 			if (start == std::string::npos)
-				return result;
+				return;
 			text = text.substr(start);
 
 			uint64_t end = text.find_last_not_of(" \t\n\r");
@@ -453,7 +621,7 @@ namespace nihilus {
 			uint64_t i		   = 0;
 
 			while (i < text.length()) {
-				std::string token_new;
+				rt_string token_new;
 				while (i < text.length() && is_space(text[i])) {
 					i++;
 				}
@@ -501,28 +669,21 @@ namespace nihilus {
 				}
 			}
 
-			return result;
+			return;
 		}
 
-		NIHILUS_HOST std::string gpt2_style_split(char c) {
-			if (!is_space(c)) {
-				return std::string{ c, 1 };
-			}
-			return {};
-		}
-
-		NIHILUS_HOST void tokenize_word(const std::string_view word, aligned_vector<int32_t>& output) {
+		NIHILUS_HOST void tokenize_word(const rt_string& word, aligned_vector<int32_t>& output) {
 			if (word.empty())
 				return;
 
-			auto direct_match = tokens.find(word);
+			auto direct_match = tokens.find({ word.data(), word.size() });
 			if (direct_match != tokens.end()) {
 				output.emplace_back(direct_match->second);
 				return;
 			}
 
 			symbols.clear();
-			work_queue = nihilus_bigram_bpe::queue();
+			work_queue.clear();
 
 			int32_t index	= 0;
 			uint64_t offset = 0;
@@ -544,7 +705,7 @@ namespace nihilus {
 			}
 
 			while (!work_queue.empty()) {
-				auto bigram = work_queue.top();
+				auto& bigram = work_queue.top();
 				work_queue.pop();
 
 				auto& left_symbol  = symbols[static_cast<uint64_t>(bigram.left)];
@@ -554,8 +715,8 @@ namespace nihilus {
 					continue;
 				}
 
-				std::string left_token(left_symbol.text, left_symbol.n);
-				std::string right_token(right_symbol.text, right_symbol.n);
+				left_token.set_values(left_symbol.text, left_symbol.n);
+				right_token.set_values(right_symbol.text, right_symbol.n);
 
 				if (left_token + right_token != bigram.text) {
 					continue;
@@ -578,15 +739,15 @@ namespace nihilus {
 				if (symbol.n == 0)
 					continue;
 
-				std::string str(symbol.text, symbol.n);
-				auto it = tokens.find(str);
+				str.set_values(symbol.text, symbol.n);
+				auto it = tokens.find({ str.data(), str.size() });
 
 				if (it != tokens.end()) {
 					output.emplace_back(it->second);
 				} else {
 					for (char c: str) {
-						std::string byte_str(1, c);
-						auto byte_it = tokens.find(byte_str);
+						byte_str	 = c;
+						auto byte_it = tokens.find({ byte_str.data(), byte_str.size() });
 						if (byte_it != tokens.end()) {
 							output.emplace_back(byte_it->second);
 						}
@@ -599,8 +760,8 @@ namespace nihilus {
 			if (left == -1 || right == -1)
 				return;
 
-			const std::string_view left_token(symbols[static_cast<uint64_t>(left)].text, symbols[static_cast<uint64_t>(left)].n);
-			const std::string_view right_token(symbols[static_cast<uint64_t>(right)].text, symbols[static_cast<uint64_t>(right)].n);
+			left_token.set_values(symbols[static_cast<uint64_t>(left)].text, symbols[static_cast<uint64_t>(left)].n);
+			right_token.set_values(symbols[static_cast<uint64_t>(right)].text, symbols[static_cast<uint64_t>(right)].n);
 
 			auto it = bpe_ranks.find({ left_token, right_token });
 			if (it == bpe_ranks.end())
@@ -609,7 +770,7 @@ namespace nihilus {
 			nihilus_bigram_bpe bigram;
 			bigram.left	 = left;
 			bigram.right = right;
-			bigram.text	 = static_cast<std::string>(left_token) + static_cast<std::string>(right_token);
+			bigram.text	 = left_token + right_token;
 			bigram.size	 = left_token.size() + right_token.size();
 			bigram.rank	 = it->second;
 

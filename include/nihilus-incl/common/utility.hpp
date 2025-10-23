@@ -73,6 +73,40 @@ namespace nihilus::detail {
 		using type = value_type;
 	};
 
+	template<typename... value_type> struct type_list {};
+
+	template<typename... Ls, typename... Rs> constexpr auto operator+(type_list<Ls...>, type_list<Rs...>) {
+		return type_list<Ls..., Rs...>{};
+	}
+
+	template<typename value_type, typename... rest> struct type_list<value_type, rest...> {
+		using current_type					  = value_type;
+		using remaining_types				  = type_list<rest...>;
+		inline static constexpr uint64_t size = 1 + sizeof...(rest);
+	};
+
+	template<typename value_type> struct type_list<value_type> {
+		using current_type					  = value_type;
+		inline static constexpr uint64_t size = 1;
+	};
+
+	template<typename type_list, uint64_t index> struct get_type_at_index;
+
+	template<typename value_type, typename... rest> struct get_type_at_index<type_list<value_type, rest...>, 0> {
+		using type = value_type;
+	};
+
+	template<typename value_type, typename... rest, uint64_t index> struct get_type_at_index<type_list<value_type, rest...>, index> {
+		using type = typename get_type_at_index<type_list<rest...>, index - 1>::type;
+	};
+
+	template<uint64_t bytesProcessedNew, typename simd_type, typename integer_type_new, integer_type_new maskNew> struct type_holder {
+		inline static constexpr uint64_t bytesProcessed{ bytesProcessedNew };
+		inline static constexpr integer_type_new mask{ maskNew };
+		using type		   = simd_type;
+		using integer_type = integer_type_new;
+	};
+
 	template<typename value_type> using remove_cvref_t = remove_cvref<remove_const_t<value_type>>::type;
 
 	template<typename value_01_type, convertible_to<value_01_type> value_02_type>

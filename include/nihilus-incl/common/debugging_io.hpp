@@ -590,8 +590,8 @@ namespace nihilus {
 			dims[2]			  = other[2];
 			dims[3]			  = other[3];
 
-			if constexpr (tensor_type::runtime_dims != 5) {
-				dims[tensor_type::runtime_dims] = other.get_mutable_dim();
+			if constexpr (tensor_type::runtime_dim != 5) {
+				dims[tensor_type::runtime_dim] = other.get_seq_length_dim();
 			}
 			source_type			   = source_types::nihilus;
 			uint64_t element_count = get_runtime_byte_size(other);
@@ -839,7 +839,7 @@ namespace nihilus {
 	}
 
 	template<typename value_type>
-	concept has_mutable_dims = requires(detail::remove_cvref_t<value_type> value) { value.get_mutable_dim(); };
+	concept has_mutable_dims = requires(detail::remove_cvref_t<value_type> value) { value.get_seq_length_dim(); };
 	template<typename config_type> struct tensor_debugger_impl {
 		inline static jsonifier::jsonifier_core parser{};
 
@@ -876,7 +876,7 @@ namespace nihilus {
 namespace nihilus {
 
 	template<typename value_type>
-	concept has_mutable_dims = requires(detail::remove_cvref_t<value_type> value) { value.get_mutable_dim(); };
+	concept has_mutable_dims = requires(detail::remove_cvref_t<value_type> value) { value.get_seq_length_dim(); };
 	template<typename config_type> struct tensor_debugger_impl {
 		template<typename tensor_type> static void impl(tensor_type&, uint64_t, uint64_t, uint64_t) {
 			return;

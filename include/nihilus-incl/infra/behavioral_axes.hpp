@@ -193,8 +193,8 @@ namespace nihilus {
 			return runtime_dims_t<base_type>;
 		}
 
-		NIHILUS_HOST static void impl(base_type& parse_core, uint64_t runtime_dimension, uint64_t& total_required_bytes) {
-			parse_core.get_mutable_dim()	   = runtime_dimension;
+		 NIHILUS_HOST static void impl(base_type& parse_core, uint64_t runtime_dimension, uint64_t& total_required_bytes) {
+			parse_core.get_seq_length_dim()	   = runtime_dimension;
 			parse_core.total_required_bytes_rt = type_traits<typename base_type::output_type>::total_byte_size(parse_core.get_array_rt());
 			total_required_bytes += parse_core.total_required_bytes_rt;
 		}
@@ -215,6 +215,47 @@ namespace nihilus {
 		NIHILUS_HOST static void impl(base_type& parse_core, uint64_t runtime_dimension) {
 			uint64_t total_required_bytes{};
 			parse_core.values.template impl<dim_updater_impl>(runtime_dimension, total_required_bytes);
+			parse_core.total_required_bytes_rt = total_required_bytes;
+		}
+	};
+
+	template<typename config_type, typename base_type_new> struct batched_dim_updater_impl {
+		NIHILUS_HOST batched_dim_updater_impl() noexcept {
+		}
+		NIHILUS_HOST batched_dim_updater_impl& operator=(const batched_dim_updater_impl&) noexcept = delete;
+		NIHILUS_HOST batched_dim_updater_impl(const batched_dim_updater_impl&) noexcept			   = delete;
+		NIHILUS_HOST batched_dim_updater_impl& operator=(batched_dim_updater_impl&&) noexcept	   = delete;
+		NIHILUS_HOST batched_dim_updater_impl(batched_dim_updater_impl&&) noexcept				   = delete;
+		using base_type																			   = base_type_new;
+		NIHILUS_HOST static constexpr bool filter() {
+			return double_runtime_dims_types<base_type>;
+		}
+
+		NIHILUS_HOST static void impl(base_type& parse_core, uint64_t sequence_length, uint64_t batch_size, uint64_t& total_required_bytes) {
+			if constexpr (base_type::runtime_dim_02 != 5) {
+				parse_core.get_seq_length_dim() = sequence_length;
+			}
+			parse_core.get_batch_dim()		= batch_size;
+			parse_core.total_required_bytes_rt = type_traits<typename base_type::output_type>::total_byte_size(parse_core.get_array_rt());
+			total_required_bytes += parse_core.total_required_bytes_rt;
+		}
+	};
+
+	template<typename config_type, typename base_type_new> struct batched_dim_updater {
+		NIHILUS_HOST batched_dim_updater() noexcept {
+		}
+		NIHILUS_HOST batched_dim_updater& operator=(const batched_dim_updater&) noexcept = delete;
+		NIHILUS_HOST batched_dim_updater(const batched_dim_updater&) noexcept			 = delete;
+		NIHILUS_HOST batched_dim_updater& operator=(batched_dim_updater&&) noexcept		 = delete;
+		NIHILUS_HOST batched_dim_updater(batched_dim_updater&&) noexcept				 = delete;
+		using base_type													 = base_type_new;
+		NIHILUS_HOST static constexpr bool filter() {
+			return has_total_required_bytes_types<base_type>;
+		}
+
+		NIHILUS_HOST static void impl(base_type& parse_core, uint64_t sequence_length, uint64_t batch_size) {
+			uint64_t total_required_bytes{};
+			parse_core.values.template impl<batched_dim_updater_impl>(sequence_length, batch_size, total_required_bytes);
 			parse_core.total_required_bytes_rt = total_required_bytes;
 		}
 	};

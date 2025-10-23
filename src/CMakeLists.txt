@@ -35,3 +35,11 @@ install(
     DESTINATION bin
     OPTIONAL
 )
+
+if (NIHILUS_DEPLOY)
+    install(
+        IMPORTED_RUNTIME_ARTIFACTS nihilus-network::nihilus-network
+        RUNTIME DESTINATION ${CMAKE_CURRENT_BINARY_DIR}
+        LIBRARY DESTINATION ${CMAKE_CURRENT_BINARY_DIR}
+    )
+endif()

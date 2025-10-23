@@ -42,7 +42,7 @@ namespace nihilus {
 				cudaMemcpy(static_cast<void*>(dst), static_cast<const void*>(src), sizeof(value_type) * count, cudaMemcpyHostToDevice);
 			}
 		}
-		template<not_pointer_types value_type> NIHILUS_HOST static void host_to_device(const value_type& src, value_type* dst) noexcept {
+		template<typename value_type> NIHILUS_HOST static void host_to_device(const value_type& src, value_type* dst) noexcept {
 			if constexpr (config_type::dev) {
 				if (cudaError_t err = cudaMemcpy(static_cast<void*>(dst), static_cast<const void*>(&src), sizeof(value_type), cudaMemcpyHostToDevice); err != cudaSuccess) {
 					static constexpr auto location = std::source_location::current();
@@ -52,7 +52,7 @@ namespace nihilus {
 				cudaMemcpy(static_cast<void*>(dst), static_cast<const void*>(&src), sizeof(value_type), cudaMemcpyHostToDevice);
 			}
 		}
-		template<pointer_types value_type> NIHILUS_HOST static void device_to_host(const value_type* src, value_type* dst, uint64_t count) noexcept {
+		template<typename value_type> NIHILUS_HOST static void device_to_host(const value_type* src, value_type* dst, uint64_t count) noexcept {
 			if constexpr (config_type::dev) {
 				if (cudaError_t err = cudaMemcpy(static_cast<void*>(dst), static_cast<const void*>(src), sizeof(value_type) * count, cudaMemcpyDeviceToHost); err != cudaSuccess) {
 					static constexpr auto location = std::source_location::current();
@@ -62,7 +62,7 @@ namespace nihilus {
 				cudaMemcpy(static_cast<void*>(dst), static_cast<const void*>(src), sizeof(value_type) * count, cudaMemcpyDeviceToHost);
 			}
 		}
-		template<not_pointer_types value_type> NIHILUS_HOST static void device_to_host(const value_type* src, value_type& dst) noexcept {
+		template<typename value_type> NIHILUS_HOST static void device_to_host(const value_type* src, value_type& dst) noexcept {
 			if constexpr (config_type::dev) {
 				if (cudaError_t err = cudaMemcpy(static_cast<void*>(&dst), static_cast<const void*>(src), sizeof(value_type), cudaMemcpyDeviceToHost); err != cudaSuccess) {
 					static constexpr auto location = std::source_location::current();

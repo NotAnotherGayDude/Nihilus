@@ -46,14 +46,12 @@ if(NIHILUS_CUDA)
     project(nihilus
         VERSION 1.0.0
         DESCRIPTION "Nihilus: You trained the model. Nihilus gives it a voice."
-        LANGUAGES CXX CUDA
+        LANGUAGES CUDA
     )
     find_package(CUDAToolkit REQUIRED COMPONENTS cudart)
     include(cmake/detection/nihilus_detect_gpu_properties.cmake)
     set(CMAKE_CUDA_ARCHITECTURES ${NIHILUS_MAJOR_COMPUTE_CAPABILITY}${NIHILUS_MINOR_COMPUTE_CAPABILITY} CACHE STRING "Cuda architectures." FORCE)
     set(NIHILUS_MAIN_FILE_EXTENSION .cu)
-    set(CMAKE_CXX_STANDARD 20)
-    set(CMAKE_CXX_STANDARD_REQUIRED ON)
     set(CMAKE_CUDA_STANDARD 20)
     set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 else()
@@ -74,18 +72,9 @@ include(cmake/detection/nihilus_detect_cpu_properties.cmake)
 
 file(GLOB_RECURSE NIHILUS_HEADERS CONFIGURE_DEPENDS include/*.hpp include/*.cuh)
 
-add_library(${PROJECT_NAME} INTERFACE)
+add_library(${PROJECT_NAME} INTERFACE ${NIHILUS_HEADERS})
 
 add_library(${PROJECT_NAME}::${PROJECT_NAME} ALIAS ${PROJECT_NAME})
-
-set_target_properties(${PROJECT_NAME}
-    PROPERTIES
-        OUTPUT_NAME ${PROJECT_NAME}
-        CXX_VISIBILITY_PRESET hidden
-        VISIBILITY_INLINES_HIDDEN ON
-        INTERPROCEDURAL_OPTIMIZATION ON
-        POSITION_INDEPENDENT_CODE OFF
-)
 
 include(cmake/flags_and_options.cmake)
 
@@ -101,32 +90,14 @@ if(NIHILUS_DEV)
     FetchContent_MakeAvailable(Jsonifier)
 endif()
 
-if(NIHILUS_DEPLOY)
-    find_package(gRPC CONFIG REQUIRED)
-    find_package(Protobuf CONFIG REQUIRED)
-    
-    string(TOLOWER ${CMAKE_BUILD_TYPE} BUILD_TYPE_LOWER)
-    set(NIHILUS_NETWORK_INSTALL_PATH C:/Users/Chris/source/repos/Nihilus-Network/out/install/${BUILD_TYPE_LOWER}-test)
-    
-    message(STATUS "Looking for nihilus-network at: ${NIHILUS_NETWORK_INSTALL_PATH}")
-    
-    find_package(nihilus-network CONFIG REQUIRED
-        PATHS ${NIHILUS_NETWORK_INSTALL_PATH}
-        NO_DEFAULT_PATH
-    )
+if(NIHILUS_DEPLOY)    
+    find_package(nihilus-network CONFIG REQUIRED)
 endif()
 
 target_include_directories(${PROJECT_NAME}
     INTERFACE
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:include>
-)
-
-target_sources(${PROJECT_NAME}
-    INTERFACE
-        FILE_SET HEADERS
-        BASE_DIRS include
-        FILES ${NIHILUS_HEADERS}
 )
 
 target_link_libraries(${PROJECT_NAME}

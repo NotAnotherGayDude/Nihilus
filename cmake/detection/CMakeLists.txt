@@ -24,11 +24,6 @@ project(feature_detector
     LANGUAGES CXX
 )
 
-if(NIHILUS_DETECT_GPU_PROPERTIES)
-    find_package(CUDAToolkit REQUIRED)
-    set_property(GLOBAL PROPERTY CUDA_ARCHITECTURES native)
-endif()
-
 add_executable(feature_detector main.cpp)
 
 include(${CMAKE_SOURCE_DIR}/../flags_and_options.cmake)
@@ -41,6 +36,9 @@ if(NIHILUS_DETECT_CPU_PROPERTIES)
     )
     
 elseif(NIHILUS_DETECT_GPU_PROPERTIES)
+    find_package(CUDAToolkit REQUIRED)
+    set_property(GLOBAL PROPERTY CUDA_ARCHITECTURES native)
+
     target_link_libraries(feature_detector
         PUBLIC
             CUDA::cudart

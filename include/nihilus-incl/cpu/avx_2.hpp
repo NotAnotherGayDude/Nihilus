@@ -77,7 +77,7 @@ namespace nihilus {
 			const auto* __restrict token_ids		= inputs_core.values.template get_core<global_input_types, global_input_types::inp_tokens>().get_data();
 			constexpr uint64_t embedding_length		= model_traits_type<typename core_traits_type::config_type>::embedding_length;
 			constexpr uint64_t blocks_per_embedding = embedding_length / 32;
-			const uint64_t sequence_length			= inp_tokens_op.get_mutable_dim();
+			const uint64_t sequence_length			= inp_tokens_op.get_seq_length_dim();
 			const uint64_t start_token				= static_cast<uint64_t>(current_chunk) * chunk_size;
 			const uint64_t end_token				= detail::min(start_token + chunk_size, sequence_length);
 			auto* __restrict output_data			= get_rows_op.get_data();
@@ -114,7 +114,7 @@ namespace nihilus {
 			const auto* __restrict token_ids		= inputs_core.values.template get_core<global_input_types, global_input_types::inp_tokens>().get_data();
 			constexpr uint64_t embedding_length		= model_traits_type<typename core_traits_type::config_type>::embedding_length;
 			constexpr uint64_t blocks_per_embedding = embedding_length / 32;
-			const uint64_t sequence_length			= inp_tokens_op.get_mutable_dim();
+			const uint64_t sequence_length			= inp_tokens_op.get_seq_length_dim();
 			const uint64_t start_token				= static_cast<uint64_t>(current_chunk) * chunk_size;
 			const uint64_t end_token				= detail::min(start_token + chunk_size, sequence_length);
 			auto* __restrict output_data			= get_rows_op.get_data();

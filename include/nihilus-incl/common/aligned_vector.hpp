@@ -47,6 +47,16 @@ namespace nihilus {
 		NIHILUS_HOST aligned_vector() noexcept {
 		}
 
+		NIHILUS_HOST aligned_vector(size_type new_size) {
+			resize(new_size);
+		}
+
+		NIHILUS_HOST aligned_vector(size_type new_size, value_type&& args) {
+			reserve(new_size);
+			std::uninitialized_fill_n(data_val, new_size, args);
+			size_val = new_size;
+		}
+
 		NIHILUS_HOST aligned_vector& operator=(aligned_vector&& other) noexcept
 			requires(std::is_move_assignable_v<value_type>)
 		{
@@ -85,25 +95,18 @@ namespace nihilus {
 			}
 		}
 
-		template<typename... arg_types> NIHILUS_HOST aligned_vector(arg_types&&... args)
-			requires((std::is_constructible_v<value_type, arg_types> && ...) && std::is_move_constructible_v<value_type>)
+		NIHILUS_HOST explicit aligned_vector(std::initializer_list<value_type>&& args)
 		{
-			static constexpr uint64_t size_new{ sizeof...(arg_types) };
-			value_type values[size_new]{ detail::forward<arg_types>(args)... };
-			reserve(size_new);
-			for (uint64_t x = 0; x < size_new; ++x) {
-				allocator_traits::construct(*this, data_val + x, std::move(values[x]));
+			reserve(args.size());
+			for (uint64_t x = 0; x < args.size(); ++x) {
+				allocator_traits::construct(*this, data_val + x, std::move(args.begin()[x]));
 			}
 		}
 
-		template<typename... arg_types> NIHILUS_HOST aligned_vector(const arg_types&... args)
-			requires((std::is_constructible_v<value_type, arg_types> && ...) && std::is_copy_constructible_v<value_type> && !std::is_move_constructible_v<value_type>)
-		{
-			static constexpr uint64_t size_new{ sizeof...(arg_types) };
-			value_type values[size_new]{ detail::forward<arg_types>(args)... };
-			reserve(size_new);
-			for (uint64_t x = 0; x < size_new; ++x) {
-				allocator_traits::construct(*this, data_val + x, values[x]);
+		NIHILUS_HOST explicit aligned_vector(const std::initializer_list<value_type>& args) {
+			reserve(args.size());
+			for (uint64_t x = 0; x < args.size(); ++x) {
+				allocator_traits::construct(*this, data_val + x, std::move(args.begin()[x]));
 			}
 		}
 

@@ -168,7 +168,7 @@ if(NOT DEFINED NIHILUS_CPU_ARCH_INDEX)
     if(NIHILUS_HAS_AVX512)
         set(NIHILUS_CPU_ARCH_INDEX 2 CACHE STRING "CPU architecture index - AVX512" FORCE)
         set(NIHILUS_CPU_ALIGNMENT 64 CACHE STRING "CPU Alignment" FORCE)
-        set(NIHILUS_SIMD_FLAGS $<IF:$<CUDA_COMPILER_ID:NVIDIA>,,$<IF:$<CXX_COMPILER_ID:MSVC>,/arch:AVX512,-mavx512f;-mfma;-mavx2;-mavx;-mlzcnt;-mpopcnt;-mbmi;-mbmi2;-msse4.2;-mf16c>> CACHE STRING "SIMD flags" FORCE)
+        set(NIHILUS_SIMD_FLAGS $<IF:$<CUDA_COMPILER_ID:NVIDIA>,,$<IF:$<CXX_COMPILER_ID:MSVC>,/arch:AVX512,-mavx512f;-mavx512bw;-mfma;-mavx2;-mavx;-mlzcnt;-mpopcnt;-mbmi;-mbmi2;-msse4.2;-mf16c>> CACHE STRING "SIMD flags" FORCE)
         set(NIHILUS_SIMD_DEFINITIONS NIHILUS_SVE2=0;NIHILUS_AVX512=1;NIHILUS_AVX2=0;NIHILUS_NEON=0 CACHE STRING "SIMD definitions" FORCE)
         set(NIHILUS_INSTRUCTION_SET_NAME AVX512 CACHE STRING "Instruction set name" FORCE)
         

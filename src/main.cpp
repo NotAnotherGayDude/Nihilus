@@ -412,9 +412,9 @@ int32_t main(int32_t argc, char** argv) {
 		result02 = get_read_writes(create_mega_pipeline_layer_tensor_ops_with_seqlen<131072>());
 		std::cout << "Read bytes (Nihilus): " << result02.read_bytes << std::endl;
 		std::cout << "Written bytes (Nihilus): " << result02.written_bytes << std::endl;
-		static constexpr auto model_config_00 =
-			nihilus::generate_model_config(nihilus::model_generations::v3_1, nihilus::model_sizes::llm_8B, nihilus::kernel_type_profiles::q8_gqa, nihilus::model_arches::llama,
-				nihilus::device_types::cpu, nihilus::exception_type::enabled, nihilus::default_max_sequence_length_type{ 1024 }, nihilus::benchmark_type::enabled);
+		static constexpr auto model_config_00 = nihilus::generate_model_config(nihilus::batched_processing_type::enabled, nihilus::model_generations::v3_1,
+			nihilus::model_sizes::llm_8B, nihilus::kernel_type_profiles::q8_gqa, nihilus::model_arches::llama, nihilus::device_types::cpu, nihilus::exception_type::enabled,
+			nihilus::default_max_sequence_length_type{ 1024 }, nihilus::benchmark_type::enabled);
 		cli_params cli_args = harbinger::parse_cli_arguments(argc, argv);
 		nihilus::model_collection_type<model_config_00> collection{ cli_args };
 		collection.process_input(cli_args.prompt);

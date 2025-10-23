@@ -639,7 +639,7 @@ namespace nihilus {
 		NIHILUS_HOST static void impl(core_traits_type& params) {
 			auto& get_rows_op = params.values.template get_core<token_embeddings_types, token_embeddings_types::get_rows>();
 
-			const uint64_t sequence_length = get_rows_op.get_mutable_dim();
+			const uint64_t sequence_length = get_rows_op.get_seq_length_dim();
 			auto& weights_core			   = get_adjacent_value<typename core_traits_type::config_type, core_types::weights>::impl(params);
 			auto& inputs_core			   = get_adjacent_value<typename core_traits_type::config_type, core_types::global_inputs>::impl(params);
 			auto& token_embd_op			   = weights_core.values.template get_core<weight_types, weight_types::token_embd>();
@@ -761,7 +761,7 @@ namespace nihilus {
 			auto& inputs_core			   = get_adjacent_value<typename core_traits_type::config_type, core_types::global_inputs>::impl(params);
 			auto& token_embd_op			   = weights_core.values.template get_core<weight_types, weight_types::token_embd>();
 			auto& inp_tokens_op			   = inputs_core.values.template get_core<global_input_types, global_input_types::inp_tokens>();
-			const uint64_t sequence_length = get_rows_op.get_mutable_dim();
+			const uint64_t sequence_length = get_rows_op.get_seq_length_dim();
 
 			params.data_ptrs.set_ptrs(get_rows_op.get_data(), token_embd_op.get_data(), inp_tokens_op.get_data());
 
@@ -821,7 +821,7 @@ namespace nihilus {
 			auto& cache_k_op	  = inputs_core.values.template get_core<global_input_types, global_input_types::cache_k>();
 			auto& cache_v_op	  = inputs_core.values.template get_core<global_input_types, global_input_types::cache_v>();
 
-			const uint64_t sequence_length = q_out_op.get_mutable_dim();
+			const uint64_t sequence_length = q_out_op.get_seq_length_dim();
 
 			cuda_launch_params launch_params = calculate_gpu_launch_params<typename core_traits_type::q_out_type, core_types::mega_qkv_prep_and_cache_publish>(q_out_op);
 
@@ -878,7 +878,7 @@ namespace nihilus {
 			auto& cache_k_op	  = inputs_core.values.template get_core<global_input_types, global_input_types::cache_k>();
 			auto& cache_v_op	  = inputs_core.values.template get_core<global_input_types, global_input_types::cache_v>();
 
-			const uint64_t sequence_length = q_out_op.get_mutable_dim();
+			const uint64_t sequence_length = q_out_op.get_seq_length_dim();
 
 			static constexpr uint64_t rope_dim	= core_traits_type::mtt::rope_dimension_count;
 			static constexpr uint64_t n_head	= core_traits_type::mtt::attention_head_count;

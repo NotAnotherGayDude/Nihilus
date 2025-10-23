@@ -31,19 +31,19 @@ namespace nihilus {
 	template<typename config_type> struct memory_transfer;
 
 	template<typename config_type> struct memory_transfer {
-		template<pointer_types value_type> NIHILUS_HOST static void host_to_device(const value_type& src, value_type* dst, uint64_t count) noexcept {
+		template<typename value_type> NIHILUS_HOST static void host_to_device(const value_type* src, value_type* dst, uint64_t count) noexcept {
 			memcpy_wrapper(dst, &src, sizeof(value_type) * count);
 		}
 
-		template<not_pointer_types value_type> NIHILUS_HOST static void host_to_device(const value_type& src, value_type* dst) noexcept {
+		template<typename value_type> NIHILUS_HOST static void host_to_device(const value_type& src, value_type* dst) noexcept {
 			*dst = src;
 		}
 
-		template<pointer_types value_type> NIHILUS_HOST static void device_to_host(const value_type* src, value_type& dst, uint64_t count) noexcept {
+		template<typename value_type> NIHILUS_HOST static void device_to_host(const value_type* src, value_type& dst, uint64_t count) noexcept {
 			memcpy_wrapper(&dst, src, sizeof(value_type) * count);
 		}
 
-		template<not_pointer_types value_type> NIHILUS_HOST static void device_to_host(const value_type* src, value_type& dst) noexcept {
+		template<typename value_type> NIHILUS_HOST static void device_to_host(const value_type* src, value_type& dst) noexcept {
 			dst = *src;
 		}
 	};

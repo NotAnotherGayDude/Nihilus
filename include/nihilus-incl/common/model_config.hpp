@@ -192,7 +192,7 @@ namespace nihilus {
 		exception_type exceptions{};
 		default_max_sequence_length_type max_sequence_length{ 1024 };
 		batched_processing_type batched_processing{ batched_processing_type::disabled };
-		batch_size_type batch_size{ 512 };
+		batch_size_type batch_size{ 1 };
 		kv_cache_strategies kv_cache_strategy{};
 		user_input_types user_input_type{};
 		rope_scaling_types rope_scaling_type{};

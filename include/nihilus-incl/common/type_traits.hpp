@@ -206,8 +206,8 @@ namespace nihilus {
 		dims[1] = core[1];
 		dims[2] = core[2];
 		dims[3] = core[3];
-		if constexpr (value_type::runtime_dims != 5) {
-			dims[value_type::runtime_dims] = core.get_mutable_dim();
+		if constexpr (value_type::runtime_dim != 5) {
+			dims[value_type::runtime_dim] = core.get_seq_length_dim();
 		}
 		return type_traits<typename value_type::output_type>::total_byte_size(dims);
 	}

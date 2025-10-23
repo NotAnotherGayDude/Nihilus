@@ -120,8 +120,10 @@ namespace nihilus {
 
 	template<size_t... indices> struct core_trait_dims;
 
+	template<size_t... indices> struct batched_core_trait_dims;
+
 	template<uint64_t dim00_new, uint64_t dim01_new, uint64_t dim02_new, uint64_t dim03_new> struct core_trait_dims<dim00_new, dim01_new, dim02_new, dim03_new> {
-		static constexpr uint64_t runtime_dims{ 5 };
+		static constexpr uint64_t runtime_dim{ 5 };
 		static constexpr uint64_t dim00{ dim00_new };
 		static constexpr uint64_t dim01{ dim01_new };
 		static constexpr uint64_t dim02{ dim02_new };
@@ -133,7 +135,7 @@ namespace nihilus {
 	};
 
 	template<uint64_t dim00_new, uint64_t dim01_new, uint64_t dim02_new, uint64_t dim03_new> struct core_trait_dims<dim00_new, dim01_new, dim02_new, dim03_new, 5> {
-		static constexpr uint64_t runtime_dims{ 5 };
+		static constexpr uint64_t runtime_dim{ 5 };
 		static constexpr uint64_t dim00{ dim00_new };
 		static constexpr uint64_t dim01{ dim01_new };
 		static constexpr uint64_t dim02{ dim02_new };
@@ -141,71 +143,11 @@ namespace nihilus {
 
 		NIHILUS_HOST static constexpr array<uint64_t, 4> get_array() {
 			return { dim00_new, dim01_new, dim02_new, dim03_new };
-		}
-	};
-
-	template<uint64_t dim00_new, uint64_t dim01_new, uint64_t dim02_new, uint64_t dim03_new> struct core_trait_dims<dim00_new, dim01_new, dim02_new, dim03_new, 0, 1> {
-		static constexpr uint64_t runtime_dims{ 0 };
-		mutable uint64_t dim00{ dim00_new };
-		mutable uint64_t dim01{ dim01_new };
-		static constexpr uint64_t dim02{ dim02_new };
-		static constexpr uint64_t dim03{ dim03_new };
-
-		NIHILUS_HOST static constexpr array<uint64_t, 4> get_array() {
-			return { dim00_new, dim01_new, dim02_new, dim03_new };
-		}
-
-		NIHILUS_HOST uint64_t& get_mutable_dim(uint64_t index) const {
-			if (index == 0) {
-				return dim00;
-			} else {
-				return dim01;
-			}
-		}
-	};
-
-	template<uint64_t dim00_new, uint64_t dim01_new, uint64_t dim02_new, uint64_t dim03_new> struct core_trait_dims<dim00_new, dim01_new, dim02_new, dim03_new, 1, 2> {
-		static constexpr uint64_t runtime_dims{ 0 };
-		static constexpr uint64_t dim00{ dim00_new };
-		mutable uint64_t dim01{ dim01_new };
-		mutable uint64_t dim02{ dim02_new };
-		static constexpr uint64_t dim03{ dim03_new };
-
-		NIHILUS_HOST static constexpr array<uint64_t, 4> get_array() {
-			return { dim00_new, dim01_new, dim02_new, dim03_new };
-		}
-
-		NIHILUS_HOST uint64_t& get_mutable_dim(uint64_t index) const {
-			if (index == 1) {
-				return dim01;
-			} else {
-				return dim02;
-			}
-		}
-	};
-
-	template<uint64_t dim00_new, uint64_t dim01_new, uint64_t dim02_new, uint64_t dim03_new> struct core_trait_dims<dim00_new, dim01_new, dim02_new, dim03_new, 2, 3> {
-		static constexpr uint64_t runtime_dims{ 0 };
-		static constexpr uint64_t dim00{ dim00_new };
-		static constexpr uint64_t dim01{ dim01_new };
-		mutable uint64_t dim02{ dim02_new };
-		mutable uint64_t dim03{ dim03_new };
-
-		NIHILUS_HOST static constexpr array<uint64_t, 4> get_array() {
-			return { dim00_new, dim01_new, dim02_new, dim03_new };
-		}
-
-		NIHILUS_HOST uint64_t& get_mutable_dim(uint64_t index) const {
-			if (index == 2) {
-				return dim02;
-			} else {
-				return dim03;
-			}
 		}
 	};
 
 	template<uint64_t dim00_new, uint64_t dim01_new, uint64_t dim02_new, uint64_t dim03_new> struct core_trait_dims<dim00_new, dim01_new, dim02_new, dim03_new, 0> {
-		static constexpr uint64_t runtime_dims{ 0 };
+		static constexpr uint64_t runtime_dim{ 0 };
 		mutable uint64_t dim00{ dim00_new };
 		static constexpr uint64_t dim01{ dim01_new };
 		static constexpr uint64_t dim02{ dim02_new };
@@ -221,13 +163,13 @@ namespace nihilus {
 			return { *dims[0], *dims[1], *dims[2], *dims[3] };
 		}
 
-		NIHILUS_HOST uint64_t& get_mutable_dim() const {
+		NIHILUS_HOST uint64_t& get_seq_length_dim() const {
 			return dim00;
 		}
 	};
 
 	template<uint64_t dim00_new, uint64_t dim01_new, uint64_t dim02_new, uint64_t dim03_new> struct core_trait_dims<dim00_new, dim01_new, dim02_new, dim03_new, 1> {
-		static constexpr uint64_t runtime_dims{ 1 };
+		static constexpr uint64_t runtime_dim{ 1 };
 		static constexpr uint64_t dim00{ dim00_new };
 		mutable uint64_t dim01{ dim01_new };
 		static constexpr uint64_t dim02{ dim02_new };
@@ -243,13 +185,13 @@ namespace nihilus {
 			return { *dims[0], *dims[1], *dims[2], *dims[3] };
 		}
 
-		NIHILUS_HOST uint64_t& get_mutable_dim() const {
+		NIHILUS_HOST uint64_t& get_seq_length_dim() const {
 			return dim01;
 		}
 	};
 
 	template<uint64_t dim00_new, uint64_t dim01_new, uint64_t dim02_new, uint64_t dim03_new> struct core_trait_dims<dim00_new, dim01_new, dim02_new, dim03_new, 2> {
-		static constexpr uint64_t runtime_dims{ 2 };
+		static constexpr uint64_t runtime_dim{ 2 };
 		static constexpr uint64_t dim00{ dim00_new };
 		static constexpr uint64_t dim01{ dim01_new };
 		mutable uint64_t dim02{ dim02_new };
@@ -265,13 +207,175 @@ namespace nihilus {
 			return { *dims[0], *dims[1], *dims[2], *dims[3] };
 		}
 
-		NIHILUS_HOST uint64_t& get_mutable_dim() const {
+		NIHILUS_HOST uint64_t& get_seq_length_dim() const {
+			return dim02;
+		}
+	};
+
+	template<uint64_t dim00_new, uint64_t dim01_new, uint64_t dim02_new, uint64_t dim03_new> struct batched_core_trait_dims<dim00_new, dim01_new, dim02_new, dim03_new, 0, 5> {
+		static constexpr uint64_t runtime_dim{ 0 };
+		static constexpr uint64_t runtime_dim_02{ 5 };
+		mutable uint64_t dim00{ dim00_new };
+		static constexpr uint64_t dim01{ dim01_new };
+		static constexpr uint64_t dim02{ dim02_new };
+		static constexpr uint64_t dim03{ dim03_new };
+
+		const uint64_t* dims[4]{ &dim00, &dim01, &dim02, &dim03 };
+
+		NIHILUS_HOST static constexpr array<uint64_t, 4> get_array() {
+			return { dim00_new, dim01_new, dim02_new, dim03_new };
+		}
+
+		NIHILUS_HOST array<uint64_t, 4> get_array_rt() {
+			return { *dims[0], *dims[1], *dims[2], *dims[3] };
+		}
+
+		NIHILUS_HOST uint64_t& get_batch_dim() const {
+			return dim00;
+		}
+	};
+
+	template<uint64_t dim00_new, uint64_t dim01_new, uint64_t dim02_new, uint64_t dim03_new> struct batched_core_trait_dims<dim00_new, dim01_new, dim02_new, dim03_new, 0, 1> {
+		static constexpr uint64_t runtime_dim{ 0 };
+		static constexpr uint64_t runtime_dim_02{ 1 };
+		mutable uint64_t dim00{ dim00_new };
+		mutable uint64_t dim01{ dim01_new };
+		static constexpr uint64_t dim02{ dim02_new };
+		static constexpr uint64_t dim03{ dim03_new };
+
+		const uint64_t* dims[4]{ &dim00, &dim01, &dim02, &dim03 };
+
+		NIHILUS_HOST static constexpr array<uint64_t, 4> get_array() {
+			return { dim00_new, dim01_new, dim02_new, dim03_new };
+		}
+
+		NIHILUS_HOST array<uint64_t, 4> get_array_rt() {
+			return { *dims[0], *dims[1], *dims[2], *dims[3] };
+		}
+
+		NIHILUS_HOST uint64_t& get_seq_length_dim() const {
+			return dim01;
+		}
+
+		NIHILUS_HOST uint64_t& get_batch_dim() const {
+			return dim00;
+		}
+	};
+
+	template<uint64_t dim00_new, uint64_t dim01_new, uint64_t dim02_new, uint64_t dim03_new> struct batched_core_trait_dims<dim00_new, dim01_new, dim02_new, dim03_new, 0, 2> {
+		static constexpr uint64_t runtime_dim{ 0 };
+		static constexpr uint64_t runtime_dim_02{ 2 };
+		mutable uint64_t dim00{ dim00_new };
+		static constexpr uint64_t dim01{ dim01_new };
+		mutable uint64_t dim02{ dim02_new };
+		static constexpr uint64_t dim03{ dim03_new };
+
+		const uint64_t* dims[4]{ &dim00, &dim01, &dim02, &dim03 };
+
+		NIHILUS_HOST static constexpr array<uint64_t, 4> get_array() {
+			return { dim00_new, dim01_new, dim02_new, dim03_new };
+		}
+
+		NIHILUS_HOST array<uint64_t, 4> get_array_rt() {
+			return { *dims[0], *dims[1], *dims[2], *dims[3] };
+		}
+
+		NIHILUS_HOST uint64_t& get_seq_length_dim() const {
+			return dim02;
+		}
+
+		NIHILUS_HOST uint64_t& get_batch_dim() const {
+			return dim00;
+		}
+	};
+
+	template<uint64_t dim00_new, uint64_t dim01_new, uint64_t dim02_new, uint64_t dim03_new> struct batched_core_trait_dims<dim00_new, dim01_new, dim02_new, dim03_new, 0, 3> {
+		static constexpr uint64_t runtime_dim{ 0 };
+		static constexpr uint64_t runtime_dim_02{ 3 };
+		mutable uint64_t dim00{ dim00_new };
+		static constexpr uint64_t dim01{ dim01_new };
+		static constexpr uint64_t dim02{ dim02_new };
+		mutable uint64_t dim03{ dim03_new };
+
+		const uint64_t* dims[4]{ &dim00, &dim01, &dim02, &dim03 };
+
+		NIHILUS_HOST static constexpr array<uint64_t, 4> get_array() {
+			return { dim00_new, dim01_new, dim02_new, dim03_new };
+		}
+
+		NIHILUS_HOST array<uint64_t, 4> get_array_rt() {
+			return { *dims[0], *dims[1], *dims[2], *dims[3] };
+		}
+
+		NIHILUS_HOST uint64_t& get_seq_length_dim() const {
+			return dim03;
+		}
+
+		NIHILUS_HOST uint64_t& get_batch_dim() const {
+			return dim00;
+		}
+	};
+
+	template<uint64_t dim00_new, uint64_t dim01_new, uint64_t dim02_new, uint64_t dim03_new> struct batched_core_trait_dims<dim00_new, dim01_new, dim02_new, dim03_new, 1, 2> {
+		static constexpr uint64_t runtime_dim{ 1 };
+		static constexpr uint64_t runtime_dim_02{ 2 };
+		static constexpr uint64_t dim00{ dim00_new };
+		mutable uint64_t dim01{ dim01_new };
+		mutable uint64_t dim02{ dim02_new };
+		static constexpr uint64_t dim03{ dim03_new };
+
+		const uint64_t* dims[4]{ &dim00, &dim01, &dim02, &dim03 };
+
+		NIHILUS_HOST static constexpr array<uint64_t, 4> get_array() {
+			return { dim00_new, dim01_new, dim02_new, dim03_new };
+		}
+
+		NIHILUS_HOST array<uint64_t, 4> get_array_rt() {
+			return { *dims[0], *dims[1], *dims[2], *dims[3] };
+		}
+
+		NIHILUS_HOST uint64_t& get_seq_length_dim() const {
+			return dim01;
+		}
+
+		NIHILUS_HOST uint64_t& get_batch_dim() const {
+			return dim02;
+		}
+	};
+
+	template<uint64_t dim00_new, uint64_t dim01_new, uint64_t dim02_new, uint64_t dim03_new> struct batched_core_trait_dims<dim00_new, dim01_new, dim02_new, dim03_new, 2, 3> {
+		static constexpr uint64_t runtime_dim{ 2 };
+		static constexpr uint64_t runtime_dim_02{ 3 };
+		static constexpr uint64_t dim00{ dim00_new };
+		static constexpr uint64_t dim01{ dim01_new };
+		mutable uint64_t dim02{ dim02_new };
+		mutable uint64_t dim03{ dim03_new };
+
+		const uint64_t* dims[4]{ &dim00, &dim01, &dim02, &dim03 };
+
+		NIHILUS_HOST static constexpr array<uint64_t, 4> get_array() {
+			return { dim00_new, dim01_new, dim02_new, dim03_new };
+		}
+
+		NIHILUS_HOST array<uint64_t, 4> get_array_rt() {
+			return { *dims[0], *dims[1], *dims[2], *dims[3] };
+		}
+
+		NIHILUS_HOST uint64_t& get_seq_length_dim() const {
+			return dim03;
+		}
+
+		NIHILUS_HOST uint64_t& get_batch_dim() const {
 			return dim02;
 		}
 	};
 
 	template<typename value_type>
-	concept runtime_dims_t = detail::remove_cvref_t<value_type>::runtime_dims != 5;
+	concept double_runtime_dims_types = requires() { detail::remove_cvref_t<value_type>::runtime_dim_02; } && detail::remove_cvref_t<value_type>::runtime_dim != 5;
+
+	template<typename value_type>
+	concept runtime_dims_t =
+		requires() { detail::remove_cvref_t<value_type>::runtime_dim; } && detail::remove_cvref_t<value_type>::runtime_dim != 5 && !double_runtime_dims_types<value_type>;
 
 	enum class get_new_dims_errors { unknown_kernel_type };
 
@@ -559,6 +663,252 @@ namespace nihilus {
 		static_assert(static_assert_printer_val<(output_dims[3] == 1), kernel_trait_static_assert_errors::get_rows_output_dimension_3_must_be_one, output_dims[3]>::impl);
 	};
 
+	template<batched_processing_config_types config_type, typename dims_type_new, typename output_type_new, typename input_01_type_new, typename input_02_type_new>
+	struct kernel_traits<config_type, dims_type_new, kernel_types::get_rows, output_type_new, input_01_type_new, input_02_type_new> : public dims_type_new {
+		using input_01_type					= input_01_type_new;
+		using input_02_type					= input_02_type_new;
+		using output_type					= output_type_new;
+		using dims_type						= dims_type_new;
+		static constexpr auto input_01_dims = input_01_type::get_array();
+		static constexpr auto input_02_dims = input_02_type::get_array();
+		static constexpr auto output_dims	= dims_type::get_array();
+	};
+
+	template<batched_processing_config_types config_type, typename dims_type_new, typename output_type_new, typename input_01_type_new>
+	struct kernel_traits<config_type, dims_type_new, kernel_types::reshape, output_type_new, input_01_type_new> : public dims_type_new {
+		using input_01_type					= input_01_type_new;
+		using output_type					= output_type_new;
+		using dims_type						= dims_type_new;
+		static constexpr auto input_01_dims = input_01_type::get_array();
+		static constexpr auto output_dims	= dims_type::get_array();
+		static constexpr auto input_total	= input_01_dims[0] * input_01_dims[1] * input_01_dims[2] * input_01_dims[3];
+		static constexpr auto output_total	= output_dims[0] * output_dims[1] * output_dims[2] * output_dims[3];
+	};
+
+	template<batched_processing_config_types config_type, typename dims_type_new, typename output_type_new, typename input_01_type_new, typename input_02_type_new,
+		typename input_03_type_new>
+	struct kernel_traits<config_type, dims_type_new, kernel_types::rope, output_type_new, input_01_type_new, input_02_type_new, input_03_type_new> : public dims_type_new {
+		using input_01_type					= input_01_type_new;
+		using input_02_type					= input_02_type_new;
+		using input_03_type					= input_03_type_new;
+		using output_type					= output_type_new;
+		using dims_type						= dims_type_new;
+		static constexpr auto input_01_dims = input_01_type::get_array();
+		static constexpr auto input_02_dims = input_02_type::get_array();
+		static constexpr auto input_03_dims = input_03_type::get_array();
+		static constexpr auto output_dims	= dims_type::get_array();
+	};
+
+	template<batched_processing_config_types config_type, typename dims_type_new, typename output_type_new, typename input_01_type_new, typename input_02_type_new>
+	struct kernel_traits<config_type, dims_type_new, kernel_types::mul_mat, output_type_new, input_01_type_new, input_02_type_new> : public dims_type_new {
+		using input_01_type					= input_01_type_new;
+		using input_02_type					= input_02_type_new;
+		using output_type					= output_type_new;
+		using dims_type						= dims_type_new;
+		static constexpr auto input_01_dims = input_01_type::get_array();
+		static constexpr auto input_02_dims = input_02_type::get_array();
+		static constexpr auto output_dims	= dims_type::get_array();
+	};
+
+	template<batched_processing_config_types config_type, typename dims_type_new, typename output_type_new, typename input_01_type_new, typename input_02_type_new>
+	struct kernel_traits<config_type, dims_type_new, kernel_types::add, output_type_new, input_01_type_new, input_02_type_new> : public dims_type_new {
+		using input_01_type					= input_01_type_new;
+		using input_02_type					= input_02_type_new;
+		using output_type					= output_type_new;
+		using dims_type						= dims_type_new;
+		static constexpr auto input_01_dims = input_01_type::get_array();
+		static constexpr auto input_02_dims = input_02_type::get_array();
+		static constexpr auto output_dims	= dims_type::get_array();
+	};
+
+	template<batched_processing_config_types config_type, typename dims_type_new, typename output_type_new, typename input_01_type_new, typename input_02_type_new>
+	struct kernel_traits<config_type, dims_type_new, kernel_types::mul, output_type_new, input_01_type_new, input_02_type_new> : public dims_type_new {
+		using input_01_type					= input_01_type_new;
+		using input_02_type					= input_02_type_new;
+		using output_type					= output_type_new;
+		using dims_type						= dims_type_new;
+		static constexpr auto input_01_dims = input_01_type::get_array();
+		static constexpr auto input_02_dims = input_02_type::get_array();
+		static constexpr auto output_dims	= dims_type::get_array();
+	};
+
+	template<batched_processing_config_types config_type, typename dims_type_new, typename output_type_new, typename input_01_type_new, typename input_02_type_new>
+	struct kernel_traits<config_type, dims_type_new, kernel_types::rms_norm, output_type_new, input_01_type_new, input_02_type_new> : public dims_type_new {
+		using input_01_type					= input_01_type_new;
+		using input_02_type					= input_02_type_new;
+		using output_type					= output_type_new;
+		using dims_type						= dims_type_new;
+		static constexpr auto input_01_dims = input_01_type::get_array();
+		static constexpr auto input_02_dims = input_02_type::get_array();
+		static constexpr auto output_dims	= dims_type::get_array();
+	};
+
+	template<batched_processing_config_types config_type, typename dims_type_new, typename output_type_new, typename input_01_type_new, typename input_02_type_new>
+	struct kernel_traits<config_type, dims_type_new, kernel_types::copy, output_type_new, input_01_type_new, input_02_type_new> : public dims_type_new {
+		using input_01_type					= input_01_type_new;
+		using input_02_type					= input_02_type_new;
+		using output_type					= output_type_new;
+		using dims_type						= dims_type_new;
+		static constexpr auto input_01_dims = input_01_type::get_array();
+		static constexpr auto input_02_dims = input_02_type::get_array();
+		static constexpr auto output_dims	= dims_type::get_array();
+		static constexpr auto input_total	= input_02_dims[0] * input_02_dims[1] * input_02_dims[2] * input_02_dims[3];
+		static constexpr auto output_total	= output_dims[0] * output_dims[1] * output_dims[2] * output_dims[3];
+	};
+
+	template<batched_processing_config_types config_type, typename dims_type_new, typename output_type_new, typename input_01_type_new>
+	struct kernel_traits<config_type, dims_type_new, kernel_types::silu, output_type_new, input_01_type_new> : public dims_type_new {
+		using input_01_type					= input_01_type_new;
+		using output_type					= output_type_new;
+		using dims_type						= dims_type_new;
+		static constexpr auto input_01_dims = input_01_type::get_array();
+		static constexpr auto output_dims	= dims_type::get_array();
+		static constexpr auto input_total	= input_01_dims[0] * input_01_dims[1] * input_01_dims[2] * input_01_dims[3];
+		static constexpr auto output_total	= output_dims[0] * output_dims[1] * output_dims[2] * output_dims[3];
+	};
+
+	template<batched_processing_config_types config_type, typename dims_type_new, typename output_type_new, typename input_01_type_new>
+	struct kernel_traits<config_type, dims_type_new, kernel_types::transpose, output_type_new, input_01_type_new> : public dims_type_new {
+		using input_01_type					= input_01_type_new;
+		using output_type					= output_type_new;
+		using dims_type						= dims_type_new;
+		static constexpr auto input_01_dims = input_01_type::get_array();
+		static constexpr auto output_dims	= dims_type::get_array();
+	};
+
+	template<batched_processing_config_types config_type, typename dims_type_new, typename output_type_new, typename input_01_type_new>
+	struct kernel_traits<config_type, dims_type_new, kernel_types::view, output_type_new, input_01_type_new> : public dims_type_new {
+		using input_01_type					= input_01_type_new;
+		using output_type					= output_type_new;
+		using dims_type						= dims_type_new;
+		static constexpr auto input_01_dims = input_01_type::get_array();
+		static constexpr auto output_dims	= dims_type::get_array();
+		static constexpr auto input_total	= input_01_dims[0] * input_01_dims[1] * input_01_dims[2] * input_01_dims[3];
+		static constexpr auto output_total	= output_dims[0] * output_dims[1] * output_dims[2] * output_dims[3];
+	};
+
+	template<batched_processing_config_types config_type, typename dims_type_new, typename output_type_new, typename input_01_type_new>
+	struct kernel_traits<config_type, dims_type_new, kernel_types::sample_logits, output_type_new, input_01_type_new> : public dims_type_new {
+		using input_01_type					= input_01_type_new;
+		using output_type					= output_type_new;
+		using dims_type						= dims_type_new;
+		static constexpr auto input_01_dims = input_01_type::get_array();
+		static constexpr auto output_dims	= dims_type::get_array();
+	};
+
+	template<batched_processing_config_types config_type, typename dims_type_new, typename output_type_new, typename input_01_type_new>
+	struct kernel_traits<config_type, dims_type_new, kernel_types::permute, output_type_new, input_01_type_new> : public dims_type_new {
+		using input_01_type					= input_01_type_new;
+		using output_type					= output_type_new;
+		using dims_type						= dims_type_new;
+		static constexpr auto input_01_dims = input_01_type::get_array();
+		static constexpr auto output_dims	= dims_type::get_array();
+	};
+
+	template<batched_processing_config_types config_type, typename dims_type_new, typename output_type_new, typename input_01_type_new, typename input_02_type_new,
+		typename input_03_type_new>
+	struct kernel_traits<config_type, dims_type_new, kernel_types::repetition_penalty, output_type_new, input_01_type_new, input_02_type_new, input_03_type_new>
+		: public dims_type_new {
+		using input_01_type					= input_01_type_new;
+		using input_02_type					= input_02_type_new;
+		using input_03_type					= input_03_type_new;
+		using output_type					= output_type_new;
+		using dims_type						= dims_type_new;
+		static constexpr auto input_01_dims = input_01_type::get_array();
+		static constexpr auto input_02_dims = input_02_type::get_array();
+		static constexpr auto input_03_dims = input_03_type::get_array();
+		static constexpr auto output_dims	= dims_type::get_array();
+	};
+
+	template<batched_processing_config_types config_type, typename dims_type_new, typename output_type_new, typename input_01_type_new, typename input_02_type_new,
+		typename input_03_type_new>
+	struct kernel_traits<config_type, dims_type_new, kernel_types::presence_penalty, output_type_new, input_01_type_new, input_02_type_new, input_03_type_new>
+		: public dims_type_new {
+		using input_01_type					= input_01_type_new;
+		using input_02_type					= input_02_type_new;
+		using input_03_type					= input_03_type_new;
+		using output_type					= output_type_new;
+		using dims_type						= dims_type_new;
+		static constexpr auto input_01_dims = input_01_type::get_array();
+		static constexpr auto input_02_dims = input_02_type::get_array();
+		static constexpr auto input_03_dims = input_03_type::get_array();
+		static constexpr auto output_dims	= dims_type::get_array();
+	};
+
+	template<batched_processing_config_types config_type, typename dims_type_new, typename output_type_new, typename input_01_type_new, typename input_02_type_new,
+		typename input_03_type_new>
+	struct kernel_traits<config_type, dims_type_new, kernel_types::frequency_penalty, output_type_new, input_01_type_new, input_02_type_new, input_03_type_new>
+		: public dims_type_new {
+		using input_01_type					= input_01_type_new;
+		using input_02_type					= input_02_type_new;
+		using input_03_type					= input_03_type_new;
+		using output_type					= output_type_new;
+		using dims_type						= dims_type_new;
+		static constexpr auto input_01_dims = input_01_type::get_array();
+		static constexpr auto input_02_dims = input_02_type::get_array();
+		static constexpr auto input_03_dims = input_03_type::get_array();
+		static constexpr auto output_dims	= dims_type::get_array();
+	};
+
+	template<batched_processing_config_types config_type, typename dims_type_new, typename output_type_new, typename input_01_type_new, typename input_02_type_new>
+	struct kernel_traits<config_type, dims_type_new, kernel_types::temperature_scale, output_type_new, input_01_type_new, input_02_type_new> : public dims_type_new {
+		using input_01_type					= input_01_type_new;
+		using input_02_type					= input_02_type_new;
+		using output_type					= output_type_new;
+		using dims_type						= dims_type_new;
+		static constexpr auto input_01_dims = input_01_type::get_array();
+		static constexpr auto output_dims	= dims_type::get_array();
+	};
+
+	template<batched_processing_config_types config_type, typename dims_type_new, typename output_type_new, typename input_01_type_new, typename input_02_type_new>
+	struct kernel_traits<config_type, dims_type_new, kernel_types::top_k_filter, output_type_new, input_01_type_new, input_02_type_new> : public dims_type_new {
+		using input_01_type					= input_01_type_new;
+		using input_02_type					= input_02_type_new;
+		using output_type					= output_type_new;
+		using dims_type						= dims_type_new;
+		static constexpr auto input_01_dims = input_01_type::get_array();
+		static constexpr auto output_dims	= dims_type::get_array();
+	};
+
+	template<batched_processing_config_types config_type, typename dims_type_new, typename output_type_new, typename input_01_type_new, typename input_02_type_new>
+	struct kernel_traits<config_type, dims_type_new, kernel_types::top_p_filter, output_type_new, input_01_type_new, input_02_type_new> : public dims_type_new {
+		using input_01_type					= input_01_type_new;
+		using input_02_type					= input_02_type_new;
+		using output_type					= output_type_new;
+		using dims_type						= dims_type_new;
+		static constexpr auto input_01_dims = input_01_type::get_array();
+		static constexpr auto output_dims	= dims_type::get_array();
+	};
+
+	template<batched_processing_config_types config_type, typename dims_type_new, typename output_type_new, typename input_01_type_new, typename input_02_type_new>
+	struct kernel_traits<config_type, dims_type_new, kernel_types::vocab_mask, output_type_new, input_01_type_new, input_02_type_new> : public dims_type_new {
+		using input_01_type					= input_01_type_new;
+		using input_02_type					= input_02_type_new;
+		using output_type					= output_type_new;
+		using dims_type						= dims_type_new;
+		static constexpr auto input_01_dims = input_01_type::get_array();
+		static constexpr auto input_02_dims = input_02_type::get_array();
+		static constexpr auto output_dims	= dims_type::get_array();
+	};
+
+	template<batched_processing_config_types config_type, typename dims_type_new, typename output_type_new, typename input_01_type_new, typename input_02_type_new>
+	struct kernel_traits<config_type, dims_type_new, kernel_types::sample_logits, output_type_new, input_01_type_new, input_02_type_new> : public dims_type_new {
+		using input_01_type				  = input_01_type_new;
+		using input_02_type				  = input_02_type_new;
+		using output_type				  = output_type_new;
+		using dims_type					  = dims_type_new;
+		static constexpr auto output_dims = dims_type::get_array();
+	};
+
+	template<batched_processing_config_types config_type, typename dims_type_new, typename output_type_new, typename input_01_type_new>
+	struct kernel_traits<config_type, dims_type_new, kernel_types::rms_norm, output_type_new, input_01_type_new> : public dims_type_new {
+		using input_01_type					= input_01_type_new;
+		using output_type					= output_type_new;
+		using dims_type						= dims_type_new;
+		static constexpr auto input_01_dims = input_01_type::get_array();
+		static constexpr auto output_dims	= dims_type::get_array();
+	};
+
 	template<typename config_type, typename dims_type_new, typename output_type_new, typename input_01_type_new>
 	struct kernel_traits<config_type, dims_type_new, kernel_types::cont, output_type_new, input_01_type_new> : public dims_type_new {
 		using input_01_type					= input_01_type_new;
@@ -611,7 +961,8 @@ namespace nihilus {
 	};
 
 	template<typename config_type, typename dims_type_new, typename output_type_new, typename input_01_type_new, typename input_02_type_new, typename input_03_type_new>
-	struct kernel_traits<config_type, dims_type_new, kernel_types::repetition_penalty, output_type_new, input_01_type_new, input_02_type_new, input_03_type_new> : public dims_type_new {
+	struct kernel_traits<config_type, dims_type_new, kernel_types::repetition_penalty, output_type_new, input_01_type_new, input_02_type_new, input_03_type_new>
+		: public dims_type_new {
 		using input_01_type					= input_01_type_new;
 		using input_02_type					= input_02_type_new;
 		using input_03_type					= input_03_type_new;
@@ -625,7 +976,8 @@ namespace nihilus {
 	};
 
 	template<typename config_type, typename dims_type_new, typename output_type_new, typename input_01_type_new, typename input_02_type_new, typename input_03_type_new>
-	struct kernel_traits<config_type, dims_type_new, kernel_types::presence_penalty, output_type_new, input_01_type_new, input_02_type_new, input_03_type_new> : public dims_type_new {
+	struct kernel_traits<config_type, dims_type_new, kernel_types::presence_penalty, output_type_new, input_01_type_new, input_02_type_new, input_03_type_new>
+		: public dims_type_new {
 		using input_01_type					= input_01_type_new;
 		using input_02_type					= input_02_type_new;
 		using input_03_type					= input_03_type_new;
@@ -639,7 +991,8 @@ namespace nihilus {
 	};
 
 	template<typename config_type, typename dims_type_new, typename output_type_new, typename input_01_type_new, typename input_02_type_new, typename input_03_type_new>
-	struct kernel_traits<config_type, dims_type_new, kernel_types::frequency_penalty, output_type_new, input_01_type_new, input_02_type_new, input_03_type_new> : public dims_type_new {
+	struct kernel_traits<config_type, dims_type_new, kernel_types::frequency_penalty, output_type_new, input_01_type_new, input_02_type_new, input_03_type_new>
+		: public dims_type_new {
 		using input_01_type					= input_01_type_new;
 		using input_02_type					= input_02_type_new;
 		using input_03_type					= input_03_type_new;
@@ -721,13 +1074,32 @@ namespace nihilus {
 		static constexpr auto dims01 = dims_01_type::get_array();
 		static constexpr auto get_new_dims_new_fn() {
 			if constexpr (kernel_type == kernel_types::silu) {
-				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_01_type::runtime_dims>{};
+				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_01_type::runtime_dim>{};
 			} else if constexpr (kernel_type == kernel_types::rms_norm) {
-				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_01_type::runtime_dims>{};
+				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_01_type::runtime_dim>{};
 			} else if constexpr (kernel_type == kernel_types::cont) {
-				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_01_type::runtime_dims>{};
-			} else if constexpr (kernel_type == kernel_types::silu) {
-				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_01_type::runtime_dims>{};
+				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_01_type::runtime_dim>{};
+			} else {
+				if constexpr (kernel_type == kernel_types::reshape || kernel_type == kernel_types::transpose || kernel_type == kernel_types::permute ||
+					kernel_type == kernel_types::view || kernel_type == kernel_types::cont) {
+					static_assert(static_assert_printer_val<false, get_new_dims_new_errors::not_allowed_for_automatic_generation, kernel_type>::impl);
+				} else {
+					static_assert(static_assert_printer_val<false, get_new_dims_new_errors::unknown_kernel_type, kernel_type>::impl);
+				}
+			}
+		}
+		using type = decltype(get_new_dims_new_fn());
+	};
+
+	template<kernel_types kernel_type, double_runtime_dims_types dims_01_type> struct get_new_dims_new_1<kernel_type, dims_01_type> {
+		static constexpr auto dims01 = dims_01_type::get_array();
+		static constexpr auto get_new_dims_new_fn() {
+			if constexpr (kernel_type == kernel_types::silu) {
+				return batched_core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_01_type::runtime_dim, dims_01_type::runtime_dim_02>{};
+			} else if constexpr (kernel_type == kernel_types::rms_norm) {
+				return batched_core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_01_type::runtime_dim, dims_01_type::runtime_dim_02>{};
+			} else if constexpr (kernel_type == kernel_types::cont) {
+				return batched_core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_01_type::runtime_dim, dims_01_type::runtime_dim_02>{};
 			} else {
 				if constexpr (kernel_type == kernel_types::reshape || kernel_type == kernel_types::transpose || kernel_type == kernel_types::permute ||
 					kernel_type == kernel_types::view || kernel_type == kernel_types::cont) {
@@ -745,31 +1117,69 @@ namespace nihilus {
 		static constexpr auto dims02 = dims_02_type::get_array();
 		static constexpr auto get_new_dims_new_fn() {
 			if constexpr (kernel_type == kernel_types::get_rows) {
-				return core_trait_dims<dims01[0], dims02[0], dims01[2], dims01[3], dims_02_type::runtime_dims>{};
+				return core_trait_dims<dims01[0], dims02[0], dims01[2], dims01[3], dims_02_type::runtime_dim>{};
 			} else if constexpr (kernel_type == kernel_types::mul_mat) {
-				return core_trait_dims<dims01[1], dims02[1], dims02[2], dims01[3], dims_02_type::runtime_dims>{};
+				return core_trait_dims<dims01[1], dims02[1], dims02[2], dims01[3], dims_02_type::runtime_dim>{};
 			} else if constexpr (kernel_type == kernel_types::sub) {
-				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_02_type::runtime_dims>{};
+				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_02_type::runtime_dim>{};
 			} else if constexpr (kernel_type == kernel_types::copy) {
-				return core_trait_dims<dims02[0], dims02[1], dims02[2], dims02[3], dims_02_type::runtime_dims>{};
+				return core_trait_dims<dims02[0], dims02[1], dims02[2], dims02[3], dims_02_type::runtime_dim>{};
 			} else if constexpr (kernel_type == kernel_types::add) {
-				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_02_type::runtime_dims>{};
+				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_02_type::runtime_dim>{};
 			} else if constexpr (kernel_type == kernel_types::mul) {
-				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_02_type::runtime_dims>{};
+				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_02_type::runtime_dim>{};
 			} else if constexpr (kernel_type == kernel_types::softmax) {
-				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_02_type::runtime_dims>{};
+				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_02_type::runtime_dim>{};
 			} else if constexpr (kernel_type == kernel_types::temperature_scale) {
-				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_02_type::runtime_dims>{};
+				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_02_type::runtime_dim>{};
 			} else if constexpr (kernel_type == kernel_types::top_k_filter) {
-				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_02_type::runtime_dims>{};
+				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_02_type::runtime_dim>{};
 			} else if constexpr (kernel_type == kernel_types::top_p_filter) {
-				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_02_type::runtime_dims>{};
+				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_02_type::runtime_dim>{};
 			} else if constexpr (kernel_type == kernel_types::vocab_mask) {
-				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_02_type::runtime_dims>{};
+				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_02_type::runtime_dim>{};
 			} else if constexpr (kernel_type == kernel_types::sample_logits) {
 				return core_trait_dims<1, 1, 1, 1, 0>{};
 			} else if constexpr (kernel_type == kernel_types::weights) {
-				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_02_type::runtime_dims>{};
+				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_02_type::runtime_dim>{};
+			} else {
+				static_assert(static_assert_printer<false, get_new_dims_new_errors::unknown_kernel_type, dims_01_type, dims_02_type>::impl);
+			}
+		}
+		using type = decltype(get_new_dims_new_fn());
+	};
+
+	template<kernel_types kernel_type, double_runtime_dims_types dims_01_type, double_runtime_dims_types dims_02_type>
+	struct get_new_dims_new_2<kernel_type, dims_01_type, dims_02_type> {
+		static constexpr auto dims01 = dims_01_type::get_array();
+		static constexpr auto dims02 = dims_02_type::get_array();
+		static constexpr auto get_new_dims_new_fn() {
+			if constexpr (kernel_type == kernel_types::get_rows) {
+				return batched_core_trait_dims<dims01[0], dims02[1], dims01[2], dims01[3], dims_02_type::runtime_dim, dims_02_type::runtime_dim_02>{};
+			} else if constexpr (kernel_type == kernel_types::mul_mat) {
+				return batched_core_trait_dims<dims01[0], dims02[1], dims02[2], dims01[3], dims_02_type::runtime_dim, dims_02_type::runtime_dim_02>{};
+			} else if constexpr (kernel_type == kernel_types::sub) {
+				return batched_core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_02_type::runtime_dim, dims_02_type::runtime_dim_02>{};
+			} else if constexpr (kernel_type == kernel_types::copy) {
+				return batched_core_trait_dims<dims02[0], dims02[1], dims02[2], dims02[3], dims_02_type::runtime_dim, dims_02_type::runtime_dim_02>{};
+			} else if constexpr (kernel_type == kernel_types::add) {
+				return batched_core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_02_type::runtime_dim, dims_02_type::runtime_dim_02>{};
+			} else if constexpr (kernel_type == kernel_types::mul) {
+				return batched_core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_02_type::runtime_dim, dims_02_type::runtime_dim_02>{};
+			} else if constexpr (kernel_type == kernel_types::softmax) {
+				return batched_core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_02_type::runtime_dim, dims_02_type::runtime_dim_02>{};
+			} else if constexpr (kernel_type == kernel_types::temperature_scale) {
+				return batched_core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_02_type::runtime_dim, dims_02_type::runtime_dim_02>{};
+			} else if constexpr (kernel_type == kernel_types::top_k_filter) {
+				return batched_core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_02_type::runtime_dim, dims_02_type::runtime_dim_02>{};
+			} else if constexpr (kernel_type == kernel_types::top_p_filter) {
+				return batched_core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_02_type::runtime_dim, dims_02_type::runtime_dim_02>{};
+			} else if constexpr (kernel_type == kernel_types::vocab_mask) {
+				return batched_core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_02_type::runtime_dim, dims_02_type::runtime_dim_02>{};
+			} else if constexpr (kernel_type == kernel_types::sample_logits) {
+				return batched_core_trait_dims<1, 1, 1, 1, dims_02_type::runtime_dim, dims_02_type::runtime_dim_02>{};
+			} else if constexpr (kernel_type == kernel_types::weights) {
+				return batched_core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_02_type::runtime_dim, dims_02_type::runtime_dim_02>{};
 			} else {
 				static_assert(static_assert_printer<false, get_new_dims_new_errors::unknown_kernel_type, dims_01_type, dims_02_type>::impl);
 			}
@@ -783,15 +1193,38 @@ namespace nihilus {
 		static constexpr auto dims03 = dims_03_type::get_array();
 		static constexpr auto get_new_dims_new_fn() {
 			if constexpr (kernel_type == kernel_types::rope) {
-				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_01_type::runtime_dims>{};
+				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_01_type::runtime_dim>{};
 			} else if constexpr (kernel_type == kernel_types::repetition_penalty) {
-				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_01_type::runtime_dims>{};
+				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_01_type::runtime_dim>{};
 			} else if constexpr (kernel_type == kernel_types::presence_penalty) {
-				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_01_type::runtime_dims>{};
+				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_01_type::runtime_dim>{};
 			} else if constexpr (kernel_type == kernel_types::frequency_penalty) {
-				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_01_type::runtime_dims>{};
+				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_01_type::runtime_dim>{};
 			} else if constexpr (kernel_type == kernel_types::weights) {
-				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_01_type::runtime_dims>{};
+				return core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_01_type::runtime_dim>{};
+			} else {
+				static_assert(static_assert_printer<false, get_new_dims_new_errors::unknown_kernel_type, dims_01_type, dims_02_type, dims_03_type>::impl);
+			}
+		}
+		using type = decltype(get_new_dims_new_fn());
+	};
+
+	template<kernel_types kernel_type, double_runtime_dims_types dims_01_type, double_runtime_dims_types dims_02_type, double_runtime_dims_types dims_03_type>
+	struct get_new_dims_new_3<kernel_type, dims_01_type, dims_02_type, dims_03_type> {
+		static constexpr auto dims01 = dims_01_type::get_array();
+		static constexpr auto dims02 = dims_02_type::get_array();
+		static constexpr auto dims03 = dims_03_type::get_array();
+		static constexpr auto get_new_dims_new_fn() {
+			if constexpr (kernel_type == kernel_types::rope) {
+				return batched_core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_01_type::runtime_dim, dims_01_type::runtime_dim_02>{};
+			} else if constexpr (kernel_type == kernel_types::repetition_penalty) {
+				return batched_core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_01_type::runtime_dim, dims_01_type::runtime_dim_02>{};
+			} else if constexpr (kernel_type == kernel_types::presence_penalty) {
+				return batched_core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_01_type::runtime_dim, dims_01_type::runtime_dim_02>{};
+			} else if constexpr (kernel_type == kernel_types::frequency_penalty) {
+				return batched_core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_01_type::runtime_dim, dims_01_type::runtime_dim_02>{};
+			} else if constexpr (kernel_type == kernel_types::weights) {
+				return batched_core_trait_dims<dims01[0], dims01[1], dims01[2], dims01[3], dims_01_type::runtime_dim, dims_01_type::runtime_dim_02>{};
 			} else {
 				static_assert(static_assert_printer<false, get_new_dims_new_errors::unknown_kernel_type, dims_01_type, dims_02_type, dims_03_type>::impl);
 			}

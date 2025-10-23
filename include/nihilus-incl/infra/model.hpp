@@ -30,6 +30,7 @@ RealTimeChris (Chris M.)
 #include <nihilus-incl/common/input_collector.hpp>
 #include <nihilus-incl/common/tuple.hpp>
 #include <nihilus-incl/infra/jitter_generator.hpp>
+#include <algorithm>
 #include <span>
 
 namespace nihilus {
@@ -89,7 +90,7 @@ namespace nihilus {
 		NIHILUS_HOST bool process_input_impl(std::string_view input, [[maybe_unused]] uint64_t seed_new = 0) {
 			tokenizer_type::init_rng(seed_new);
 			input = input.size() > config_type::max_sequence_length ? input.substr(0, config_type::max_sequence_length) : input;
-			tokenizer_type::tokenize_init(
+			tokenizer_type::tokenizer_init(
 				this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::inp_tokens>().get_data());
 			using output_type = detail::remove_cvref_t<decltype(this->template get_core<core_types, core_types::global_inputs>()
 					.values.template get_core<global_input_types, global_input_types::inp_tokens>())>::output_type;
@@ -105,7 +106,7 @@ namespace nihilus {
 
 		NIHILUS_HOST bool process_input_impl() {
 			input_collector<config_type>::read_multiline();
-			tokenizer_type::tokenize_init(
+			tokenizer_type::tokenizer_init(
 				this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::inp_tokens>().get_data());
 			using output_type = detail::remove_cvref_t<decltype(this->template get_core<core_types, core_types::global_inputs>()
 					.values.template get_core<global_input_types, global_input_types::inp_tokens>())>::output_type;
@@ -150,8 +151,6 @@ namespace nihilus {
 		}
 
 		NIHILUS_HOST void execute_model(const std::string_view input) {
-			static_cast<thread_pool<config_type>*>(this)->template execute_tasks<processing_phases::prompt_eval_time>(2);
-
 			if constexpr (config_type::dev) {
 				++perf_base<config_type>::perf_stats.current_iteration;
 			}
@@ -159,15 +158,22 @@ namespace nihilus {
 			exec_params.sequence_length = tokenizer_type::tokenize(input,
 				this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::inp_tokens>().get_data());
 
-			for (uint64_t x = 0; x < exec_params.sequence_length; ++x) {
-				using core_type = detail::remove_cvref_t<
-					decltype(this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::inp_pos>())>;
-				memory_transfer<config_type>::host_to_device(static_cast<typename core_type::output_type>(x),
-					this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::inp_pos>().get_data() + x);
-			}
-			using core_type = detail::remove_cvref_t<
+			using core_type_inp_pos = detail::remove_cvref_t<
+				decltype(this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::inp_pos>())>;
+			static constexpr array<typename core_type_inp_pos::output_type, config_type::max_sequence_length> inp_pos_values{ [] {
+				array<typename core_type_inp_pos::output_type, config_type::max_sequence_length> return_values;
+				for (uint64_t x = 0; x < config_type::max_sequence_length; ++x) {
+					return_values[x] = static_cast<typename core_type_inp_pos::output_type>(x);
+				}
+				return return_values;
+			}() };
+			memory_transfer<config_type>::host_to_device(inp_pos_values.data(),
+				this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::inp_pos>().get_data(),
+				exec_params.sequence_length);
+
+			using core_type_inp_out_ids = detail::remove_cvref_t<
 				decltype(this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::inp_out_ids>())>;
-			memory_transfer<config_type>::host_to_device(static_cast<typename core_type::output_type>(exec_params.sequence_length - 1),
+			memory_transfer<config_type>::host_to_device(static_cast<typename core_type_inp_out_ids::output_type>(exec_params.sequence_length - 1),
 				this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::inp_out_ids>().get_data());
 
 			if constexpr (config_type::benchmark || config_type::dev) {
@@ -181,7 +187,8 @@ namespace nihilus {
 				perf_base<config_type>::perf_stats.prompt_start = clock_type::now();
 			}
 
-			static_cast<thread_pool<config_type>*>(this)->template execute_tasks<processing_phases::prompt_eval_time>(exec_params.sequence_length);
+			static_cast<thread_pool<config_type>*>(this)->template execute_tasks<processing_phases::prompt_eval_time>(2, 1);
+			static_cast<thread_pool<config_type>*>(this)->template execute_tasks<processing_phases::prompt_eval_time>(exec_params.sequence_length, 1);
 
 			if constexpr (config_type::dev) {
 				++perf_base<config_type>::perf_stats.current_iteration;
@@ -201,7 +208,7 @@ namespace nihilus {
 				if constexpr (config_type::benchmark || config_type::dev) {
 					perf_base<config_type>::perf_stats.token_start = clock_type::now();
 				}
-				static_cast<thread_pool<config_type>*>(this)->template execute_tasks<processing_phases::eval_time>(1);
+				static_cast<thread_pool<config_type>*>(this)->template execute_tasks<processing_phases::eval_time>(1, 1);
 
 				if constexpr (config_type::benchmark || config_type::dev) {
 					++perf_base<config_type>::perf_stats.current_iteration;
@@ -319,128 +326,145 @@ namespace nihilus {
 		}
 	};
 
-	inline constexpr size_t round_to_power_of_two(size_t value) {
-		if (value == 0)
-			return 1;
-		value--;
-		value |= value >> 1;
-		value |= value >> 2;
-		value |= value >> 4;
-		value |= value >> 8;
-		value |= value >> 16;
-		value |= value >> 32;
-		return value + 1;
-	}
-
-	template<typename config_type, typename request_type> struct batch_queue {
-		using request_ptr = request_type*;
-
-		struct batch {
-			array<request_ptr, config_type::batch_size> requests{};
-			atomic_flag_wrapper<uint64_t> sequence{};
-			atomic_flag_wrapper<uint64_t> count{};
-
-			NIHILUS_HOST void add(request_ptr req) {
-				requests[count.fetch_add(1)] = req;
-			}
-
-			NIHILUS_HOST void mark_ready(uint64_t seq) {
-				sequence.store(seq);
-				sequence.notify_one();
-			}
-
-			NIHILUS_HOST void wait_until_ready(uint64_t expected_seq) {
-				sequence.hybrid_wait(expected_seq);
-			}
-
-			NIHILUS_HOST void reset() {
-				count.store(0);
-			}
-
-			NIHILUS_HOST bool is_full() const {
-				return count.load() >= config_type::batch_size;
-			}
-
-			NIHILUS_HOST bool is_empty() const {
-				return count.load() == 0;
-			}
-		};
-
-	  private:
-		static constexpr auto batch_timeout = std::chrono::milliseconds{ 10 };
-		atomic_flag_wrapper<uint64_t> currently_active_batch{};
-		atomic_flag_wrapper<uint64_t> batch_start_time_ns{};
-		atomic_flag_wrapper<uint64_t> global_sequence{};
-		atomic_flag_wrapper<bool> shutdown{};
-		array<batch, 2> current_batch{};
-
-		NIHILUS_HOST uint64_t get_current_time_ns() {
-			return std::chrono::duration_cast<std::chrono::duration<uint64_t, std::nano>>(clock_type::now().time_since_epoch()).count();
-		}
-
-	  public:
-		NIHILUS_HOST bool try_add_request(request_ptr req) {
-			uint64_t batch_idx = currently_active_batch.load() & 1;
-			auto& batch		   = current_batch[batch_idx];
-
-			if (batch.is_empty()) {
-				batch_start_time_ns.store(get_current_time_ns());
-			}
-
-			if (!batch.is_full()) {
-				batch.add(req);
-
-				if (batch.is_full()) {
-					uint64_t seq = global_sequence.fetch_add(1);
-					batch.mark_ready(seq);
-					return true;
-				}
-
-				uint64_t start_time	  = batch_start_time_ns.load();
-				uint64_t current_time = get_current_time_ns();
-				uint64_t elapsed_ns	  = current_time - start_time;
-
-				if (elapsed_ns >= batch_timeout.count() * 1'000'000) {
-					uint64_t seq = global_sequence.fetch_add(1);
-					batch.mark_ready(seq);
-				}
-
-				return true;
-			}
-
-			return false;
-		}
-
-		NIHILUS_HOST batch* get_batch() {
-			uint64_t old_idx	  = currently_active_batch.fetch_add(1);
-			uint64_t batch_idx	  = old_idx & 1;
-			uint64_t expected_seq = old_idx;
-
-			current_batch[batch_idx].wait_until_ready(expected_seq);
-
-			return &current_batch[batch_idx];
-		}
-
-		NIHILUS_HOST void signal_shutdown() {
-			shutdown.store(true, std::memory_order_release);
-			current_batch[0].sequence.notify_all();
-			current_batch[1].sequence.notify_all();
-		}
+	template<typename request_type> struct batch_request_metadata {
+		uint64_t output_logit_offset{};
+		uint64_t input_token_offset{};
+		request_type* request_ptr{};
+		uint64_t kv_cache_offset{};
+		uint64_t batch_index{};
 	};
 
+	template<typename config_type, typename request_type>
+	NIHILUS_HOST void generate_request_metadata(batch_request_metadata<request_type>& metadata, request_type& request, uint64_t batch_index) {
+		using mtt = model_traits_type<config_type>;
+		static constexpr uint64_t kv_cache_size_per_request{ config_type::max_sequence_length * mtt::block_count * 2 * mtt::n_embd_kv_gqa };
+		metadata.input_token_offset	 = batch_index * config_type::max_sequence_length;
+		metadata.request_ptr		 = &request;
+		metadata.kv_cache_offset	 = batch_index * kv_cache_size_per_request;
+		metadata.output_logit_offset = batch_index * mtt::vocab_size;
+		metadata.batch_index		 = batch_index;
+	}
+
+	template<uint64_t batch_size, typename request_type> struct batch_request_bucket {
+		array<batch_request_metadata<request_type>, batch_size> requests{};
+		uint64_t active_request_count{};
+		uint64_t max_length{};
+	};
+
+	template<uint64_t batch_size, typename request_type> struct bucket_manager {
+		array<batch_request_bucket<batch_size, request_type>, batch_size> buckets{};
+		uint64_t active_bucket_count{};
+	};
+
+	template<uint64_t batch_size, typename request_type> NIHILUS_HOST void create_optimal_buckets(bucket_manager<batch_size, request_type>& manager,
+		const array<batch_request_metadata<request_type>, batch_size>& metadata, uint64_t active_count) {
+		manager.active_bucket_count = 0;
+		for (uint64_t x = 0; x < batch_size; ++x) {
+			manager.buckets[x].active_request_count = 0;
+			manager.buckets[x].max_length			= 0;
+		}
+		if (active_count == 0) {
+			return;
+		}
+
+		rt_array<size_t, batch_size> indices(active_count);
+		for (size_t i = 0; i < active_count; ++i)
+			indices[i] = i;
+
+		std::sort(indices.begin(), indices.end(), [&](size_t a, size_t b) {
+			return metadata[a].request_ptr->prompt_length < metadata[b].request_ptr->prompt_length;
+		});
+
+		uint64_t max_len = metadata[indices.back()].request_ptr->prompt_length;
+
+		size_t num_buckets;
+		if (max_len < 512 || active_count < 6) {
+			num_buckets = detail::min(size_t(2), active_count);
+		} else if (max_len < 2048) {
+			num_buckets = detail::min(size_t(3) + active_count / 20, active_count);
+		} else if (max_len < 8192) {
+			num_buckets = detail::min(size_t(5) + active_count / 15, active_count);
+		} else {
+			num_buckets = detail::min(size_t(8) + active_count / 10, active_count);
+		}
+
+		num_buckets = std::clamp(num_buckets, size_t(1), detail::min(size_t(12), active_count));
+
+		rt_array<rt_array<size_t, batch_size>, batch_size> dp(active_count + 1, rt_array<uint64_t, batch_size>(num_buckets + 1, std::numeric_limits<uint64_t>::max()));
+		rt_array<rt_array<size_t, batch_size>, batch_size> splits(active_count + 1, rt_array<uint64_t, batch_size>(num_buckets + 1, 0));
+
+		dp[0][0] = 0;
+
+		for (size_t i = 1; i <= active_count; ++i) {
+			for (size_t k = 1; k <= detail::min(i, num_buckets); ++k) {
+				for (size_t j = k - 1; j < i; ++j) {
+					if (dp[j][k - 1] == std::numeric_limits<uint64_t>::max())
+						continue;
+
+					uint64_t bucket_max_len = metadata[indices[i - 1]].request_ptr->prompt_length;
+					uint64_t bucket_cost	= bucket_max_len * (i - j);
+					uint64_t total_cost		= dp[j][k - 1] + bucket_cost;
+
+					if (total_cost < dp[i][k]) {
+						dp[i][k]	 = total_cost;
+						splits[i][k] = j;
+					}
+				}
+			}
+		}
+
+		rt_array<size_t, batch_size> split_points{ num_buckets };
+		size_t pos = active_count;
+		size_t k   = num_buckets;
+
+		while (pos > 0 && k > 0) {
+			split_points.emplace_back(splits[pos][k]);
+			pos = splits[pos][k];
+			k--;
+		}
+
+		std::reverse(split_points.begin(), split_points.end());
+		split_points.emplace_back(active_count);
+
+		size_t start				= 0;
+		manager.active_bucket_count = 0;
+
+		for (size_t end: split_points) {
+			if (end > start) {
+				auto& bucket				= manager.buckets[manager.active_bucket_count];
+				bucket.active_request_count = 0;
+				bucket.max_length			= 0;
+
+				for (size_t i = start; i < end; ++i) {
+					bucket.requests[bucket.active_request_count++] = metadata[indices[i]];
+					bucket.max_length							   = detail::max(bucket.max_length, metadata[indices[i]].request_ptr->prompt_length);
+				}
+
+				manager.active_bucket_count++;
+			}
+			start = end;
+		}
+
+		return;
+	}
+
 	template<uint64_t index_new, typename config_type, typename connection_type> struct model<index_new, config_type, connection_type> : public model<index_new, config_type> {
+		using base_model_type		 = model<index_new, config_type>;
 		using output_queue_type		 = typename connection_type::output_queue_type;
 		using input_queue_type		 = typename connection_type::input_queue_type;
 		using response_type			 = typename connection_type::response_type;
 		using request_type			 = typename connection_type::request_type;
+		using tokenizer_type		 = typename base_model_type::tokenizer_type;
 		using connection_config_type = typename connection_type::config_type;
 		using flag_type				 = typename connection_type::flag_type;
-		using base_model_type		 = model<index_new, config_type>;
 
+		array<batch_request_metadata<request_type>, config_type::batch_size> metadata{};
+		bucket_manager<config_type::batch_size, request_type> manager{};
+		array<response_type*, config_type::batch_size> responses{};
+		array<request_type*, config_type::batch_size> requests{};
 		flag_type threads_running{};
 		connection_type connection{};
-		std::thread output_writer_thread{};
-		std::thread input_reader_thread{};
+		std::thread processor_thread{};
 
 		NIHILUS_HOST model() {
 		}
@@ -455,10 +479,8 @@ namespace nihilus {
 		}
 
 		NIHILUS_HOST model(cli_params params) : base_model_type{ params }, threads_running{ false }, connection{ get_connection_config(params) } {
+			processor_thread = std::thread(&model::processor_loop, this);
 			threads_running.store(true, std::memory_order_release);
-			input_reader_thread	 = std::thread(&model::input_reader_loop, this);
-			output_writer_thread = std::thread(&model::output_writer_loop, this);
-
 			log<log_levels::status>("[Model] Initialized with connection threads");
 		}
 
@@ -486,12 +508,8 @@ namespace nihilus {
 			connection.input_queue.wake_all();
 			connection.output_queue.wake_all();
 
-			if (input_reader_thread.joinable()) {
-				input_reader_thread.join();
-			}
-
-			if (output_writer_thread.joinable()) {
-				output_writer_thread.join();
+			if (processor_thread.joinable()) {
+				processor_thread.join();
 			}
 
 			log<log_levels::status>("[Model] Threads stopped");
@@ -503,113 +521,175 @@ namespace nihilus {
 		}
 
 	  private:
-		NIHILUS_HOST void input_reader_loop() {
-			log<log_levels::status>("[Input Reader] Thread started");
+		array<execution_parameters, config_type::batch_size> exec_params{};
+
+		NIHILUS_HOST void execute_model_batched(uint64_t max_sequence_length, uint64_t batch_size) {
+			static_cast<thread_pool<config_type>*>(this)->template execute_tasks<processing_phases::prompt_eval_time>(2, batch_size);
+			static_cast<thread_pool<config_type>*>(this)->template execute_tasks<processing_phases::prompt_eval_time>(max_sequence_length, batch_size);
+
+			if constexpr (config_type::dev) {
+				++perf_base<config_type>::perf_stats.current_iteration;
+			}
+
+			if constexpr (config_type::benchmark || config_type::dev) {
+				auto prompt_end = clock_type::now();
+				perf_base<config_type>::perf_stats.total_prompt_eval_time_ns =
+					std::chrono::duration<double, std::nano>(prompt_end - perf_base<config_type>::perf_stats.prompt_start).count();
+			}
+
+			if constexpr (config_type::benchmark || config_type::dev) {
+				perf_base<config_type>::perf_stats.eval_start = clock_type::now();
+			}
+
+			for (uint64_t y = 0; y < base_model_type::exec_params.token_count - 1; ++y) {
+				if constexpr (config_type::benchmark || config_type::dev) {
+					perf_base<config_type>::perf_stats.token_start = clock_type::now();
+				}
+				static_cast<thread_pool<config_type>*>(this)->template execute_tasks<processing_phases::eval_time>(1, batch_size);
+
+				if constexpr (config_type::benchmark || config_type::dev) {
+					++perf_base<config_type>::perf_stats.current_iteration;
+					auto token_end	   = clock_type::now();
+					auto token_time_ns = std::chrono::duration<double, std::nano>(token_end - perf_base<config_type>::perf_stats.token_start).count();
+					perf_base<config_type>::perf_stats.total_eval_time_ns += token_time_ns;
+				}
+				[[maybe_unused]] auto new_token = base_model_type::sample_next_token();
+				if constexpr (config_type::benchmark || config_type::dev) {
+					auto sampling_end	  = clock_type::now();
+					auto sampling_time_ns = std::chrono::duration<double, std::nano>(sampling_end - perf_base<config_type>::perf_stats.sampling_start).count();
+					perf_base<config_type>::perf_stats.total_sampling_time_ns += sampling_time_ns;
+				}
+			}
+
+			if constexpr (config_type::benchmark || config_type::dev) {
+				perf_base<config_type>::perf_stats.total_eval_time_ns	  = perf_base<config_type>::perf_stats.total_eval_time_ns;
+				perf_base<config_type>::perf_stats.total_sampling_time_ns = perf_base<config_type>::perf_stats.total_sampling_time_ns;
+			}
+
+			if constexpr (config_type::benchmark || config_type::dev) {
+				base_model_type::print_performance_stats();
+			}
+		}
+
+		NIHILUS_HOST void processor_loop() {
+			log<log_levels::status>("[Processor] Thread started");
 
 			while (threads_running.load(std::memory_order_relaxed)) {
 				auto input_slot = connection.input_queue.get_read_buffer();
+
 				if (!input_slot) {
 					if constexpr (config_type::dev) {
-						log<log_levels::status>("[Input Reader] Queue shutdown");
+						log<log_levels::status>("[Processor] Queue shutdown");
 					}
-					break;
-				}
-
-				if (!threads_running.load(std::memory_order_relaxed)) {
 					break;
 				}
 
 				request_type* request;
+				uint64_t batch_size{};
 				while (input_slot.clear_slot(request)) {
 					if (!threads_running.load(std::memory_order_relaxed)) {
 						break;
 					}
-
+					requests[batch_size] = request;
+					generate_request_metadata<config_type, request_type>(metadata[batch_size], *request, batch_size);
 					if constexpr (config_type::dev) {
-						log<log_levels::status>("[Input Reader] Processing request " + std::to_string(request->request_id));
+						log<log_levels::status>("[Processor] Processing request " + std::to_string(request->request_id));
 					}
-
-					std::string_view prompt(request->prompt.data(), request->prompt_length);
-
-					auto output_slot = connection.output_queue.get_write_buffer();
-					response_type* response;
-					if (output_slot.add_slot(response)) {
-						process_inference_request(*request, prompt, *response);
-						output_slot.mark_one_ready();
+					++batch_size;
+				}
+				create_optimal_buckets<config_type::batch_size, request_type>(manager, metadata, batch_size);
+				prep_all_requests();
+				input_slot.mark_one_ready();
+				if (batch_size > 0) {
+					execute_all_requests();
+					for (uint64_t x = 0; x < batch_size; ++x) {
+						if (!threads_running.load(std::memory_order_relaxed)) {
+							break;
+						}
+						auto output_slot = connection.output_queue.get_write_buffer();
+						if (output_slot.add_slot(responses[x])) {
+							output_slot.mark_one_ready();
+						}
 					}
-
-					input_slot.mark_one_ready();
 				}
 			}
 
 			if constexpr (config_type::dev) {
-				log<log_levels::status>("[Input Reader] Thread stopped");
+				log<log_levels::status>("[Processor] Thread stopped");
 			}
 		}
 
-		NIHILUS_HOST void output_writer_loop() {
-			log<log_levels::status>("[Output Writer] Thread started");
+		NIHILUS_HOST void prep_input_impl(batch_request_metadata<request_type>& request) {
+			auto& inp_pos_ref	 = this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::inp_pos>();
+			auto& inp_tokens_ref = this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::inp_tokens>();
+			auto& inp_out_ids_ref =
+				this->template get_core<core_types, core_types::global_inputs>().values.template get_core<global_input_types, global_input_types::inp_out_ids>();
+			tokenizer_type::init_rng(request.request_ptr->seed);
+			tokenizer_type::tokenizer_init(inp_tokens_ref.get_data() + request.input_token_offset);
+			using output_type = detail::remove_cvref_t<decltype(this->template get_core<core_types, core_types::global_inputs>()
+					.values.template get_core<global_input_types, global_input_types::inp_tokens>())>::output_type;
+			output_type val{ 1 };
+			memory_transfer<config_type>::host_to_device(val, inp_pos_ref.get_data() + 1 + request.input_token_offset);
+			memory_transfer<config_type>::host_to_device(val, inp_out_ids_ref.get_data() + request.input_token_offset);
 
-			while (threads_running.load(std::memory_order_relaxed)) {
-				auto internal_slot = connection.output_queue.get_write_buffer();
-				if (!internal_slot) {
-					if constexpr (config_type::dev) {
-						log<log_levels::status>("[Output Writer] Internal queue shutdown");
-					}
-					break;
+			if constexpr (config_type::dev) {
+				++perf_base<config_type>::perf_stats.current_iteration;
+			}
+
+			exec_params[request.batch_index].sequence_length =
+				tokenizer_type::tokenize(request.request_ptr->prompt.data(), inp_tokens_ref.get_data() + request.input_token_offset);
+
+			using core_type_inp_pos = detail::remove_cvref_t<decltype(inp_pos_ref)>;
+			static array<typename core_type_inp_pos::output_type, config_type::max_sequence_length> inp_pos_values{ [] {
+				array<typename core_type_inp_pos::output_type, config_type::max_sequence_length> return_values{};
+				for (uint64_t x = 0; x < config_type::max_sequence_length; ++x) {
+					return_values[x] = x;
 				}
+				return return_values;
+			}() };
+			memory_transfer<config_type>::host_to_device(inp_pos_values.data(), inp_pos_ref.get_data() + request.input_token_offset,
+				exec_params[request.batch_index].sequence_length);
 
+			using core_type_inp_out_ids = detail::remove_cvref_t<decltype(inp_out_ids_ref)>;
+			memory_transfer<config_type>::host_to_device(static_cast<typename core_type_inp_out_ids::output_type>(exec_params[request.batch_index].sequence_length - 1),
+				inp_out_ids_ref.get_data() + request.input_token_offset + request.input_token_offset);
+
+			if constexpr (config_type::benchmark || config_type::dev) {
+				perf_base<config_type>::perf_stats.prompt_token_count	 = exec_params[request.batch_index].sequence_length;
+				perf_base<config_type>::perf_stats.generated_token_count = exec_params[request.batch_index].token_count - 1;
+				perf_base<config_type>::perf_stats.total_sampling_runs	 = exec_params[request.batch_index].token_count;
+				perf_base<config_type>::perf_stats.total_eval_time_ns	 = 0;
+			}
+
+			if constexpr (config_type::benchmark || config_type::dev) {
+				perf_base<config_type>::perf_stats.prompt_start = clock_type::now();
+			}
+		}
+
+		NIHILUS_HOST void prep_request_data(batch_request_bucket<config_type::batch_size, request_type>& bucket) {
+			for (uint64_t i = 0; i < bucket.active_request_count; ++i) {
 				if (!threads_running.load(std::memory_order_relaxed)) {
 					break;
 				}
-
-				response_type* response;
-				while (internal_slot.add_slot(response)) {
-					if (!threads_running.load(std::memory_order_relaxed)) {
-						break;
-					}
-
-					if constexpr (config_type::dev) {
-						log<log_levels::status>("[Output Writer] Writing response " + std::to_string(response->response_id));
-					}
-					response->response_id	  = response->response_id;
-					response->user_id		  = response->user_id;
-					response->response_length = response->response_length;
-					std::memcpy(response->response.data(), response->response.data(), response->response_length);
-					response->eval_tokens_per_sec		 = response->eval_tokens_per_sec;
-					response->prompt_eval_tokens_per_sec = response->prompt_eval_tokens_per_sec;
-					response->tokens_generated			 = response->tokens_generated;
-					response->prompt_tokens				 = response->prompt_tokens;
-					response->total_time_ms				 = response->total_time_ms;
-
-					internal_slot.mark_one_ready();
-				}
+				prep_input_impl(bucket.requests[i]);
 			}
-
-			log<log_levels::status>("[Output Writer] Thread stopped");
 		}
 
-		NIHILUS_HOST void process_inference_request(const request_type& request, std::string_view prompt, response_type& response) {
-			base_model_type::process_input_impl(prompt, request.seed);
+		NIHILUS_HOST void prep_all_requests() {
+			for (uint64_t i = 0; i < manager.active_bucket_count; ++i) {
+				if (!threads_running.load(std::memory_order_relaxed)) {
+					break;
+				}
+				prep_request_data(manager.buckets[i]);
+			}
+		}
 
-			response.response_id = request.request_id;
-			response.user_id	 = request.user_id;
-
-			const char* placeholder = "Generated response placeholder";
-			size_t len				= std::strlen(placeholder);
-			std::memcpy(response.response.data(), placeholder, len);
-			response.response_length = len;
-
-			if constexpr (config_type::benchmark || config_type::dev) {
-				response.eval_tokens_per_sec = static_cast<uint64_t>(
-					static_cast<double>(perf_base<config_type>::perf_stats.generated_token_count) / (perf_base<config_type>::perf_stats.total_eval_time_ns * 1e-9));
-
-				response.prompt_eval_tokens_per_sec = static_cast<uint64_t>(
-					static_cast<double>(perf_base<config_type>::perf_stats.prompt_token_count) / (perf_base<config_type>::perf_stats.total_prompt_eval_time_ns * 1e-9));
-
-				response.tokens_generated = static_cast<uint32_t>(perf_base<config_type>::perf_stats.generated_token_count);
-				response.prompt_tokens	  = static_cast<uint32_t>(perf_base<config_type>::perf_stats.prompt_token_count);
-				response.total_time_ms	  = (perf_base<config_type>::perf_stats.total_prompt_eval_time_ns + perf_base<config_type>::perf_stats.total_eval_time_ns) * 1e-6;
+		NIHILUS_HOST void execute_all_requests() {
+			for (uint64_t x = 0; x < manager.active_bucket_count; ++x) {
+				if (!threads_running.load(std::memory_order_relaxed)) {
+					break;
+				}
+				execute_model_batched(manager.buckets[x].max_length, manager.buckets[x].active_request_count);
 			}
 		}
 	};

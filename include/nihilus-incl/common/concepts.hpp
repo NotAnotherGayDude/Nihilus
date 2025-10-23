@@ -187,7 +187,7 @@ namespace nihilus {
 	concept has_chunk_types = requires() { detail::remove_cvref_t<value_type>::current_chunk_eval; };
 
 	template<typename value_type>
-	concept active_input_types = requires() { detail::remove_cvref_t<value_type>::runtime_dims; };
+	concept active_input_types = requires() { detail::remove_cvref_t<value_type>::runtime_dim; };
 
 	template<typename value_type>
 	concept has_return_type = requires() { typename detail::remove_cvref_t<value_type>::return_type; };

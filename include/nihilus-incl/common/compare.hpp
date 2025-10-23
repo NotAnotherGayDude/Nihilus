@@ -262,4 +262,116 @@ namespace nihilus {
 		}
 	};
 
+	struct comparison {
+		template<typename char_type01, typename char_type02> NIHILUS_HOST static bool compare(const char_type01* lhs, char_type02* rhs, uint64_t lengthNew) noexcept {
+#if NIHILUS_AVX512 || NIHILUS_SVE2
+			if (lengthNew >= 64) {
+				using simd_type						 = typename detail::get_type_at_index<avx_list, 2>::type::type;
+				static constexpr uint64_t vectorSize = detail::get_type_at_index<avx_list, 2>::type::bytesProcessed;
+				static constexpr uint64_t mask		 = detail::get_type_at_index<avx_list, 2>::type::mask;
+				NIHILUS_ALIGN(64) char valuesToLoad[64];
+				simd_type::type value01, value02;
+				while (lengthNew >= vectorSize) {
+					std::memcpy(valuesToLoad, lhs, 64);
+					value01 = gather_values<simd_type>(valuesToLoad);
+					std::memcpy(valuesToLoad, rhs, 64);
+					value02 = gather_values<simd_type>(valuesToLoad);
+					if (opCmpEq<simd_type>(value01, value02) != mask) {
+						return false;
+					}
+					lengthNew -= vectorSize;
+					lhs += vectorSize;
+					rhs += vectorSize;
+				}
+			}
+#endif
+#if NIHILUS_AVX512 || NIHILUS_SVE2 || NIHILUS_AVX2
+			if (lengthNew >= 32) {
+				using simd_type						 = typename detail::get_type_at_index<avx_list, 1>::type::type;
+				static constexpr uint64_t vectorSize = detail::get_type_at_index<avx_list, 1>::type::bytesProcessed;
+				static constexpr uint64_t mask		 = detail::get_type_at_index<avx_list, 1>::type::mask;
+				NIHILUS_ALIGN(32) char valuesToLoad[32];
+				simd_type::type value01, value02;
+				while (lengthNew >= vectorSize) {
+					std::memcpy(valuesToLoad, lhs, 32);
+					value01 = gather_values<simd_type>(valuesToLoad);
+					std::memcpy(valuesToLoad, rhs, 32);
+					value02 = gather_values<simd_type>(valuesToLoad);
+					if (opCmpEq<simd_type>(value01, value02) != mask) {
+						return false;
+					}
+					lengthNew -= vectorSize;
+					lhs += vectorSize;
+					rhs += vectorSize;
+				}
+			}
+#endif
+			if (lengthNew >= 16) {
+				using simd_type						 = typename detail::get_type_at_index<avx_list, 0>::type::type;
+				static constexpr uint64_t vectorSize = detail::get_type_at_index<avx_list, 0>::type::bytesProcessed;
+				static constexpr uint64_t mask		 = detail::get_type_at_index<avx_list, 0>::type::mask;
+				NIHILUS_ALIGN(16) char valuesToLoad[16];
+				simd_type::type value01, value02;
+				while (lengthNew >= vectorSize) {
+					std::memcpy(valuesToLoad, lhs, 16);
+					value01 = gather_values<simd_type>(valuesToLoad);
+					std::memcpy(valuesToLoad, rhs, 16);
+					value02 = gather_values<simd_type>(valuesToLoad);
+					if (opCmpEq<simd_type>(value01, value02) != mask) {
+						return false;
+					}
+					lengthNew -= vectorSize;
+					lhs += vectorSize;
+					rhs += vectorSize;
+				}
+			}
+			{
+				static constexpr uint64_t nBytes{ sizeof(uint64_t) };
+				if (lengthNew >= nBytes) {
+					uint64_t v1, v2;
+					std::memcpy(&v1, lhs, nBytes);
+					std::memcpy(&v2, rhs, nBytes);
+					if ((v1 ^ v2) != 0) {
+						return false;
+					}
+					lengthNew -= nBytes;
+					lhs += nBytes;
+					rhs += nBytes;
+				}
+			}
+			{
+				static constexpr uint64_t nBytes{ sizeof(uint32_t) };
+				if (lengthNew >= nBytes) {
+					uint32_t v1, v2;
+					std::memcpy(&v1, lhs, nBytes);
+					std::memcpy(&v2, rhs, nBytes);
+					if ((v1 ^ v2) != 0) {
+						return false;
+					}
+					lengthNew -= nBytes;
+					lhs += nBytes;
+					rhs += nBytes;
+				}
+			}
+			{
+				static constexpr uint64_t nBytes{ sizeof(uint16_t) };
+				if (lengthNew >= nBytes) {
+					uint16_t v1, v2;
+					std::memcpy(&v1, lhs, nBytes);
+					std::memcpy(&v2, rhs, nBytes);
+					if ((v1 ^ v2) != 0) {
+						return false;
+					}
+					lengthNew -= nBytes;
+					lhs += nBytes;
+					rhs += nBytes;
+				}
+			}
+			if (lengthNew && *lhs != *rhs) {
+				return false;
+			}
+			return true;
+		}
+	};
+
 }

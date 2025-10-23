@@ -20,6 +20,7 @@ RealTimeChris (Chris M.)
 
 #pragma once
 
+#include <nihilus-incl/common/utility.hpp>
 #include <nihilus-incl/common/config.hpp>
 
 namespace nihilus {
@@ -112,6 +113,16 @@ namespace nihilus {
 
 #endif
 
+#if NIHILUS_ARCH_ARM64
+	using avx_list = detail::type_list<detail::type_holder<16, nihilus_simd_int_128_t, uint64_t, std::numeric_limits<uint64_t>::max()>,
+		detail::type_holder<32, nihilus_simd_int_256_t, uint32_t, std::numeric_limits<uint32_t>::max()>,
+		detail::type_holder<64, nihilus_simd_int_512_t, uint64_t, std::numeric_limits<uint64_t>::max()>>;
+#else
+	using avx_list = detail::type_list<detail::type_holder<16, nihilus_simd_int_128_t, uint16_t, std::numeric_limits<uint16_t>::max()>,
+		detail::type_holder<32, nihilus_simd_int_256_t, uint32_t, std::numeric_limits<uint32_t>::max()>,
+		detail::type_holder<64, nihilus_simd_int_512_t, uint64_t, std::numeric_limits<uint64_t>::max()>>;
+#endif
+
 	template<typename value_type>
 	concept nihilus_simd_512_types = std::same_as<nihilus_simd_int_512_t, detail::remove_cvref_t<value_type>>;
 	template<typename value_type>
@@ -156,6 +167,10 @@ namespace nihilus {
 		return !_mm_testz_si128(value, value);
 	}
 
+	template<nihilus_simd_128_types simd_int_t01> NIHILUS_HOST auto opCmpEq(const typename simd_int_t01::type& value, const typename simd_int_t01::type& other) noexcept {
+		return static_cast<uint32_t>(_mm_movemask_epi8(_mm_cmpeq_epi8(value, other)));
+	}
+
 	template<nihilus_simd_256_types nihilus_simd_int_types_new> NIHILUS_HOST static auto gather_values(const void* str) noexcept {
 		return _mm256_load_si256(static_cast<const __m256i*>(str));
 	}
@@ -167,6 +182,10 @@ namespace nihilus {
 
 	template<nihilus_simd_256_types simd_int_t01> NIHILUS_HOST static auto opTest(const typename simd_int_t01::type& value) noexcept {
 		return !_mm256_testz_si256(value, value);
+	}
+
+	template<nihilus_simd_256_types simd_int_t01> NIHILUS_HOST static auto opCmpEq(const typename simd_int_t01::type& value, const typename simd_int_t01::type& other) noexcept {
+		return static_cast<uint32_t>(_mm256_movemask_epi8(_mm256_cmpeq_epi8(value, other)));
 	}
 
 #endif
@@ -186,6 +205,11 @@ namespace nihilus {
 		return !_mm512_testn_epi64_mask(value, value);
 	}
 
+	template<nihilus_simd_512_types simd_int_t01>
+	NIHILUS_HOST static auto opCmpEq(const typename simd_int_t01::type& value, const typename simd_int_t01::type& other) noexcept {
+		return static_cast<uint64_t>(_mm512_cmpeq_epi8_mask(value, other));
+	}
+
 #endif
 
 #if NIHILUS_NEON
@@ -200,6 +224,10 @@ namespace nihilus {
 
 	NIHILUS_HOST static float fp16_to_fp32(half h) {
 		return vgetq_lane_f32(vcvt_f32_f16(vreinterpret_f16_s16(vdup_n_s16(h))), 0);
+	}
+
+	template<nihilus_simd_128_types simd_int_t01> NIHILUS_HOST static auto opCmpEq(const typename simd_int_t01::type& value, const typename simd_int_t01::type& other) noexcept {
+		return vget_lane_u64(vreinterpret_u64_u8(vshrn_n_u16(vceqq_u8(value, other), 4)), 0);
 	}
 
 	template<nihilus_simd_128_types nihilus_simd_int_types_new> NIHILUS_HOST static auto gather_values(const void* str) noexcept {

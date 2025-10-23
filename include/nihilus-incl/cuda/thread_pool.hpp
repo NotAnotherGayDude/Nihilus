@@ -53,8 +53,9 @@ namespace nihilus {
 			core_bases_type::template impl_thread<global_output_thread_function, phase_new>();
 		}
 
-		template<processing_phases phase_new> NIHILUS_HOST void execute_tasks(uint64_t runtime_dimensions_new) {
-			core_bases_type::template impl<dim_updater>(runtime_dimensions_new);
+		template<processing_phases phase_new> NIHILUS_HOST void execute_tasks(uint64_t sequence_length, uint64_t batch_size) {
+			core_bases_type::template impl<dim_updater>(sequence_length);
+			core_bases_type::template impl<batched_dim_updater>(sequence_length, batch_size);
 			thread_function<phase_new>();
 			if constexpr (config_type::dev) {
 				cudaError_t err = cudaGetLastError();
