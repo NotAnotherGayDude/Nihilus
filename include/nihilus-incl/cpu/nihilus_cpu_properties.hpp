@@ -31,7 +31,7 @@ namespace nihilus {
 		static constexpr static_aligned_const l3_cache_size_raw{ 37748736ull };
 		static constexpr static_aligned_const cpu_arch_index_raw{ 1ull };
 		static constexpr static_aligned_const cpu_alignment_raw{ 32ull };
-		
+
 	  public:
 		static constexpr const uint64_t& thread_count{ *thread_count_raw };
 		static constexpr const uint64_t& l1_cache_size{ *l1_cache_size_raw };

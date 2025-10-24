@@ -193,7 +193,7 @@ namespace nihilus {
 			return runtime_dims_t<base_type>;
 		}
 
-		 NIHILUS_HOST static void impl(base_type& parse_core, uint64_t runtime_dimension, uint64_t& total_required_bytes) {
+		NIHILUS_HOST static void impl(base_type& parse_core, uint64_t runtime_dimension, uint64_t& total_required_bytes) {
 			parse_core.get_seq_length_dim()	   = runtime_dimension;
 			parse_core.total_required_bytes_rt = type_traits<typename base_type::output_type>::total_byte_size(parse_core.get_array_rt());
 			total_required_bytes += parse_core.total_required_bytes_rt;
@@ -235,7 +235,7 @@ namespace nihilus {
 			if constexpr (base_type::runtime_dim_02 != 5) {
 				parse_core.get_seq_length_dim() = sequence_length;
 			}
-			parse_core.get_batch_dim()		= batch_size;
+			parse_core.get_batch_dim()		   = batch_size;
 			parse_core.total_required_bytes_rt = type_traits<typename base_type::output_type>::total_byte_size(parse_core.get_array_rt());
 			total_required_bytes += parse_core.total_required_bytes_rt;
 		}
@@ -248,7 +248,7 @@ namespace nihilus {
 		NIHILUS_HOST batched_dim_updater(const batched_dim_updater&) noexcept			 = delete;
 		NIHILUS_HOST batched_dim_updater& operator=(batched_dim_updater&&) noexcept		 = delete;
 		NIHILUS_HOST batched_dim_updater(batched_dim_updater&&) noexcept				 = delete;
-		using base_type													 = base_type_new;
+		using base_type																	 = base_type_new;
 		NIHILUS_HOST static constexpr bool filter() {
 			return has_total_required_bytes_types<base_type>;
 		}
@@ -306,7 +306,7 @@ namespace nihilus {
 				std::stringstream stream{};
 				stream << "[DEBUG] Thread (ID: " << std::this_thread::get_id() << ") " << " [STARTING] a barrier with " << thread_count
 					   << " expected threads, for Op: " << base_type::core_type << std::endl;
-				log<log_levels::status>(stream.str());
+				logger<log_levels::status>::log(stream.str());
 			}
 			kernel_dispatcher<config_type, processing_phase, base_type>::impl(parse_core, thread_count);
 
@@ -314,7 +314,7 @@ namespace nihilus {
 				std::stringstream stream{};
 				stream << "[DEBUG] Thread (ID: " << std::this_thread::get_id() << ") " << " [FINISHED] a barrier with " << thread_count
 					   << " expected threads, for Op: " << base_type::core_type << std::endl;
-				log<log_levels::status>(stream.str());
+				logger<log_levels::status>::log(stream.str());
 			}
 		}
 	};
@@ -337,14 +337,14 @@ namespace nihilus {
 				std::stringstream stream{};
 				stream << "[DEBUG] Thread (ID: " << std::this_thread::get_id() << ") " << " [STARTING] a barrier with " << thread_count
 					   << " expected threads, for Op: " << base_type::core_type << ", for [BLOCK]: " << current_block << std::endl;
-				log<log_levels::status>(stream.str());
+				logger<log_levels::status>::log(stream.str());
 			}
 			kernel_dispatcher<config_type, processing_phase, base_type>::impl(parse_core, thread_count, current_block);
 			if constexpr (config_type::dev && config_type::device_type != device_types::gpu) {
 				std::stringstream stream{};
 				stream << "[DEBUG] Thread (ID: " << std::this_thread::get_id() << ") " << " [FINISHED] a barrier with " << thread_count
 					   << " expected threads, for Op: " << base_type::core_type << ", for [BLOCK]: " << current_block << std::endl;
-				log<log_levels::status>(stream.str());
+				logger<log_levels::status>::log(stream.str());
 			}
 		}
 	};
@@ -366,14 +366,14 @@ namespace nihilus {
 				std::stringstream stream{};
 				stream << "[DEBUG] Thread (ID: " << std::this_thread::get_id() << ") " << " [STARTING] a barrier with " << thread_count
 					   << " expected threads, for Op: " << base_type::core_type << std::endl;
-				log<log_levels::status>(stream.str());
+				logger<log_levels::status>::log(stream.str());
 			}
 			kernel_dispatcher<config_type, processing_phase, base_type>::impl(parse_core, thread_count);
 			if constexpr (config_type::dev && config_type::device_type != device_types::gpu) {
 				std::stringstream stream{};
 				stream << "[DEBUG] Thread (ID: " << std::this_thread::get_id() << ") " << " [FINISHED] a barrier with " << thread_count
 					   << " expected threads, for Op: " << base_type::core_type << std::endl;
-				log<log_levels::status>(stream.str());
+				logger<log_levels::status>::log(stream.str());
 			}
 		}
 	};

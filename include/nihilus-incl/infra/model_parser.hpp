@@ -130,8 +130,7 @@ namespace nihilus {
 	};
 
 #if NIHILUS_COMPILER_CUDA
-	template<gpu_device_config_types config_type>
-	struct stream_iterator<config_type> {
+	template<gpu_device_config_types config_type> struct stream_iterator<config_type> {
 		memory_mapped_file<config_type>* file{};
 		uint64_t current_index = 0;
 		uint64_t length		   = 0;

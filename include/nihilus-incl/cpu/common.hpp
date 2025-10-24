@@ -117,10 +117,76 @@ namespace nihilus {
 	using avx_list = detail::type_list<detail::type_holder<16, nihilus_simd_int_128_t, uint64_t, std::numeric_limits<uint64_t>::max()>,
 		detail::type_holder<32, nihilus_simd_int_256_t, uint32_t, std::numeric_limits<uint32_t>::max()>,
 		detail::type_holder<64, nihilus_simd_int_512_t, uint64_t, std::numeric_limits<uint64_t>::max()>>;
+
+	template<uint16_types value_type> NIHILUS_HOST static value_type tzcnt(const value_type value) noexcept {
+		if (value != 0) {
+			return static_cast<value_type>(__builtin_ctz(value));
+		} else {
+			return sizeof(value_type) * 8;
+		}
+	}
+
+	template<uint32_types value_type> NIHILUS_HOST static value_type tzcnt(const value_type value) noexcept {
+		if (value != 0) {
+			return __builtin_ctz(static_cast<int32_t>(value));
+		} else {
+			return sizeof(value_type) * 8;
+		}
+	}
+
+	template<uint64_types value_type> NIHILUS_HOST static value_type tzcnt(const value_type value) noexcept {
+		if (value != 0) {
+			return __builtin_ctzll(static_cast<int64_t>(value));
+		} else {
+			return sizeof(value_type) * 8;
+		}
+	}
+
+	template<uint16_types value_type> NIHILUS_HOST static value_type lzcnt(const value_type value) noexcept {
+		return static_cast<uint16_t>(__builtin_clz(value));
+	}
+
+	template<uint32_types value_type> NIHILUS_HOST static value_type lzcnt(const value_type value) noexcept {
+		return __builtin_clz(value);
+	}
+
+	template<uint64_types value_type> NIHILUS_HOST static value_type lzcnt(const value_type value) noexcept {
+		return __builtin_clzll(value);
+	}
+
 #else
 	using avx_list = detail::type_list<detail::type_holder<16, nihilus_simd_int_128_t, uint16_t, std::numeric_limits<uint16_t>::max()>,
 		detail::type_holder<32, nihilus_simd_int_256_t, uint32_t, std::numeric_limits<uint32_t>::max()>,
 		detail::type_holder<64, nihilus_simd_int_512_t, uint64_t, std::numeric_limits<uint64_t>::max()>>;
+
+	template<uint16_types value_type> NIHILUS_HOST static value_type tzcnt(const value_type value) noexcept {
+	#if NIHILUS_PLATFORM_LINUX
+		return __tzcnt_u16(value);
+	#else
+		return _tzcnt_u16(value);
+	#endif
+	}
+
+	template<uint32_types value_type> NIHILUS_HOST static value_type tzcnt(const value_type value) noexcept {
+		return _tzcnt_u32(value);
+	}
+
+	template<uint64_types value_type> NIHILUS_HOST static value_type tzcnt(const value_type value) noexcept {
+		return _tzcnt_u64(value);
+	}
+
+	template<uint16_types value_type> NIHILUS_HOST static value_type lzcnt(const value_type value) noexcept {
+		return static_cast<uint16_t>(_lzcnt_u32(value));
+	}
+
+	template<uint32_types value_type> NIHILUS_HOST static value_type lzcnt(const value_type value) noexcept {
+		return _lzcnt_u32(value);
+	}
+
+	template<uint64_types value_type> NIHILUS_HOST static value_type lzcnt(const value_type value) noexcept {
+		return _lzcnt_u64(value);
+	}
+
 #endif
 
 	template<typename value_type>
@@ -154,37 +220,53 @@ namespace nihilus {
 		return _mm_cvtss_f32(_mm_cvtph_ps(_mm_cvtsi32_si128(h)));
 	}
 
+	template<nihilus_simd_128_types simd_int_t01> NIHILUS_HOST static auto op_shuffle(const typename simd_int_t01::type& value, const typename simd_int_t01::type& other) noexcept {
+		return _mm_shuffle_epi8(value, other);
+	}
+
+	template<nihilus_simd_128_types simd_int_t01>
+	NIHILUS_HOST static auto op_cmp_eq_bitmask(const typename simd_int_t01::type& value, const typename simd_int_t01::type& other) noexcept {
+		return static_cast<uint16_t>(_mm_movemask_epi8(_mm_cmpeq_epi8(value, other)));
+	}
+
 	template<nihilus_simd_128_types nihilus_simd_int_types_new> NIHILUS_HOST static auto gather_values(const void* str) noexcept {
 		return _mm_load_si128(static_cast<const __m128i*>(str));
 	}
 
-	template<nihilus_simd_128_types simd_int_t01, nihilus_simd_128_types simd_int_t02>
-	NIHILUS_HOST static auto opXor(const typename simd_int_t01::type& value, const typename simd_int_t01::type& other) noexcept {
+	template<nihilus_simd_128_types simd_int_t01> NIHILUS_HOST static auto op_xor(const typename simd_int_t01::type& value, const typename simd_int_t01::type& other) noexcept {
 		return _mm_xor_si128(value, other);
 	}
 
-	template<nihilus_simd_128_types simd_int_t01> NIHILUS_HOST static auto opTest(const typename simd_int_t01::type& value) noexcept {
+	template<nihilus_simd_128_types simd_int_t01> NIHILUS_HOST static auto op_test(const typename simd_int_t01::type& value) noexcept {
 		return !_mm_testz_si128(value, value);
 	}
 
-	template<nihilus_simd_128_types simd_int_t01> NIHILUS_HOST auto opCmpEq(const typename simd_int_t01::type& value, const typename simd_int_t01::type& other) noexcept {
-		return static_cast<uint32_t>(_mm_movemask_epi8(_mm_cmpeq_epi8(value, other)));
+	template<nihilus_simd_128_types simd_int_t01> NIHILUS_HOST auto op_cmp_eq(const typename simd_int_t01::type& value, const typename simd_int_t01::type& other) noexcept {
+		return static_cast<uint16_t>(_mm_movemask_epi8(_mm_cmpeq_epi8(value, other)));
+	}
+
+	template<nihilus_simd_256_types simd_int_t01> NIHILUS_HOST static auto op_shuffle(const typename simd_int_t01::type& value, const typename simd_int_t01::type& other) noexcept {
+		return _mm256_shuffle_epi8(value, other);
+	}
+
+	template<nihilus_simd_256_types simd_int_t01>
+	NIHILUS_HOST static auto op_cmp_eq_bitmask(const typename simd_int_t01::type& value, const typename simd_int_t01::type& other) noexcept {
+		return static_cast<uint32_t>(_mm256_movemask_epi8(_mm256_cmpeq_epi8(value, other)));
 	}
 
 	template<nihilus_simd_256_types nihilus_simd_int_types_new> NIHILUS_HOST static auto gather_values(const void* str) noexcept {
 		return _mm256_load_si256(static_cast<const __m256i*>(str));
 	}
 
-	template<nihilus_simd_256_types simd_int_t01, nihilus_simd_256_types simd_int_t02>
-	NIHILUS_HOST static auto opXor(const typename simd_int_t01::type& value, const typename simd_int_t02::type& other) noexcept {
+	template<nihilus_simd_256_types simd_int_t01> NIHILUS_HOST static auto op_xor(const typename simd_int_t01::type& value, const typename simd_int_t01::type& other) noexcept {
 		return _mm256_xor_si256(value, other);
 	}
 
-	template<nihilus_simd_256_types simd_int_t01> NIHILUS_HOST static auto opTest(const typename simd_int_t01::type& value) noexcept {
+	template<nihilus_simd_256_types simd_int_t01> NIHILUS_HOST static auto op_test(const typename simd_int_t01::type& value) noexcept {
 		return !_mm256_testz_si256(value, value);
 	}
 
-	template<nihilus_simd_256_types simd_int_t01> NIHILUS_HOST static auto opCmpEq(const typename simd_int_t01::type& value, const typename simd_int_t01::type& other) noexcept {
+	template<nihilus_simd_256_types simd_int_t01> NIHILUS_HOST static auto op_cmp_eq(const typename simd_int_t01::type& value, const typename simd_int_t01::type& other) noexcept {
 		return static_cast<uint32_t>(_mm256_movemask_epi8(_mm256_cmpeq_epi8(value, other)));
 	}
 
@@ -192,21 +274,28 @@ namespace nihilus {
 
 #if NIHILUS_AVX512
 
-	template<nihilus_simd_512_types nihilus_simd_int_types_new> NIHILUS_HOST static auto gather_values(const void* str) noexcept {
-		return _mm512_load_si512(static_cast<const __m512i*>(str));
-	}
-
-	template<nihilus_simd_512_types simd_int_t01, nihilus_simd_512_types simd_int_t02>
-	NIHILUS_HOST static auto opXor(const typename simd_int_t01::type& value, const typename simd_int_t02::type& other) noexcept {
-		return _mm512_xor_si512(value, other);
-	}
-
-	template<nihilus_simd_512_types simd_int_t01> NIHILUS_HOST static auto opTest(const typename simd_int_t01::type& value) noexcept {
-		return !_mm512_testn_epi64_mask(value, value);
+	template<nihilus_simd_512_types simd_int_t01> NIHILUS_HOST static auto op_shuffle(const typename simd_int_t01::type& value, const typename simd_int_t01::type& other) noexcept {
+		return _mm512_shuffle_epi8(value, other);
 	}
 
 	template<nihilus_simd_512_types simd_int_t01>
-	NIHILUS_HOST static auto opCmpEq(const typename simd_int_t01::type& value, const typename simd_int_t01::type& other) noexcept {
+	inline static auto op_cmp_eq_bit_mask(const typename simd_int_t01::type& value, const typename simd_int_t01::type& other) noexcept {
+		return static_cast<uint64_t>(_mm512_cmpeq_epi8_mask(value, other));
+	}
+
+	template<nihilus_simd_512_types simd_int_t01> NIHILUS_HOST static auto gather_values(const void* str) noexcept {
+		return _mm512_load_si512(static_cast<const __m512i*>(str));
+	}
+
+	template<nihilus_simd_512_types simd_int_t01> NIHILUS_HOST static auto op_xor(const typename simd_int_t01::type& value, const typename simd_int_t01::type& other) noexcept {
+		return _mm512_xor_si512(value, other);
+	}
+
+	template<nihilus_simd_512_types simd_int_t01> NIHILUS_HOST static auto op_test(const typename simd_int_t01::type& value) noexcept {
+		return !_mm512_testn_epi64_mask(value, value);
+	}
+
+	template<nihilus_simd_512_types simd_int_t01> NIHILUS_HOST static auto op_cmp_eq(const typename simd_int_t01::type& value, const typename simd_int_t01::type& other) noexcept {
 		return static_cast<uint64_t>(_mm512_cmpeq_epi8_mask(value, other));
 	}
 
@@ -226,7 +315,26 @@ namespace nihilus {
 		return vgetq_lane_f32(vcvt_f32_f16(vreinterpret_f16_s16(vdup_n_s16(h))), 0);
 	}
 
-	template<nihilus_simd_128_types simd_int_t01> NIHILUS_HOST static auto opCmpEq(const typename simd_int_t01::type& value, const typename simd_int_t01::type& other) noexcept {
+	template<nihilus_simd_128_types simd_int_t01> NIHILUS_HOST static auto op_shuffle(const typename simd_int_t01::type& value, const typename simd_int_t01::type& other) noexcept {
+		const auto bit_mask{ vdupq_n_u8(0x0F) };
+		return vqtbl1q_u8(value, vandq_u8(other, bit_mask));
+	}
+
+	template<nihilus_simd_128_types simd_int_t01> NIHILUS_HOST static auto op_bit_mask(const typename simd_int_t01::type& value) noexcept {
+		constexpr uint8x16_t bit_mask{ 0x01, 0x02, 0x4, 0x8, 0x10, 0x20, 0x40, 0x80, 0x01, 0x02, 0x4, 0x8, 0x10, 0x20, 0x40, 0x80 };
+		const auto minput = value & bit_mask;
+		uint8x16_t tmp	  = vpaddq_u8(minput, minput);
+		tmp				  = vpaddq_u8(tmp, tmp);
+		tmp				  = vpaddq_u8(tmp, tmp);
+		return static_cast<uint16_t>(vgetq_lane_u16(vreinterpretq_u16_u8(tmp), 0));
+	}
+
+	template<nihilus_simd_128_types simd_int_t01>
+	NIHILUS_HOST static auto op_cmp_eq_bitmask(const typename simd_int_t01::type& value, const typename simd_int_t01::type& other) noexcept {
+		return op_bit_mask<simd_int_t01>(vceqq_u8(value, other));
+	}
+
+	template<nihilus_simd_128_types simd_int_t01> NIHILUS_HOST static auto op_cmp_eq(const typename simd_int_t01::type& value, const typename simd_int_t01::type& other) noexcept {
 		return vget_lane_u64(vreinterpret_u64_u8(vshrn_n_u16(vceqq_u8(value, other), 4)), 0);
 	}
 
@@ -234,12 +342,12 @@ namespace nihilus {
 		return vld1q_u8(static_cast<const uint8_t*>(str));
 	}
 
-	template<nihilus_simd_128_types simd_int_t01, nihilus_simd_128_types simd_int_t02>
-	NIHILUS_HOST static nihilus_simd_int_128 opXor(const typename simd_int_t01::type& value, const typename simd_int_t02::type& other) noexcept {
+	template<nihilus_simd_128_types simd_int_t01>
+	NIHILUS_HOST static nihilus_simd_int_128 op_xor(const typename simd_int_t01::type& value, const typename simd_int_t01::type& other) noexcept {
 		return veorq_u8(value, other);
 	}
 
-	template<nihilus_simd_128_types simd_int_t01> NIHILUS_HOST static bool opTest(const typename simd_int_t01::type& value) noexcept {
+	template<nihilus_simd_128_types simd_int_t01> NIHILUS_HOST static bool op_test(const typename simd_int_t01::type& value) noexcept {
 		return vmaxvq_u8(value) != 0;
 	}
 
@@ -263,10 +371,10 @@ namespace nihilus {
 		return svld1_s8(svptrue_b8(), static_cast<const int8_t*>(str));
 	}
 	template<nihilus_simd_128_types simd_int_t01, nihilus_simd_128_types simd_int_t02>
-	NIHILUS_HOST static auto opXor(const typename simd_int_t01::type& value, const typename simd_int_t01::type& other) noexcept {
+	NIHILUS_HOST static auto op_xor(const typename simd_int_t01::type& value, const typename simd_int_t01::type& other) noexcept {
 		return sveor_s8_z(svptrue_b8(), value, other);
 	}
-	template<nihilus_simd_128_types simd_int_t01> NIHILUS_HOST static auto opTest(const typename simd_int_t01::type& value) noexcept {
+	template<nihilus_simd_128_types simd_int_t01> NIHILUS_HOST static auto op_test(const typename simd_int_t01::type& value) noexcept {
 		return svptest_any(svptrue_b8(), svcmpne_s8(svptrue_b8(), value, svdup_s8(0)));
 	}
 
@@ -274,10 +382,10 @@ namespace nihilus {
 		return svld1_s16(svptrue_b16(), static_cast<const int16_t*>(str));
 	}
 	template<nihilus_simd_256_types simd_int_t01, nihilus_simd_256_types simd_int_t02>
-	NIHILUS_HOST static auto opXor(const typename simd_int_t01::type& value, const typename simd_int_t02::type& other) noexcept {
+	NIHILUS_HOST static auto op_xor(const typename simd_int_t01::type& value, const typename simd_int_t02::type& other) noexcept {
 		return sveor_s16_z(svptrue_b16(), value, other);
 	}
-	template<nihilus_simd_256_types simd_int_t01> NIHILUS_HOST static auto opTest(const typename simd_int_t01::type& value) noexcept {
+	template<nihilus_simd_256_types simd_int_t01> NIHILUS_HOST static auto op_test(const typename simd_int_t01::type& value) noexcept {
 		return svptest_any(svptrue_b16(), svcmpne_s16(svptrue_b16(), value, svdup_s16(0)));
 	}
 
@@ -285,10 +393,10 @@ namespace nihilus {
 		return svld1_s32(svptrue_b32(), static_cast<const int32_t*>(str));
 	}
 	template<nihilus_simd_512_types simd_int_t01, nihilus_simd_512_types simd_int_t02>
-	NIHILUS_HOST static auto opXor(const typename simd_int_t01::type& value, const typename simd_int_t02::type& other) noexcept {
+	NIHILUS_HOST static auto op_xor(const typename simd_int_t01::type& value, const typename simd_int_t02::type& other) noexcept {
 		return sveor_s32_z(svptrue_b32(), value, other);
 	}
-	template<nihilus_simd_512_types simd_int_t01> NIHILUS_HOST static auto opTest(const typename simd_int_t01::type& value) noexcept {
+	template<nihilus_simd_512_types simd_int_t01> NIHILUS_HOST static auto op_test(const typename simd_int_t01::type& value) noexcept {
 		return svptest_any(svptrue_b32(), svcmpne_s32(svptrue_b32(), value, svdup_s32(0)));
 	}
 
@@ -318,14 +426,14 @@ namespace nihilus {
 	}
 
 	template<nihilus_simd_128_types simd_int_t01, nihilus_simd_128_types simd_int_t02>
-	NIHILUS_HOST static auto opXor(const typename simd_int_t01::type& value, const typename simd_int_t02::type& other) noexcept {
+	NIHILUS_HOST static auto op_xor(const typename simd_int_t01::type& value, const typename simd_int_t02::type& other) noexcept {
 		m128x result{};
 		result.m128x_uint64[0] = value.m128x_uint64[0] ^ other.m128x_uint64[0];
 		result.m128x_uint64[1] = value.m128x_uint64[1] ^ other.m128x_uint64[1];
 		return result;
 	}
 
-	template<nihilus_simd_128_types simd_int_t01> NIHILUS_HOST static bool opTest(const typename simd_int_t01::type& value) noexcept {
+	template<nihilus_simd_128_types simd_int_t01> NIHILUS_HOST static bool op_test(const typename simd_int_t01::type& value) noexcept {
 		return (value.m128x_uint64[0] != 0) || (value.m128x_uint64[1] != 0);
 	}
 

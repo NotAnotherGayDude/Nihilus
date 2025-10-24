@@ -1108,7 +1108,7 @@ namespace nihilus {
 		static constexpr uint64_t total_required_bytes{ l_out_type::total_required_bytes };
 		static constexpr bool has_total_required_bytes{ true };
 	};
-	
+
 	template<batched_processing_config_types config_type_new> struct core_traits<config_type_new, core_types::mega_ffn>
 		: public core_elem_base<core_types::mega_ffn, core_traits<config_type_new, core_types::mega_ffn>>, public sync_base<config_type_new, core_types::mega_ffn> {
 		static constexpr core_types core_type{ core_types::mega_ffn };
@@ -1208,7 +1208,7 @@ namespace nihilus {
 		static constexpr uint64_t total_required_bytes{ l_out_type::total_required_bytes };
 		static constexpr bool has_total_required_bytes{ true };
 	};
-	
+
 	template<typename config_type_new> struct core_traits<config_type_new, core_types::final_norm_and_sampling>
 		: public core_elem_base<core_types::final_norm_and_sampling, core_traits<config_type_new, core_types::final_norm_and_sampling>>,
 		  public sync_base<config_type_new, core_types::final_norm_and_sampling> {
@@ -1394,7 +1394,7 @@ namespace nihilus {
 		static constexpr uint64_t total_required_bytes{ result_token_id_type::total_required_bytes };
 		static constexpr bool has_total_required_bytes{ true };
 	};
-	
+
 	template<batched_processing_config_types config_type_new> struct core_traits<config_type_new, core_types::final_norm_and_sampling>
 		: public core_elem_base<core_types::final_norm_and_sampling, core_traits<config_type_new, core_types::final_norm_and_sampling>>,
 		  public sync_base<config_type_new, core_types::final_norm_and_sampling> {

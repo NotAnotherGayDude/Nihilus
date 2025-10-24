@@ -18,13 +18,13 @@
 # */
 
 if(UNIX OR APPLE)
-    file(WRITE ${CMAKE_SOURCE_DIR}/cmake/detection/BuildFeatureTesterCpuProperties.sh "#!/bin/bash\n"
+    file(WRITE ${CMAKE_CURRENT_SOURCE_DIR}/cmake/detection/BuildFeatureTesterCpuProperties.sh "#!/bin/bash\n"
         "\"${CMAKE_COMMAND}\" -S ./ -B ./Build-Cpu-Properties -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=\"${CMAKE_CXX_COMPILER}\" -DNIHILUS_DETECT_CPU_PROPERTIES=TRUE\n"
         "\"${CMAKE_COMMAND}\" --build ./Build-Cpu-Properties --config=Release"
     )
     
     execute_process(
-        COMMAND chmod +x ${CMAKE_SOURCE_DIR}/cmake/detection/BuildFeatureTesterCpuProperties.sh
+        COMMAND chmod +x ${CMAKE_CURRENT_SOURCE_DIR}/cmake/detection/BuildFeatureTesterCpuProperties.sh
         RESULT_VARIABLE CHMOD_RESULT
     )
     
@@ -33,24 +33,24 @@ if(UNIX OR APPLE)
     endif()
     
     execute_process(
-        COMMAND ${CMAKE_SOURCE_DIR}/cmake/detection/BuildFeatureTesterCpuProperties.sh
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/cmake/detection
+        COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/cmake/detection/BuildFeatureTesterCpuProperties.sh
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/cmake/detection
     )
     
-    set(FEATURE_TESTER_FILE ${CMAKE_SOURCE_DIR}/cmake/detection/Build-Cpu-Properties/feature_detector)
+    set(FEATURE_TESTER_FILE ${CMAKE_CURRENT_SOURCE_DIR}/cmake/detection/Build-Cpu-Properties/feature_detector)
     
 elseif(WIN32)
-    file(WRITE ${CMAKE_SOURCE_DIR}/cmake/detection/BuildFeatureTesterCpuProperties.bat
+    file(WRITE ${CMAKE_CURRENT_SOURCE_DIR}/cmake/detection/BuildFeatureTesterCpuProperties.bat
         "\"${CMAKE_COMMAND}\" -S ./ -B ./Build-Cpu-Properties -DNIHILUS_DETECT_CPU_PROPERTIES=TRUE\n"
         "\"${CMAKE_COMMAND}\" --build ./Build-Cpu-Properties --config=Release"
     )
     
     execute_process(
-        COMMAND ${CMAKE_SOURCE_DIR}/cmake/detection/BuildFeatureTesterCpuProperties.bat
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/cmake/detection
+        COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/cmake/detection/BuildFeatureTesterCpuProperties.bat
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/cmake/detection
     )
     
-    set(FEATURE_TESTER_FILE ${CMAKE_SOURCE_DIR}/cmake/detection/Build-Cpu-Properties/Release/feature_detector.exe)
+    set(FEATURE_TESTER_FILE ${CMAKE_CURRENT_SOURCE_DIR}/cmake/detection/Build-Cpu-Properties/Release/feature_detector.exe)
 endif()
 
 if(NOT DEFINED NIHILUS_THREAD_COUNT OR
@@ -205,7 +205,7 @@ endif()
 message(STATUS "CPU Configuration: ${NIHILUS_THREAD_COUNT} threads, L1: ${NIHILUS_CPU_L1_CACHE_SIZE}B, arch index: ${NIHILUS_CPU_ARCH_INDEX}")
 
 configure_file(
-    ${CMAKE_SOURCE_DIR}/cmake/detection/nihilus_cpu_properties.hpp.in
-    ${CMAKE_SOURCE_DIR}/include/nihilus-incl/cpu/nihilus_cpu_properties.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/detection/nihilus_cpu_properties.hpp.in
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/nihilus-incl/cpu/nihilus_cpu_properties.hpp
     @ONLY
 )

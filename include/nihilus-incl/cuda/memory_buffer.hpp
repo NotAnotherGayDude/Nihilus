@@ -30,8 +30,7 @@ namespace nihilus {
 
 	template<typename config_type> struct memory_transfer;
 
-	template<gpu_device_config_types config_type>
-	struct memory_transfer<config_type> {
+	template<gpu_device_config_types config_type> struct memory_transfer<config_type> {
 		template<typename value_type> NIHILUS_HOST static void host_to_device(const value_type* src, value_type* dst, uint64_t count) noexcept {
 			if constexpr (config_type::dev) {
 				if (cudaError_t err = cudaMemcpy(static_cast<void*>(dst), static_cast<const void*>(src), sizeof(value_type) * count, cudaMemcpyHostToDevice); err != cudaSuccess) {

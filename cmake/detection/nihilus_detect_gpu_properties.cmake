@@ -18,13 +18,13 @@
 # */
 
 if(UNIX OR APPLE)
-    file(WRITE ${CMAKE_SOURCE_DIR}/cmake/detection/BuildFeatureTesterGpuProperties.sh "#!/bin/bash\n"
+    file(WRITE ${CMAKE_CURRENT_SOURCE_DIR}/cmake/detection/BuildFeatureTesterGpuProperties.sh "#!/bin/bash\n"
         "\"${CMAKE_COMMAND}\" -S ./ -B ./Build-Gpu-Properties -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_COMPILER=\"${CMAKE_CXX_COMPILER}\" -DNIHILUS_DETECT_GPU_PROPERTIES=TRUE\n"
         "\"${CMAKE_COMMAND}\" --build ./Build-Gpu-Properties --config=Release"
     )
     
     execute_process(
-        COMMAND chmod +x ${CMAKE_SOURCE_DIR}/cmake/detection/BuildFeatureTesterGpuProperties.sh
+        COMMAND chmod +x ${CMAKE_CURRENT_SOURCE_DIR}/cmake/detection/BuildFeatureTesterGpuProperties.sh
         RESULT_VARIABLE CHMOD_RESULT
     )
     
@@ -33,24 +33,24 @@ if(UNIX OR APPLE)
     endif()
     
     execute_process(
-        COMMAND ${CMAKE_SOURCE_DIR}/cmake/detection/BuildFeatureTesterGpuProperties.sh
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/cmake/detection
+        COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/cmake/detection/BuildFeatureTesterGpuProperties.sh
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/cmake/detection
     )
     
-    set(FEATURE_TESTER_FILE ${CMAKE_SOURCE_DIR}/cmake/detection/Build-Gpu-Properties/feature_detector)
+    set(FEATURE_TESTER_FILE ${CMAKE_CURRENT_SOURCE_DIR}/cmake/detection/Build-Gpu-Properties/feature_detector)
     
 elseif(WIN32)
-    file(WRITE ${CMAKE_SOURCE_DIR}/cmake/detection/BuildFeatureTesterGpuProperties.bat
+    file(WRITE ${CMAKE_CURRENT_SOURCE_DIR}/cmake/detection/BuildFeatureTesterGpuProperties.bat
         "\"${CMAKE_COMMAND}\" -S ./ -B ./Build-Gpu-Properties -DNIHILUS_DETECT_GPU_PROPERTIES=TRUE\n"
         "\"${CMAKE_COMMAND}\" --build ./Build-Gpu-Properties --config=Release"
     )
     
     execute_process(
-        COMMAND ${CMAKE_SOURCE_DIR}/cmake/detection/BuildFeatureTesterGpuProperties.bat
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/cmake/detection
+        COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/cmake/detection/BuildFeatureTesterGpuProperties.bat
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/cmake/detection
     )
     
-    set(FEATURE_TESTER_FILE ${CMAKE_SOURCE_DIR}/cmake/detection/Build-Gpu-Properties/Release/feature_detector.exe)
+    set(FEATURE_TESTER_FILE ${CMAKE_CURRENT_SOURCE_DIR}/cmake/detection/Build-Gpu-Properties/Release/feature_detector.exe)
 endif()
 
 if(NOT DEFINED NIHILUS_SM_COUNT OR
@@ -204,7 +204,7 @@ endif()
 message(STATUS "GPU Configuration: ${NIHILUS_SM_COUNT} SMs, ${NIHILUS_TOTAL_THREADS} total threads, ${NIHILUS_OPTIMAL_GRID_SIZE} optimal grid size")
 
 configure_file(
-    ${CMAKE_SOURCE_DIR}/cmake/detection/nihilus_gpu_properties.hpp.in
-    ${CMAKE_SOURCE_DIR}/include/nihilus-incl/cuda/nihilus_gpu_properties.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/detection/nihilus_gpu_properties.hpp.in
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/nihilus-incl/cuda/nihilus_gpu_properties.hpp
     @ONLY
 )

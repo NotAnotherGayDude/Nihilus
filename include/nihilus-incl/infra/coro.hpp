@@ -22,7 +22,4 @@ RealTimeChris (Chris M.)
 
 #include <nihilus-incl/common/common.hpp>
 
-namespace nihilus {
-
-
-}
+namespace nihilus {}

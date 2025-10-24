@@ -38,7 +38,7 @@ namespace nihilus {
 		static constexpr static_aligned_const total_threads_raw{ 107520ull };
 		static constexpr static_aligned_const optimal_block_size_raw{ 512ull };
 		static constexpr static_aligned_const optimal_grid_size_raw{ 210ull };
-		
+
 	  public:
 		static constexpr const uint64_t& sm_count{ *sm_count_raw };
 		static constexpr const uint64_t& max_threads_per_sm{ *max_threads_per_sm_raw };

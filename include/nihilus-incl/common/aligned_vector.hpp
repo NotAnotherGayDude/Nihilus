@@ -95,8 +95,7 @@ namespace nihilus {
 			}
 		}
 
-		NIHILUS_HOST explicit aligned_vector(std::initializer_list<value_type>&& args)
-		{
+		NIHILUS_HOST explicit aligned_vector(std::initializer_list<value_type>&& args) {
 			reserve(args.size());
 			for (uint64_t x = 0; x < args.size(); ++x) {
 				allocator_traits::construct(*this, data_val + x, std::move(args.begin()[x]));
@@ -258,20 +257,24 @@ namespace nihilus {
 
 		template<integral_or_enum_types index_type> NIHILUS_HOST reference at(index_type position) {
 			if NIHILUS_UNLIKELY (size_val <= position) {
-				throw std::runtime_error{ "invalid aligned_vector<value_type> subscript" };
+				static constexpr auto location = std::source_location::current();
+				nihilus_exception<true, "invalid aligned_vector<value_type> subscript", location>::impl();
 			}
 			if (!data_val) {
-				throw std::runtime_error{ "invalid data_val value" };
+				static constexpr auto location = std::source_location::current();
+				nihilus_exception<true, "invalid data_val value", location>::impl();
 			}
 			return data_val[static_cast<uint64_t>(position)];
 		}
 
 		template<integral_or_enum_types index_type> NIHILUS_HOST const_reference at(index_type position) const {
 			if NIHILUS_UNLIKELY (size_val <= position) {
-				throw std::runtime_error{ "invalid aligned_vector<value_type> subscript" };
+				static constexpr auto location = std::source_location::current();
+				nihilus_exception<true, "invalid aligned_vector<value_type> subscript", location>::impl();
 			}
 			if (!data_val) {
-				throw std::runtime_error{ "invalid data_val value" };
+				static constexpr auto location = std::source_location::current();
+				nihilus_exception<true, "invalid data_val value", location>::impl();
 			}
 			return data_val[static_cast<uint64_t>(position)];
 		}

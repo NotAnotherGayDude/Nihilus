@@ -5,8 +5,8 @@
       "name": "${hostSystemName}-base",
       "hidden": true,
       "generator": "Ninja",
-      "binaryDir": "${sourceDir}/out/build/",
-      "installDir": "${sourceDir}/out/build/",
+      "binaryDir": "${sourceDir}/out/build/${presetName}",
+      "installDir": "${sourceDir}/out/build/${presetName}",
       "toolchainFile": "C:/vcpkg/scripts/buildsystems/vcpkg.cmake",
       "cacheVariables": {
         "CMAKE_C_COMPILER": "cl.exe",

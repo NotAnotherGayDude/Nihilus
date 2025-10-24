@@ -101,7 +101,7 @@ namespace nihilus::detail {
 	};
 
 	template<uint64_t bytesProcessedNew, typename simd_type, typename integer_type_new, integer_type_new maskNew> struct type_holder {
-		inline static constexpr uint64_t bytesProcessed{ bytesProcessedNew };
+		inline static constexpr uint64_t bytes_processed{ bytesProcessedNew };
 		inline static constexpr integer_type_new mask{ maskNew };
 		using type		   = simd_type;
 		using integer_type = integer_type_new;

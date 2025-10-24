@@ -32,6 +32,7 @@ endif()
 option(BUILD_SHARED_LIBS "Build using shared libraries" OFF)
 option(NIHILUS_DETECT_CPU_PROPERTIES "Override cpu-cache-size selection" OFF)
 option(NIHILUS_DETECT_GPU_PROPERTIES "Override gpu-cache-size selection" OFF)
+option(NIHILUS_INSTALL "Install nihilus as a library" OFF)
 option(NIHILUS_CUDA "Enable CUDA support" OFF)
 option(NIHILUS_DEV "Development mode" OFF)
 option(NIHILUS_DEPLOY "Deployment mode" OFF)
@@ -121,6 +122,55 @@ target_compile_definitions(${PROJECT_NAME}
     INTERFACE
         ${NIHILUS_COMPILE_DEFINITIONS}
 )
+
+set(CONFIG_FILE_NAME "${PROJECT_NAME}Config.cmake")
+set(EXPORTED_TARGETS_NAME "${PROJECT_NAME}Targets")
+set(EXPORTED_TARGETS_FILE_NAME "${EXPORTED_TARGETS_NAME}.cmake")
+set(EXPORTED_TARGETS_FILE_PATH "share/nihilus/${EXPORTED_TARGETS_FILE_NAME}")
+
+include(CMakePackageConfigHelpers)
+configure_package_config_file(
+	"${CMAKE_CURRENT_SOURCE_DIR}/cmake/${CONFIG_FILE_NAME}.in"
+	"${CMAKE_CURRENT_BINARY_DIR}/${CONFIG_FILE_NAME}"
+	INSTALL_DESTINATION "share/nihilus"
+	PATH_VARS
+	EXPORTED_TARGETS_FILE_PATH
+)
+
+set(VERSION_FILE_NAME "${PROJECT_NAME}ConfigVersion.cmake")
+
+write_basic_package_version_file(
+	"${CMAKE_CURRENT_BINARY_DIR}/${VERSION_FILE_NAME}"
+	VERSION "${PRODUCT_VERSION}"
+	COMPATIBILITY AnyNewerVersion
+)
+
+if (NIHILUS_INSTALL)
+    install(
+	    FILES
+	    "${CMAKE_CURRENT_BINARY_DIR}/${CONFIG_FILE_NAME}"
+	    "${CMAKE_CURRENT_BINARY_DIR}/${VERSION_FILE_NAME}"
+	    DESTINATION "share/nihilus"
+    )
+
+    install(
+	    DIRECTORY
+	    "${CMAKE_CURRENT_SOURCE_DIR}/Include/"
+	    DESTINATION "include"
+    )
+
+    install(
+	    TARGETS "${PROJECT_NAME}"
+	    EXPORT "${EXPORTED_TARGETS_NAME}"
+    )
+
+    install(
+	    EXPORT "${EXPORTED_TARGETS_NAME}"
+	    FILE "${EXPORTED_TARGETS_FILE_NAME}"
+	    NAMESPACE "${PROJECT_NAME}::"
+	    DESTINATION "share/nihilus"
+    )
+endif()
 
 message(STATUS "Nihilus Configuration Summary:")
 message(STATUS "=============================")

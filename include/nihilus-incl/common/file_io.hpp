@@ -36,8 +36,7 @@ namespace nihilus {
 
 	template<typename config_type> class file_loader;
 
-	template<typename config_type>
-	class file_loader {
+	template<typename config_type> class file_loader {
 	  public:
 		explicit file_loader(const std::filesystem::path& file_path) {
 			if (!std::filesystem::exists(file_path)) {

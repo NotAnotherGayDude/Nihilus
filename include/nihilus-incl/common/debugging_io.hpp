@@ -856,16 +856,16 @@ namespace nihilus {
 				if (!return_value) {
 					stream << "Not Equal: Tensor of name: " << file_name << ", OF TYPE: " << tensor.op_type << " (iteration " << iteration << ")" << std::endl;
 					stream << return_value.result_output;
-					log<log_levels::status>(stream.str());
+					logger<log_levels::status>::log(stream.str());
 				} else {
 					stream << "Found an equal op of name: " << file_name << ", OF TYPE: " << tensor.op_type << " (iteration " << iteration << ")" << std::endl;
-					log<log_levels::status>(stream.str());
+					logger<log_levels::status>::log(stream.str());
 				}
 				return return_value;
 			} else {
 				stream << "Not Found: Tensor of name: " << file_name << ", OF TYPE: " << tensor.op_type << " (iteration " << iteration << ")" << std::endl;
 			}
-			log<log_levels::status>(stream.str());
+			logger<log_levels::status>::log(stream.str());
 			return false;
 		}
 	};

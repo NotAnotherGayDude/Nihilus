@@ -46,7 +46,7 @@ namespace nihilus {
 			return (... && bases::process_input_impl());
 		}
 
-		NIHILUS_HOST bool process_input(std::string_view prompt) noexcept {
+		NIHILUS_HOST bool process_input(rt_string prompt) noexcept {
 			return (... && bases::process_input_impl(prompt));
 		}
 
@@ -87,7 +87,7 @@ namespace nihilus {
 		model& operator=(const model&) = delete;
 		model(const model&)			   = delete;
 
-		NIHILUS_HOST bool process_input_impl(std::string_view input, [[maybe_unused]] uint64_t seed_new = 0) {
+		NIHILUS_HOST bool process_input_impl(rt_string& input, [[maybe_unused]] uint64_t seed_new = 0) {
 			tokenizer_type::init_rng(seed_new);
 			input = input.size() > config_type::max_sequence_length ? input.substr(0, config_type::max_sequence_length) : input;
 			tokenizer_type::tokenizer_init(
@@ -150,7 +150,7 @@ namespace nihilus {
 			}
 		}
 
-		NIHILUS_HOST void execute_model(const std::string_view input) {
+		NIHILUS_HOST void execute_model(rt_string& input) {
 			if constexpr (config_type::dev) {
 				++perf_base<config_type>::perf_stats.current_iteration;
 			}
@@ -481,7 +481,7 @@ namespace nihilus {
 		NIHILUS_HOST model(cli_params params) : base_model_type{ params }, threads_running{ false }, connection{ get_connection_config(params) } {
 			processor_thread = std::thread(&model::processor_loop, this);
 			threads_running.store(true, std::memory_order_release);
-			log<log_levels::status>("[Model] Initialized with connection threads");
+			logger<log_levels::status>::log("[Model] Initialized with connection threads");
 		}
 
 		NIHILUS_HOST ~model() {
@@ -489,13 +489,13 @@ namespace nihilus {
 		}
 
 		NIHILUS_HOST void wait() {
-			log<log_levels::status>("[Model] Main thread waiting for shutdown signal...");
+			logger<log_levels::status>::log("[Model] Main thread waiting for shutdown signal...");
 
 			while (threads_running.load(std::memory_order_relaxed)) {
 				std::this_thread::sleep_for(std::chrono::milliseconds(100));
 			}
 
-			log<log_levels::status>("[Model] Shutdown signal received");
+			logger<log_levels::status>::log("[Model] Shutdown signal received");
 		}
 
 		NIHILUS_HOST void stop_all() {
@@ -503,7 +503,7 @@ namespace nihilus {
 			if (!was_running)
 				return;
 
-			log<log_levels::status>("[Model] Stopping threads...");
+			logger<log_levels::status>::log("[Model] Stopping threads...");
 
 			connection.input_queue.wake_all();
 			connection.output_queue.wake_all();
@@ -512,11 +512,11 @@ namespace nihilus {
 				processor_thread.join();
 			}
 
-			log<log_levels::status>("[Model] Threads stopped");
+			logger<log_levels::status>::log("[Model] Threads stopped");
 		}
 
 		NIHILUS_HOST void signal_shutdown() {
-			log<log_levels::status>("[Model] Shutdown signal received, stopping threads...");
+			logger<log_levels::status>::log("[Model] Shutdown signal received, stopping threads...");
 			threads_running.store(false, std::memory_order_release);
 		}
 
@@ -572,14 +572,14 @@ namespace nihilus {
 		}
 
 		NIHILUS_HOST void processor_loop() {
-			log<log_levels::status>("[Processor] Thread started");
+			logger<log_levels::status>::log("[Processor] Thread started");
 
 			while (threads_running.load(std::memory_order_relaxed)) {
 				auto input_slot = connection.input_queue.get_read_buffer();
 
 				if (!input_slot) {
 					if constexpr (config_type::dev) {
-						log<log_levels::status>("[Processor] Queue shutdown");
+						logger<log_levels::status>::log("[Processor] Queue shutdown");
 					}
 					break;
 				}
@@ -593,7 +593,7 @@ namespace nihilus {
 					requests[batch_size] = request;
 					generate_request_metadata<config_type, request_type>(metadata[batch_size], *request, batch_size);
 					if constexpr (config_type::dev) {
-						log<log_levels::status>("[Processor] Processing request " + std::to_string(request->request_id));
+						logger<log_levels::status>::log("[Processor] Processing request " + std::to_string(request->request_id));
 					}
 					++batch_size;
 				}
@@ -615,7 +615,7 @@ namespace nihilus {
 			}
 
 			if constexpr (config_type::dev) {
-				log<log_levels::status>("[Processor] Thread stopped");
+				logger<log_levels::status>::log("[Processor] Thread stopped");
 			}
 		}
 
@@ -637,7 +637,7 @@ namespace nihilus {
 			}
 
 			exec_params[request.batch_index].sequence_length =
-				tokenizer_type::tokenize(request.request_ptr->prompt.data(), inp_tokens_ref.get_data() + request.input_token_offset);
+				tokenizer_type::tokenize(request.request_ptr->prompt.data(), request.request_ptr->prompt.size(), inp_tokens_ref.get_data() + request.input_token_offset);
 
 			using core_type_inp_pos = detail::remove_cvref_t<decltype(inp_pos_ref)>;
 			static array<typename core_type_inp_pos::output_type, config_type::max_sequence_length> inp_pos_values{ [] {
