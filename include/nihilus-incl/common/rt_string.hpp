@@ -68,6 +68,9 @@ namespace nihilus {
 		NIHILUS_HOST constexpr rt_string_view(const std::string& other) noexcept : data_val{ other.data() }, size_val{ other.size() } {
 		}
 
+		NIHILUS_HOST constexpr rt_string_view(const std::string_view& other) noexcept : data_val{ other.data() }, size_val{ other.size() } {
+		}
+
 		NIHILUS_HOST rt_string_view substr(const size_type offset_new = 0, size_type count_new = std::string::npos) const {
 			if NIHILUS_UNLIKELY (offset_new > size_val) {
 				static constexpr auto location = std::source_location::current();
@@ -121,6 +124,10 @@ namespace nihilus {
 
 		NIHILUS_HOST uint64_t find_last_non_whitespace() const {
 			return whitespace_search::find_last_not_of(data_val, size_val);
+		}
+
+		NIHILUS_HOST uint64_t find_first_non_alpha() const {
+			return alpha_search::find_first_not_of(data_val, size_val);
 		}
 
 		NIHILUS_HOST operator std::string_view() const {
@@ -240,20 +247,52 @@ namespace nihilus {
 			return result;
 		}
 
-		NIHILUS_HOST auto begin() {
-			return iterator{ data_val };
+		NIHILUS_HOST iterator begin() noexcept {
+			return iterator(data_val);
 		}
 
-		NIHILUS_HOST auto end() {
-			return iterator{ data_val + size_val };
+		NIHILUS_HOST iterator end() noexcept {
+			return iterator(data_val + size_val);
 		}
 
-		NIHILUS_HOST auto begin() const {
-			return const_iterator{ data_val };
+		NIHILUS_HOST const_iterator begin() const noexcept {
+			return const_iterator(data_val);
 		}
 
-		NIHILUS_HOST auto end() const {
-			return const_iterator{ data_val + size_val };
+		NIHILUS_HOST const_iterator end() const noexcept {
+			return const_iterator(data_val + size_val);
+		}
+
+		NIHILUS_HOST reverse_iterator rbegin() noexcept {
+			return reverse_iterator(end());
+		}
+
+		NIHILUS_HOST reverse_iterator rend() noexcept {
+			return reverse_iterator(begin());
+		}
+
+		NIHILUS_HOST const_reverse_iterator rbegin() const noexcept {
+			return const_reverse_iterator(cend());
+		}
+
+		NIHILUS_HOST const_reverse_iterator rend() const noexcept {
+			return const_reverse_iterator(cbegin());
+		}
+
+		NIHILUS_HOST const_iterator cbegin() const noexcept {
+			return begin();
+		}
+
+		NIHILUS_HOST const_iterator cend() const noexcept {
+			return end();
+		}
+
+		NIHILUS_HOST const_reverse_iterator crbegin() const noexcept {
+			return rbegin();
+		}
+
+		NIHILUS_HOST const_reverse_iterator crend() const noexcept {
+			return rend();
 		}
 
 		NIHILUS_HOST reference operator[](size_type index) {
@@ -339,6 +378,10 @@ namespace nihilus {
 
 		NIHILUS_HOST uint64_t find_last_non_whitespace() const {
 			return whitespace_search::find_last_not_of(data_val, size_val);
+		}
+
+		NIHILUS_HOST uint64_t find_first_non_alpha() const {
+			return alpha_search::find_first_not_of(data_val, size_val);
 		}
 
 		NIHILUS_HOST operator rt_string_view() const {

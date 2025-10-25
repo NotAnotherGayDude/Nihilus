@@ -57,7 +57,7 @@ namespace nihilus {
 		NIHILUS_HOST explicit memory_mapped_file() noexcept {
 		}
 
-		NIHILUS_HOST explicit memory_mapped_file(const std::string_view file_path_new, uint64_t file_offset = 0) {
+		NIHILUS_HOST explicit memory_mapped_file(const std::string_view file_path_new, uint64_t byte_offset = 0) {
 			const std::string_view file_pathstr(file_path_new);
 #if NIHILUS_PLATFORM_WINDOWS
 			if (file_pathstr.empty()) {
@@ -80,16 +80,16 @@ namespace nihilus {
 				static constexpr auto location = std::source_location::current();
 				nihilus_exception<config_type::exceptions, "Cannot map empty file", location>::impl("");
 			}
-			if (file_offset >= file_size) {
+			if (byte_offset >= file_size) {
 				CloseHandle(file_handle);
 				static constexpr auto location = std::source_location::current();
 				nihilus_exception<config_type::exceptions, "Offset exceeds file size", location>::impl("");
 			}
 			SYSTEM_INFO sys_info;
 			GetSystemInfo(&sys_info);
-			uint64_t aligned_offset	   = (file_offset / sys_info.dwAllocationGranularity) * sys_info.dwAllocationGranularity;
-			uint64_t offset_adjustment = file_offset - aligned_offset;
-			mapped_size				   = file_size - file_offset;
+			uint64_t aligned_offset	   = (byte_offset / sys_info.dwAllocationGranularity) * sys_info.dwAllocationGranularity;
+			uint64_t offset_adjustment = byte_offset - aligned_offset;
+			mapped_size				   = file_size - byte_offset;
 			mapping_handle			   = CreateFileMappingA(file_handle, nullptr, PAGE_READONLY, 0, 0, nullptr);
 			if (mapping_handle == nullptr) {
 				CloseHandle(file_handle);
@@ -130,15 +130,15 @@ namespace nihilus {
 				static constexpr auto location = std::source_location::current();
 				nihilus_exception<config_type::exceptions, "Cannot map empty file", location>::impl("");
 			}
-			if (file_offset >= file_size) {
+			if (byte_offset >= file_size) {
 				close(file_descriptor);
 				static constexpr auto location = std::source_location::current();
 				nihilus_exception<config_type::exceptions, "Offset exceeds file size", location>::impl("");
 			}
 			uint64_t page_size		   = static_cast<uint64_t>(getpagesize());
-			uint64_t aligned_offset	   = (file_offset / page_size) * page_size;
-			uint64_t offset_adjustment = file_offset - aligned_offset;
-			mapped_size				   = file_size - file_offset;
+			uint64_t aligned_offset	   = (byte_offset / page_size) * page_size;
+			uint64_t offset_adjustment = byte_offset - aligned_offset;
+			mapped_size				   = file_size - byte_offset;
 			int32_t flags			   = MAP_SHARED;
 	#if NIHILUS_PLATFORM_MAC
 			fcntl(file_descriptor, F_RDAHEAD, 1);

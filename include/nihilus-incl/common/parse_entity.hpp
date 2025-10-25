@@ -76,7 +76,6 @@ namespace nihilus {
 	} && std::is_member_pointer_v<decltype(detail::remove_cvref_t<value_type>::member_ptr)>;
 
 	template<auto... values> inline static constexpr auto create_value_impl() {
-		static_assert((parse_entity_types<decltype(values)> + ...), "Sorry, but they must all be parse_entities passed to this function!");
 		return make_tuple(values...);
 	}
 

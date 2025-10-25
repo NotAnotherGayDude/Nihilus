@@ -43,22 +43,14 @@ namespace nihilus {
 	}
 
 	template<log_levels level> struct logger {
+	  protected:
 		inline static std::ostream& os{ level == log_levels::error ? std::cerr : std::cout };
-
-	  private:
-		template<typename arg_type> NIHILUS_HOST static void print_impl(arg_type&& string) {
-			os << std::forward<arg_type>(string) << std::endl;
-		}
-
-		template<typename arg_type, typename... arg_types> NIHILUS_HOST static void print_impl(arg_type&& string, arg_types&&... strings) {
-			os << std::forward<arg_type>(string);
-			print_impl(std::forward<arg_types>(strings)...);
-		}
 
 	  public:
 		template<typename... arg_types> NIHILUS_HOST static void log(arg_types&&... strings) {
 			std::lock_guard<std::mutex> lock{ get_mutex() };
-			print_impl(std::forward<arg_types>(strings)...);
+			((os << std::forward<arg_types>(strings)), ...);
+			os << std::endl;
 		}
 	};
 

@@ -26,7 +26,7 @@ RealTimeChris (Chris M.)
 	#include <cuda.h>
 	#include <nihilus-incl/cuda/nihilus_gpu_properties.hpp>
 	#include <nihilus-incl/common/array.hpp>
-	#include <nihilus-incl/infra/core_bases.hpp>
+	#include <nihilus-incl/infra/nihilus_cathedral.hpp>
 	#include <nihilus-incl/common/config.hpp>
 	#include <nihilus-incl/cuda/memory_buffer.hpp>
 	#include <nihilus-incl/cuda/cuda_12.hpp>

@@ -24,6 +24,7 @@ RealTimeChris (Chris M.)
 #include <nihilus-incl/common/optional.hpp>
 #include <nihilus-incl/infra/tokenizer.hpp>
 #include <nihilus-incl/infra/core_traits.hpp>
+#include <nihilus-incl/infra/file_loader.hpp>
 
 namespace nihilus {
 
@@ -103,12 +104,12 @@ namespace nihilus {
 	};
 
 	template<typename config_type> struct stream_iterator {
-		memory_mapped_file<config_type>* file{};
+		file_loader<config_type>* file{};
 		uint64_t current_index = 0;
 		uint64_t length		   = 0;
 		bool valid			   = true;
 
-		NIHILUS_HOST stream_iterator(memory_mapped_file<config_type>* s) : file(s), length{ file->size() } {
+		NIHILUS_HOST stream_iterator(file_loader<config_type>* s) : file(s), length{ file->size() } {
 		}
 
 		template<typename value_type> NIHILUS_HOST value_type read() {
@@ -131,12 +132,12 @@ namespace nihilus {
 
 #if NIHILUS_COMPILER_CUDA
 	template<gpu_device_config_types config_type> struct stream_iterator<config_type> {
-		memory_mapped_file<config_type>* file{};
+		file_loader<config_type>* file{};
 		uint64_t current_index = 0;
 		uint64_t length		   = 0;
 		bool valid			   = true;
 
-		NIHILUS_HOST stream_iterator(memory_mapped_file<config_type>* s) : file(s), length{ file->size() } {
+		NIHILUS_HOST stream_iterator(file_loader<config_type>* s) : file(s), length{ file->size() } {
 		}
 
 		template<typename value_type> NIHILUS_HOST value_type read() {
@@ -756,8 +757,8 @@ namespace nihilus {
 			return num_blocks * type_size_val;
 		}
 
-		template<core_traits_types core_traits> NIHILUS_HOST bool operator==(const core_traits&) const {
-			static constexpr auto other_dims = core_traits::get_array();
+		template<core_traits_types core_traits_old> NIHILUS_HOST bool operator==(const core_traits_old&) const {
+			static constexpr auto other_dims = core_traits_old::get_array();
 			return dimensions[0] == other_dims[0] && dimensions[1] == other_dims[1] && dimensions[2] == other_dims[2] && dimensions[3] == other_dims[3];
 		}
 
@@ -776,43 +777,43 @@ namespace nihilus {
 		NIHILUS_HOST static bool impl(const core_base_creation_data& parse_core) noexcept {
 			switch (static_cast<uint64_t>(parse_core.weight_type)) {
 				case static_cast<uint64_t>(weight_types::token_embd): {
-					return parse_core == typename core_traits<config_type, core_types::weights>::token_embd_weight_type{};
+					return parse_core == typename core_traits_old<config_type, core_types::weights>::token_embd_weight_type{};
 				}
 				case static_cast<uint64_t>(weight_types::rope_freqs): {
-					return parse_core == typename core_traits<config_type, core_types::weights>::rope_freqs_weight_type{};
+					return parse_core == typename core_traits_old<config_type, core_types::weights>::rope_freqs_weight_type{};
 				}
 				case static_cast<uint64_t>(weight_types::output_norm): {
-					return parse_core == typename core_traits<config_type, core_types::weights>::output_norm_weight_type{};
+					return parse_core == typename core_traits_old<config_type, core_types::weights>::output_norm_weight_type{};
 				}
 				case static_cast<uint64_t>(weight_types::output): {
-					return parse_core == typename core_traits<config_type, core_types::weights>::output_weight_type{};
+					return parse_core == typename core_traits_old<config_type, core_types::weights>::output_weight_type{};
 				}
 				case static_cast<uint64_t>(weight_types::attn_q): {
-					return parse_core == typename core_traits<config_type, core_types::weights>::attn_q_weight_type{};
+					return parse_core == typename core_traits_old<config_type, core_types::weights>::attn_q_weight_type{};
 				}
 				case static_cast<uint64_t>(weight_types::attn_norm): {
-					return parse_core == typename core_traits<config_type, core_types::weights>::attn_norm_weight_type{};
+					return parse_core == typename core_traits_old<config_type, core_types::weights>::attn_norm_weight_type{};
 				}
 				case static_cast<uint64_t>(weight_types::attn_k): {
-					return parse_core == typename core_traits<config_type, core_types::weights>::attn_k_weight_type{};
+					return parse_core == typename core_traits_old<config_type, core_types::weights>::attn_k_weight_type{};
 				}
 				case static_cast<uint64_t>(weight_types::attn_v): {
-					return parse_core == typename core_traits<config_type, core_types::weights>::attn_v_weight_type{};
+					return parse_core == typename core_traits_old<config_type, core_types::weights>::attn_v_weight_type{};
 				}
 				case static_cast<uint64_t>(weight_types::attn_output): {
-					return parse_core == typename core_traits<config_type, core_types::weights>::attn_output_weight_type{};
+					return parse_core == typename core_traits_old<config_type, core_types::weights>::attn_output_weight_type{};
 				}
 				case static_cast<uint64_t>(weight_types::ffn_down): {
-					return parse_core == typename core_traits<config_type, core_types::weights>::ffn_down_weight_type{};
+					return parse_core == typename core_traits_old<config_type, core_types::weights>::ffn_down_weight_type{};
 				}
 				case static_cast<uint64_t>(weight_types::ffn_gate): {
-					return parse_core == typename core_traits<config_type, core_types::weights>::ffn_gate_weight_type{};
+					return parse_core == typename core_traits_old<config_type, core_types::weights>::ffn_gate_weight_type{};
 				}
 				case static_cast<uint64_t>(weight_types::ffn_up): {
-					return parse_core == typename core_traits<config_type, core_types::weights>::ffn_up_weight_type{};
+					return parse_core == typename core_traits_old<config_type, core_types::weights>::ffn_up_weight_type{};
 				}
 				case static_cast<uint64_t>(weight_types::ffn_norm): {
-					return parse_core == typename core_traits<config_type, core_types::weights>::ffn_norm_weight_type{};
+					return parse_core == typename core_traits_old<config_type, core_types::weights>::ffn_norm_weight_type{};
 				}
 				default: {
 					return false;
@@ -899,9 +900,9 @@ namespace nihilus {
 		using model_traits_type = model_traits<config_type::model_arch, config_type::model_size, config_type::model_generation>;
 		static_assert((std::endian::native == std::endian::little), "Sorry, but big-endian is not yet supported by the library");
 		template<typename tokenizer_type> NIHILUS_HOST static gguf_metadata<config_type> parse_model(std::string_view model_path,
-			array<array<void*, model_traits_type::block_count>, weight_types::count>& data, optional<memory_mapped_file<config_type>>& metadata_file,
-			optional<memory_mapped_file<config_type>>& memory_file, tokenizer_type& tokenizer) {
-			metadata_file = memory_mapped_file<config_type>{ model_path };
+			array<array<void*, model_traits_type::block_count>, weight_types::count>& data, optional<file_loader<config_type>>& metadata_file,
+			optional<file_loader<config_type>>& memory_file, tokenizer_type& tokenizer) {
+			metadata_file = file_loader<config_type>{ model_path };
 			stream_iterator<config_type> ptr{ &*metadata_file };
 			gguf_metadata<config_type> gguf_file{ value_reader<config_type, gguf_metadata<config_type>>::gather_value(ptr) };
 			tokenizer.tokens		= detail::move(gguf_file.ggml_tokens);
@@ -926,7 +927,7 @@ namespace nihilus {
 			}
 
 			uint64_t tensor_data_start = ptr.file->size() - max_tensor_end;
-			memory_file				   = memory_mapped_file<config_type>{ model_path, tensor_data_start };
+			memory_file				   = file_loader<config_type>{ model_path, tensor_data_start };
 			ptr						   = { &*memory_file };
 
 			sort_tensor_infos(tensor_infos);
@@ -942,8 +943,8 @@ namespace nihilus {
 		using model_traits_type = model_traits<config_type::model_arch, config_type::model_size, config_type::model_generation>;
 
 		template<typename tokenizer_type> NIHILUS_HOST static gguf_metadata<config_type> parse_model(std::string_view model_path,
-			array<array<void*, model_traits_type::block_count>, weight_types::count>& data, optional<memory_mapped_file<config_type>>& metadata_file,
-			optional<memory_mapped_file<config_type>>& memory_file, tokenizer_type& tokenizer) {
+			array<array<void*, model_traits_type::block_count>, weight_types::count>& data, optional<file_loader<config_type>>& metadata_file,
+			optional<file_loader<config_type>>& memory_file, tokenizer_type& tokenizer) {
 			return model_parser_impl<config_type>::parse_model(model_path, data, metadata_file, memory_file, tokenizer);
 		}
 	};

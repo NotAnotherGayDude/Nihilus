@@ -279,11 +279,11 @@ namespace nihilus {
 			return data_val[static_cast<uint64_t>(position)];
 		}
 
-		template<integral_or_enum_types index_type> reference operator[](index_type position) noexcept {
+		template<integral_or_enum_types index_type> NIHILUS_HOST reference operator[](index_type position) noexcept {
 			return data_val[static_cast<uint64_t>(position)];
 		}
 
-		template<integral_or_enum_types index_type> const_reference operator[](index_type position) const noexcept {
+		template<integral_or_enum_types index_type> NIHILUS_HOST const_reference operator[](index_type position) const noexcept {
 			return data_val[static_cast<uint64_t>(position)];
 		}
 

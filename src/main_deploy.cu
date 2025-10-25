@@ -1,5 +1,5 @@
 #include <nihilus>
-#include <nihilus-network/nihilus-network.hpp>
+#include <nihilus-network>
 
 static constexpr auto model_config_00 = nihilus::generate_model_config(nihilus::model_generations::v3_1, nihilus::model_sizes::llm_8B, nihilus::kernel_type_profiles::q8_gqa,
 	nihilus::model_arches::llama, nihilus::device_types::gpu, nihilus::batched_processing_type::enabled, nihilus::exception_type::enabled,

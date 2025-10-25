@@ -68,13 +68,13 @@ namespace nihilus {
 	template<typename config_type, typename core_traits_type>
 	struct kernel_dispatcher_impl<config_type, core_traits_type, device_types::cpu, 1, core_types::token_embeddings, processing_phases::prompt_eval_time> {
 		NIHILUS_HOST static void process_chunk(core_traits_type& params, int64_t current_chunk, uint64_t chunk_size) {
-			auto& get_rows_op						= params.values.template get_core<token_embeddings_types, token_embeddings_types::get_rows>();
+			auto& get_rows_op						= params.values.template get_core<token_embeddings_types::get_rows>();
 			auto& weights_core						= get_adjacent_value<typename core_traits_type::config_type, core_types::weights>::impl(params);
 			auto& inputs_core						= get_adjacent_value<typename core_traits_type::config_type, core_types::global_inputs>::impl(params);
-			auto& token_embd_op						= weights_core.values.template get_core<weight_types, weight_types::token_embd>();
-			auto& inp_tokens_op						= inputs_core.values.template get_core<global_input_types, global_input_types::inp_tokens>();
+			auto& token_embd_op						= weights_core.values.template get_core<weight_types::token_embd>();
+			auto& inp_tokens_op						= inputs_core.values.template get_core<global_input_types::inp_tokens>();
 			const auto* __restrict weight_data		= token_embd_op.get_data();
-			const auto* __restrict token_ids		= inputs_core.values.template get_core<global_input_types, global_input_types::inp_tokens>().get_data();
+			const auto* __restrict token_ids		= inputs_core.values.template get_core<global_input_types::inp_tokens>().get_data();
 			constexpr uint64_t embedding_length		= model_traits_type<typename core_traits_type::config_type>::embedding_length;
 			constexpr uint64_t blocks_per_embedding = embedding_length / 32;
 			const uint64_t sequence_length			= inp_tokens_op.get_seq_length_dim();
@@ -105,13 +105,13 @@ namespace nihilus {
 	template<typename config_type, typename core_traits_type>
 	struct kernel_dispatcher_impl<config_type, core_traits_type, device_types::cpu, 1, core_types::token_embeddings, processing_phases::eval_time> {
 		NIHILUS_HOST static void process_chunk(core_traits_type& params, int64_t current_chunk, uint64_t chunk_size) {
-			auto& get_rows_op						= params.values.template get_core<token_embeddings_types, token_embeddings_types::get_rows>();
+			auto& get_rows_op						= params.values.template get_core<token_embeddings_types::get_rows>();
 			auto& weights_core						= get_adjacent_value<typename core_traits_type::config_type, core_types::weights>::impl(params);
 			auto& inputs_core						= get_adjacent_value<typename core_traits_type::config_type, core_types::global_inputs>::impl(params);
-			auto& token_embd_op						= weights_core.values.template get_core<weight_types, weight_types::token_embd>();
-			auto& inp_tokens_op						= inputs_core.values.template get_core<global_input_types, global_input_types::inp_tokens>();
+			auto& token_embd_op						= weights_core.values.template get_core<weight_types::token_embd>();
+			auto& inp_tokens_op						= inputs_core.values.template get_core<global_input_types::inp_tokens>();
 			const auto* __restrict weight_data		= token_embd_op.get_data();
-			const auto* __restrict token_ids		= inputs_core.values.template get_core<global_input_types, global_input_types::inp_tokens>().get_data();
+			const auto* __restrict token_ids		= inputs_core.values.template get_core<global_input_types::inp_tokens>().get_data();
 			constexpr uint64_t embedding_length		= model_traits_type<typename core_traits_type::config_type>::embedding_length;
 			constexpr uint64_t blocks_per_embedding = embedding_length / 32;
 			const uint64_t sequence_length			= inp_tokens_op.get_seq_length_dim();

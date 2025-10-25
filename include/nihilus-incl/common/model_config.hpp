@@ -186,7 +186,7 @@ namespace nihilus {
 
 	struct model_config {
 		model_generations model_generation{ model_generations::v3_1 };
-		model_sizes model_size{};
+		model_sizes model_size{ model_sizes::llm_8B };
 		kernel_type_profiles kernel_type_profile{};
 		model_arches model_arch{};
 		exception_type exceptions{};

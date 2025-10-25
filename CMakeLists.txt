@@ -91,6 +91,13 @@ if(NIHILUS_DEV)
     FetchContent_MakeAvailable(Jsonifier)
 endif()
 
+if(UNIX AND NOT APPLE)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(URING REQUIRED liburing)
+    target_include_directories(${PROJECT_NAME} INTERFACE ${URING_INCLUDE_DIRS})
+    target_link_libraries(${PROJECT_NAME} INTERFACE ${URING_LIBRARIES})
+endif()
+
 if(NIHILUS_DEPLOY)    
     find_package(nihilus-network CONFIG REQUIRED)
 endif()

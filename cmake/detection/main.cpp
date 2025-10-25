@@ -302,7 +302,7 @@ int32_t main() {
 	return 0;
 }
 #else
-int main() {
+int32_t main() {
 	return -1;
 }
 #endif

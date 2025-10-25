@@ -160,7 +160,7 @@ namespace nihilus {
 			memory_transfer<config_type>::host_to_device(tokenizer_traits_type::special_eos_id, output_tokens + 1);
 		}
 
-		NIHILUS_HOST uint64_t tokenize(rt_string& input_text, int32_t* output_tokens) {
+		NIHILUS_HOST uint64_t tokenize(rt_string_view input_text, int32_t* output_tokens) {
 			aligned_vector<int32_t> temp_tokens;
 			if constexpr (tokenizer_traits_type::add_bos && tokenizer_traits_type::special_bos_id > 0) {
 				temp_tokens.emplace_back(static_cast<int32_t>(tokenizer_traits_type::special_bos_id));
@@ -182,33 +182,6 @@ namespace nihilus {
 
 			if constexpr (config_type::dev) {
 				print_tokenization_debug(input_text, temp_tokens);
-			}
-
-			return temp_tokens.size();
-		}
-
-		NIHILUS_HOST uint64_t tokenize(const char* string, uint64_t size, int32_t* output_tokens) {
-			aligned_vector<int32_t> temp_tokens;
-			if constexpr (tokenizer_traits_type::add_bos && tokenizer_traits_type::special_bos_id > 0) {
-				temp_tokens.emplace_back(static_cast<int32_t>(tokenizer_traits_type::special_bos_id));
-			}
-
-			gpt2_style_split({ string, size });
-
-			for (const auto& word: result) {
-				tokenize_word(word, temp_tokens);
-			}
-
-			if constexpr (tokenizer_traits_type::add_eos && tokenizer_traits_type::special_eos_id > 0) {
-				temp_tokens.emplace_back(static_cast<int32_t>(tokenizer_traits_type::special_eos_id));
-			}
-
-			for (uint64_t i = 0; i < temp_tokens.size(); ++i) {
-				memory_transfer<config_type>::host_to_device(temp_tokens[i], output_tokens + i);
-			}
-
-			if constexpr (config_type::dev) {
-				print_tokenization_debug({ string, size }, temp_tokens);
 			}
 
 			return temp_tokens.size();
@@ -465,15 +438,14 @@ namespace nihilus {
 
 			while (i < text.size()) {
 				rt_string token_new;
-				while (i < text.size() && is_space(text[i])) {
-					i++;
-				}
+				i += text.find_first_non_whitespace();
 
 				if (i >= text.size())
 					break;
 
 				if (is_first_word) {
 					if (is_alpha(text[i])) {
+						i += text.find_first_non_alpha();
 						while (i < text.size() && is_alpha(text[i])) {
 							token_new += text[i];
 							i++;

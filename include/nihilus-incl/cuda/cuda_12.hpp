@@ -23,7 +23,7 @@ RealTimeChris (Chris M.)
 
 	#pragma once
 
-	#include <nihilus-incl/infra/core_bases.hpp>
+	#include <nihilus-incl/infra/nihilus_cathedral.hpp>
 	#include <nihilus-incl/common/common.hpp>
 	#include <nihilus-incl/common/utility.hpp>
 	#include <nihilus-incl/common/type_traits.hpp>
@@ -559,7 +559,7 @@ namespace nihilus {
 
 	template<typename core_traits_type>
 		requires(core_traits_type::kernel_profile_type::type == kernel_type_profiles::q8_gqa)
-	NIHILUS_GLOBAL void token_embeddings_prompt_eval_time(uint64_t sequence_length, typename core_traits_type::kernel_data_ptrs params) {
+	NIHILUS_GLOBAL void token_embeddings_prompt_eval_time(uint64_t sequence_length, typename core_traits_type::kernel_data_ptrs_type params) {
 		using weight_type  = const typename core_traits_type::kernel_profile_type::weight_type;
 		using index_type   = const typename core_traits_type::kernel_profile_type::index_type;
 		using compute_type = typename core_traits_type::kernel_profile_type::compute_type;
@@ -602,7 +602,7 @@ namespace nihilus {
 
 	template<typename core_traits_type>
 		requires(core_traits_type::kernel_profile_type::type == kernel_type_profiles::fp16_mha)
-	NIHILUS_GLOBAL void token_embeddings_prompt_eval_time(uint64_t sequence_length, typename core_traits_type::kernel_data_ptrs params) {
+	NIHILUS_GLOBAL void token_embeddings_prompt_eval_time(uint64_t sequence_length, typename core_traits_type::kernel_data_ptrs_type params) {
 		using weight_type  = const typename core_traits_type::kernel_profile_type::weight_type;
 		using index_type   = const typename core_traits_type::kernel_profile_type::index_type;
 		using compute_type = typename core_traits_type::kernel_profile_type::compute_type;
@@ -637,13 +637,13 @@ namespace nihilus {
 	template<typename config_type, typename core_traits_type>
 	struct kernel_dispatcher_impl<config_type, core_traits_type, device_types::gpu, 4, core_types::token_embeddings, processing_phases::prompt_eval_time> {
 		NIHILUS_HOST static void impl(core_traits_type& params) {
-			auto& get_rows_op = params.values.template get_core<token_embeddings_types, token_embeddings_types::get_rows>();
+			auto& get_rows_op = params.values.template get_core<token_embeddings_types::get_rows>();
 
 			const uint64_t sequence_length = get_rows_op.get_seq_length_dim();
 			auto& weights_core			   = get_adjacent_value<typename core_traits_type::config_type, core_types::weights>::impl(params);
 			auto& inputs_core			   = get_adjacent_value<typename core_traits_type::config_type, core_types::global_inputs>::impl(params);
-			auto& token_embd_op			   = weights_core.values.template get_core<weight_types, weight_types::token_embd>();
-			auto& inp_tokens_op			   = inputs_core.values.template get_core<global_input_types, global_input_types::inp_tokens>();
+			auto& token_embd_op			   = weights_core.values.template get_core<weight_types::token_embd>();
+			auto& inp_tokens_op			   = inputs_core.values.template get_core<global_input_types::inp_tokens>();
 
 			params.data_ptrs.set_ptrs(get_rows_op.get_data(), token_embd_op.get_data(), inp_tokens_op.get_data());
 
@@ -690,7 +690,7 @@ namespace nihilus {
 
 	template<typename core_traits_type>
 		requires(core_traits_type::kernel_profile_type::type == kernel_type_profiles::q8_gqa)
-	NIHILUS_GLOBAL void token_embeddings_eval_time(uint64_t sequence_length, typename core_traits_type::kernel_data_ptrs params) {
+	NIHILUS_GLOBAL void token_embeddings_eval_time(uint64_t sequence_length, typename core_traits_type::kernel_data_ptrs_type params) {
 		using weight_type  = half;
 		using index_type   = uint32_t;
 		using compute_type = half;
@@ -723,7 +723,7 @@ namespace nihilus {
 
 	template<typename core_traits_type>
 		requires(core_traits_type::kernel_profile_type::type == kernel_type_profiles::fp16_mha)
-	NIHILUS_GLOBAL void token_embeddings_eval_time(uint64_t sequence_length, typename core_traits_type::kernel_data_ptrs params) {
+	NIHILUS_GLOBAL void token_embeddings_eval_time(uint64_t sequence_length, typename core_traits_type::kernel_data_ptrs_type params) {
 		using weight_type  = half;
 		using index_type   = uint32_t;
 		using compute_type = half;
@@ -756,11 +756,11 @@ namespace nihilus {
 	template<typename config_type, typename core_traits_type>
 	struct kernel_dispatcher_impl<config_type, core_traits_type, device_types::gpu, 4, core_types::token_embeddings, processing_phases::eval_time> {
 		NIHILUS_HOST static void impl(core_traits_type& params) {
-			auto& get_rows_op			   = params.values.template get_core<token_embeddings_types, token_embeddings_types::get_rows>();
+			auto& get_rows_op			   = params.values.template get_core<token_embeddings_types::get_rows>();
 			auto& weights_core			   = get_adjacent_value<typename core_traits_type::config_type, core_types::weights>::impl(params);
 			auto& inputs_core			   = get_adjacent_value<typename core_traits_type::config_type, core_types::global_inputs>::impl(params);
-			auto& token_embd_op			   = weights_core.values.template get_core<weight_types, weight_types::token_embd>();
-			auto& inp_tokens_op			   = inputs_core.values.template get_core<global_input_types, global_input_types::inp_tokens>();
+			auto& token_embd_op			   = weights_core.values.template get_core<weight_types::token_embd>();
+			auto& inp_tokens_op			   = inputs_core.values.template get_core<global_input_types::inp_tokens>();
 			const uint64_t sequence_length = get_rows_op.get_seq_length_dim();
 
 			params.data_ptrs.set_ptrs(get_rows_op.get_data(), token_embd_op.get_data(), inp_tokens_op.get_data());
@@ -801,25 +801,25 @@ namespace nihilus {
 	};
 
 	template<typename core_traits_type>
-	NIHILUS_GLOBAL void mega_qkv_prep_and_cache_publish_prompt_eval_time(uint64_t sequence_length, typename core_traits_type::kernel_data_ptrs params) {
+	NIHILUS_GLOBAL void mega_qkv_prep_and_cache_publish_prompt_eval_time(uint64_t sequence_length, typename core_traits_type::kernel_data_ptrs_type params) {
 	}
 
 	template<typename config_type, typename core_traits_type>
 	struct kernel_dispatcher_impl<config_type, core_traits_type, device_types::gpu, 4, core_types::mega_qkv_prep_and_cache_publish, processing_phases::prompt_eval_time> {
 		NIHILUS_HOST static void impl(core_traits_type& params, int64_t current_block) {
-			auto& q_out_op		  = params.values.template get_core<mega_qkv_prep_and_cache_publish_types, mega_qkv_prep_and_cache_publish_types::q_out>();
+			auto& q_out_op		  = params.values.template get_core<mega_qkv_prep_and_cache_publish_types::q_out>();
 			auto& weights_core	  = get_adjacent_value<typename core_traits_type::config_type, core_types::weights>::impl(params);
 			auto& inputs_core	  = get_adjacent_value<typename core_traits_type::config_type, core_types::global_inputs>::impl(params);
 			auto& token_embd_core = get_adjacent_value<typename core_traits_type::config_type, core_types::token_embeddings>::impl(params);
-			auto& inp_embd_op	  = token_embd_core.values.template get_core<token_embeddings_types, token_embeddings_types::get_rows>();
-			auto& attn_norm_w_op  = weights_core.values.template get_core<weight_types, weight_types::attn_norm>();
-			auto& attn_q_w_op	  = weights_core.values.template get_core<weight_types, weight_types::attn_q>();
-			auto& attn_k_w_op	  = weights_core.values.template get_core<weight_types, weight_types::attn_k>();
-			auto& attn_v_w_op	  = weights_core.values.template get_core<weight_types, weight_types::attn_v>();
-			auto& inp_pos_op	  = inputs_core.values.template get_core<global_input_types, global_input_types::inp_pos>();
-			auto& rope_freqs_op	  = weights_core.values.template get_core<weight_types, weight_types::rope_freqs>();
-			auto& cache_k_op	  = inputs_core.values.template get_core<global_input_types, global_input_types::cache_k>();
-			auto& cache_v_op	  = inputs_core.values.template get_core<global_input_types, global_input_types::cache_v>();
+			auto& inp_embd_op	  = token_embd_core.values.template get_core<token_embeddings_types::get_rows>();
+			auto& attn_norm_w_op  = weights_core.values.template get_core<weight_types::attn_norm>();
+			auto& attn_q_w_op	  = weights_core.values.template get_core<weight_types::attn_q>();
+			auto& attn_k_w_op	  = weights_core.values.template get_core<weight_types::attn_k>();
+			auto& attn_v_w_op	  = weights_core.values.template get_core<weight_types::attn_v>();
+			auto& inp_pos_op	  = inputs_core.values.template get_core<global_input_types::inp_pos>();
+			auto& rope_freqs_op	  = weights_core.values.template get_core<weight_types::rope_freqs>();
+			auto& cache_k_op	  = inputs_core.values.template get_core<global_input_types::cache_k>();
+			auto& cache_v_op	  = inputs_core.values.template get_core<global_input_types::cache_v>();
 
 			const uint64_t sequence_length = q_out_op.get_seq_length_dim();
 
@@ -836,7 +836,7 @@ namespace nihilus {
 			}
 
 			if (sequence_length > 0) {
-				mega_qkv_prep_and_cache_publish_prompt_eval_time<core_traits_type><<<actual_blocks, launch_params.threads_per_block>>>(sequence_length, params.data_ptrs);
+				//mega_qkv_prep_and_cache_publish_prompt_eval_time<core_traits_type><<<actual_blocks, launch_params.threads_per_block>>>(sequence_length, params.data_ptrs);
 
 				if constexpr (config_type::dev) {
 					if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {
@@ -858,25 +858,25 @@ namespace nihilus {
 	};
 
 	template<typename core_traits_type>
-	NIHILUS_GLOBAL void mega_qkv_prep_and_cache_publish_eval_time(uint64_t sequence_length, typename core_traits_type::kernel_data_ptrs params) {
+	NIHILUS_GLOBAL void mega_qkv_prep_and_cache_publish_eval_time(uint64_t sequence_length, typename core_traits_type::kernel_data_ptrs_type params) {
 	}
 
 	template<typename config_type, typename core_traits_type>
 	struct kernel_dispatcher_impl<config_type, core_traits_type, device_types::gpu, 4, core_types::mega_qkv_prep_and_cache_publish, processing_phases::eval_time> {
 		NIHILUS_HOST static void impl(core_traits_type& params, int64_t current_block) {
-			auto& q_out_op		  = params.values.template get_core<mega_qkv_prep_and_cache_publish_types, mega_qkv_prep_and_cache_publish_types::q_out>();
+			auto& q_out_op		  = params.values.template get_core<mega_qkv_prep_and_cache_publish_types::q_out>();
 			auto& weights_core	  = get_adjacent_value<typename core_traits_type::config_type, core_types::weights>::impl(params);
 			auto& inputs_core	  = get_adjacent_value<typename core_traits_type::config_type, core_types::global_inputs>::impl(params);
 			auto& token_embd_core = get_adjacent_value<typename core_traits_type::config_type, core_types::token_embeddings>::impl(params);
-			auto& inp_embd_op	  = token_embd_core.values.template get_core<token_embeddings_types, token_embeddings_types::get_rows>();
-			auto& attn_norm_w_op  = weights_core.values.template get_core<weight_types, weight_types::attn_norm>();
-			auto& attn_q_w_op	  = weights_core.values.template get_core<weight_types, weight_types::attn_q>();
-			auto& attn_k_w_op	  = weights_core.values.template get_core<weight_types, weight_types::attn_k>();
-			auto& attn_v_w_op	  = weights_core.values.template get_core<weight_types, weight_types::attn_v>();
-			auto& inp_pos_op	  = inputs_core.values.template get_core<global_input_types, global_input_types::inp_pos>();
-			auto& rope_freqs_op	  = weights_core.values.template get_core<weight_types, weight_types::rope_freqs>();
-			auto& cache_k_op	  = inputs_core.values.template get_core<global_input_types, global_input_types::cache_k>();
-			auto& cache_v_op	  = inputs_core.values.template get_core<global_input_types, global_input_types::cache_v>();
+			auto& inp_embd_op	  = token_embd_core.values.template get_core<token_embeddings_types::get_rows>();
+			auto& attn_norm_w_op  = weights_core.values.template get_core<weight_types::attn_norm>();
+			auto& attn_q_w_op	  = weights_core.values.template get_core<weight_types::attn_q>();
+			auto& attn_k_w_op	  = weights_core.values.template get_core<weight_types::attn_k>();
+			auto& attn_v_w_op	  = weights_core.values.template get_core<weight_types::attn_v>();
+			auto& inp_pos_op	  = inputs_core.values.template get_core<global_input_types::inp_pos>();
+			auto& rope_freqs_op	  = weights_core.values.template get_core<weight_types::rope_freqs>();
+			auto& cache_k_op	  = inputs_core.values.template get_core<global_input_types::cache_k>();
+			auto& cache_v_op	  = inputs_core.values.template get_core<global_input_types::cache_v>();
 
 			const uint64_t sequence_length = q_out_op.get_seq_length_dim();
 
@@ -895,7 +895,7 @@ namespace nihilus {
 				}
 			}
 
-			mega_qkv_prep_and_cache_publish_eval_time<core_traits_type><<<actual_blocks, launch_params.threads_per_block>>>(sequence_length, params.data_ptrs);
+			//mega_qkv_prep_and_cache_publish_eval_time<core_traits_type><<<actual_blocks, launch_params.threads_per_block>>>(sequence_length, params.data_ptrs);
 
 			if constexpr (config_type::dev) {
 				if (cudaError_t err = cudaGetLastError(); err != cudaSuccess) {

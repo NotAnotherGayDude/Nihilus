@@ -499,7 +499,183 @@ namespace nihilus {
 						return static_cast<uint64_t>(i + last_bit_pos);
 					}
 
-					i -= vector_size;
+					i -= static_cast<int64_t>(vector_size);
+				}
+			}
+#endif
+
+#if NIHILUS_AVX2 || NIHILUS_AVX512 || NIHILUS_SVE2
+			if (i >= 0 || length >= 32) {
+				using simd_type						  = typename detail::get_type_at_index<avx_list, 1>::type::type;
+				static constexpr uint64_t vector_size = detail::get_type_at_index<avx_list, 1>::type::bytes_processed;
+				NIHILUS_ALIGN(32) char values_to_load[32];
+
+				if (i < 0) {
+					i = static_cast<int64_t>(length) - static_cast<int64_t>(vector_size);
+				}
+
+				while (i >= 0) {
+					std::memcpy(values_to_load, text + i, 32);
+
+					uint32_t ws_mask	 = collect_whitespace_indices<simd_type>(values_to_load);
+					uint32_t non_ws_mask = ~ws_mask;
+
+					if (non_ws_mask != 0) {
+						int64_t last_bit_pos = 31ll - static_cast<int64_t>(lzcnt(non_ws_mask));
+						return static_cast<uint64_t>(i + last_bit_pos);
+					}
+
+					i -= static_cast<int64_t>(vector_size);
+				}
+			}
+#endif
+
+			if (i >= 0 || length >= 16) {
+				using simd_type						  = typename detail::get_type_at_index<avx_list, 0>::type::type;
+				static constexpr uint64_t vector_size = detail::get_type_at_index<avx_list, 0>::type::bytes_processed;
+				NIHILUS_ALIGN(16) char values_to_load[16];
+
+				if (i < 0) {
+					i = static_cast<int64_t>(length) - static_cast<int64_t>(vector_size);
+				}
+
+				while (i >= 0) {
+					std::memcpy(values_to_load, text + i, 16);
+
+					uint16_t ws_mask	 = collect_whitespace_indices<simd_type>(values_to_load);
+					uint16_t non_ws_mask = ~ws_mask;
+
+					if (non_ws_mask != 0) {
+						int64_t last_bit_pos = 15ll - static_cast<int64_t>(lzcnt(non_ws_mask));
+						return static_cast<uint64_t>(i + last_bit_pos);
+					}
+
+					i -= static_cast<int64_t>(vector_size);
+				}
+			}
+
+			return std::string::npos;
+		}
+	};
+
+	template<typename simd_type> NIHILUS_HOST static auto collect_alpha_mask(const char* values) noexcept {
+		const typename simd_type::type input = gather_values<simd_type>(values);
+		const typename simd_type::type lowercase = op_or<simd_type>(input, op_set1<simd_type>(0x20));
+		const typename simd_type::type offset = op_sub<simd_type>(lowercase, op_set1<simd_type>('a'));
+		const typename simd_type::type threshold = op_set1<simd_type>(26);
+		return op_cmp_lt_bitmask<simd_type>(offset, threshold);
+	}
+
+
+	struct alpha_search {
+		template<typename char_type> NIHILUS_HOST static uint64_t find_first_not_of(const char_type* text, uint64_t length) noexcept {
+			int64_t i = 0;
+			if NIHILUS_UNLIKELY (length < 16) {
+				if NIHILUS_UNLIKELY (length == 0) {
+					return std::string::npos;
+				}
+				while (i < static_cast<int64_t>(length)) {
+					char c = *text;
+					if NIHILUS_UNLIKELY (c != ' ' && c != '\t' && c != '\n' && c != '\r') {
+						return static_cast<uint64_t>(i);
+					}
+					++text;
+					++i;
+				}
+				return std::string::npos;
+			}
+
+#if NIHILUS_AVX512 || NIHILUS_SVE2
+			if (i + 64ll <= static_cast<int64_t>(length)) {
+				using simd_type						  = typename detail::get_type_at_index<avx_list, 2>::type::type;
+				static constexpr uint64_t vector_size = detail::get_type_at_index<avx_list, 2>::type::bytes_processed;
+				NIHILUS_ALIGN(vector_size) char values_to_load[vector_size];
+				while (i + static_cast<int64_t>(vector_size) <= static_cast<int64_t>(length)) {
+					std::memcpy(values_to_load, text, vector_size);
+					uint64_t ws_mask	 = collect_whitespace_indices<simd_type>(values_to_load);
+					uint64_t non_ws_mask = static_cast<uint64_t>(~ws_mask);
+					if (non_ws_mask != 0) {
+						return static_cast<uint64_t>(i) + static_cast<uint64_t>(std::countr_zero(non_ws_mask));
+					}
+
+					text += vector_size;
+					i += vector_size;
+				}
+			}
+#endif
+
+#if NIHILUS_AVX2 || NIHILUS_AVX512 || NIHILUS_SVE2
+			if (i + 32ll <= static_cast<int64_t>(length)) {
+				using simd_type						  = typename detail::get_type_at_index<avx_list, 1>::type::type;
+				static constexpr uint64_t vector_size = detail::get_type_at_index<avx_list, 1>::type::bytes_processed;
+				NIHILUS_ALIGN(vector_size) char values_to_load[vector_size];
+				while (i + static_cast<int64_t>(vector_size) <= static_cast<int64_t>(length)) {
+					std::memcpy(values_to_load, text, vector_size);
+					uint32_t ws_mask	 = collect_whitespace_indices<simd_type>(values_to_load);
+					uint32_t non_ws_mask = static_cast<uint32_t>(~ws_mask);
+					if (non_ws_mask != 0) {
+						return static_cast<uint64_t>(i) + static_cast<uint64_t>(std::countr_zero(non_ws_mask));
+					}
+
+					text += vector_size;
+					i += vector_size;
+				}
+			}
+#endif
+			if (i + 16ll <= static_cast<int64_t>(length)) {
+				using simd_type						  = typename detail::get_type_at_index<avx_list, 0>::type::type;
+				static constexpr uint64_t vector_size = detail::get_type_at_index<avx_list, 0>::type::bytes_processed;
+				NIHILUS_ALIGN(vector_size) char values_to_load[vector_size];
+				while (i + static_cast<int64_t>(vector_size) <= static_cast<int64_t>(length)) {
+					std::memcpy(values_to_load, text, vector_size);
+					uint16_t ws_mask	 = collect_whitespace_indices<simd_type>(values_to_load);
+					uint16_t non_ws_mask = static_cast<uint16_t>(~ws_mask);
+					if (non_ws_mask != 0) {
+						return static_cast<uint64_t>(i) + static_cast<uint64_t>(std::countr_zero(non_ws_mask));
+					}
+
+					text += vector_size;
+					i += vector_size;
+				}
+			}
+
+			while (i < static_cast<int64_t>(length)) {
+				char c = *text;
+				if (c != ' ' && c != '\t' && c != '\n' && c != '\r') {
+					return static_cast<uint64_t>(i);
+				}
+				++text;
+				++i;
+			}
+
+			return std::string::npos;
+		}
+
+		template<typename char_type> NIHILUS_HOST static uint64_t find_last_not_of(const char_type* text, uint64_t length) noexcept {
+			int64_t i = static_cast<int64_t>(length);
+
+#if NIHILUS_AVX512 || NIHILUS_SVE2
+			if (i >= 0 || length >= 64) {
+				using simd_type						  = typename detail::get_type_at_index<avx_list, 2>::type::type;
+				static constexpr uint64_t vector_size = detail::get_type_at_index<avx_list, 2>::type::bytes_processed;
+				NIHILUS_ALIGN(64) char values_to_load[64];
+
+				if (i < 0) {
+					i = static_cast<int64_t>(length) - static_cast<int64_t>(vector_size);
+				}
+
+				while (i >= 0) {
+					std::memcpy(values_to_load, text + i, 64);
+
+					uint64_t ws_mask	 = collect_whitespace_indices<simd_type>(values_to_load);
+					uint64_t non_ws_mask = ~ws_mask;
+
+					if (non_ws_mask != 0) {
+						int64_t last_bit_pos = 63ll - static_cast<int64_t>(lzcnt(non_ws_mask));
+						return static_cast<uint64_t>(i + last_bit_pos);
+					}
+
+					i -= static_cast<int64_t>(vector_size);
 				}
 			}
 #endif

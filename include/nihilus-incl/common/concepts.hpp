@@ -166,6 +166,72 @@ namespace nihilus {
 	};
 
 	template<typename value_type>
+	concept has_find = requires(detail::remove_cvref_t<value_type> value) {
+		{ value.find(typename detail::remove_cvref_t<value_type>::value_type{}) } -> std::same_as<typename detail::remove_cvref_t<value_type>::size_type>;
+	} || requires(detail::remove_cvref_t<value_type> value) {
+		{ value.find(typename detail::remove_cvref_t<value_type>::key_type{}) } -> std::same_as<typename detail::remove_cvref_t<value_type>::iterator>;
+	} || requires(detail::remove_cvref_t<value_type> value) {
+		{ value.find(typename detail::remove_cvref_t<value_type>::key_type{}) } -> std::same_as<typename detail::remove_cvref_t<value_type>::const_iterator>;
+	};
+
+	template<typename value_type>
+	concept has_range = requires(detail::remove_cvref_t<value_type> value) {
+		{ value.begin() };
+		{ value.end() };
+	};
+
+	template<typename value_type>
+	concept map_subscriptable = requires(detail::remove_cvref_t<value_type> value) {
+		{ value[typename detail::remove_cvref_t<value_type>::key_type{}] } -> std::same_as<const typename detail::remove_cvref_t<value_type>::mapped_type&>;
+	} || requires(detail::remove_cvref_t<value_type> value) {
+		{ value[typename detail::remove_cvref_t<value_type>::key_type{}] } -> std::same_as<typename detail::remove_cvref_t<value_type>::mapped_type&>;
+	};
+
+	template<typename value_type>
+	concept vector_subscriptable = requires(detail::remove_cvref_t<value_type> value) {
+		{ value[typename detail::remove_cvref_t<value_type>::size_type{}] } -> std::same_as<typename detail::remove_cvref_t<value_type>::const_reference>;
+	} || requires(detail::remove_cvref_t<value_type> value) {
+		{ value[typename detail::remove_cvref_t<value_type>::size_type{}] } -> std::same_as<typename detail::remove_cvref_t<value_type>::reference>;
+	};
+
+	template<typename value_type>
+	concept has_size = requires(detail::remove_cvref_t<value_type> value) {
+		{ value.size() } -> std::same_as<typename detail::remove_cvref_t<value_type>::size_type>;
+	};
+
+	template<typename value_type>
+	concept has_empty = requires(detail::remove_cvref_t<value_type> value) {
+		{ value.empty() } -> std::same_as<bool>;
+	};
+
+	template<typename value_type>
+	concept bool_types =
+		std::same_as<detail::remove_cvref_t<value_type>, bool> || std::same_as<detail::remove_cvref_t<value_type>, std::vector<bool>::reference> ||
+		std::same_as<detail::remove_cvref_t<value_type>, std::vector<bool>::const_reference>;
+
+	template<typename value_type>
+	concept num_types = (float_types<value_type> || uint_types<value_type> || int_types<value_type>);
+
+	template<typename value_type>
+	concept map_types = map_subscriptable<value_type> && has_range<value_type> && has_size<value_type> && has_find<value_type> && has_empty<value_type>;
+
+	template<typename value_type> struct db_core;
+
+	template<typename value_type>
+	concept object_types = requires { db_core<detail::remove_cvref_t<value_type>>::db_value; };
+
+	template<typename value_type>
+	concept has_emplace_back = requires(detail::remove_cvref_t<value_type> value) {
+		{ value.emplace_back(typename detail::remove_cvref_t<value_type>::value_type{}) } -> std::same_as<typename detail::remove_cvref_t<value_type>::reference>;
+	};
+
+	template<typename value_type>
+	concept has_resize = requires(detail::remove_cvref_t<value_type> value) { value.resize(typename detail::remove_cvref_t<value_type>::size_type{}); };
+
+	template<typename value_type>
+	concept vector_types = vector_subscriptable<value_type> && has_resize<value_type> && has_emplace_back<value_type>;
+
+	template<typename value_type>
 	concept fp_types = std::is_floating_point_v<detail::remove_cvref_t<value_type>>;
 
 	template<typename value_type>
@@ -242,7 +308,7 @@ namespace nihilus {
 	template<typename value_type>
 	concept dim_types = requires() { base_type<value_type>::x; };
 
-	template<integral_or_enum_types auto index> using tag = std::integral_constant<uint64_t, static_cast<uint64_t>(index)>;
+	template<integral_or_enum_types auto index> struct tag : std::integral_constant<uint64_t, static_cast<uint64_t>(index)> {};
 
 	template<typename value_type>
 	concept managed_user_input_config_types = detail::remove_cvref_t<value_type>::user_input_type == user_input_types::managed;
