@@ -279,7 +279,7 @@ namespace nihilus {
 	}
 
 	template<nihilus_simd_512_types simd_int_t01>
-	inline static auto op_cmp_eq_bit_mask(const typename simd_int_t01::type& value, const typename simd_int_t01::type& other) noexcept {
+	inline static auto op_cmp_eq_bitmask(const typename simd_int_t01::type& value, const typename simd_int_t01::type& other) noexcept {
 		return static_cast<uint64_t>(_mm512_cmpeq_epi8_mask(value, other));
 	}
 
