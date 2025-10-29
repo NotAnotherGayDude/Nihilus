@@ -28,8 +28,10 @@ namespace nihilus {
 
 	template<model_arches model_arch, model_sizes model_size, model_generations model_generation> struct model_traits;
 
+	template<typename config_type> using model_traits_type = model_traits<config_type::model_arch, config_type::model_size, config_type::model_generation>;
+
 	template<> struct model_traits<model_arches::llama, model_sizes::llm_3B, model_generations::v3_2> {
-		static constexpr const char* name{ "llama-3.2-3B" };
+		static constexpr const char name[]{ "llama-3.2-3B" };
 		static constexpr auto model_arch{ model_arches::llama };
 		static constexpr auto model_generation{ model_generations::v3_2 };
 		static constexpr auto model_size{ model_sizes::llm_3B };
@@ -47,7 +49,7 @@ namespace nihilus {
 	};
 
 	template<> struct model_traits<model_arches::llama, model_sizes::llm_8B, model_generations::v3_1> {
-		static constexpr const char* name{ "llama-3.1-8B" };
+		static constexpr const char name[]{ "llama-3.1-8B" };
 		static constexpr auto model_arch{ model_arches::llama };
 		static constexpr auto model_generation{ model_generations::v3_1 };
 		static constexpr auto model_size{ model_sizes::llm_8B };
@@ -65,7 +67,7 @@ namespace nihilus {
 	};
 
 	template<> struct model_traits<model_arches::llama, model_sizes::llm_70B, model_generations::v3_1> {
-		static constexpr const char* name{ "llama-3.1-70B" };
+		static constexpr const char name[]{ "llama-3.1-70B" };
 		static constexpr auto model_arch{ model_arches::llama };
 		static constexpr auto model_generation{ model_generations::v3_1 };
 		static constexpr auto model_size{ model_sizes::llm_70B };
@@ -83,7 +85,7 @@ namespace nihilus {
 	};
 
 	template<> struct model_traits<model_arches::llama, model_sizes::llm_405B, model_generations::v3_1> {
-		static constexpr const char* name{ "llama-3.1-405B" };
+		static constexpr const char name[]{ "llama-3.1-405B" };
 		static constexpr auto model_arch{ model_arches::llama };
 		static constexpr auto model_generation{ model_generations::v3_1 };
 		static constexpr auto model_size{ model_sizes::llm_405B };
@@ -98,6 +100,23 @@ namespace nihilus {
 		static constexpr uint32_t rope_dimension_count	  = embedding_length / attention_head_count;
 		static constexpr uint32_t context_length		  = 131072;
 		static constexpr uint64_t n_embd_kv_gqa			  = rope_dimension_count * attention_head_count_kv;
+	};
+
+	template<typename model_config_type> struct model_dimensions {
+		using model_traits_type_new = model_traits_type<model_config_type>;
+		enum {
+			vocab_size				= model_traits_type_new::vocab_size,
+			feed_forward_length		= model_traits_type_new::feed_forward_length,
+			attention_head_count	= model_traits_type_new::attention_head_count,
+			attention_head_count_kv = model_traits_type_new::attention_head_count_kv,
+			rope_dimension_count	= model_traits_type_new::rope_dimension_count,
+			context_length			= model_traits_type_new::context_length,
+			n_embd_kv_gqa			= model_traits_type_new::n_embd_kv_gqa,
+			block_count				= model_traits_type_new::block_count,
+			embedding_length		= model_traits_type_new::embedding_length,
+			max_sequence_length		= model_config_type::max_sequence_length,
+			batch_size				= model_config_type::batch_size,
+		};
 	};
 
 }

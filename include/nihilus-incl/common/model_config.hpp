@@ -21,53 +21,38 @@ RealTimeChris (Chris M.)
 #pragma once
 
 #include <nihilus-incl/common/utility.hpp>
-#include <nihilus-incl/common/config.hpp>
-#include <cstdint>
 
 namespace nihilus {
 
-	template<typename derived_type> struct uint64_base_class {
-	  protected:
-		uint64_t value{};
-
-		NIHILUS_HOST constexpr uint64_base_class() noexcept {
-		}
-
-		NIHILUS_HOST constexpr uint64_base_class(uint64_t value_new) noexcept : value{ value_new } {
-		}
-
-	  public:
-		NIHILUS_HOST constexpr operator uint64_t() const {
-			return value;
-		}
-	};
-
-	template<typename derived_type> struct bool_base_class {
+	template<typename value_type, typename derived_type> struct config_type_base_class {
 	  protected:
 		template<typename, typename> friend struct is_same_enum_type;
-		enum class enum_type : bool {
-			disabled = false,
-			enabled	 = true,
+		enum class enum_type : value_type {
+			disabled = std::numeric_limits<value_type>::min(),
+			enabled	 = std::numeric_limits<value_type>::max(),
 		} value{};
 
-		NIHILUS_HOST constexpr bool_base_class() noexcept {
+		NIHILUS_HOST constexpr config_type_base_class() noexcept {
 		}
 
-		NIHILUS_HOST constexpr bool_base_class(enum_type value_new) noexcept : value{ value_new } {
+		NIHILUS_HOST constexpr config_type_base_class(enum_type value_new) noexcept : value{ value_new } {
+		}
+
+		NIHILUS_HOST constexpr config_type_base_class(value_type value_new) noexcept : value{ static_cast<enum_type>(value_new) } {
 		}
 
 	  public:
 		static constexpr enum_type disabled{ enum_type::disabled };
 		static constexpr enum_type enabled{ enum_type::enabled };
 
-		NIHILUS_HOST constexpr operator bool() const {
-			return value == enum_type::enabled;
+		NIHILUS_HOST constexpr operator value_type() const {
+			return static_cast<value_type>(value);
 		}
 	};
 
-	struct exception_type : bool_base_class<exception_type> {
+	struct exception_type : config_type_base_class<bool, exception_type> {
 	  protected:
-		using base_type = bool_base_class<exception_type>;
+		using base_type = config_type_base_class<bool, exception_type>;
 
 	  public:
 		NIHILUS_HOST constexpr exception_type() noexcept {
@@ -76,9 +61,9 @@ namespace nihilus {
 		}
 	};
 
-	struct benchmark_type : bool_base_class<benchmark_type> {
+	struct benchmark_type : config_type_base_class<bool, benchmark_type> {
 	  protected:
-		using base_type = bool_base_class<benchmark_type>;
+		using base_type = config_type_base_class<bool, benchmark_type>;
 
 	  public:
 		NIHILUS_HOST constexpr benchmark_type() noexcept {
@@ -87,9 +72,9 @@ namespace nihilus {
 		}
 	};
 
-	struct dev_type : bool_base_class<dev_type> {
+	struct dev_type : config_type_base_class<bool, dev_type> {
 	  protected:
-		using base_type = bool_base_class<dev_type>;
+		using base_type = config_type_base_class<bool, dev_type>;
 
 	  public:
 		NIHILUS_HOST constexpr dev_type() noexcept {
@@ -98,20 +83,9 @@ namespace nihilus {
 		}
 	};
 
-	struct batched_processing_type : bool_base_class<batched_processing_type> {
+	struct use_rotary_embeddings_type : config_type_base_class<bool, use_rotary_embeddings_type> {
 	  protected:
-		using base_type = bool_base_class<batched_processing_type>;
-
-	  public:
-		NIHILUS_HOST constexpr batched_processing_type() noexcept {
-		}
-		NIHILUS_HOST constexpr batched_processing_type(enum_type value_new) noexcept : base_type{ value_new } {
-		}
-	};
-
-	struct use_rotary_embeddings_type : bool_base_class<use_rotary_embeddings_type> {
-	  protected:
-		using base_type = bool_base_class<use_rotary_embeddings_type>;
+		using base_type = config_type_base_class<bool, use_rotary_embeddings_type>;
 
 	  public:
 		NIHILUS_HOST constexpr use_rotary_embeddings_type() noexcept {
@@ -120,9 +94,9 @@ namespace nihilus {
 		}
 	};
 
-	struct default_max_sequence_length_type : uint64_base_class<default_max_sequence_length_type> {
+	struct default_max_sequence_length_type : config_type_base_class<uint64_t, default_max_sequence_length_type> {
 	  protected:
-		using base_type = uint64_base_class<default_max_sequence_length_type>;
+		using base_type = config_type_base_class<uint64_t, default_max_sequence_length_type>;
 
 	  public:
 		NIHILUS_HOST constexpr default_max_sequence_length_type() noexcept {
@@ -131,9 +105,9 @@ namespace nihilus {
 		}
 	};
 
-	struct batch_size_type : uint64_base_class<batch_size_type> {
+	struct batch_size_type : config_type_base_class<uint64_t, batch_size_type> {
 	  protected:
-		using base_type = uint64_base_class<batch_size_type>;
+		using base_type = config_type_base_class<uint64_t, batch_size_type>;
 
 	  public:
 		NIHILUS_HOST constexpr batch_size_type() noexcept {
@@ -142,9 +116,9 @@ namespace nihilus {
 		}
 	};
 
-	struct kv_cache_block_size_type : uint64_base_class<kv_cache_block_size_type> {
+	struct kv_cache_block_size_type : config_type_base_class<uint64_t, kv_cache_block_size_type> {
 	  protected:
-		using base_type = uint64_base_class<kv_cache_block_size_type>;
+		using base_type = config_type_base_class<uint64_t, kv_cache_block_size_type>;
 
 	  public:
 		NIHILUS_HOST constexpr kv_cache_block_size_type() noexcept {
@@ -154,35 +128,32 @@ namespace nihilus {
 	};
 
 	template<typename value_type, typename enum_type> struct is_same_enum_type {
-		static constexpr bool value{ std::is_same_v<typename detail::remove_cvref_t<value_type>::enum_type, enum_type> };
+		static constexpr bool value{ detail::is_same_v<typename detail::remove_cvref_t<value_type>::enum_type, enum_type> };
 	};
 
 	template<typename value_type, typename enum_type> static constexpr bool is_same_enum_type_v = is_same_enum_type<value_type, enum_type>::value;
 
 	template<typename value_type>
-	concept exception_types = std::is_same_v<exception_type, detail::remove_cvref_t<value_type>> || is_same_enum_type_v<exception_type, value_type>;
+	concept exception_types = detail::is_same_v<exception_type, detail::remove_cvref_t<value_type>> || is_same_enum_type_v<exception_type, value_type>;
 
 	template<typename value_type>
-	concept default_max_sequence_length_types = std::is_same_v<default_max_sequence_length_type, detail::remove_cvref_t<value_type>>;
+	concept default_max_sequence_length_types = detail::is_same_v<default_max_sequence_length_type, detail::remove_cvref_t<value_type>>;
 
 	template<typename value_type>
-	concept batch_size_types = std::is_same_v<batch_size_type, detail::remove_cvref_t<value_type>>;
+	concept batch_size_types = detail::is_same_v<batch_size_type, detail::remove_cvref_t<value_type>>;
 
 	template<typename value_type>
-	concept kv_cache_block_size_types = std::is_same_v<kv_cache_block_size_type, detail::remove_cvref_t<value_type>>;
+	concept kv_cache_block_size_types = detail::is_same_v<kv_cache_block_size_type, detail::remove_cvref_t<value_type>>;
 
 	template<typename value_type>
 	concept use_rotary_embeddings_types =
-		std::is_same_v<use_rotary_embeddings_type, detail::remove_cvref_t<value_type>> || is_same_enum_type_v<use_rotary_embeddings_type, value_type>;
+		detail::is_same_v<use_rotary_embeddings_type, detail::remove_cvref_t<value_type>> || is_same_enum_type_v<use_rotary_embeddings_type, value_type>;
 
 	template<typename value_type>
-	concept batched_processing_types = std::is_same_v<batched_processing_type, detail::remove_cvref_t<value_type>> || is_same_enum_type_v<batched_processing_type, value_type>;
+	concept benchmark_types = detail::is_same_v<benchmark_type, detail::remove_cvref_t<value_type>> || is_same_enum_type_v<benchmark_type, value_type>;
 
 	template<typename value_type>
-	concept benchmark_types = std::is_same_v<benchmark_type, detail::remove_cvref_t<value_type>> || is_same_enum_type_v<benchmark_type, value_type>;
-
-	template<typename value_type>
-	concept dev_types = std::is_same_v<dev_type, detail::remove_cvref_t<value_type>> || is_same_enum_type_v<dev_type, value_type>;
+	concept dev_types = detail::is_same_v<dev_type, detail::remove_cvref_t<value_type>> || is_same_enum_type_v<dev_type, value_type>;
 
 	struct model_config {
 		model_generations model_generation{ model_generations::v3_1 };
@@ -191,7 +162,6 @@ namespace nihilus {
 		model_arches model_arch{};
 		exception_type exceptions{};
 		default_max_sequence_length_type max_sequence_length{ 1024 };
-		batched_processing_type batched_processing{ batched_processing_type::disabled };
 		batch_size_type batch_size{ 1 };
 		kv_cache_strategies kv_cache_strategy{};
 		user_input_types user_input_type{};
@@ -207,25 +177,25 @@ namespace nihilus {
 		benchmark_type benchmark{};
 		dev_type dev{};
 
-		template<std::same_as<model_generations> value_type> consteval auto update(const value_type value) const {
+		template<detail::same_as<model_generations> value_type> consteval auto update(const value_type value) const {
 			model_config return_value{ *this };
 			return_value.model_generation = value;
 			return return_value;
 		}
 
-		template<std::same_as<model_sizes> value_type> consteval auto update(const value_type value) const {
+		template<detail::same_as<model_sizes> value_type> consteval auto update(const value_type value) const {
 			model_config return_value{ *this };
 			return_value.model_size = value;
 			return return_value;
 		}
 
-		template<std::same_as<kernel_type_profiles> value_type> consteval auto update(const value_type value) const {
+		template<detail::same_as<kernel_type_profiles> value_type> consteval auto update(const value_type value) const {
 			model_config return_value{ *this };
 			return_value.kernel_type_profile = value;
 			return return_value;
 		}
 
-		template<std::same_as<model_arches> value_type> consteval auto update(const value_type value) const {
+		template<detail::same_as<model_arches> value_type> consteval auto update(const value_type value) const {
 			model_config return_value{ *this };
 			return_value.model_arch = value;
 			return return_value;
@@ -249,31 +219,25 @@ namespace nihilus {
 			return return_value;
 		}
 
-		template<batched_processing_types value_type> consteval auto update(const value_type value) const {
-			model_config return_value{ *this };
-			return_value.batched_processing = value;
-			return return_value;
-		}
-
-		template<std::same_as<kv_cache_strategies> value_type> consteval auto update(const value_type value) const {
+		template<detail::same_as<kv_cache_strategies> value_type> consteval auto update(const value_type value) const {
 			model_config return_value{ *this };
 			return_value.kv_cache_strategy = value;
 			return return_value;
 		}
 
-		template<std::same_as<user_input_types> value_type> consteval auto update(const value_type value) const {
+		template<detail::same_as<user_input_types> value_type> consteval auto update(const value_type value) const {
 			model_config return_value{ *this };
 			return_value.user_input_type = value;
 			return return_value;
 		}
 
-		template<std::same_as<rope_scaling_types> value_type> consteval auto update(const value_type value) const {
+		template<detail::same_as<rope_scaling_types> value_type> consteval auto update(const value_type value) const {
 			model_config return_value{ *this };
 			return_value.rope_scaling_type = value;
 			return return_value;
 		}
 
-		template<std::same_as<tokenizer_pre_types> value_type> consteval auto update(const value_type value) const {
+		template<detail::same_as<tokenizer_pre_types> value_type> consteval auto update(const value_type value) const {
 			model_config return_value{ *this };
 			return_value.tokenizer_pre_type = value;
 			return return_value;
@@ -291,31 +255,31 @@ namespace nihilus {
 			return return_value;
 		}
 
-		template<std::same_as<rms_norm_types> value_type> consteval auto update(const value_type value) const {
+		template<detail::same_as<rms_norm_types> value_type> consteval auto update(const value_type value) const {
 			model_config return_value{ *this };
 			return_value.rms_norm_type = value;
 			return return_value;
 		}
 
-		template<std::same_as<tokenizer_types> value_type> consteval auto update(const value_type value) const {
+		template<detail::same_as<tokenizer_types> value_type> consteval auto update(const value_type value) const {
 			model_config return_value{ *this };
 			return_value.tokenizer_type = value;
 			return return_value;
 		}
 
-		template<std::same_as<device_types> value_type> consteval auto update(const value_type value) const {
+		template<detail::same_as<device_types> value_type> consteval auto update(const value_type value) const {
 			model_config return_value{ *this };
 			return_value.device_type = value;
 			return return_value;
 		}
 
-		template<std::same_as<model_formats> value_type> consteval auto update(const value_type value) const {
+		template<detail::same_as<model_formats> value_type> consteval auto update(const value_type value) const {
 			model_config return_value{ *this };
 			return_value.model_format = value;
 			return return_value;
 		}
 
-		template<std::same_as<float> value_type> consteval auto update(const value_type value) const {
+		template<detail::same_as<float> value_type> consteval auto update(const value_type value) const {
 			model_config return_value{ *this };
 			return_value.norm_epsilon = value;
 			return return_value;
@@ -341,7 +305,6 @@ namespace nihilus {
 		static constexpr model_arches model_arch				  = config.model_arch;
 		static constexpr bool exceptions						  = config.exceptions;
 		static constexpr uint64_t max_sequence_length			  = config.max_sequence_length;
-		static constexpr bool batched_processing				  = config.batched_processing;
 		static constexpr uint64_t batch_size					  = config.batch_size;
 		static constexpr kv_cache_strategies kv_cache_strategy	  = config.kv_cache_strategy;
 		static constexpr user_input_types user_input_type		  = config.user_input_type;

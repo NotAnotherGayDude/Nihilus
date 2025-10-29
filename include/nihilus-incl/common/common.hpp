@@ -50,7 +50,7 @@ namespace nihilus {
 	}
 
 	NIHILUS_HOST static uint64_t get_time_based_seed() noexcept {
-		if constexpr (std::is_same_v<std::chrono::duration<uint64_t, std::nano>, clock_type::duration>) {
+		if constexpr (detail::is_same_v<std::chrono::duration<uint64_t, std::nano>, clock_type::duration>) {
 			return static_cast<uint64_t>(clock_type::now().time_since_epoch().count());
 		} else {
 			return static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::duration<uint64_t, std::nano>>(clock_type::now().time_since_epoch()).count());
@@ -233,11 +233,11 @@ namespace nihilus {
 		return static_cast<uint8_t>(c - '0') < 10;
 	}
 
-	template<typename value_type_new> struct alignas(64) atomic_flag_wrapper {
+	template<typename value_type_new> struct alignas(64) aligned_atomic {
 		static constexpr uint64_t spin_cycles{ 500000ull };
 		using value_type = typename std::atomic_signed_lock_free::value_type;
 
-		NIHILUS_HOST constexpr atomic_flag_wrapper() noexcept {
+		NIHILUS_HOST constexpr aligned_atomic() noexcept {
 		}
 
 		NIHILUS_HOST void store(value_type_new value_new, std::memory_order order = std::memory_order_release) {
@@ -310,13 +310,13 @@ namespace nihilus {
 		NIHILUS_HOST main_gate_latch& operator=(const main_gate_latch&) = delete;
 		NIHILUS_HOST main_gate_latch(const main_gate_latch&)			= delete;
 		using value_type												= std::atomic_signed_lock_free::value_type;
-		aligned_vector<atomic_flag_wrapper<value_type>> flags{};
-		atomic_flag_wrapper<value_type> global_counter{};
+		aligned_vector<aligned_atomic<value_type>> flags{};
+		aligned_atomic<value_type> global_counter{};
 		NIHILUS_ALIGN(64) value_type thread_count {};
 
 		NIHILUS_HOST void init(value_type thread_count_new) {
 			thread_count = thread_count_new;
-			flags.resize(static_cast<typename aligned_vector<atomic_flag_wrapper<int64_t>>::size_type>(thread_count));
+			flags.resize(static_cast<typename aligned_vector<aligned_atomic<int64_t>>::size_type>(thread_count));
 			global_counter.store(thread_count);
 		}
 
@@ -344,9 +344,9 @@ namespace nihilus {
 
 	template<printable_enum_types auto current_index> consteval std::string_view get_enum_name() {
 #if NIHILUS_COMPILER_MSVC || NIHILUS_COMPILER_CUDA
-		NIHILUS_ALIGN(64) constexpr static_aligned_const<const char*> pretty_function_tail[]{ { ">(void)" } };
-#else
-		NIHILUS_ALIGN(64) constexpr static_aligned_const<const char*> pretty_function_tail[]{ { "]" } };
+		NIHILUS_ALIGN(64) constexpr const char* pretty_function_tail{ ">(void)" };
+#elif NIHILUS_COMPILER_CLANG
+		NIHILUS_ALIGN(64) constexpr const char* pretty_function_tail{ "]" };
 #endif
 		std::string_view str = std::source_location::current().function_name();
 #if NIHILUS_COMPILER_GNUCXX
@@ -358,7 +358,7 @@ namespace nihilus {
 #else
 		str			   = str.substr(str.find("=") + 2);
 		uint64_t start = str.find_last_of(':') + 1;
-		uint64_t end   = str.find(pretty_function_tail->value);
+		uint64_t end   = str.find(pretty_function_tail);
 		return str.substr(start, end - start);
 #endif
 	}

@@ -28,7 +28,7 @@ RealTimeChris (Chris M.)
 namespace nihilus {
 
 	struct harbinger {
-		inline static cli_params parse_cli_arguments(int32_t argc, char** argv) {
+		NIHILUS_HOST static cli_params parse_cli_arguments(int32_t argc, char** argv) {
 			aligned_vector<std::string> cli_args{};
 			for (int64_t x = 0; x < argc; ++x) {
 				cli_args.emplace_back(argv[static_cast<uint64_t>(x)]);
@@ -59,7 +59,7 @@ namespace nihilus {
 					} else if (current_flag == "-t") {
 						try {
 							result.thread_count = std::stoull(token_new);
-						} catch (const std::exception&) {
+						} catch (const std::runtime_error&) {
 							result.thread_count = 1;
 						}
 					} else if (current_flag == "-p") {
@@ -71,19 +71,19 @@ namespace nihilus {
 					} else if (current_flag == "-s") {
 						try {
 							result.seed = std::stoull(token_new);
-						} catch (const std::exception&) {
+						} catch (const std::runtime_error&) {
 							result.seed = 0;
 						}
 					} else if (current_flag == "-n") {
 						try {
 							result.n_tokens = std::stoull(token_new);
-						} catch (const std::exception&) {
+						} catch (const std::runtime_error&) {
 							result.n_tokens = 0;
 						}
 					} else if (current_flag == "-b") {
 						try {
 							result.batch_size = std::stoull(token_new);
-						} catch (const std::exception&) {
+						} catch (const std::runtime_error&) {
 							result.batch_size = 512;
 						}
 					}

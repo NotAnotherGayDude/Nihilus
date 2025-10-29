@@ -92,7 +92,7 @@ namespace nihilus {
 	template<typename value_type>
 	concept indexable = stateless<value_type> || requires(value_type t) { t[tag<0>()]; };
 
-	template<class... bases> struct type_map : bases... {
+	template<typename... bases> struct type_map : bases... {
 		using base_list = type_list<bases...>;
 		using bases::operator[]...;
 		using bases::decl_elem...;
@@ -126,7 +126,10 @@ namespace nihilus {
 		using super						= tuple_base_t<value_type...>;
 		using super::operator[];
 		using super::decl_elem;
+		static constexpr uint64_t size{ sizeof...(value_type) };
 	};
+
+	template<typename tuple_type> using get_last_tuple_type = detail::remove_cvref_t<decltype(tuple_type{}.operator[](tag<tuple_type::size - 1>{}))>;
 
 	template<> struct tuple<> : tuple_base_t<> {
 		static constexpr uint64_t index = 0;
@@ -195,9 +198,9 @@ namespace nihilus {
 
 	template<uint64_t index, typename tuple_type> using tuple_element_t = typename tuple_element<index, tuple_type>::type;
 
-	template<typename... value_type> struct tuple_size<tuple<value_type...>> : std::integral_constant<uint64_t, sizeof...(value_type)> {};
+	template<typename... value_type> struct tuple_size<tuple<value_type...>> : detail::integral_constant<uint64_t, sizeof...(value_type)> {};
 
-	template<typename... value_type> struct tuple_size<std::tuple<value_type...>> : std::integral_constant<uint64_t, sizeof...(value_type)> {};
+	template<typename... value_type> struct tuple_size<std::tuple<value_type...>> : detail::integral_constant<uint64_t, sizeof...(value_type)> {};
 
 	template<typename... value_type> static constexpr auto tuple_size_v = tuple_size<detail::remove_cvref_t<value_type>...>::value;
 }

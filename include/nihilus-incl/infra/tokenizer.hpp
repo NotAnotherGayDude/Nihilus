@@ -33,11 +33,11 @@ namespace nihilus {
 	template<model_arches model_arch> struct tokenizer_parameters;
 
 	template<> struct tokenizer_parameters<model_arches::llama> {
-		std::unordered_map<std::string_view, token> tokens{};
-		aligned_vector<std::string_view> merges{};
+		std::unordered_map<rt_string_view, token> tokens{};
+		aligned_vector<rt_string_view> merges{};
 		aligned_vector<int32_t> token_types{};
-		std::string_view chat_template{};
-		std::string_view pre{};
+		rt_string_view chat_template{};
+		rt_string_view pre{};
 	};
 
 	template<typename config_type, model_arches model_arch, tokenizer_types> struct tokenizer;
@@ -51,7 +51,7 @@ namespace nihilus {
 
 	template<typename stored_type, typename comparator> struct priority_queue : comparator {
 		array<stored_type, 200> data{};
-		size_t currently_stored_size{};
+		uint64_t currently_stored_size{};
 
 		NIHILUS_HOST bool empty() const {
 			return currently_stored_size == 0;
@@ -82,9 +82,9 @@ namespace nihilus {
 		}
 
 	  protected:
-		NIHILUS_HOST void bubble_up(size_t index) {
+		NIHILUS_HOST void bubble_up(uint64_t index) {
 			while (index > 0) {
-				size_t parent = (index - 1) / 2;
+				uint64_t parent = (index - 1) / 2;
 				if (!comparator::operator()(data[index], data[parent]))
 					break;
 				std::swap(data[index], data[parent]);
@@ -92,11 +92,11 @@ namespace nihilus {
 			}
 		}
 
-		NIHILUS_HOST void bubble_down(size_t index) {
+		NIHILUS_HOST void bubble_down(uint64_t index) {
 			while (true) {
-				size_t left	   = 2 * index + 1;
-				size_t right   = 2 * index + 2;
-				size_t largest = index;
+				uint64_t left	 = 2 * index + 1;
+				uint64_t right	 = 2 * index + 2;
+				uint64_t largest = index;
 
 				if (left < currently_stored_size && comparator::operator()(data[left], data[largest])) {
 					largest = left;
@@ -440,8 +440,9 @@ namespace nihilus {
 				rt_string token_new;
 				i += text.find_first_non_whitespace();
 
-				if (i >= text.size())
+				if (i >= text.size()) {
 					break;
+				}
 
 				if (is_first_word) {
 					if (is_alpha(text[i])) {

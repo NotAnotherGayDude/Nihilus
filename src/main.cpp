@@ -74,8 +74,8 @@ struct create_tensor_ops<libraries::llama, kernel_type_profile, model_arch, mode
 		constexpr uint32_t attention_head_count	   = model_traits<model_arch, model_size, model_generation>::attention_head_count;
 		constexpr uint32_t block_count			   = model_traits<model_arch, model_size, model_generation>::block_count;
 		constexpr uint32_t attention_head_count_kv = model_traits<model_arch, model_size, model_generation>::attention_head_count_kv;
-		constexpr uint32_t rope_dimension_count	   = embedding_length / attention_head_count;
-		constexpr uint64_t n_embd_kv_gqa		   = rope_dimension_count * attention_head_count_kv;
+		constexpr uint32_t rope_dimension_count	   = model_traits<model_arch, model_size, model_generation>::rope_dimension_count;
+		constexpr uint64_t n_embd_kv_gqa		   = model_traits<model_arch, model_size, model_generation>::n_embd_kv_gqa;
 		std::vector<tensor_op> ops;
 		static constexpr data_types weight_type	  = type_traits<typename kernel_type_profile_traits<kernel_type_profile>::weight_type>::data_type;
 		static constexpr data_types index_type	  = type_traits<typename kernel_type_profile_traits<kernel_type_profile>::index_type>::data_type;
@@ -252,25 +252,24 @@ ops.emplace_back(tensor_op{ .name = "kqv_merged-0",
 template<model_arches model_arch, kernel_type_profiles kernel_type_profile, model_sizes model_size, model_generations model_generation, uint64_t seq_length>
 struct create_tensor_ops<libraries::nihilus, kernel_type_profile, model_arch, model_size, model_generation, seq_length> {
 	static std::vector<tensor_op> impl() {
-		constexpr uint32_t embedding_length		   = model_traits<model_arch, model_size, model_generation>::embedding_length;
-		constexpr uint32_t vocab_size			   = model_traits<model_arch, model_size, model_generation>::vocab_size;
-		constexpr uint32_t feed_forward_length	   = model_traits<model_arch, model_size, model_generation>::feed_forward_length;
-		constexpr uint32_t attention_head_count	   = model_traits<model_arch, model_size, model_generation>::attention_head_count;
-		constexpr uint32_t block_count			   = model_traits<model_arch, model_size, model_generation>::block_count;
-		constexpr uint32_t attention_head_count_kv = model_traits<model_arch, model_size, model_generation>::attention_head_count_kv;
-		constexpr uint32_t rope_dimension_count	   = embedding_length / attention_head_count;
-		constexpr uint64_t n_embd_kv_gqa		   = rope_dimension_count * attention_head_count_kv;
-		constexpr uint64_t total_cache_size_k	   = seq_length * n_embd_kv_gqa;
-		constexpr uint64_t total_cache_size_v	   = seq_length * n_embd_kv_gqa;
-		static constexpr data_types weight_type	   = type_traits<typename kernel_type_profile_traits<kernel_type_profile>::weight_type>::data_type;
-		static constexpr data_types index_type	   = type_traits<typename kernel_type_profile_traits<kernel_type_profile>::index_type>::data_type;
-		static constexpr data_types compute_type   = type_traits<typename kernel_type_profile_traits<kernel_type_profile>::compute_type>::data_type;
-		static constexpr data_types kv_cache_type  = type_traits<typename kernel_type_profile_traits<kernel_type_profile>::kv_cache_type>::data_type;
+		constexpr uint32_t embedding_length		  = model_traits<model_arch, model_size, model_generation>::embedding_length;
+		constexpr uint32_t vocab_size			  = model_traits<model_arch, model_size, model_generation>::vocab_size;
+		constexpr uint32_t feed_forward_length	  = model_traits<model_arch, model_size, model_generation>::feed_forward_length;
+		constexpr uint32_t attention_head_count	  = model_traits<model_arch, model_size, model_generation>::attention_head_count;
+		constexpr uint32_t block_count			  = model_traits<model_arch, model_size, model_generation>::block_count;
+		constexpr uint32_t rope_dimension_count	  = model_traits<model_arch, model_size, model_generation>::rope_dimension_count;
+		constexpr uint64_t n_embd_kv_gqa		  = model_traits<model_arch, model_size, model_generation>::n_embd_kv_gqa;
+		constexpr uint64_t total_cache_size_k	  = seq_length * n_embd_kv_gqa;
+		constexpr uint64_t total_cache_size_v	  = seq_length * n_embd_kv_gqa;
+		static constexpr data_types weight_type	  = type_traits<typename kernel_type_profile_traits<kernel_type_profile>::weight_type>::data_type;
+		static constexpr data_types index_type	  = type_traits<typename kernel_type_profile_traits<kernel_type_profile>::index_type>::data_type;
+		static constexpr data_types compute_type  = type_traits<typename kernel_type_profile_traits<kernel_type_profile>::compute_type>::data_type;
+		static constexpr data_types kv_cache_type = type_traits<typename kernel_type_profile_traits<kernel_type_profile>::kv_cache_type>::data_type;
 		std::vector<tensor_op> ops;
 
 		// --- Token embeddings ----------------------------------------------------
 		ops.emplace_back(tensor_op{
-        .name   = "token_embeddings/GET_ROWS",
+        .name   = "token_embeddings",
         .inputs = {
             { .element_count = embedding_length * vocab_size, .data_type = weight_type}, // token_embd.weight
             { .element_count = seq_length,                   .data_type = index_type}  // inp_tokens
@@ -283,7 +282,7 @@ struct create_tensor_ops<libraries::nihilus, kernel_type_profile, model_arch, mo
 			// MEGA_QKV_PREP: {RMS_NORM + scale(attn_norm.weight)} → {Q,K,V} GEMMs → ROPE(Q,K) →
 			//                direct writes to K/V caches (fp16 pack on store) → Q_rope_out (f32)
 			ops.emplace_back(tensor_op{
-            .name   = "blk." + std::to_string(x) + "/MEGA_QKV_PREP_AND_CACHE",
+            .name   = "blk." + std::to_string(x) + "/attn_prep_and_score",
             .inputs = {
                 { .element_count = embedding_length * seq_length,          .data_type = compute_type}, // inp_embd
                 { .element_count = embedding_length,                       .data_type = compute_type}, // attn_norm.weight
@@ -398,251 +397,6 @@ static read_write get_read_writes() {
 	return return_values;
 }
 
-
-template<typename value_type> constexpr uint64_t popcount(value_type value) noexcept {
-	uint64_t count = 0;
-	while (value != 0) {
-		value &= (value - 1);
-		count++;
-	}
-	return count;
-}
-
-enum class dim_trait_static_assert_errors : uint8_t {
-	reshape_total_element_count_mismatch,
-	view_total_element_count_mismatch,
-	transpose_total_element_count_mismatch,
-	transpose_dimension_0_mismatch,
-	transpose_dimension_1_mismatch,
-	permute_total_element_count_mismatch,
-};
-
-template<uint64_t... runtime_mask> constexpr uint64_t get_runtime_mask() {
-	static_assert(((runtime_mask < 4) && ...), "Sorry, but you can only define one of the first 4 dimensions as runtime mutable!");
-	return ((1ULL << runtime_mask) | ...);
-}
-
-template<kernel_types kernel_type_new> struct kernel_types_type {
-	static constexpr kernel_types kernel_type{ kernel_type_new };
-};
-
-template<typename value_type>
-concept preserved_dimensions_kernel_types = detail::remove_cvref_t<value_type>::kernel_type == kernel_types::add ||
-	detail::remove_cvref_t<value_type>::kernel_type == kernel_types::mul || detail::remove_cvref_t<value_type>::kernel_type == kernel_types::sub ||
-	detail::remove_cvref_t<value_type>::kernel_type == kernel_types::rms_norm || detail::remove_cvref_t<value_type>::kernel_type == kernel_types::silu ||
-	detail::remove_cvref_t<value_type>::kernel_type == kernel_types::softmax || detail::remove_cvref_t<value_type>::kernel_type == kernel_types::rope ||
-	detail::remove_cvref_t<value_type>::kernel_type == kernel_types::copy || detail::remove_cvref_t<value_type>::kernel_type == kernel_types::top_k_filter ||
-	detail::remove_cvref_t<value_type>::kernel_type == kernel_types::top_p_filter || detail::remove_cvref_t<value_type>::kernel_type == kernel_types::repetition_penalty ||
-	detail::remove_cvref_t<value_type>::kernel_type == kernel_types::presence_penalty || detail::remove_cvref_t<value_type>::kernel_type == kernel_types::frequency_penalty ||
-	detail::remove_cvref_t<value_type>::kernel_type == kernel_types::temperature_scale || detail::remove_cvref_t<value_type>::kernel_type == kernel_types::vocab_mask;
-
-template<typename value_type>
-concept kernel_types_types = requires() { detail::remove_cvref_t<value_type>::kernel_type; };
-
-template<typename value_type>
-concept weights_kernel_types = detail::remove_cvref_t<value_type>::kernel_type == kernel_types::weights && kernel_types_types<value_type>;
-
-template<integral_or_enum_types auto index> struct tag_new : public std::integral_constant<uint64_t, static_cast<uint64_t>(index)> {};
-
-template<uint64_t runtime_mask_new, uint64_t dim_00, uint64_t dim_01, uint64_t dim_02, uint64_t dim_03> struct kernel_dims {
-	static constexpr array<uint64_t, 4> dims{ dim_00, dim_01, dim_02, dim_03 };
-	static constexpr uint64_t runtime_mask{ runtime_mask_new };
-	static constexpr uint64_t runtime_dimension_count{ popcount(runtime_mask) };
-	mutable uint64_t rt_dims[4]{ dim_00, dim_01, dim_02, dim_03 };
-
-	template<typename IndexTag> NIHILUS_HOST constexpr uint64_t& operator[](IndexTag index_tag) {
-		constexpr uint64_t index = IndexTag::value;
-		static_assert(index < 4, "Error: Index is out of bounds [0-3] for the fixed dimension storage!");
-		static_assert(runtime_mask & (1ULL << index), "Error: Index is not enabled by the runtime_mask and cannot be modified at runtime!");
-		return rt_dims[index_tag.value];
-	}
-
-	template<typename IndexTag> NIHILUS_HOST constexpr uint64_t operator[](IndexTag index_tag) const {
-		constexpr uint64_t index = IndexTag::value;
-		static_assert(index < 4, "Error: Index is out of bounds [0-3] for the fixed dimension storage!");
-		return rt_dims[index_tag.value];
-	}
-};
-
-template<typename value_type>
-concept kernel_dims_types = requires() {
-	detail::remove_cvref_t<value_type>::runtime_mask;
-	detail::remove_cvref_t<value_type>::rt_dims;
-	detail::remove_cvref_t<value_type>::dims;
-};
-
-template<typename... value_types> struct get_first_type;
-
-template<typename value_type, typename... value_types> struct get_first_type<value_type, value_types...> {
-	using type = value_type;
-};
-
-template<typename value_type> struct get_first_type<value_type> {
-	using type = value_type;
-};
-
-template<typename... value_types> using get_first_type_t = get_first_type<value_types...>::type;
-
-template<bool batched, typename kernel_type, typename... dims_types> struct dim_traits;
-
-template<bool batched, kernel_dims_types input_dims_01> struct dim_traits<batched, kernel_types_type<kernel_types::weights>, input_dims_01> {
-	using dims_type = kernel_dims<input_dims_01::runtime_mask, input_dims_01::dims[0], input_dims_01::dims[1], input_dims_01::dims[2], input_dims_01::dims[3]>;
-};
-
-template<bool batched, preserved_dimensions_kernel_types kernel_type, typename... dims_types> struct dim_traits<batched, kernel_type, dims_types...> {
-	using first_type = get_first_type_t<dims_types...>;
-	using dims_type	 = kernel_dims<first_type::runtime_mask, first_type::dims[0], first_type::dims[1], first_type::dims[2], first_type::dims[3]>;
-};
-
-template<bool batched, kernel_dims_types output_dims, kernel_dims_types input_dims> struct dim_traits<batched, kernel_types_type<kernel_types::reshape>, output_dims, input_dims> {
-	static constexpr auto dims01			= input_dims::dims;
-	static constexpr auto dims02			= output_dims::dims;
-	static constexpr size_t input_elements	= compute_elements(dims01, input_dims::runtime_mask);
-	static constexpr size_t output_elements = compute_elements(dims02, output_dims::runtime_mask);
-	static_assert(static_assert_printer_val<(input_dims::runtime_mask != 0 || output_dims::runtime_mask != 0 || input_elements == output_elements),
-		dim_trait_static_assert_errors::reshape_total_element_count_mismatch, input_elements, output_elements>::impl);
-	using dims_type = kernel_dims<output_dims::runtime_mask, output_dims::dims[0], output_dims::dims[1], output_dims::dims[2], output_dims::dims[3]>;
-};
-
-template<bool batched, kernel_dims_types output_dims, kernel_dims_types input_dims> struct dim_traits<batched, kernel_types_type<kernel_types::view>, output_dims, input_dims> {
-	static constexpr auto dims01			= input_dims::dims;
-	static constexpr auto dims02			= output_dims::dims;
-	static constexpr size_t input_elements	= compute_elements(dims01, input_dims::runtime_mask);
-	static constexpr size_t output_elements = compute_elements(dims02, output_dims::runtime_mask);
-	static_assert(static_assert_printer_val<(input_dims::runtime_mask != 0 || output_dims::runtime_mask != 0 || input_elements == output_elements),
-		dim_trait_static_assert_errors::view_total_element_count_mismatch, input_elements, output_elements>::impl);
-	using dims_type = kernel_dims<output_dims::runtime_mask, output_dims::dims[0], output_dims::dims[1], output_dims::dims[2], output_dims::dims[3]>;
-};
-
-template<bool batched, kernel_dims_types output_dims, kernel_dims_types input_dims>
-struct dim_traits<batched, kernel_types_type<kernel_types::transpose>, output_dims, input_dims> {
-	static constexpr auto dims01			= input_dims::dims;
-	static constexpr auto dims02			= output_dims::dims;
-	static constexpr size_t input_elements	= compute_elements(dims01, input_dims::runtime_mask);
-	static constexpr size_t output_elements = compute_elements(dims02, output_dims::runtime_mask);
-	static_assert(static_assert_printer_val<(input_dims::runtime_mask != 0 || output_dims::runtime_mask != 0 || input_elements == output_elements),
-		dim_trait_static_assert_errors::transpose_total_element_count_mismatch, input_elements, output_elements>::impl);
-	static_assert(static_assert_printer_val<(input_dims::runtime_mask != 0 || output_dims::runtime_mask != 0 || dims01[0] == dims02[1]),
-		dim_trait_static_assert_errors::transpose_dimension_0_mismatch, dims01[0], dims02[1]>::impl);
-	static_assert(static_assert_printer_val<(input_dims::runtime_mask != 0 || output_dims::runtime_mask != 0 || dims01[1] == dims02[0]),
-		dim_trait_static_assert_errors::transpose_dimension_1_mismatch, dims01[1], dims02[0]>::impl);
-	using dims_type = kernel_dims<output_dims::runtime_mask, output_dims::dims[0], output_dims::dims[1], output_dims::dims[2], output_dims::dims[3]>;
-};
-
-template<bool batched, kernel_dims_types output_dims, kernel_dims_types input_dims> struct dim_traits<batched, kernel_types_type<kernel_types::permute>, output_dims, input_dims> {
-	static constexpr auto dims01			= input_dims::dims;
-	static constexpr auto dims02			= output_dims::dims;
-	static constexpr size_t input_elements	= compute_elements(dims01, input_dims::runtime_mask);
-	static constexpr size_t output_elements = compute_elements(dims02, output_dims::runtime_mask);
-	static_assert(static_assert_printer_val<(input_dims::runtime_mask != 0 || output_dims::runtime_mask != 0 || input_elements == output_elements),
-		dim_trait_static_assert_errors::permute_total_element_count_mismatch, input_elements, output_elements>::impl);
-	using dims_type = kernel_dims<output_dims::runtime_mask, output_dims::dims[0], output_dims::dims[1], output_dims::dims[2], output_dims::dims[3]>;
-};
-
-template<bool batched, kernel_dims_types input_dims_01, kernel_dims_types input_dims_02>
-struct dim_traits<batched, kernel_types_type<kernel_types::mul_mat>, input_dims_01, input_dims_02> {
-	static constexpr auto dims01 = input_dims_01::dims;
-	static constexpr auto dims02 = input_dims_02::dims;
-	using dims_type				 = kernel_dims<input_dims_01::runtime_mask, dims02[0], dims01[1], (batched ? dims01[2] : 1), (batched ? dims01[3] : 1)>;
-};
-
-template<bool batched, kernel_dims_types input_dims_01, kernel_dims_types input_dims_02>
-struct dim_traits<batched, kernel_types_type<kernel_types::get_rows>, input_dims_01, input_dims_02> {
-	static constexpr auto dims01 = input_dims_01::dims;
-	static constexpr auto dims02 = input_dims_02::dims;
-	using dims_type				 = kernel_dims<input_dims_01::runtime_mask, dims01[0], dims02[1], (batched ? dims01[2] : 1), (batched ? dims01[3] : 1)>;
-};
-
-template<bool batched, kernel_types_types kernel_type_new, typename... input_types_new> struct kernel_traits;
-
-template<bool batched, weights_kernel_types kernel_type_new, typename output_type_new, kernel_dims_types dims_type>
-struct kernel_traits<batched, kernel_type_new, output_type_new, dims_type> : public dim_traits<batched, kernel_type_new, dims_type>::dims_type {
-	static constexpr kernel_types kernel_type{ kernel_type_new::kernel_type };
-	using output_type = output_type_new;
-};
-
-template<typename config_type_new, enum_types auto enum_value_new, kernel_types_types kernel_type_new, typename output_type_new, typename... input_types> struct op_traits
-	: get_nihilus_cathedral_t<config_type_new, input_types...> {
-	static constexpr decltype(enum_value_new) enum_value{ enum_value_new };
-	static constexpr kernel_types kernel_type{ kernel_type_new::kernel_type };
-	using output_type = output_type_new;
-	//static constexpr uint64_t total_required_bytes{ type_traits<output_type>::total_byte_size(dims_type::dims) };
-};
-
-template<typename config_type_new, enum_types auto enum_value_new, weights_kernel_types kernel_type_new, typename output_type_new, kernel_dims_types dims_type>
-struct op_traits<config_type_new, enum_value_new, kernel_type_new, output_type_new, dims_type> : dims_type {
-	static constexpr decltype(enum_value_new) enum_value{ enum_value_new };
-	static constexpr kernel_types kernel_type{ kernel_type_new::kernel_type };
-	using output_type = output_type_new;
-	static constexpr uint64_t total_required_bytes{ type_traits<output_type>::total_byte_size(dims_type::dims) };
-};
-
-template<typename config_type_new, core_types> struct core_traits;
-
-template<typename config_type_new> struct core_traits<config_type_new, core_types::weights>
-	: public core_elem_base<core_types::weights, core_traits<config_type_new, core_types::weights>> {
-	static constexpr core_types core_type{ core_types::weights };
-	static constexpr uint64_t depth{ std::numeric_limits<uint64_t>::max() };
-	using config_type		  = config_type_new;
-	using kernel_profile_type = kernel_type_profile_traits<config_type::kernel_type_profile>;
-	using weight_type		  = typename kernel_profile_type::weight_type;
-	using norm_type			  = typename kernel_profile_type::norm_type;
-
-	using attn_q_weight_traits = op_traits<config_type, weight_types::attn_q, kernel_types_type<kernel_types::weights>, weight_type,
-		kernel_dims<0, model_traits_type<config_type>::embedding_length, model_traits_type<config_type>::embedding_length, 1, 1>>;
-
-	using attn_k_weight_traits = op_traits<config_type, weight_types::attn_k, kernel_types_type<kernel_types::weights>, weight_type,
-		kernel_dims<0, model_traits_type<config_type>::embedding_length, model_traits_type<config_type>::n_embd_kv_gqa, 1, 1>>;
-
-	using attn_v_weight_traits = op_traits<config_type, weight_types::attn_v, kernel_types_type<kernel_types::weights>, weight_type,
-		kernel_dims<0, model_traits_type<config_type>::embedding_length, model_traits_type<config_type>::n_embd_kv_gqa, 1, 1>>;
-
-	using attn_output_weight_traits = op_traits<config_type, weight_types::attn_output, kernel_types_type<kernel_types::weights>, weight_type,
-		kernel_dims<0, model_traits_type<config_type>::embedding_length, model_traits_type<config_type>::embedding_length, 1, 1>>;
-
-	using attn_norm_weight_traits = op_traits<config_type, weight_types::attn_norm, kernel_types_type<kernel_types::weights>, norm_type,
-		kernel_dims<0, model_traits_type<config_type>::embedding_length, 1, 1, 1>>;
-
-	using ffn_gate_weight_traits = op_traits<config_type, weight_types::ffn_gate, kernel_types_type<kernel_types::weights>, weight_type,
-		kernel_dims<0, model_traits_type<config_type>::embedding_length, model_traits_type<config_type>::feed_forward_length, 1, 1>>;
-
-	using ffn_up_weight_traits = op_traits<config_type, weight_types::ffn_up, kernel_types_type<kernel_types::weights>, weight_type,
-		kernel_dims<0, model_traits_type<config_type>::embedding_length, model_traits_type<config_type>::feed_forward_length, 1, 1>>;
-
-	using ffn_down_weight_traits = op_traits<config_type, weight_types::ffn_down, kernel_types_type<kernel_types::weights>, weight_type,
-		kernel_dims<0, model_traits_type<config_type>::feed_forward_length, model_traits_type<config_type>::embedding_length, 1, 1>>;
-
-	using ffn_norm_weight_traits = op_traits<config_type, weight_types::ffn_norm, kernel_types_type<kernel_types::weights>, norm_type,
-		kernel_dims<0, model_traits_type<config_type>::embedding_length, 1, 1, 1>>;
-
-	using token_embd_weight_traits = op_traits<config_type, weight_types::token_embd, kernel_types_type<kernel_types::weights>, weight_type,
-		kernel_dims<0, model_traits_type<config_type>::embedding_length, model_traits_type<config_type>::vocab_size, 1, 1>>;
-
-	using rope_freqs_weight_traits = op_traits<config_type, weight_types::rope_freqs, kernel_types_type<kernel_types::weights>, norm_type,
-		kernel_dims<0, model_traits_type<config_type>::rope_dimension_count / 2, 1, 1, 1>>;
-
-	using output_norm_weight_traits = op_traits<config_type, weight_types::output_norm, kernel_types_type<kernel_types::weights>, norm_type,
-		kernel_dims<0, model_traits_type<config_type>::embedding_length, 1, 1, 1>>;
-
-	using output_weight_traits = op_traits<config_type, weight_types::output, kernel_types_type<kernel_types::weights>, weight_type,
-		kernel_dims<0, model_traits_type<config_type>::embedding_length, model_traits_type<config_type>::vocab_size, 1, 1>>;
-
-	using composite_ops = get_nihilus_cathedral_t<config_type, attn_q_weight_traits, attn_k_weight_traits, attn_v_weight_traits, attn_output_weight_traits, attn_norm_weight_traits,
-		ffn_gate_weight_traits, ffn_up_weight_traits, ffn_down_weight_traits, ffn_norm_weight_traits, token_embd_weight_traits, rope_freqs_weight_traits, output_norm_weight_traits,
-		output_weight_traits>;
-	composite_ops values{};
-
-	static constexpr uint64_t total_required_bytes{ attn_q_weight_traits::total_required_bytes + attn_k_weight_traits::total_required_bytes +
-		attn_v_weight_traits::total_required_bytes + attn_output_weight_traits::total_required_bytes + attn_norm_weight_traits::total_required_bytes +
-		ffn_gate_weight_traits::total_required_bytes + ffn_up_weight_traits::total_required_bytes + ffn_down_weight_traits::total_required_bytes +
-		ffn_norm_weight_traits::total_required_bytes + token_embd_weight_traits::total_required_bytes + rope_freqs_weight_traits::total_required_bytes +
-		output_norm_weight_traits::total_required_bytes + output_weight_traits::total_required_bytes };
-
-	static constexpr bool has_total_required_bytes{ config_type::device_type == device_types::gpu };
-};
-
-template<typename config_type, core_types core_type> struct core_traits {};
-
 template<model_arches model_arch, model_sizes model_size, model_generations model_generation, kernel_type_profiles kernel_type_profile> void print_memory_bandwidth() {
 	auto result = get_read_writes<libraries::llama, kernel_type_profile, model_arch, model_size, model_generation, 32>();
 	std::cout << "Bandwidth used per Inference Run - For Length: " << std::to_string(32) << ", on Model: " << result.model_name << std::endl;
@@ -685,78 +439,1114 @@ template<model_arches model_arch, model_sizes model_size, model_generations mode
 	std::cout << "Read bytes (Nihilus): " << result02.read_bytes << std::endl;
 	std::cout << "Written bytes (Nihilus): " << result02.written_bytes << std::endl;
 }
-/*
-void nihilus::test_function() {
-	{
-		std::cout << "Meta exists: " << std::filesystem::exists("C:/users/chris/downloads/test.void_meta") << std::endl;
-		std::cout << "Data exists: " << std::filesystem::exists("C:/users/chris/downloads/test.void") << std::endl;
 
-		if (std::filesystem::exists("C:/users/chris/downloads/test.void_meta")) {
-			std::cout << "Meta size: " << std::filesystem::file_size("C:/users/chris/downloads/test.void_meta") << " bytes" << std::endl;
-		}
-		if (std::filesystem::exists("C:/users/chris/downloads/test.void")) {
-			std::cout << "Data size: " << std::filesystem::file_size("C:/users/chris/downloads/test.void") << " bytes" << std::endl;
-		}
-		nihilus::nihilus_db_file<uint64_t> file{ nihilus::nihilus_db_file<uint64_t>::open("C:/users/chris/downloads/test") };
-		//file[92245] = 242434354656ull;
-		//file[256]	= 22492245ull;
-		std::cout << "Metadata count: " << file.metadata_cache_.size() << std::endl;
-		std::cout << "Index map size: " << file.snowflake_to_index_.size() << std::endl;
+template<uint64_t dim_00, uint64_t dim_01, uint64_t dim_02, uint64_t dim_03> struct dimensions {
+	static constexpr array<uint64_t, 4> dims{ dim_00, dim_01, dim_02, dim_03 };
+};
 
-		file.flush();
-		std::cout << "CURRENT VALUE: " << file.get_record(snowflake{ 256 }) << std::endl;
-		
-	}
-	{
-		std::cout << "Meta exists: " << std::filesystem::exists("C:/users/chris/downloads/test.void_meta") << std::endl;
-		std::cout << "Data exists: " << std::filesystem::exists("C:/users/chris/downloads/test.void") << std::endl;
-
-		if (std::filesystem::exists("C:/users/chris/downloads/test.void_meta")) {
-			std::cout << "Meta size: " << std::filesystem::file_size("C:/users/chris/downloads/test.void_meta") << " bytes" << std::endl;
-		}
-		if (std::filesystem::exists("C:/users/chris/downloads/test.void")) {
-			std::cout << "Data size: " << std::filesystem::file_size("C:/users/chris/downloads/test.void") << " bytes" << std::endl;
-		}
-		nihilus::nihilus_db_file<uint64_t> file{ nihilus::nihilus_db_file<uint64_t>::open("C:/users/chris/downloads/test") };
-		//file.add_record(snowflake{ 245 }, 2323);
-		std::cout << "Metadata count: " << file.metadata_cache_.size() << std::endl;
-		std::cout << "Index map size: " << file.snowflake_to_index_.size() << std::endl;
-
-		file.flush();
-		std::cout << "CURRENT VALUE: " << file[256] << std::endl;
-		std::cout << "CURRENT VALUE: " << file[92245] << std::endl;
-		
-		if (file.get_record(snowflake{ 92245 })) {
-			std::cout << "CURRENT VALUE: " << value_new << std::endl;
-		}
-		if (file.get_record(snowflake{ 22492245 })) {
-			std::cout << "CURRENT VALUE: " << value_new << std::endl;
-		}
-	}
+template<uint64_t... runtime_mask> consteval uint64_t get_runtime_mask_new() {
+	static_assert(((runtime_mask < 4) && ...), "Sorry, but you can only define a dimension within the first 4 dimensions as runtime mutable!");
+	constexpr uint64_t result = ((1ULL << runtime_mask) | ...);
+	static_assert(has_at_most_two_bits_set(result), "Sorry, but you can only define one or two of the first 4 dimensions as runtime mutable!");
+	return result & 0xF;
 }
-*/ 
+
+template<uint64_t runtime_mask_new, uint64_t dim_00, uint64_t dim_01, uint64_t dim_02, uint64_t dim_03> struct rt_dimensions : public dimensions<dim_00, dim_01, dim_02, dim_03> {
+	using base_type = dimensions<dim_00, dim_01, dim_02, dim_03>;
+	static_assert(has_at_most_two_bits_set(runtime_mask_new), "Sorry, but you can only define one or two of the first 4 dimensions as runtime mutable!");
+	static constexpr uint64_t runtime_mask{ runtime_mask_new & 0xF };
+
+	mutable array<uint64_t, 4> rt_dims{ base_type::dims[0], base_type::dims[1], base_type::dims[2], base_type::dims[3] };
+
+	static constexpr array<uint64_t, 4> get_array() {
+		return array<uint64_t, 4>{ base_type::dims[0], base_type::dims[1], base_type::dims[2], base_type::dims[3] };
+	}
+
+	NIHILUS_HOST const array<uint64_t, 4>& get_array_rt() const {
+		return rt_dims;
+	}
+
+	template<typename index_tag> NIHILUS_HOST uint64_t& get_dims(index_tag index) {
+		static_assert(index < 4, "Error: Index is out of bounds [0-3] for the fixed dimension storage!");
+		static_assert(static_assert_printer_val<((runtime_mask & (1ULL << index)) != 0), incorrect_runtime_dims::incorrect_runtime_dim, index>::impl);
+		return rt_dims[index];
+	}
+
+	template<typename index_tag> NIHILUS_HOST uint64_t get_dims(index_tag index) const {
+		static_assert(index < 4, "Error: Index is out of bounds [0-3] for the fixed dimension storage!");
+		static_assert(static_assert_printer_val<((runtime_mask & (1ULL << index)) != 0), incorrect_runtime_dims::incorrect_runtime_dim, index>::impl);
+		return rt_dims[index];
+	}
+};
+
+template<typename config_type_new, core_types_new core_type> struct sync_base_new {};
+
+template<typename config_type_new, core_types_new core_type>
+	requires(config_type_new::device_type == device_types::cpu && core_type != core_types_new::token_embeddings && core_type != core_types_new::global_output_and_sampling)
+struct sync_base_new<config_type_new, core_type> {
+	array<aligned_atomic<int64_t>, model_traits_type<config_type_new>::block_count> current_chunk_prompt_eval{};
+	array<aligned_atomic<int64_t>, model_traits_type<config_type_new>::block_count> current_chunk_eval{};
+	array<aligned_atomic<int64_t>, model_traits_type<config_type_new>::block_count> latch_prompt_eval{};
+	array<aligned_atomic<int64_t>, model_traits_type<config_type_new>::block_count> latch_eval{};
+};
+
+template<typename config_type_new, core_types_new core_type>
+	requires(config_type_new::device_type == device_types::cpu && (core_type == core_types_new::token_embeddings || core_type == core_types_new::global_output_and_sampling))
+struct sync_base_new<config_type_new, core_type> {
+	aligned_atomic<int64_t> current_chunk_prompt_eval{};
+	aligned_atomic<int64_t> current_chunk_eval{};
+	aligned_atomic<int64_t> latch_prompt_eval{};
+	aligned_atomic<int64_t> latch_eval{};
+};
+
+template<typename value_type>
+concept kernel_dims_types_new = requires() { detail::remove_cvref_t<value_type>::dims; };
+
+template<typename value_type>
+concept dim_00_runtime_mutable = (value_type::runtime_mask & 0b0001) != 0;
+
+template<typename value_type>
+concept dim_01_runtime_mutable = (value_type::runtime_mask & 0b0010) != 0;
+
+template<typename value_type>
+concept dim_02_runtime_mutable = (value_type::runtime_mask & 0b0100) != 0;
+
+template<typename value_type>
+concept dim_03_runtime_mutable = (value_type::runtime_mask & 0b1000) != 0;
+
+template<typename value_type>
+concept runtime_dims_types = dim_00_runtime_mutable<value_type> || dim_01_runtime_mutable<value_type> || dim_02_runtime_mutable<value_type> || dim_03_runtime_mutable<value_type>;
+
+template<typename kernel_type, typename... dims_types> struct dim_traits_new;
+
+template<kernel_dims_types_new input_dims_01> struct dim_traits_new<kernel_types_type<kernel_types::weights>, input_dims_01> {
+	using dims_type = kernel_dims<input_dims_01::runtime_mask, input_dims_01::dims[0], input_dims_01::dims[1], input_dims_01::dims[2], input_dims_01::dims[3]>;
+};
+
+template<preserved_dimensions_kernel_types kernel_type, kernel_dims_types_new... dims_types> struct dim_traits_new<kernel_type, dims_types...> {
+	using first_type = get_first_type_t<dims_types...>;
+	using dims_type	 = kernel_dims<first_type::runtime_mask, first_type::dims[0], first_type::dims[1], first_type::dims[2], first_type::dims[3]>;
+};
+
+template<kernel_dims_types_new output_dims, kernel_dims_types_new input_dims> struct dim_traits_new<kernel_types_type<kernel_types::reshape>, output_dims, input_dims> {
+	static constexpr auto dims01			  = input_dims::dims;
+	static constexpr auto dims02			  = output_dims::dims;
+	static constexpr uint64_t input_elements  = compute_elements(dims01);
+	static constexpr uint64_t output_elements = compute_elements(dims02);
+	static_assert(static_assert_printer_val<(input_dims::runtime_mask != 0 || output_dims::runtime_mask != 0 || input_elements == output_elements),
+		dim_trait_static_assert_errors::reshape_total_element_count_mismatch, input_elements, output_elements>::impl);
+	using dims_type = kernel_dims<output_dims::runtime_mask, output_dims::dims[0], output_dims::dims[1], output_dims::dims[2], output_dims::dims[3]>;
+};
+
+template<kernel_dims_types_new output_dims, kernel_dims_types_new input_dims> struct dim_traits_new<kernel_types_type<kernel_types::view>, output_dims, input_dims> {
+	static constexpr auto dims01			  = input_dims::dims;
+	static constexpr auto dims02			  = output_dims::dims;
+	static constexpr uint64_t input_elements  = compute_elements(dims01);
+	static constexpr uint64_t output_elements = compute_elements(dims02);
+	static_assert(static_assert_printer_val<(input_dims::runtime_mask != 0 || output_dims::runtime_mask != 0 || input_elements == output_elements),
+		dim_trait_static_assert_errors::view_total_element_count_mismatch, input_elements, output_elements>::impl);
+	using dims_type = kernel_dims<output_dims::runtime_mask, output_dims::dims[0], output_dims::dims[1], output_dims::dims[2], output_dims::dims[3]>;
+};
+
+template<kernel_dims_types_new output_dims, kernel_dims_types_new input_dims> struct dim_traits_new<kernel_types_type<kernel_types::transpose>, output_dims, input_dims> {
+	static constexpr auto dims01			  = input_dims::dims;
+	static constexpr auto dims02			  = output_dims::dims;
+	static constexpr uint64_t input_elements  = compute_elements(dims01);
+	static constexpr uint64_t output_elements = compute_elements(dims02);
+	static_assert(static_assert_printer_val<(input_dims::runtime_mask != 0 || output_dims::runtime_mask != 0 || input_elements == output_elements),
+		dim_trait_static_assert_errors::transpose_total_element_count_mismatch, input_elements, output_elements>::impl);
+	static_assert(static_assert_printer_val<(input_dims::runtime_mask != 0 || output_dims::runtime_mask != 0 || dims01[0] == dims02[1]),
+		dim_trait_static_assert_errors::transpose_dimension_0_mismatch, dims01[0], dims02[1]>::impl);
+	static_assert(static_assert_printer_val<(input_dims::runtime_mask != 0 || output_dims::runtime_mask != 0 || dims01[1] == dims02[0]),
+		dim_trait_static_assert_errors::transpose_dimension_1_mismatch, dims01[1], dims02[0]>::impl);
+	using dims_type = kernel_dims<output_dims::runtime_mask, output_dims::dims[0], output_dims::dims[1], output_dims::dims[2], output_dims::dims[3]>;
+};
+
+template<kernel_dims_types_new output_dims, kernel_dims_types_new input_dims> struct dim_traits_new<kernel_types_type<kernel_types::permute>, output_dims, input_dims> {
+	static constexpr auto dims01			  = input_dims::dims;
+	static constexpr auto dims02			  = output_dims::dims;
+	static constexpr uint64_t input_elements  = compute_elements(dims01);
+	static constexpr uint64_t output_elements = compute_elements(dims02);
+	static_assert(static_assert_printer_val<(input_dims::runtime_mask != 0 || output_dims::runtime_mask != 0 || input_elements == output_elements),
+		dim_trait_static_assert_errors::permute_total_element_count_mismatch, input_elements, output_elements>::impl);
+	using dims_type = kernel_dims<output_dims::runtime_mask, output_dims::dims[0], output_dims::dims[1], output_dims::dims[2], output_dims::dims[3]>;
+};
+
+template<kernel_dims_types_new input_dims_01, kernel_dims_types_new input_dims_02> struct dim_traits_new<kernel_types_type<kernel_types::mul_mat>, input_dims_01, input_dims_02> {
+	static constexpr auto dims01 = input_dims_01::dims;
+	static constexpr auto dims02 = input_dims_02::dims;
+	using dims_type				 = kernel_dims<input_dims_02::runtime_mask, dims02[0], dims01[2], dims02[2], dims02[3]>;
+};
+
+template<kernel_dims_types_new input_dims_01, kernel_dims_types_new input_dims_02> struct dim_traits_new<kernel_types_type<kernel_types::get_rows>, input_dims_01, input_dims_02> {
+	static constexpr auto dims01 = input_dims_01::dims;
+	static constexpr auto dims02 = input_dims_02::dims;
+	using dims_type				 = kernel_dims<5, dims02[0], dims01[1], dims02[1], dims01[3]>;
+};
+
+template<kernel_dims_types_new output_dims, kernel_dims_types_new input_dims> struct dim_traits_new<kernel_types_type<kernel_types::cont>, output_dims, input_dims> {
+	static constexpr auto dims01			  = input_dims::dims;
+	static constexpr auto dims02			  = output_dims::dims;
+	static constexpr uint64_t input_elements  = compute_elements(dims01);
+	static constexpr uint64_t output_elements = compute_elements(dims02);
+	static_assert(static_assert_printer_val<(input_dims::runtime_mask != 0 || output_dims::runtime_mask != 0 || input_elements == output_elements),
+		dim_trait_static_assert_errors::cont_total_element_count_mismatch, input_elements, output_elements>::impl);
+	using dims_type = kernel_dims<output_dims::runtime_mask, output_dims::dims[0], output_dims::dims[1], output_dims::dims[2], output_dims::dims[3]>;
+};
+
+template<kernel_dims_types_new output_dims, kernel_dims_types_new input_dims_01, kernel_dims_types_new input_dims_02>
+struct dim_traits_new<kernel_types_type<kernel_types::sample_logits>, output_dims, input_dims_01, input_dims_02> {
+	using dims_type = kernel_dims<output_dims::runtime_mask, output_dims::dims[0], output_dims::dims[1], output_dims::dims[2], output_dims::dims[3]>;
+};
+
+template<llama_arch_config_types config_type_new, enum_types auto enum_value_new, typename enum_type = decltype(enum_value_new)> struct data_traits;
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::attn_q>
+	: public dimensions<1, model_dimensions<config_type_new>::embedding_length, model_dimensions<config_type_new>::embedding_length, 1ull> {
+	static constexpr auto sub_kernel_type{ tensor_types::attn_q };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::weight_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::per_block };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::attn_k>
+	: public dimensions<1, model_dimensions<config_type_new>::embedding_length, model_dimensions<config_type_new>::n_embd_kv_gqa, 1ull> {
+	static constexpr auto sub_kernel_type{ tensor_types::attn_k };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::weight_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::per_block };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::attn_v>
+	: public dimensions<1, model_dimensions<config_type_new>::embedding_length, model_dimensions<config_type_new>::n_embd_kv_gqa, 1ull> {
+	static constexpr auto sub_kernel_type{ tensor_types::attn_v };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::weight_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::per_block };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::attn_output>
+	: public dimensions<1, model_dimensions<config_type_new>::embedding_length, model_dimensions<config_type_new>::embedding_length, 1ull> {
+	static constexpr auto sub_kernel_type{ tensor_types::attn_output };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::weight_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::per_block };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::attn_norm>
+	: public dimensions<1, model_dimensions<config_type_new>::embedding_length, 1ull, 1ull> {
+	static constexpr auto sub_kernel_type{ tensor_types::attn_norm };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::compute_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::per_block };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::ffn_gate>
+	: public dimensions<1, model_dimensions<config_type_new>::embedding_length, model_dimensions<config_type_new>::feed_forward_length, 1ull> {
+	static constexpr auto sub_kernel_type{ tensor_types::ffn_gate };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::weight_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::per_block };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::ffn_up>
+	: public dimensions<1, model_dimensions<config_type_new>::embedding_length, model_dimensions<config_type_new>::feed_forward_length, 1ull> {
+	static constexpr auto sub_kernel_type{ tensor_types::ffn_up };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::weight_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::per_block };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::ffn_down>
+	: public dimensions<1, model_dimensions<config_type_new>::feed_forward_length, model_dimensions<config_type_new>::embedding_length, 1ull> {
+	static constexpr auto sub_kernel_type{ tensor_types::ffn_down };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::weight_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::per_block };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::ffn_norm>
+	: public dimensions<1, model_dimensions<config_type_new>::embedding_length, 1ull, 1ull> {
+	static constexpr auto sub_kernel_type{ tensor_types::ffn_norm };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::compute_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::per_block };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::token_embd>
+	: public dimensions<1, model_dimensions<config_type_new>::embedding_length, model_dimensions<config_type_new>::vocab_size, 1ull> {
+	static constexpr auto sub_kernel_type{ tensor_types::token_embd };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::weight_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::rope_freqs>
+	: public dimensions<1, model_dimensions<config_type_new>::rope_dimension_count / 2, 1ull, 1ull> {
+	static constexpr auto sub_kernel_type{ tensor_types::rope_freqs };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::compute_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::output_norm>
+	: public dimensions<1, model_dimensions<config_type_new>::embedding_length, 1ull, 1ull> {
+	static constexpr auto sub_kernel_type{ tensor_types::output_norm };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::compute_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::output>
+	: public dimensions<1, model_dimensions<config_type_new>::embedding_length, model_dimensions<config_type_new>::vocab_size, 1ull> {
+	static constexpr auto sub_kernel_type{ tensor_types::output };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::weight_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::inp_tokens>
+	: public rt_dimensions<get_runtime_mask_new<0, 1>(), config_type_new::batch_size, config_type_new::max_sequence_length, 1ull, 1ull> {
+	static constexpr auto sub_kernel_type{ tensor_types::inp_tokens };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::token_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::inp_pos>
+	: public rt_dimensions<get_runtime_mask_new<0, 1>(), config_type_new::batch_size, config_type_new::max_sequence_length, 1ull, 1ull> {
+	static constexpr auto sub_kernel_type{ tensor_types::inp_pos };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::token_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::cache_k>
+	: public rt_dimensions<get_runtime_mask_new<0, 1>(), config_type_new::batch_size, config_type_new ::max_sequence_length, model_dimensions<config_type_new>::n_embd_kv_gqa,
+		  1ull> {
+	static constexpr auto sub_kernel_type{ tensor_types::cache_k };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::kv_cache_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::per_block };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::cache_v>
+	: public rt_dimensions<get_runtime_mask_new<0, 1>(), config_type_new::batch_size, config_type_new ::max_sequence_length, model_dimensions<config_type_new>::n_embd_kv_gqa,
+		  1ull> {
+	static constexpr auto sub_kernel_type{ tensor_types::cache_v };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::kv_cache_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::per_block };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::kq_mask> : public dimensions<32ull, 32ull, 1ull, 1ull> {
+	static constexpr auto sub_kernel_type{ tensor_types::kq_mask };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::mask_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::inp_out_ids>
+	: public rt_dimensions<get_runtime_mask_new<0>(), config_type_new::batch_size, 1ull, 1ull, 1ull> {
+	static constexpr auto sub_kernel_type{ tensor_types::inp_out_ids };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::index_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::temperature>
+	: public rt_dimensions<get_runtime_mask_new<0>(), config_type_new::batch_size, 1ull, 1ull, 1ull> {
+	static constexpr auto sub_kernel_type{ tensor_types::temperature };
+	using output_type = kernel_type_profile_traits<config_type_new::kernel_type_profile>::activation_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::top_k>
+	: public rt_dimensions<get_runtime_mask_new<0>(), config_type_new::batch_size, 1ull, 1ull, 1ull> {
+	static constexpr auto sub_kernel_type{ tensor_types::top_k };
+	using output_type = kernel_type_profile_traits<config_type_new::kernel_type_profile>::activation_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::top_p>
+	: public rt_dimensions<get_runtime_mask_new<0>(), config_type_new::batch_size, 1ull, 1ull, 1ull> {
+	static constexpr auto sub_kernel_type{ tensor_types::top_p };
+	using output_type = kernel_type_profile_traits<config_type_new::kernel_type_profile>::activation_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::repetition_penalty>
+	: public rt_dimensions<get_runtime_mask_new<0>(), config_type_new::batch_size, 1ull, 1ull, 1ull> {
+	static constexpr auto sub_kernel_type{ tensor_types::repetition_penalty };
+	using output_type = kernel_type_profile_traits<config_type_new::kernel_type_profile>::activation_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::presence_penalty>
+	: public rt_dimensions<get_runtime_mask_new<0>(), config_type_new::batch_size, 1ull, 1ull, 1ull> {
+	static constexpr auto sub_kernel_type{ tensor_types::presence_penalty };
+	using output_type = kernel_type_profile_traits<config_type_new::kernel_type_profile>::activation_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::frequency_penalty>
+	: public rt_dimensions<get_runtime_mask_new<0>(), config_type_new::batch_size, 1ull, 1ull, 1ull> {
+	static constexpr auto sub_kernel_type{ tensor_types::frequency_penalty };
+	using output_type = kernel_type_profile_traits<config_type_new::kernel_type_profile>::activation_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::rep_window>
+	: public rt_dimensions<get_runtime_mask_new<0>(), config_type_new::batch_size, 1ull, 1ull, 1ull> {
+	static constexpr auto sub_kernel_type{ tensor_types::rep_window };
+	using output_type = kernel_type_profile_traits<config_type_new::kernel_type_profile>::activation_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::token_history>
+	: public rt_dimensions<get_runtime_mask_new<0, 1>(), config_type_new::batch_size, config_type_new::max_sequence_length, 1ull, 1ull> {
+	static constexpr auto sub_kernel_type{ tensor_types::token_history };
+	using output_type = kernel_type_profile_traits<config_type_new::kernel_type_profile>::activation_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::rng_state> : public dimensions<256ull, 1ull, 1ull, 1ull> {
+	static constexpr auto sub_kernel_type{ tensor_types::rng_state };
+	using output_type = kernel_type_profile_traits<config_type_new::kernel_type_profile>::activation_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::logits_bias>
+	: public dimensions<model_dimensions<config_type_new>::vocab_size, 1ull, 1ull, 1ull> {
+	static constexpr auto sub_kernel_type{ tensor_types::logits_bias };
+	using output_type = kernel_type_profile_traits<config_type_new::kernel_type_profile>::activation_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::allowed_vocab_mask>
+	: public dimensions<model_dimensions<config_type_new>::vocab_size, 1ull, 1ull, 1ull> {
+	static constexpr auto sub_kernel_type{ tensor_types::allowed_vocab_mask };
+	using output_type = kernel_type_profile_traits<config_type_new::kernel_type_profile>::activation_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::inp_embd_get_rows>
+	: public dim_traits_new<kernel_types_type<kernel_types::get_rows>, data_traits<config_type_new, tensor_types::token_embd>,
+		  data_traits<config_type_new, tensor_types::inp_tokens>>::dims_type {
+	static constexpr auto sub_kernel_type{ tensor_types::inp_embd_get_rows };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::compute_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::norm_pre_attn_rms_norm>
+	: public dim_traits_new<kernel_types_type<kernel_types::rms_norm>, data_traits<config_type_new, tensor_types::inp_embd_get_rows>>::dims_type {
+	static constexpr auto sub_kernel_type{ tensor_types::norm_pre_attn_rms_norm };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::compute_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::attn_norm_mul>
+	: public dim_traits_new<kernel_types_type<kernel_types::mul>, data_traits<config_type_new, tensor_types::norm_pre_attn_rms_norm>,
+		  data_traits<config_type_new, tensor_types::attn_norm>>::dims_type {
+	static constexpr auto sub_kernel_type{ tensor_types::attn_norm_mul };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::compute_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::qcur_mul_mat>
+	: public dim_traits_new<kernel_types_type<kernel_types::mul_mat>, data_traits<config_type_new, tensor_types::attn_q>,
+		  data_traits<config_type_new, tensor_types::attn_norm_mul>>::dims_type {
+	static constexpr auto sub_kernel_type{ tensor_types::qcur_mul_mat };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::compute_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::qcur_reshape>
+	: public dim_traits_new<kernel_types_type<kernel_types::reshape>,
+		  rt_dimensions<get_runtime_mask_new<0, 3>(), model_dimensions<config_type_new>::batch_size, model_dimensions<config_type_new>::rope_dimension_count,
+			  model_dimensions<config_type_new>::attention_head_count, config_type_new::max_sequence_length>,
+		  data_traits<config_type_new, tensor_types::qcur_mul_mat>>::dims_type {
+	static constexpr auto sub_kernel_type{ tensor_types::qcur_reshape };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::compute_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::qcur_rope>
+	: public dim_traits_new<kernel_types_type<kernel_types::rope>, data_traits<config_type_new, tensor_types::qcur_reshape>, data_traits<config_type_new, tensor_types::inp_pos>,
+		  data_traits<config_type_new, tensor_types::rope_freqs>>::dims_type {
+	static constexpr auto sub_kernel_type{ tensor_types::qcur_rope };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::compute_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::kcur_mul_mat>
+	: public dim_traits_new<kernel_types_type<kernel_types::mul_mat>, data_traits<config_type_new, tensor_types::attn_k>,
+		  data_traits<config_type_new, tensor_types::attn_norm_mul>>::dims_type {
+	static constexpr auto sub_kernel_type{ tensor_types::kcur_mul_mat };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::compute_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::kcur_reshape>
+	: public dim_traits_new<kernel_types_type<kernel_types::reshape>,
+		  rt_dimensions<get_runtime_mask_new<0, 3>(), model_dimensions<config_type_new>::batch_size, model_dimensions<config_type_new>::rope_dimension_count,
+			  model_dimensions<config_type_new>::attention_head_count_kv, config_type_new::max_sequence_length>,
+		  data_traits<config_type_new, tensor_types::kcur_mul_mat>>::dims_type {
+	static constexpr auto sub_kernel_type{ tensor_types::kcur_reshape };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::compute_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::kcur_rope>
+	: public dim_traits_new<kernel_types_type<kernel_types::rope>, data_traits<config_type_new, tensor_types::kcur_reshape>, data_traits<config_type_new, tensor_types::inp_pos>,
+		  data_traits<config_type_new, tensor_types::rope_freqs>>::dims_type {
+	static constexpr auto sub_kernel_type{ tensor_types::kcur_rope };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::compute_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::vcur_mul_mat>
+	: public dim_traits_new<kernel_types_type<kernel_types::mul_mat>, data_traits<config_type_new, tensor_types::attn_v>,
+		  data_traits<config_type_new, tensor_types::attn_norm_mul>>::dims_type {
+	static constexpr auto sub_kernel_type{ tensor_types::vcur_mul_mat };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::compute_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::k_cache_view>
+	: public dim_traits_new<kernel_types_type<kernel_types::view>,
+		  rt_dimensions<get_runtime_mask_new<1>(), model_dimensions<config_type_new>::batch_size,
+			  model_dimensions<config_type_new>::rope_dimension_count * model_dimensions<config_type_new>::attention_head_count_kv * config_type_new::max_sequence_length, 1, 1>,
+		  data_traits<config_type_new, tensor_types::cache_k>>::dims_type {
+	static constexpr auto sub_kernel_type{ tensor_types::k_cache_view };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::kv_cache_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::k_cache_cpy>
+	: public dim_traits_new<kernel_types_type<kernel_types::copy>,
+		  rt_dimensions<get_runtime_mask_new<1>(), model_dimensions<config_type_new>::batch_size,
+			  model_dimensions<config_type_new>::rope_dimension_count * model_dimensions<config_type_new>::attention_head_count_kv * config_type_new::max_sequence_length, 1, 1>,
+		  data_traits<config_type_new, tensor_types::cache_k>>::dims_type {
+	static constexpr auto sub_kernel_type{ tensor_types::k_cache_cpy };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::kv_cache_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::vcur_transpose>
+	: public dim_traits_new<kernel_types_type<kernel_types::transpose>,
+		  rt_dimensions<get_runtime_mask_new<0, 1>(), model_dimensions<config_type_new>::batch_size, config_type_new::max_sequence_length,
+			  model_dimensions<config_type_new>::n_embd_kv_gqa, 1>,
+		  data_traits<config_type_new, tensor_types::vcur_mul_mat>>::dims_type {
+	static constexpr auto sub_kernel_type{ tensor_types::vcur_transpose };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::compute_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::v_cache_view>
+	: public dim_traits_new<kernel_types_type<kernel_types::view>,
+		  rt_dimensions<get_runtime_mask_new<0, 1>(), model_dimensions<config_type_new>::batch_size, config_type_new::max_sequence_length,
+			  model_dimensions<config_type_new>::n_embd_kv_gqa, 1>,
+		  data_traits<config_type_new, tensor_types::cache_v>>::dims_type {
+	static constexpr auto sub_kernel_type{ tensor_types::v_cache_view };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::kv_cache_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::v_cache_cpy>
+	: public dim_traits_new<kernel_types_type<kernel_types::copy>, data_traits<config_type_new, tensor_types::vcur_transpose>,
+		  data_traits<config_type_new, tensor_types::v_cache_view>>::dims_type {
+	static constexpr auto sub_kernel_type{ tensor_types::v_cache_cpy };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::kv_cache_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::v_from_cache_view>
+	: public dim_traits_new<kernel_types_type<kernel_types::view>,
+		  rt_dimensions<get_runtime_mask_new<0>(), model_dimensions<config_type_new>::batch_size, model_dimensions<config_type_new>::attention_head_count,
+			  model_dimensions<config_type_new>::rope_dimension_count, model_dimensions<config_type_new>::attention_head_count_kv>,
+		  data_traits<config_type_new, tensor_types::cache_v>>::dims_type {
+	static constexpr auto sub_kernel_type{ tensor_types::v_from_cache_view };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::kv_cache_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::k_from_cache_view>
+	: public dim_traits_new<kernel_types_type<kernel_types::view>,
+		  rt_dimensions<get_runtime_mask_new<0>(), model_dimensions<config_type_new>::batch_size, model_dimensions<config_type_new>::rope_dimension_count,
+			  model_dimensions<config_type_new>::attention_head_count, model_dimensions<config_type_new>::attention_head_count_kv>,
+		  data_traits<config_type_new, tensor_types::cache_v>>::dims_type {
+	static constexpr auto sub_kernel_type{ tensor_types::k_from_cache_view };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::kv_cache_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::q_permute>
+	: public dim_traits_new<kernel_types_type<kernel_types::permute>,
+		  rt_dimensions<get_runtime_mask_new<0, 2>(), model_dimensions<config_type_new>::batch_size, model_dimensions<config_type_new>::rope_dimension_count,
+			  config_type_new::max_sequence_length, model_dimensions<config_type_new>::attention_head_count>,
+		  data_traits<config_type_new, tensor_types::qcur_rope>>::dims_type {
+	static constexpr auto sub_kernel_type{ tensor_types::q_permute };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::compute_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::kq_mul_mat>
+	: public dim_traits_new<kernel_types_type<kernel_types::mul_mat>, data_traits<config_type_new, tensor_types::k_from_cache_view>,
+		  data_traits<config_type_new, tensor_types::q_permute>>::dims_type {
+	static constexpr auto sub_kernel_type{ tensor_types::kq_mul_mat };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::compute_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::kq_soft_max>
+	: public dim_traits_new<kernel_types_type<kernel_types::softmax>, data_traits<config_type_new, tensor_types::kq_mul_mat>,
+		  data_traits<config_type_new, tensor_types::kq_mask>>::dims_type {
+	static constexpr auto sub_kernel_type{ tensor_types::kq_soft_max };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::compute_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::kqv_mul_mat>
+	: public dim_traits_new<kernel_types_type<kernel_types::mul_mat>, data_traits<config_type_new, tensor_types::v_from_cache_view>,
+		  data_traits<config_type_new, tensor_types::kq_soft_max>>::dims_type {
+	static constexpr auto sub_kernel_type{ tensor_types::kqv_mul_mat };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::compute_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::kqv_merged_permute>
+	: public dim_traits_new<kernel_types_type<kernel_types::permute>,
+		  rt_dimensions<get_runtime_mask_new<0, 2>(), model_dimensions<config_type_new>::batch_size, model_dimensions<config_type_new>::rope_dimension_count,
+			  model_dimensions<config_type_new>::attention_head_count, config_type_new::max_sequence_length>,
+		  data_traits<config_type_new, tensor_types::kqv_mul_mat>>::dims_type {
+	static constexpr auto sub_kernel_type{ tensor_types::kqv_merged_permute };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::compute_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::kqv_merged_cont>
+	: public dim_traits_new<kernel_types_type<kernel_types::cont>,
+		  rt_dimensions<get_runtime_mask_new<1>(), model_dimensions<config_type_new>::batch_size, model_dimensions<config_type_new>::embedding_length,
+			  config_type_new::max_sequence_length, 1>,
+		  data_traits<config_type_new, tensor_types::kqv_merged_permute>>::dims_type {
+	static constexpr auto sub_kernel_type{ tensor_types::kqv_merged_cont };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::compute_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::kqv_out_mul_mat>
+	: public dim_traits_new<kernel_types_type<kernel_types::mul_mat>, data_traits<config_type_new, tensor_types::attn_output>,
+		  data_traits<config_type_new, tensor_types::kqv_merged_cont>>::dims_type {
+	static constexpr auto sub_kernel_type{ tensor_types::kqv_out_mul_mat };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::compute_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::ffn_inp_add>
+	: public dim_traits_new<kernel_types_type<kernel_types::add>, data_traits<config_type_new, tensor_types::kqv_out_mul_mat>,
+		  data_traits<config_type_new, tensor_types::inp_embd_get_rows>>::dims_type {
+	static constexpr auto sub_kernel_type{ tensor_types::ffn_inp_add };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::compute_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::norm_pre_ffn_rms_norm>
+	: public dim_traits_new<kernel_types_type<kernel_types::rms_norm>, data_traits<config_type_new, tensor_types::ffn_inp_add>>::dims_type {
+	static constexpr auto sub_kernel_type{ tensor_types::norm_pre_ffn_rms_norm };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::compute_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::ffn_norm_mul>
+	: public dim_traits_new<kernel_types_type<kernel_types::mul>, data_traits<config_type_new, tensor_types::norm_pre_ffn_rms_norm>,
+		  data_traits<config_type_new, tensor_types::ffn_norm>>::dims_type {
+	static constexpr auto sub_kernel_type{ tensor_types::ffn_norm_mul };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::compute_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::ffn_gate_mul_mat>
+	: public dim_traits_new<kernel_types_type<kernel_types::mul_mat>, data_traits<config_type_new, tensor_types::ffn_gate>,
+		  data_traits<config_type_new, tensor_types::ffn_norm_mul>>::dims_type {
+	static constexpr auto sub_kernel_type{ tensor_types::ffn_gate_mul_mat };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::compute_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::ffn_silu_unary>
+	: public dim_traits_new<kernel_types_type<kernel_types::silu>, data_traits<config_type_new, tensor_types::ffn_gate_mul_mat>>::dims_type {
+	static constexpr auto sub_kernel_type{ tensor_types::ffn_silu_unary };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::compute_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::ffn_up_mul_mat>
+	: public dim_traits_new<kernel_types_type<kernel_types::mul_mat>, data_traits<config_type_new, tensor_types::ffn_up>,
+		  data_traits<config_type_new, tensor_types::ffn_norm_mul>>::dims_type {
+	static constexpr auto sub_kernel_type{ tensor_types::ffn_up_mul_mat };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::compute_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::ffn_gate_par_mul>
+	: public dim_traits_new<kernel_types_type<kernel_types::mul>, data_traits<config_type_new, tensor_types::ffn_silu_unary>,
+		  data_traits<config_type_new, tensor_types::ffn_up_mul_mat>>::dims_type {
+	static constexpr auto sub_kernel_type{ tensor_types::ffn_gate_par_mul };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::compute_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::ffn_out_mul_mat>
+	: public dim_traits_new<kernel_types_type<kernel_types::mul_mat>, data_traits<config_type_new, tensor_types::ffn_down>,
+		  data_traits<config_type_new, tensor_types::ffn_gate_par_mul>>::dims_type {
+	static constexpr auto sub_kernel_type{ tensor_types::ffn_out_mul_mat };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::compute_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::layer_out_add>
+	: public dim_traits_new<kernel_types_type<kernel_types::add>, data_traits<config_type_new, tensor_types::ffn_out_mul_mat>,
+		  data_traits<config_type_new, tensor_types::ffn_inp_add>>::dims_type {
+	static constexpr auto sub_kernel_type{ tensor_types::layer_out_add };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::compute_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::node_1016_get_rows>
+	: public dim_traits_new<kernel_types_type<kernel_types::get_rows>, data_traits<config_type_new, tensor_types::kqv_out_mul_mat>,
+		  data_traits<config_type_new, tensor_types::inp_out_ids>>::dims_type {
+	static constexpr auto sub_kernel_type{ tensor_types::node_1016_get_rows };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::compute_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::node_1017_get_rows>
+	: public dim_traits_new<kernel_types_type<kernel_types::get_rows>, data_traits<config_type_new, tensor_types::layer_out_add>,
+		  data_traits<config_type_new, tensor_types::inp_out_ids>>::dims_type {
+	static constexpr auto sub_kernel_type{ tensor_types::node_1017_get_rows };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::compute_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::final_ffn_inp_add>
+	: public dim_traits_new<kernel_types_type<kernel_types::add>, data_traits<config_type_new, tensor_types::node_1016_get_rows>,
+		  data_traits<config_type_new, tensor_types::node_1017_get_rows>>::dims_type {
+	static constexpr auto sub_kernel_type{ tensor_types::final_ffn_inp_add };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::compute_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::final_norm_pre_rms_norm>
+	: public dim_traits_new<kernel_types_type<kernel_types::rms_norm>, data_traits<config_type_new, tensor_types::layer_out_add>>::dims_type {
+	static constexpr auto sub_kernel_type{ tensor_types::final_norm_pre_rms_norm };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::compute_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::final_norm_mul>
+	: public dim_traits_new<kernel_types_type<kernel_types::mul>, data_traits<config_type_new, tensor_types::final_norm_pre_rms_norm>,
+		  data_traits<config_type_new, tensor_types::output_norm>>::dims_type {
+	static constexpr auto sub_kernel_type{ tensor_types::final_norm_mul };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::compute_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::result_output_mul_mat>
+	: public dim_traits_new<kernel_types_type<kernel_types::mul_mat>, data_traits<config_type_new, tensor_types::output>,
+		  data_traits<config_type_new, tensor_types::final_norm_mul>>::dims_type {
+	static constexpr auto sub_kernel_type{ tensor_types::result_output_mul_mat };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::compute_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::apply_repetition_penalty>
+	: public dim_traits_new<kernel_types_type<kernel_types::repetition_penalty>, data_traits<config_type_new, tensor_types::result_output_mul_mat>,
+		  data_traits<config_type_new, tensor_types::token_history>, data_traits<config_type_new, tensor_types::repetition_penalty>,
+		  data_traits<config_type_new, tensor_types::rep_window>>::dims_type {
+	static constexpr auto sub_kernel_type{ tensor_types::apply_repetition_penalty };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::compute_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::apply_presence_penalty>
+	: public dim_traits_new<kernel_types_type<kernel_types::presence_penalty>, data_traits<config_type_new, tensor_types::apply_repetition_penalty>,
+		  data_traits<config_type_new, tensor_types::token_history>, data_traits<config_type_new, tensor_types::presence_penalty>>::dims_type {
+	static constexpr auto sub_kernel_type{ tensor_types::apply_presence_penalty };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::compute_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::apply_frequency_penalty>
+	: public dim_traits_new<kernel_types_type<kernel_types::frequency_penalty>, data_traits<config_type_new, tensor_types::apply_presence_penalty>,
+		  data_traits<config_type_new, tensor_types::token_history>, data_traits<config_type_new, tensor_types::frequency_penalty>>::dims_type {
+	static constexpr auto sub_kernel_type{ tensor_types::apply_frequency_penalty };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::compute_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::apply_logits_bias>
+	: public dim_traits_new<kernel_types_type<kernel_types::add>, data_traits<config_type_new, tensor_types::apply_frequency_penalty>,
+		  data_traits<config_type_new, tensor_types::logits_bias>>::dims_type {
+	static constexpr auto sub_kernel_type{ tensor_types::apply_logits_bias };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::compute_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::apply_vocab_mask>
+	: public dim_traits_new<kernel_types_type<kernel_types::mul>, data_traits<config_type_new, tensor_types::apply_logits_bias>,
+		  data_traits<config_type_new, tensor_types::allowed_vocab_mask>>::dims_type {
+	static constexpr auto sub_kernel_type{ tensor_types::apply_vocab_mask };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::compute_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::apply_temperature>
+	: public dim_traits_new<kernel_types_type<kernel_types::div>, data_traits<config_type_new, tensor_types::apply_vocab_mask>,
+		  data_traits<config_type_new, tensor_types::temperature>>::dims_type {
+	static constexpr auto sub_kernel_type{ tensor_types::apply_temperature };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::compute_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::compute_softmax>
+	: public dim_traits_new<kernel_types_type<kernel_types::softmax>, data_traits<config_type_new, tensor_types::apply_temperature>>::dims_type {
+	static constexpr auto sub_kernel_type{ tensor_types::compute_softmax };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::compute_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::apply_top_k_filter>
+	: public dim_traits_new<kernel_types_type<kernel_types::top_k_filter>, data_traits<config_type_new, tensor_types::compute_softmax>,
+		  data_traits<config_type_new, tensor_types::top_k>>::dims_type {
+	static constexpr auto sub_kernel_type{ tensor_types::apply_top_k_filter };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::compute_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::apply_top_p_filter>
+	: public dim_traits_new<kernel_types_type<kernel_types::top_p_filter>, data_traits<config_type_new, tensor_types::apply_top_k_filter>,
+		  data_traits<config_type_new, tensor_types::top_p>>::dims_type {
+	static constexpr auto sub_kernel_type{ tensor_types::apply_top_p_filter };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::compute_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<llama_arch_config_types config_type_new> struct data_traits<config_type_new, tensor_types::sample_token>
+	: public dim_traits_new<kernel_types_type<kernel_types::sample_logits>, rt_dimensions<get_runtime_mask_new<0>(), config_type_new::batch_size, 1, 1, 1>,
+		  data_traits<config_type_new, tensor_types::apply_top_p_filter>, data_traits<config_type_new, tensor_types::rng_state>>::dims_type {
+	static constexpr auto sub_kernel_type{ tensor_types::sample_token };
+	using output_type = typename kernel_type_profile_traits<config_type_new::kernel_type_profile>::token_type;
+	static constexpr data_strategy_types data_strategy_type{ data_strategy_types::global };
+};
+
+template<typename config_type_new, data_strategy_types data_strategy_type, typename derived_type> struct data_mixin_new;
+
+template<typename config_type_new, core_types_new> struct core_traits;
+
+template<typename config_type_new, typename derived_type> struct data_mixin_new<config_type_new, data_strategy_types::global, derived_type> : public derived_type {
+	using output_type = typename derived_type::output_type;
+	static constexpr uint64_t total_required_bytes{ type_traits<output_type>::total_byte_size(derived_type::dims) };
+
+	template<typename output_type_newer = output_type> NIHILUS_HOST output_type_newer* get_data() {
+		return static_cast<output_type_newer*>(data);
+	}
+
+	NIHILUS_HOST void** get_data_ptr() {
+		return &data;
+	}
+
+	NIHILUS_HOST void set_data(void* data_new) {
+		data = data_new;
+	}
+
+  protected:
+	void* data{};
+};
+
+template<typename config_type_new, typename derived_type> struct data_mixin_new<config_type_new, data_strategy_types::per_block, derived_type> : public derived_type {
+	using output_type = typename derived_type::output_type;
+	static constexpr uint64_t total_required_bytes{ type_traits<output_type>::total_byte_size(derived_type::dims) * model_dimensions<config_type_new>::block_count };
+
+	template<typename output_type_newer = output_type> NIHILUS_HOST output_type_newer* get_data(uint64_t index) {
+		return static_cast<output_type_newer*>(data[index]);
+	}
+
+	NIHILUS_HOST void** get_data_ptr(uint64_t index) {
+		return &data[index];
+	}
+
+	NIHILUS_HOST void set_data(void* data_new, uint64_t index) {
+		data[index] = data_new;
+	}
+
+  protected:
+	array<void*, model_traits_type<config_type_new>::block_count> data{};
+};
+
+template<typename config_type_new, integral_or_enum_types auto enum_value_new> struct data_input_aggregator;
+template<typename config_type_new, integral_or_enum_types auto enum_value_new> struct data_output_aggregator;
+template<typename config_type_new, integral_or_enum_types auto enum_value_new> struct kernel_aggregator;
+
+template<integral_or_enum_types auto enum_value_new, typename config_type_new> struct data_interface
+	: public data_mixin_new<config_type_new, data_traits<config_type_new, enum_value_new>::data_strategy_type, data_traits<config_type_new, enum_value_new>>,
+	  public core_elem_base<enum_value_new, data_interface<enum_value_new, config_type_new>> {};
+
+template<llama_arch_config_types config_type_new> struct data_output_aggregator<config_type_new, core_types_new::weights> {
+	static constexpr array values{ tensor_types::attn_q, tensor_types::attn_k, tensor_types::attn_v, tensor_types::attn_output, tensor_types::attn_norm, tensor_types::ffn_gate,
+		tensor_types::ffn_up, tensor_types::ffn_down, tensor_types::ffn_norm, tensor_types::token_embd, tensor_types::rope_freqs, tensor_types::output_norm, tensor_types::output };
+};
+
+template<llama_arch_config_types config_type_new> struct data_output_aggregator<config_type_new, core_types_new::global_inputs> {
+	static constexpr array values{ tensor_types::inp_tokens, tensor_types::inp_pos, tensor_types::cache_k, tensor_types::cache_v, tensor_types::kq_mask, tensor_types::inp_out_ids,
+		tensor_types::temperature, tensor_types::top_k, tensor_types::top_p, tensor_types::repetition_penalty, tensor_types::presence_penalty, tensor_types::frequency_penalty,
+		tensor_types::rep_window, tensor_types::token_history, tensor_types::rng_state, tensor_types::logits_bias, tensor_types::allowed_vocab_mask };
+};
+
+template<llama_arch_config_types config_type_new> struct data_input_aggregator<config_type_new, core_types_new::token_embeddings> {
+	static constexpr array values{ tensor_types::inp_tokens, tensor_types::token_embd };
+};
+
+template<llama_arch_config_types config_type_new> struct data_output_aggregator<config_type_new, core_types_new::token_embeddings> {
+	static constexpr array values{ tensor_types::inp_embd_get_rows };
+};
+
+template<llama_arch_config_types config_type_new> struct kernel_aggregator<config_type_new, core_types_new::token_embeddings> {
+	static constexpr array values{ tensor_types::inp_embd_get_rows };
+};
+
+template<llama_arch_config_types config_type_new> struct data_input_aggregator<config_type_new, core_types_new::attn_prep_and_score> {
+	static constexpr array values{ tensor_types::inp_embd_get_rows, tensor_types::attn_norm, tensor_types::attn_q, tensor_types::attn_k, tensor_types::attn_v,
+		tensor_types::attn_output, tensor_types::inp_pos, tensor_types::rope_freqs, tensor_types::cache_k, tensor_types::cache_v, tensor_types::kq_mask };
+};
+
+template<llama_arch_config_types config_type_new> struct data_output_aggregator<config_type_new, core_types_new::attn_prep_and_score> {
+	static constexpr array values{ tensor_types::kq_mul_mat };
+};
+
+template<llama_arch_config_types config_type_new> struct kernel_aggregator<config_type_new, core_types_new::attn_prep_and_score> {
+	static constexpr array values{ tensor_types::norm_pre_attn_rms_norm, tensor_types::attn_norm_mul, tensor_types::qcur_mul_mat, tensor_types::qcur_reshape,
+		tensor_types::qcur_rope, tensor_types::kcur_mul_mat, tensor_types::kcur_reshape, tensor_types::kcur_rope, tensor_types::vcur_mul_mat, tensor_types::k_cache_view,
+		tensor_types::k_cache_cpy, tensor_types::vcur_transpose, tensor_types::v_cache_view, tensor_types::v_cache_cpy, tensor_types::v_from_cache_view,
+		tensor_types::k_from_cache_view, tensor_types::q_permute, tensor_types::kq_mul_mat };
+};
+
+template<llama_arch_config_types config_type_new> struct data_input_aggregator<config_type_new, core_types_new::attn_out_and_ffn> {
+	static constexpr array values{ tensor_types::kq_mul_mat, tensor_types::cache_v, tensor_types::kq_mask, tensor_types::attn_output, tensor_types::inp_embd_get_rows,
+		tensor_types::ffn_norm, tensor_types::ffn_gate, tensor_types::ffn_up, tensor_types::ffn_down };
+};
+
+template<llama_arch_config_types config_type_new> struct data_output_aggregator<config_type_new, core_types_new::attn_out_and_ffn> {
+	static constexpr array values{ tensor_types::layer_out_add };
+};
+
+template<llama_arch_config_types config_type_new> struct kernel_aggregator<config_type_new, core_types_new::attn_out_and_ffn> {
+	static constexpr array values{ tensor_types::kq_soft_max, tensor_types::kqv_mul_mat, tensor_types::kqv_merged_permute, tensor_types::kqv_merged_cont,
+		tensor_types::kqv_out_mul_mat, tensor_types::ffn_inp_add, tensor_types::norm_pre_ffn_rms_norm, tensor_types::ffn_norm_mul, tensor_types::ffn_gate_mul_mat,
+		tensor_types::ffn_silu_unary, tensor_types::ffn_up_mul_mat, tensor_types::ffn_gate_par_mul, tensor_types::ffn_out_mul_mat, tensor_types::layer_out_add };
+};
+
+template<llama_arch_config_types config_type_new> struct data_input_aggregator<config_type_new, core_types_new::global_output_and_sampling> {
+	static constexpr array values{ tensor_types::layer_out_add, tensor_types::kqv_out_mul_mat, tensor_types::inp_out_ids, tensor_types::ffn_norm, tensor_types::ffn_gate,
+		tensor_types::ffn_up, tensor_types::ffn_down, tensor_types::output_norm, tensor_types::output, tensor_types::token_history, tensor_types::repetition_penalty,
+		tensor_types::presence_penalty, tensor_types::frequency_penalty, tensor_types::rep_window, tensor_types::logits_bias, tensor_types::allowed_vocab_mask,
+		tensor_types::temperature, tensor_types::top_k, tensor_types::top_p, tensor_types::rng_state };
+};
+
+template<llama_arch_config_types config_type_new> struct data_output_aggregator<config_type_new, core_types_new::global_output_and_sampling> {
+	static constexpr array values{ tensor_types::sample_token };
+};
+
+template<llama_arch_config_types config_type_new> struct kernel_aggregator<config_type_new, core_types_new::global_output_and_sampling> {
+	static constexpr array values{ tensor_types::node_1016_get_rows, tensor_types::node_1017_get_rows, tensor_types::final_ffn_inp_add, tensor_types::final_norm_pre_rms_norm,
+		tensor_types::final_norm_mul, tensor_types::result_norm_mul, tensor_types::result_output_mul_mat, tensor_types::apply_repetition_penalty,
+		tensor_types::apply_presence_penalty, tensor_types::apply_frequency_penalty, tensor_types::apply_logits_bias, tensor_types::apply_vocab_mask,
+		tensor_types::apply_temperature, tensor_types::compute_softmax, tensor_types::apply_top_k_filter, tensor_types::apply_top_p_filter, tensor_types::sample_token };
+};
+
+template<typename config_type_new, core_types_new core_type_new> struct core_traits_new;
+
+template<typename config_type_new> struct core_traits_new<config_type_new, core_types_new::weights>
+	: public core_elem_base<core_types_new::weights, core_traits_new<config_type_new, core_types_new::weights>>, public sync_base_new<config_type_new, core_types_new::weights> {
+	static constexpr core_types_new core_type{ core_types_new::weights };
+	static constexpr uint64_t depth{ std::numeric_limits<uint64_t>::max() };
+	using config_type				 = config_type_new;
+	using cathedral_output_data_type = get_nihilus_cathedral_array_t<config_type_new, tensor_types, core_type, data_output_aggregator, data_interface>;
+	cathedral_output_data_type output_data_vals{};
+};
+
+template<typename config_type_new> struct core_traits_new<config_type_new, core_types_new::global_inputs>
+	: public core_elem_base<core_types_new::global_inputs, core_traits_new<config_type_new, core_types_new::global_inputs>>,
+	  public sync_base_new<config_type_new, core_types_new::global_inputs> {
+	static constexpr core_types_new core_type{ core_types_new::global_inputs };
+	static constexpr uint64_t depth{ std::numeric_limits<uint64_t>::max() };
+	using config_type				 = config_type_new;
+	using cathedral_output_data_type = get_nihilus_cathedral_array_t<config_type_new, tensor_types, core_type, data_output_aggregator, data_interface>;
+	cathedral_output_data_type output_data_vals{};
+};
+
+template<typename config_type_new> struct core_traits_new<config_type_new, core_types_new::token_embeddings>
+	: public core_elem_base<core_types_new::token_embeddings, core_traits_new<config_type_new, core_types_new::token_embeddings>>,
+	  public sync_base_new<config_type_new, core_types_new::token_embeddings> {
+	static constexpr core_types_new core_type{ core_types_new::token_embeddings };
+	static constexpr uint64_t depth{ 0 };
+	using config_type				= config_type_new;
+	using cathedral_input_data_type = get_nihilus_cathedral_array_t<config_type_new, tensor_types, core_type, data_input_aggregator, data_interface>;
+	cathedral_input_data_type input_data_vals{};
+	using cathedral_output_data_type = get_nihilus_cathedral_array_t<config_type_new, tensor_types, core_type, data_output_aggregator, data_interface>;
+	cathedral_output_data_type output_data_vals{};
+	using cathedral_kernel_type = get_nihilus_cathedral_array_t<config_type_new, tensor_types, core_type, kernel_aggregator, data_interface>;
+};
+
+template<typename config_type_new> struct core_traits_new<config_type_new, core_types_new::attn_prep_and_score>
+	: public core_elem_base<core_types_new::attn_prep_and_score, core_traits_new<config_type_new, core_types_new::attn_prep_and_score>>,
+	  public sync_base_new<config_type_new, core_types_new::attn_prep_and_score> {
+	static constexpr core_types_new core_type{ core_types_new::attn_prep_and_score };
+	static constexpr uint64_t depth{ core_traits_new<config_type_new, static_cast<core_types_new>(static_cast<uint64_t>(core_types_new::attn_prep_and_score) - 1)>::depth + 1 };
+	using config_type				= config_type_new;
+	using cathedral_input_data_type = get_nihilus_cathedral_array_t<config_type_new, tensor_types, core_type, data_input_aggregator, data_interface>;
+	cathedral_input_data_type input_data_vals{};
+	using cathedral_output_data_type = get_nihilus_cathedral_array_t<config_type_new, tensor_types, core_type, data_output_aggregator, data_interface>;
+	cathedral_output_data_type output_data_vals{};
+	using cathedral_kernel_type = get_nihilus_cathedral_array_t<config_type_new, tensor_types, core_type, kernel_aggregator, data_interface>;
+};
+
+template<typename config_type_new> struct core_traits_new<config_type_new, core_types_new::attn_out_and_ffn>
+	: public core_elem_base<core_types_new::attn_out_and_ffn, core_traits_new<config_type_new, core_types_new::attn_out_and_ffn>>,
+	  public sync_base_new<config_type_new, core_types_new::attn_out_and_ffn> {
+	static constexpr core_types_new core_type{ core_types_new::attn_out_and_ffn };
+	static constexpr uint64_t depth{ core_traits_new<config_type_new, static_cast<core_types_new>(static_cast<uint64_t>(core_types_new::attn_out_and_ffn) - 1)>::depth + 1 };
+	using config_type				= config_type_new;
+	using cathedral_input_data_type = get_nihilus_cathedral_array_t<config_type_new, tensor_types, core_type, data_input_aggregator, data_interface>;
+	cathedral_input_data_type input_data_vals{};
+	using cathedral_output_data_type = get_nihilus_cathedral_array_t<config_type_new, tensor_types, core_type, data_output_aggregator, data_interface>;
+	cathedral_output_data_type output_data_vals{};
+	using cathedral_kernel_type = get_nihilus_cathedral_array_t<config_type_new, tensor_types, core_type, kernel_aggregator, data_interface>;
+};
+
+template<typename config_type_new> struct core_traits_new<config_type_new, core_types_new::global_output_and_sampling>
+	: public core_elem_base<core_types_new::global_output_and_sampling, core_traits_new<config_type_new, core_types_new::global_output_and_sampling>>,
+	  public sync_base_new<config_type_new, core_types_new::global_output_and_sampling> {
+	static constexpr core_types_new core_type{ core_types_new::global_output_and_sampling };
+	static constexpr uint64_t depth{ core_traits_new<config_type_new, static_cast<core_types_new>(static_cast<uint64_t>(core_types_new::global_output_and_sampling) - 1)>::depth +
+		1 };
+	using config_type				= config_type_new;
+	using cathedral_input_data_type = get_nihilus_cathedral_array_t<config_type_new, tensor_types, core_type, data_input_aggregator, data_interface>;
+	cathedral_input_data_type input_data_vals{};
+	using cathedral_output_data_type = get_nihilus_cathedral_array_t<config_type_new, tensor_types, core_type, data_output_aggregator, data_interface>;
+	cathedral_output_data_type output_data_vals{};
+	using cathedral_kernel_type = get_nihilus_cathedral_array_t<config_type_new, tensor_types, core_type, kernel_aggregator, data_interface>;
+};
+
+template<typename config_type, typename base_type_new> struct memory_planner_impl {
+	NIHILUS_HOST memory_planner_impl() noexcept {
+	}
+	NIHILUS_HOST memory_planner_impl& operator=(const memory_planner_impl&) noexcept = delete;
+	NIHILUS_HOST memory_planner_impl(const memory_planner_impl&) noexcept			 = delete;
+	NIHILUS_HOST memory_planner_impl& operator=(memory_planner_impl&&) noexcept		 = delete;
+	NIHILUS_HOST memory_planner_impl(memory_planner_impl&&) noexcept				 = delete;
+	using base_type																	 = base_type_new;
+	using base_derived_type															 = typename base_type::derived_type;
+
+	NIHILUS_HOST static constexpr bool filter() {
+		return true;
+	}
+
+	NIHILUS_HOST constexpr static void impl(const base_type&, uint64_t& memory_amount) {
+		memory_amount += base_type::total_required_bytes;
+	}
+};
+
+template<typename config_type, typename base_type_new> struct memory_planner {
+	NIHILUS_HOST memory_planner() noexcept {
+	}
+	NIHILUS_HOST memory_planner& operator=(const memory_planner&) noexcept = delete;
+	NIHILUS_HOST memory_planner(const memory_planner&) noexcept			   = delete;
+	NIHILUS_HOST memory_planner& operator=(memory_planner&&) noexcept	   = delete;
+	NIHILUS_HOST memory_planner(memory_planner&&) noexcept				   = delete;
+	using base_type														   = base_type_new;
+	NIHILUS_HOST static constexpr bool filter() {
+		return base_type::core_type != core_types_new::weights || config_type::device_type == device_types::gpu;
+	}
+
+	NIHILUS_HOST constexpr static void impl(const base_type& parse_core, uint64_t& current_index, const memory_plan& values) {
+		uint64_t internal_offset{};
+		parse_core.output_data_vals.template impl<memory_planner_impl>(internal_offset);
+		values.footprints[current_index].offset				  = values.currently_allocated_bytes;
+		values.footprints[current_index].core_type			  = static_cast<core_types_new>(current_index);
+		values.footprints[current_index].depth				  = base_type::depth;
+		values.footprints[current_index].is_active			  = true;
+		values.footprints[current_index].total_required_bytes = internal_offset;
+		values.currently_allocated_bytes += internal_offset;
+		if (values.currently_allocated_bytes > values.peak_allocated_bytes) {
+			values.peak_allocated_bytes = values.currently_allocated_bytes;
+		}
+		constexpr uint64_t cur_depth = base_type::depth;
+		if constexpr (cur_depth >= 2) {
+			for (int64_t x = 0; x < static_cast<int64_t>(current_index); ++x) {
+				const auto footprint = values.footprints[static_cast<uint64_t>(x)];
+				uint64_t threshold	 = base_type::depth - 2;
+				if (footprint.is_active && footprint.depth <= threshold && footprint.depth != std::numeric_limits<uint64_t>::max()) {
+					values.footprints[static_cast<uint64_t>(x)].is_active = false;
+					values.currently_allocated_bytes -= values.footprints[static_cast<uint64_t>(x)].total_required_bytes;
+				}
+			}
+		}
+		++current_index;
+	}
+};
+
+template<typename config_type> static constexpr memory_plan nihilus_cathedral_memory_plan_new{ []() {
+	get_nihilus_cathedral_enum_t<config_type, core_types_new, core_traits_new> cathedral{};
+	uint64_t current_index{};
+	memory_plan values{};
+	cathedral.impl<memory_planner>(current_index, values);
+	return values;
+}() };
+
+template<typename config_type_new, typename aggregator_type, core_types_new core_type, uint64_t current_index = 0>
+uint64_t print_contained_kernel_dimensions_et_al(uint64_t current_byte_size = 0) {
+	if constexpr (current_index < aggregator_type::values.size() - 1) {
+		std::cout << "CURRENT TYPE: " << aggregator_type::values[current_index] << std::endl;
+		auto dims = typename core_traits_new<config_type_new, core_type>::cathedral_output_data_type{}.template get_core<aggregator_type::values[current_index]>().dims;
+		current_byte_size +=
+			typename core_traits_new<config_type_new, core_type>::cathedral_output_data_type{}.template get_core<aggregator_type::values[current_index]>().total_required_bytes;
+		std::cout << "DIMS: [" << dims[0] << "," << dims[1] << "," << dims[2] << "," << dims[3] << "]" << std::endl;
+		return print_contained_kernel_dimensions_et_al<config_type_new, aggregator_type, core_type, current_index + 1>(current_byte_size);
+	}
+	return current_byte_size;
+}
 
 int32_t main(int32_t argc, char** argv) {
 	try {
-		//test_function();
-		static constexpr model_config config{};
-		
-		[[maybe_unused]] core_traits<model_config_type<config>, core_types::weights> core_traits{};
 		print_memory_bandwidth<model_arches::llama, model_sizes::llm_405B, model_generations::v3_1, kernel_type_profiles::q8_gqa>();
 		print_memory_bandwidth<model_arches::llama, model_sizes::llm_405B, model_generations::v3_1, kernel_type_profiles::fp16_mha>();
 		print_memory_bandwidth<model_arches::llama, model_sizes::llm_70B, model_generations::v3_1, kernel_type_profiles::q8_gqa>();
 		print_memory_bandwidth<model_arches::llama, model_sizes::llm_70B, model_generations::v3_1, kernel_type_profiles::fp16_mha>();
 		print_memory_bandwidth<model_arches::llama, model_sizes::llm_8B, model_generations::v3_1, kernel_type_profiles::q8_gqa>();
 		print_memory_bandwidth<model_arches::llama, model_sizes::llm_8B, model_generations::v3_1, kernel_type_profiles::fp16_mha>();
-		[[maybe_unused]] auto dims = op_traits<model_config_type<config>, weight_types::attn_q, kernel_types_type<kernel_types::weights>,
-			kernel_type_profile_traits<kernel_type_profiles::fp16_mha>::weight_type, kernel_dims<0, 64, 64, 1, 1>>::dims;
-		//std::cout << "TOTAL REQUIREDS BYTES: " << attn_q.total_required_bytes_new << std::endl;
-		static constexpr auto model_config_00 = nihilus::generate_model_config(nihilus::batched_processing_type::enabled, nihilus::model_generations::v3_1,
-			nihilus::model_sizes::llm_8B, nihilus::kernel_type_profiles::q8_gqa, nihilus::model_arches::llama, nihilus::device_types::cpu, nihilus::exception_type::enabled,
-			nihilus::default_max_sequence_length_type{ 1024 }, nihilus::benchmark_type::enabled);
-		cli_params cli_args					  = harbinger::parse_cli_arguments(argc, argv);
-		nihilus::model_collection_type<model_config_00> collection{ cli_args };
-		collection.process_input(cli_args.prompt);
+		static constexpr auto model_config_00 =
+			nihilus::generate_model_config(nihilus::model_generations::v3_1, nihilus::model_sizes::llm_8B, nihilus::kernel_type_profiles::q8_gqa, nihilus::model_arches::llama,
+				nihilus::device_types::cpu, nihilus::exception_type::enabled, nihilus::default_max_sequence_length_type{ 1024 }, nihilus::benchmark_type::enabled);
+		cli_params cli_args = harbinger::parse_cli_arguments(argc, argv);
+		//print_contained_kernel_dimensions_et_al<model_config_type<model_config_00>, kernel_aggregator<model_config_type<model_config_00>, core_types_new::token_embeddings>,
+		//core_types_new::token_embeddings>();
+		//print_contained_kernel_dimensions_et_al<model_config_type<model_config_00>, kernel_aggregator<model_config_type<model_config_00>, core_types_new::attn_prep_and_score>,
+		//			core_types_new::attn_prep_and_score>();
+		//print_contained_kernel_dimensions_et_al<model_config_type<model_config_00>, kernel_aggregator<model_config_type<model_config_00>, core_types_new::attn_out_and_ffn>,
+		//			core_types_new::attn_out_and_ffn>();
+		[[maybe_unused]] data_interface<tensor_types::attn_q, model_config_type<model_config_00>> test{};
+		{
+			[[maybe_unused]] core_traits_new<model_config_type<model_config_00>, core_types_new::weights> data_cathedral{};
+			data_cathedral.output_data_vals.get_core<tensor_types::attn_q>();
+		}
+		{
+			[[maybe_unused]] core_traits_new<model_config_type<model_config_00>, core_types_new::global_inputs> data_cathedral{};
+			data_cathedral.output_data_vals.get_core<tensor_types::inp_pos>();
+			//auto bytes = print_contained_kernel_dimensions_et_al<model_config_type<model_config_00>,
+			//	data_output_aggregator<model_config_type<model_config_00>, core_types_new::global_inputs>, core_types_new::global_inputs>();
+			//std::cout << "TOTAL BYTES: " << bytes << std::endl;
+		}
+		{
+			[[maybe_unused]] core_traits_new<model_config_type<model_config_00>, core_types_new::token_embeddings> data_cathedral{};
+			std::cout << "REQUIRED BYTES: " << data_cathedral.output_data_vals.get_core<tensor_types::inp_embd_get_rows>().total_required_bytes << std::endl;
+		}
+		{
+			[[maybe_unused]] core_traits_new<model_config_type<model_config_00>, core_types_new::attn_prep_and_score> data_cathedral{};
+			std::cout << "REQUIRED BYTES: " << data_cathedral.output_data_vals.get_core<tensor_types::kq_mul_mat>().total_required_bytes << std::endl;
+		}
+		{
+			[[maybe_unused]] core_traits_new<model_config_type<model_config_00>, core_types_new::attn_out_and_ffn> data_cathedral{};
+			std::cout << "REQUIRED BYTES: " << data_cathedral.output_data_vals.get_core<tensor_types::layer_out_add>().total_required_bytes << std::endl;
+		}
+		{
+			[[maybe_unused]] core_traits_new<model_config_type<model_config_00>, core_types_new::global_output_and_sampling> data_cathedral{};
+			std::cout << "REQUIRED BYTES: " << data_cathedral.output_data_vals.get_core<tensor_types::sample_token>().total_required_bytes << std::endl;
+		}
+		std::cout << "TOTAL REQUIRED BYTES: " << nihilus_cathedral_memory_plan_new<model_config_type<model_config_00>>.peak_allocated_bytes << std::endl;
+		//nihilus::model_collection_type<model_config_00> collection{ cli_args };
+		//collection.process_input(cli_args.prompt);
 	} catch (const std::exception& e) {
 		std::cout << "Error: " << e.what() << std::endl;
 	}

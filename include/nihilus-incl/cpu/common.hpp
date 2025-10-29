@@ -190,11 +190,11 @@ namespace nihilus {
 #endif
 
 	template<typename value_type>
-	concept nihilus_simd_512_types = std::same_as<nihilus_simd_int_512_t, detail::remove_cvref_t<value_type>>;
+	concept nihilus_simd_512_types = detail::same_as<nihilus_simd_int_512_t, detail::remove_cvref_t<value_type>>;
 	template<typename value_type>
-	concept nihilus_simd_256_types = std::same_as<nihilus_simd_int_256_t, detail::remove_cvref_t<value_type>>;
+	concept nihilus_simd_256_types = detail::same_as<nihilus_simd_int_256_t, detail::remove_cvref_t<value_type>>;
 	template<typename value_type>
-	concept nihilus_simd_128_types = std::same_as<nihilus_simd_int_128_t, detail::remove_cvref_t<value_type>>;
+	concept nihilus_simd_128_types = detail::same_as<nihilus_simd_int_128_t, detail::remove_cvref_t<value_type>>;
 
 	template<uint_types value_type> NIHILUS_HOST static constexpr value_type tzcnt_constexpr(value_type value) noexcept {
 		if (value == 0) {
@@ -237,8 +237,7 @@ namespace nihilus {
 		return _mm_load_si128(static_cast<const __m128i*>(str));
 	}
 
-	template<nihilus_simd_128_types simd_int_t01, typename char_type>
-	NIHILUS_HOST static auto op_set1(char_type other) noexcept {
+	template<nihilus_simd_128_types simd_int_t01, typename char_type> NIHILUS_HOST static auto op_set1(char_type other) noexcept {
 		return _mm_set1_epi8(other);
 	}
 
@@ -271,8 +270,7 @@ namespace nihilus {
 		return static_cast<uint32_t>(_mm256_movemask_epi8(_mm256_cmpeq_epi8(value, other)));
 	}
 
-	template<nihilus_simd_256_types simd_int_t01>
-	NIHILUS_HOST static auto op_bitmask(const typename simd_int_t01::type& value) noexcept {
+	template<nihilus_simd_256_types simd_int_t01> NIHILUS_HOST static auto op_bitmask(const typename simd_int_t01::type& value) noexcept {
 		return static_cast<uint32_t>(_mm256_movemask_epi8(value));
 	}
 

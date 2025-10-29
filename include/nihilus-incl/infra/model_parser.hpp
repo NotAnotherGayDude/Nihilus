@@ -78,7 +78,7 @@ namespace nihilus {
 	};
 
 	template<typename value_type> struct void_scalar_metadata {
-		std::string_view name{};
+		rt_string_view name{};
 		uint64_t offset_into_metadata_data{};
 		void_metadata_value_type type{};
 		value_type value{};
@@ -92,7 +92,7 @@ namespace nihilus {
 		void_device_types device_type{};
 		uint64_t offset_per_thread{};
 		array<uint64_t, 4> dims{};
-		std::string_view name{};
+		rt_string_view name{};
 		int64_t layer_number{};
 		data_types type{};
 	};
@@ -162,7 +162,8 @@ namespace nihilus {
 	template<typename config_type, typename value_type, auto...> struct value_reader;
 
 	template<typename config_type, typename value_type>
-		requires(( std::is_standard_layout_v<value_type> && std::is_trivial_v<value_type> && !std::is_enum_v<value_type> ) || std::is_same_v<gguf_metadata_value_type, value_type>)
+		requires(
+			( std::is_standard_layout_v<value_type> && std::is_trivial_v<value_type> && !std::is_enum_v<value_type> ) || detail::is_same_v<gguf_metadata_value_type, value_type>)
 	struct value_reader<config_type, value_type> {
 		NIHILUS_HOST static value_type gather_value(stream_iterator<config_type>& input) {
 			if (input.template has_bytes<value_type>()) {
@@ -178,7 +179,7 @@ namespace nihilus {
 	template<typename enum_type> struct string_to_enum;
 
 	template<> struct string_to_enum<tokenizer_types> {
-		NIHILUS_HOST static tokenizer_types impl(std::string_view value) {
+		NIHILUS_HOST static tokenizer_types impl(rt_string_view value) {
 			if (string_literal_comparitor<"gpt2">::impl(value.data())) {
 				return tokenizer_types::bpe;
 			}
@@ -188,7 +189,7 @@ namespace nihilus {
 	};
 
 	template<> struct string_to_enum<tokenizer_pre_types> {
-		NIHILUS_HOST static tokenizer_pre_types impl(std::string_view value) {
+		NIHILUS_HOST static tokenizer_pre_types impl(rt_string_view value) {
 			if (value.empty()) {
 				return tokenizer_pre_types::default_pre;
 			}
@@ -378,7 +379,7 @@ namespace nihilus {
 	};
 
 	template<typename config_type, typename value_type>
-		requires(std::is_enum_v<value_type> && !std::is_same_v<gguf_metadata_value_type, value_type>)
+		requires(std::is_enum_v<value_type> && !detail::is_same_v<gguf_metadata_value_type, value_type>)
 	struct value_reader<config_type, value_type> {
 		NIHILUS_HOST static value_type gather_value(stream_iterator<config_type>& input) {
 			uint64_t length = value_reader<config_type, uint64_t>::gather_value(input);
@@ -388,7 +389,7 @@ namespace nihilus {
 			}
 			const char* string_ptr{ static_cast<const char*>(input.file->data()) + input.current_index };
 			input.current_index += length;
-			std::string_view result(string_ptr, length);
+			rt_string_view result(string_ptr, length);
 			return string_to_enum<value_type>::impl(result);
 		}
 	};
@@ -433,10 +434,10 @@ namespace nihilus {
 		}
 	};
 
-	using gguf_string_t = std::string_view;
+	using gguf_string_t = rt_string_view;
 
 	template<typename config_type> struct value_reader<config_type, gguf_string_t> {
-		NIHILUS_HOST static std::string_view gather_value(stream_iterator<config_type>& input) {
+		NIHILUS_HOST static rt_string_view gather_value(stream_iterator<config_type>& input) {
 			uint64_t length = value_reader<config_type, uint64_t>::gather_value(input);
 			if (!input.template has_bytes<uint8_t>(length)) {
 				static constexpr auto location = std::source_location::current();
@@ -444,24 +445,24 @@ namespace nihilus {
 			}
 			const char* string_ptr{ static_cast<const char*>(input.file->data()) + input.current_index };
 			input.current_index += length;
-			std::string_view result(string_ptr, length);
+			rt_string_view result(string_ptr, length);
 			return result;
 		}
 	};
 
 	struct metadata_base {
-		aligned_vector<std::string_view> languages;
-		std::string_view quantize_imatrix_dataset;
+		aligned_vector<rt_string_view> languages;
+		rt_string_view quantize_imatrix_dataset;
 		int32_t quantize_imatrix_entries_count;
-		std::string_view quantize_imatrix_file;
-		aligned_vector<std::string_view> tags;
+		rt_string_view quantize_imatrix_file;
+		aligned_vector<rt_string_view> tags;
 		int32_t quantize_imatrix_chunks_count;
 		uint32_t quantization_version;
-		std::string_view architecture;
-		std::string_view size_label;
+		rt_string_view architecture;
+		rt_string_view size_label;
 		uint64_t metadata_kv_count;
-		std::string_view finetune;
-		std::string_view license;
+		rt_string_view finetune;
+		rt_string_view license;
 		uint64_t tensor_count;
 		uint32_t file_type;
 		uint32_t alignment;
@@ -470,11 +471,11 @@ namespace nihilus {
 	template<tokenizer_types type> struct tokenizer_base;
 
 	template<> struct tokenizer_base<tokenizer_types::bpe> {
-		std::unordered_map<std::string_view, int32_t> ggml_tokens;
-		aligned_vector<std::string_view> ggml_merges;
+		std::unordered_map<rt_string_view, int32_t> ggml_tokens;
+		aligned_vector<rt_string_view> ggml_merges;
 		aligned_vector<int32_t> ggml_token_type;
-		std::string_view chat_template;
-		std::string_view ggml_model;
+		rt_string_view chat_template;
+		rt_string_view ggml_model;
 	};
 
 	template<typename config_type> struct gguf_metadata : public metadata_base,
@@ -521,16 +522,16 @@ namespace nihilus {
 		inline static constexpr auto memberCount = core_tuple_size<value_type>;
 
 		template<uint64_t index> using member_type_t =
-			std::remove_reference_t<decltype(get_member<get<index>(parse_core<value_type>::parse_value).member_ptr>(std::declval<value_type&>()))>;
+			detail::remove_reference_t<decltype(get_member<get<index>(parse_core<value_type>::parse_value).member_ptr>(std::declval<value_type&>()))>;
 
-		template<uint64_t index> NIHILUS_HOST static void process_index(value_type& value, std::string_view string, stream_iterator<config_type>& stream) {
+		template<uint64_t index> NIHILUS_HOST static void process_index(value_type& value, rt_string_view string, stream_iterator<config_type>& stream) {
 			static constexpr auto tupleElem	 = get<index>(parse_core<value_type>::parse_value);
 			static constexpr auto string_lit = tupleElem.name;
 			static constexpr auto ptrNew	 = tupleElem.member_ptr;
 			static constexpr auto keySize	 = string_lit.size();
 			if NIHILUS_LIKELY ((string.size() <= keySize) && string_literal_comparitor<string_lit>::impl(string.data())) {
 				[[maybe_unused]] auto& ref = get_member<ptrNew>(value);
-				if constexpr (!std::is_const_v<std::remove_reference_t<decltype(ref)>>) {
+				if constexpr (!std::is_const_v<detail::remove_reference_t<decltype(ref)>>) {
 					ref = value_reader<config_type, member_type_t<index>>::gather_value(stream);
 				} else {
 					member_type_t<index> value_new{ value_reader<config_type, detail::remove_const_t<member_type_t<index>>>::gather_value(stream) };
@@ -555,7 +556,7 @@ namespace nihilus {
 	static constexpr auto function_ptrs{ generate_function_ptrs<parsing_type, config_type, value_type>(std::make_index_sequence<core_tuple_size<value_type>>{}) };
 
 	template<typename config_type, uint64_t current_index = 0, uint64_t max_index = 10, typename enum_type>
-		requires(std::is_same_v<gguf_metadata_value_type, enum_type>)
+		requires(detail::is_same_v<gguf_metadata_value_type, enum_type>)
 	NIHILUS_HOST void skip_unknown_value(stream_iterator<config_type>& input, enum_type type) {
 		switch (static_cast<uint64_t>(type)) {
 			case static_cast<uint64_t>(enum_type::uint8):
@@ -657,7 +658,7 @@ namespace nihilus {
 			}
 
 			for (uint64_t x = 0; x < value.metadata_kv_count; ++x) {
-				std::string_view new_string			= value_reader<config_type, gguf_string_t>::gather_value(input);
+				rt_string_view new_string			= value_reader<config_type, gguf_string_t>::gather_value(input);
 				gguf_metadata_value_type value_type = value_reader<config_type, gguf_metadata_value_type>::gather_value(input);
 				auto index							= hash_map<gguf_metadata<config_type>, const char*>::find_index(new_string.data(), new_string.data() + new_string.size());
 				if (index < function_ptrs<parse_types_impl, config_type, gguf_metadata<config_type>>.size()) {
@@ -672,10 +673,8 @@ namespace nihilus {
 
 	template<typename config_type> struct string_to_op_type;
 
-	template<typename config_type>
-		requires(config_type::model_arch == model_arches::llama)
-	struct string_to_op_type<config_type> {
-		NIHILUS_HOST static weight_types impl(std::string_view input) noexcept {
+	template<llama_arch_config_types config_type> struct string_to_op_type<config_type> {
+		NIHILUS_HOST static weight_types impl(rt_string_view input) noexcept {
 			if (string_literal_comparitor<"token_embd.weight">::impl(input.data())) {
 				return weight_types::token_embd;
 			}
@@ -697,9 +696,9 @@ namespace nihilus {
 			}
 
 			if (string_literal_comparitor<"blk.">::impl(input.data()) && string_literal_comparitor<".weight">::impl(input.data() + input.size() - 7)) {
-				auto second_dot = input.find('.', 4);
-				if (second_dot != std::string_view::npos) {
-					auto suffix = input.substr(second_dot + 1);
+				auto second_dot = input.find('.', 4ull);
+				if (second_dot != rt_string_view::npos) {
+					auto suffix = input.substr(second_dot + 1ull);
 
 					if (string_literal_comparitor<"attn_q.weight">::impl(suffix.data())) {
 						return weight_types::attn_q;
@@ -757,8 +756,7 @@ namespace nihilus {
 			return num_blocks * type_size_val;
 		}
 
-		template<core_traits_types core_traits_old> NIHILUS_HOST bool operator==(const core_traits_old&) const {
-			static constexpr auto other_dims = core_traits_old::get_array();
+		NIHILUS_HOST bool operator==(const array<uint64_t, 4>& other_dims) const {
 			return dimensions[0] == other_dims[0] && dimensions[1] == other_dims[1] && dimensions[2] == other_dims[2] && dimensions[3] == other_dims[3];
 		}
 
@@ -777,43 +775,43 @@ namespace nihilus {
 		NIHILUS_HOST static bool impl(const core_base_creation_data& parse_core) noexcept {
 			switch (static_cast<uint64_t>(parse_core.weight_type)) {
 				case static_cast<uint64_t>(weight_types::token_embd): {
-					return parse_core == typename core_traits_old<config_type, core_types::weights>::token_embd_weight_type{};
+					return parse_core == core_traits<config_type, core_types::weights>::token_embd_weight_type::get_array();
 				}
 				case static_cast<uint64_t>(weight_types::rope_freqs): {
-					return parse_core == typename core_traits_old<config_type, core_types::weights>::rope_freqs_weight_type{};
+					return parse_core == core_traits<config_type, core_types::weights>::rope_freqs_weight_type::get_array();
 				}
 				case static_cast<uint64_t>(weight_types::output_norm): {
-					return parse_core == typename core_traits_old<config_type, core_types::weights>::output_norm_weight_type{};
+					return parse_core == core_traits<config_type, core_types::weights>::output_norm_weight_type::get_array();
 				}
 				case static_cast<uint64_t>(weight_types::output): {
-					return parse_core == typename core_traits_old<config_type, core_types::weights>::output_weight_type{};
+					return parse_core == core_traits<config_type, core_types::weights>::output_weight_type::get_array();
 				}
 				case static_cast<uint64_t>(weight_types::attn_q): {
-					return parse_core == typename core_traits_old<config_type, core_types::weights>::attn_q_weight_type{};
+					return parse_core == core_traits<config_type, core_types::weights>::attn_q_weight_type::get_array();
 				}
 				case static_cast<uint64_t>(weight_types::attn_norm): {
-					return parse_core == typename core_traits_old<config_type, core_types::weights>::attn_norm_weight_type{};
+					return parse_core == core_traits<config_type, core_types::weights>::attn_norm_weight_type::get_array();
 				}
 				case static_cast<uint64_t>(weight_types::attn_k): {
-					return parse_core == typename core_traits_old<config_type, core_types::weights>::attn_k_weight_type{};
+					return parse_core == core_traits<config_type, core_types::weights>::attn_k_weight_type::get_array();
 				}
 				case static_cast<uint64_t>(weight_types::attn_v): {
-					return parse_core == typename core_traits_old<config_type, core_types::weights>::attn_v_weight_type{};
+					return parse_core == core_traits<config_type, core_types::weights>::attn_v_weight_type::get_array();
 				}
 				case static_cast<uint64_t>(weight_types::attn_output): {
-					return parse_core == typename core_traits_old<config_type, core_types::weights>::attn_output_weight_type{};
+					return parse_core == core_traits<config_type, core_types::weights>::attn_output_weight_type::get_array();
 				}
 				case static_cast<uint64_t>(weight_types::ffn_down): {
-					return parse_core == typename core_traits_old<config_type, core_types::weights>::ffn_down_weight_type{};
+					return parse_core == core_traits<config_type, core_types::weights>::ffn_down_weight_type::get_array();
 				}
 				case static_cast<uint64_t>(weight_types::ffn_gate): {
-					return parse_core == typename core_traits_old<config_type, core_types::weights>::ffn_gate_weight_type{};
+					return parse_core == core_traits<config_type, core_types::weights>::ffn_gate_weight_type::get_array();
 				}
 				case static_cast<uint64_t>(weight_types::ffn_up): {
-					return parse_core == typename core_traits_old<config_type, core_types::weights>::ffn_up_weight_type{};
+					return parse_core == core_traits<config_type, core_types::weights>::ffn_up_weight_type::get_array();
 				}
 				case static_cast<uint64_t>(weight_types::ffn_norm): {
-					return parse_core == typename core_traits_old<config_type, core_types::weights>::ffn_norm_weight_type{};
+					return parse_core == core_traits<config_type, core_types::weights>::ffn_norm_weight_type::get_array();
 				}
 				default: {
 					return false;
@@ -822,7 +820,7 @@ namespace nihilus {
 		}
 	};
 
-	NIHILUS_HOST constexpr uint64_t parse_number(std::string_view str) noexcept {
+	NIHILUS_HOST constexpr uint64_t parse_number(rt_string_view str) noexcept {
 		int64_t result = 0;
 		for (char c: str) {
 			if (c >= '0' && c <= '9') {
@@ -834,11 +832,11 @@ namespace nihilus {
 		return static_cast<uint64_t>(result);
 	}
 
-	NIHILUS_HOST uint64_t extract_layer_number(std::string_view name) noexcept {
+	NIHILUS_HOST uint64_t extract_layer_number(rt_string_view name) noexcept {
 		if NIHILUS_LIKELY (name[0] == 'b' && name.starts_with("blk.")) {
 			uint64_t start = 4;
 			uint64_t end   = name.find('.', start);
-			if (end != std::string_view::npos) {
+			if (end != rt_string_view::npos) {
 				return parse_number(name.substr(start, end - start));
 			}
 		}
@@ -855,7 +853,7 @@ namespace nihilus {
 	template<typename config_type> struct value_reader<config_type, core_base_creation_data> {
 		NIHILUS_HOST static core_base_creation_data gather_value(stream_iterator<config_type>& input) {
 			core_base_creation_data value{};
-			std::string_view name{ value_reader<config_type, std::string_view>::gather_value(input) };
+			rt_string_view name{ value_reader<config_type, rt_string_view>::gather_value(input) };
 			value.weight_type				  = string_to_op_type<config_type>::impl(name);
 			value.n_dimensions				  = value_reader<config_type, uint32_t>::gather_value(input);
 			value.layer_number				  = extract_layer_number(name);
@@ -899,7 +897,7 @@ namespace nihilus {
 	struct model_parser_impl<config_type> {
 		using model_traits_type = model_traits<config_type::model_arch, config_type::model_size, config_type::model_generation>;
 		static_assert((std::endian::native == std::endian::little), "Sorry, but big-endian is not yet supported by the library");
-		template<typename tokenizer_type> NIHILUS_HOST static gguf_metadata<config_type> parse_model(std::string_view model_path,
+		template<typename tokenizer_type> NIHILUS_HOST static gguf_metadata<config_type> parse_model(rt_string_view model_path,
 			array<array<void*, model_traits_type::block_count>, weight_types::count>& data, optional<file_loader<config_type>>& metadata_file,
 			optional<file_loader<config_type>>& memory_file, tokenizer_type& tokenizer) {
 			metadata_file = file_loader<config_type>{ model_path };
@@ -942,7 +940,7 @@ namespace nihilus {
 	template<typename config_type> struct model_parser {
 		using model_traits_type = model_traits<config_type::model_arch, config_type::model_size, config_type::model_generation>;
 
-		template<typename tokenizer_type> NIHILUS_HOST static gguf_metadata<config_type> parse_model(std::string_view model_path,
+		template<typename tokenizer_type> NIHILUS_HOST static gguf_metadata<config_type> parse_model(rt_string_view model_path,
 			array<array<void*, model_traits_type::block_count>, weight_types::count>& data, optional<file_loader<config_type>>& metadata_file,
 			optional<file_loader<config_type>>& memory_file, tokenizer_type& tokenizer) {
 			return model_parser_impl<config_type>::parse_model(model_path, data, metadata_file, memory_file, tokenizer);

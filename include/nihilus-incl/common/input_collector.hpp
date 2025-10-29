@@ -82,8 +82,8 @@ namespace nihilus {
 	  protected:
 		aligned_vector<char> buffer;
 		uint64_t current_length = 0;
-		atomic_flag_wrapper<uint64_t> in_signal{};
-		atomic_flag_wrapper<uint64_t> out_signal{};
+		aligned_atomic<uint64_t> in_signal{};
+		aligned_atomic<uint64_t> out_signal{};
 
 	  public:
 		NIHILUS_HOST input_collector() {

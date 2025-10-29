@@ -28,6 +28,7 @@ RealTimeChris (Chris M.)
 #include <nihilus-incl/cpu/thread_pool.hpp>
 #include <nihilus-incl/cuda/thread_pool.hpp>
 #include <nihilus-incl/common/input_collector.hpp>
+#include <nihilus-incl/infra/mega_fused_kernels.hpp>
 #include <nihilus-incl/common/tuple.hpp>
 #include <nihilus-incl/infra/jitter_generator.hpp>
 #include <algorithm>
@@ -72,9 +73,9 @@ namespace nihilus {
 
 	template<uint64_t index_new, typename config_type> struct model<index_new, config_type>
 		: public input_collector<config_type>, public thread_pool<config_type>, public tokenizer<config_type, config_type::model_arch, config_type::tokenizer_type> {
-		using thread_pool_type = thread_pool<config_type>;
-		using nihilus_cathedral_type  = get_nihilus_cathedral_t<config_type>;
-		using tokenizer_type   = tokenizer<config_type, config_type::model_arch, config_type::tokenizer_type>;
+		using thread_pool_type		 = thread_pool<config_type>;
+		using nihilus_cathedral_type = get_nihilus_cathedral_t<config_type>;
+		using tokenizer_type		 = tokenizer<config_type, config_type::model_arch, config_type::tokenizer_type>;
 
 		NIHILUS_HOST model() noexcept {
 		}
@@ -90,10 +91,9 @@ namespace nihilus {
 		NIHILUS_HOST bool process_input_impl(rt_string& input, [[maybe_unused]] uint64_t seed_new = 0) {
 			tokenizer_type::init_rng(seed_new);
 			input = input.size() > config_type::max_sequence_length ? input.substr(0, config_type::max_sequence_length) : input;
-			tokenizer_type::tokenizer_init(
-				this->template get_core<core_types::global_inputs>().values.template get_core<global_input_types::inp_tokens>().get_data());
-			using output_type = detail::remove_cvref_t<decltype(this->template get_core<core_types::global_inputs>()
-					.values.template get_core<global_input_types::inp_tokens>())>::output_type;
+			tokenizer_type::tokenizer_init(this->template get_core<core_types::global_inputs>().values.template get_core<global_input_types::inp_tokens>().get_data());
+			using output_type =
+				detail::remove_cvref_t<decltype(this->template get_core<core_types::global_inputs>().values.template get_core<global_input_types::inp_tokens>())>::output_type;
 			output_type val{ 1 };
 			memory_transfer<config_type>::host_to_device(val,
 				this->template get_core<core_types::global_inputs>().values.template get_core<global_input_types::inp_pos>().get_data() + 1);
@@ -106,10 +106,9 @@ namespace nihilus {
 
 		NIHILUS_HOST bool process_input_impl() {
 			input_collector<config_type>::read_multiline();
-			tokenizer_type::tokenizer_init(
-				this->template get_core<core_types::global_inputs>().values.template get_core<global_input_types::inp_tokens>().get_data());
-			using output_type = detail::remove_cvref_t<decltype(this->template get_core<core_types::global_inputs>()
-					.values.template get_core<global_input_types::inp_tokens>())>::output_type;
+			tokenizer_type::tokenizer_init(this->template get_core<core_types::global_inputs>().values.template get_core<global_input_types::inp_tokens>().get_data());
+			using output_type =
+				detail::remove_cvref_t<decltype(this->template get_core<core_types::global_inputs>().values.template get_core<global_input_types::inp_tokens>())>::output_type;
 			output_type val{ 1 };
 			memory_transfer<config_type>::host_to_device(val,
 				this->template get_core<core_types::global_inputs>().values.template get_core<global_input_types::inp_pos>().get_data() + 1);
@@ -134,7 +133,7 @@ namespace nihilus {
 			memory.init(nihilus_cathedral_memory_plan<config_type>.peak_allocated_bytes);
 			this->template impl<memory_mapper>(nihilus_cathedral_memory_plan<config_type>, memory);
 			array<array<void*, model_traits_type<config_type>::block_count>, weight_types::count> data{};
-			weight_mapper<config_type, core_traits_old<config_type, core_types::weights>>::impl(*static_cast<core_traits_old<config_type, core_types::weights>*>(this), data);
+			weight_mapper<config_type, core_traits<config_type, core_types::weights>>::impl(*static_cast<core_traits<config_type, core_types::weights>*>(this), data);
 
 			if constexpr (config_type::benchmark || config_type::dev) {
 				perf_base<config_type>::perf_stats.load_start = clock_type::now();
@@ -155,11 +154,11 @@ namespace nihilus {
 				++perf_base<config_type>::perf_stats.current_iteration;
 			}
 
-			exec_params.sequence_length = tokenizer_type::tokenize(input,
-				this->template get_core<core_types::global_inputs>().values.template get_core<global_input_types::inp_tokens>().get_data());
+			exec_params.sequence_length =
+				tokenizer_type::tokenize(input, this->template get_core<core_types::global_inputs>().values.template get_core<global_input_types::inp_tokens>().get_data());
 
-			using core_type_inp_pos = detail::remove_cvref_t<
-				decltype(this->template get_core<core_types::global_inputs>().values.template get_core<global_input_types::inp_pos>())>;
+			using core_type_inp_pos =
+				detail::remove_cvref_t<decltype(this->template get_core<core_types::global_inputs>().values.template get_core<global_input_types::inp_pos>())>;
 			static array<typename core_type_inp_pos::output_type, config_type::max_sequence_length> inp_pos_values{ [] {
 				array<typename core_type_inp_pos::output_type, config_type::max_sequence_length> return_values;
 				for (uint64_t x = 0; x < config_type::max_sequence_length; ++x) {
@@ -168,11 +167,10 @@ namespace nihilus {
 				return return_values;
 			}() };
 			memory_transfer<config_type>::host_to_device(inp_pos_values.data(),
-				this->template get_core<core_types::global_inputs>().values.template get_core<global_input_types::inp_pos>().get_data(),
-				exec_params.sequence_length);
+				this->template get_core<core_types::global_inputs>().values.template get_core<global_input_types::inp_pos>().get_data(), exec_params.sequence_length);
 
-			using core_type_inp_out_ids = detail::remove_cvref_t<
-				decltype(this->template get_core<core_types::global_inputs>().values.template get_core<global_input_types::inp_out_ids>())>;
+			using core_type_inp_out_ids =
+				detail::remove_cvref_t<decltype(this->template get_core<core_types::global_inputs>().values.template get_core<global_input_types::inp_out_ids>())>;
 			memory_transfer<config_type>::host_to_device(static_cast<typename core_type_inp_out_ids::output_type>(exec_params.sequence_length - 1),
 				this->template get_core<core_types::global_inputs>().values.template get_core<global_input_types::inp_out_ids>().get_data());
 
@@ -250,12 +248,10 @@ namespace nihilus {
 		}
 
 		NIHILUS_HOST void generate_causal_mask() {
-			using core_type = detail::remove_cvref_t<
-				decltype(this->template get_core<core_types::global_inputs>().values.template get_core<global_input_types::kq_mask>())>;
+			using core_type	  = detail::remove_cvref_t<decltype(this->template get_core<core_types::global_inputs>().values.template get_core<global_input_types::kq_mask>())>;
 			using output_type = typename core_type::output_type;
 
-			output_type* mask_data =
-				this->template get_core<core_types::global_inputs>().values.template get_core<global_input_types::kq_mask>().get_data();
+			output_type* mask_data	   = this->template get_core<core_types::global_inputs>().values.template get_core<global_input_types::kq_mask>().get_data();
 			static constexpr auto dims = core_type::get_array();
 			const uint64_t total_dims  = dims[0] * dims[1] * dims[2] * dims[3];
 			output_type value{};
@@ -367,37 +363,37 @@ namespace nihilus {
 			return;
 		}
 
-		rt_array<size_t, batch_size> indices(active_count);
-		for (size_t i = 0; i < active_count; ++i)
+		rt_array<uint64_t, batch_size> indices(active_count);
+		for (uint64_t i = 0; i < active_count; ++i)
 			indices[i] = i;
 
-		std::sort(indices.begin(), indices.end(), [&](size_t a, size_t b) {
+		std::sort(indices.begin(), indices.end(), [&](uint64_t a, uint64_t b) {
 			return metadata[a].request_ptr->prompt_length < metadata[b].request_ptr->prompt_length;
 		});
 
 		uint64_t max_len = metadata[indices.back()].request_ptr->prompt_length;
 
-		size_t num_buckets;
+		uint64_t num_buckets;
 		if (max_len < 512 || active_count < 6) {
-			num_buckets = detail::min(size_t(2), active_count);
+			num_buckets = detail::min(uint64_t(2), active_count);
 		} else if (max_len < 2048) {
-			num_buckets = detail::min(size_t(3) + active_count / 20, active_count);
+			num_buckets = detail::min(uint64_t(3) + active_count / 20, active_count);
 		} else if (max_len < 8192) {
-			num_buckets = detail::min(size_t(5) + active_count / 15, active_count);
+			num_buckets = detail::min(uint64_t(5) + active_count / 15, active_count);
 		} else {
-			num_buckets = detail::min(size_t(8) + active_count / 10, active_count);
+			num_buckets = detail::min(uint64_t(8) + active_count / 10, active_count);
 		}
 
-		num_buckets = std::clamp(num_buckets, size_t(1), detail::min(size_t(12), active_count));
+		num_buckets = std::clamp(num_buckets, uint64_t(1), detail::min(uint64_t(12), active_count));
 
-		rt_array<rt_array<size_t, batch_size>, batch_size> dp(active_count + 1, rt_array<uint64_t, batch_size>(num_buckets + 1, std::numeric_limits<uint64_t>::max()));
-		rt_array<rt_array<size_t, batch_size>, batch_size> splits(active_count + 1, rt_array<uint64_t, batch_size>(num_buckets + 1, 0));
+		rt_array<rt_array<uint64_t, batch_size>, batch_size> dp(active_count + 1, rt_array<uint64_t, batch_size>(num_buckets + 1, std::numeric_limits<uint64_t>::max()));
+		rt_array<rt_array<uint64_t, batch_size>, batch_size> splits(active_count + 1, rt_array<uint64_t, batch_size>(num_buckets + 1, 0));
 
 		dp[0][0] = 0;
 
-		for (size_t i = 1; i <= active_count; ++i) {
-			for (size_t k = 1; k <= detail::min(i, num_buckets); ++k) {
-				for (size_t j = k - 1; j < i; ++j) {
+		for (uint64_t i = 1; i <= active_count; ++i) {
+			for (uint64_t k = 1; k <= detail::min(i, num_buckets); ++k) {
+				for (uint64_t j = k - 1; j < i; ++j) {
 					if (dp[j][k - 1] == std::numeric_limits<uint64_t>::max())
 						continue;
 
@@ -413,9 +409,9 @@ namespace nihilus {
 			}
 		}
 
-		rt_array<size_t, batch_size> split_points{ num_buckets };
-		size_t pos = active_count;
-		size_t k   = num_buckets;
+		rt_array<uint64_t, batch_size> split_points{ num_buckets };
+		uint64_t pos = active_count;
+		uint64_t k	 = num_buckets;
 
 		while (pos > 0 && k > 0) {
 			split_points.emplace_back(splits[pos][k]);
@@ -426,16 +422,16 @@ namespace nihilus {
 		std::reverse(split_points.begin(), split_points.end());
 		split_points.emplace_back(active_count);
 
-		size_t start				= 0;
+		uint64_t start				= 0;
 		manager.active_bucket_count = 0;
 
-		for (size_t end: split_points) {
+		for (uint64_t end: split_points) {
 			if (end > start) {
 				auto& bucket				= manager.buckets[manager.active_bucket_count];
 				bucket.active_request_count = 0;
 				bucket.max_length			= 0;
 
-				for (size_t i = start; i < end; ++i) {
+				for (uint64_t i = start; i < end; ++i) {
 					bucket.requests[bucket.active_request_count++] = metadata[indices[i]];
 					bucket.max_length							   = detail::max(bucket.max_length, metadata[indices[i]].request_ptr->prompt_length);
 				}
@@ -618,16 +614,15 @@ namespace nihilus {
 				logger<log_levels::status>::log("[Processor] Thread stopped");
 			}
 		}
-		
+
 		NIHILUS_HOST void prep_input_impl(batch_request_metadata<request_type>& request) {
-			auto& inp_pos_ref	 = this->template get_core<core_types::global_inputs>().values.template get_core<global_input_types::inp_pos>();
-			auto& inp_tokens_ref = this->template get_core<core_types::global_inputs>().values.template get_core<global_input_types::inp_tokens>();
-			auto& inp_out_ids_ref =
-				this->template get_core<core_types::global_inputs>().values.template get_core<global_input_types::inp_out_ids>();
+			auto& inp_pos_ref	  = this->template get_core<core_types::global_inputs>().values.template get_core<global_input_types::inp_pos>();
+			auto& inp_tokens_ref  = this->template get_core<core_types::global_inputs>().values.template get_core<global_input_types::inp_tokens>();
+			auto& inp_out_ids_ref = this->template get_core<core_types::global_inputs>().values.template get_core<global_input_types::inp_out_ids>();
 			tokenizer_type::init_rng(request.request_ptr->seed);
 			tokenizer_type::tokenizer_init(inp_tokens_ref.get_data() + request.input_token_offset);
-			using output_type = detail::remove_cvref_t<decltype(this->template get_core<core_types::global_inputs>()
-					.values.template get_core<global_input_types::inp_tokens>())>::output_type;
+			using output_type =
+				detail::remove_cvref_t<decltype(this->template get_core<core_types::global_inputs>().values.template get_core<global_input_types::inp_tokens>())>::output_type;
 			output_type val{ 1 };
 			memory_transfer<config_type>::host_to_device(val, inp_pos_ref.get_data() + 1 + request.input_token_offset);
 			memory_transfer<config_type>::host_to_device(val, inp_out_ids_ref.get_data() + request.input_token_offset);

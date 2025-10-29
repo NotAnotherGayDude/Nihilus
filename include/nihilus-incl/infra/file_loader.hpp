@@ -27,18 +27,11 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-	template<typename config_type> struct file_loader;
-
-	template<cpu_device_config_types config_type> struct file_loader<config_type> : memory_mapped_file<config_type> {
+	template<typename config_type> struct file_loader : memory_mapped_file<config_type> {
 		NIHILUS_HOST file_loader() noexcept {
 		}
 		NIHILUS_HOST file_loader(std::string_view path, uint64_t file_offset_new = 0) : memory_mapped_file<config_type>{ path, file_offset_new } {
 		}
-	};
-
-	template<gpu_device_config_types config_type> struct file_loader<config_type> : memory_mapped_file<config_type> {
-		NIHILUS_HOST file_loader() noexcept {}
-		NIHILUS_HOST file_loader(std::string_view path, uint64_t file_offset_new = 0) : memory_mapped_file<config_type>{ path, file_offset_new } {}
 	};
 
 }

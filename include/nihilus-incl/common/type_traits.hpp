@@ -31,41 +31,13 @@ namespace nihilus {
 	}
 
 	template<typename derived_type> struct type_traits_base {
-		NIHILUS_HOST static constexpr uint64_t row_size(uint64_t ne) {
-			return derived_type::type_size * ne / derived_type::block_size;
-		}
-
-		NIHILUS_HOST static constexpr uint64_t total_byte_size(const array<uint64_t, 4>& dims) {
-			array<uint64_t, 4> strides{};
-			strides[0] = derived_type::type_size;
-			strides[1] = strides[0] * (dims[0] / derived_type::block_size);
-			for (int32_t i = 2; i < 4; i++) {
-				strides[i] = strides[i - 1] * dims[i - 1];
-			}
-			uint64_t nbytes{};
-			uint64_t blck_size = derived_type::block_size;
-			if (blck_size == 1) {
-				nbytes = derived_type::type_size;
-				for (uint64_t i = 0; i < 4; ++i) {
-					nbytes += (dims[i] - 1) * strides[i];
-				}
+		NIHILUS_HOST static constexpr uint64_t total_byte_size(const array<uint64_t, 4>& dims_new) {
+			uint64_t element_count{ count_elements(dims_new) };
+			if constexpr (derived_type::block_size == 1) {
+				return element_count * derived_type::type_size;
 			} else {
-				nbytes = dims[0] * strides[0] / blck_size;
-				for (uint64_t i = 1; i < 4; ++i) {
-					nbytes += (dims[i] - 1) * strides[i];
-				}
+				return (element_count + derived_type::block_size - 1) / derived_type::block_size * derived_type::type_size;
 			}
-			return nbytes;
-		}
-
-		NIHILUS_HOST constexpr static array<uint64_t, 4> get_strides(const array<uint64_t, 4>& dims) {
-			array<uint64_t, 4> return_values{};
-			return_values[0] = derived_type::type_size;
-			return_values[1] = return_values[0] * (dims[0] / derived_type::block_size);
-			for (int32_t i = 2; i < 4; i++) {
-				return_values[i] = return_values[i - 1] * dims[i - 1];
-			}
-			return return_values;
 		}
 	};
 
@@ -75,33 +47,6 @@ namespace nihilus {
 		bool is_quantized{};
 		uint64_t n_rows{};
 		data_types data_type{};
-
-		NIHILUS_HOST constexpr uint64_t row_size(uint64_t ne) const {
-			return type_size * ne / block_size;
-		}
-
-		NIHILUS_DEVICE constexpr uint64_t total_byte_size(const array<uint64_t, 4>& dims) const {
-			array<uint64_t, 4> strides{};
-			strides[0] = type_size;
-			strides[1] = strides[0] * (dims[0] / block_size);
-			for (int32_t i = 2; i < 4; i++) {
-				strides[i] = strides[i - 1] * dims[i - 1];
-			}
-			uint64_t nbytes{};
-			uint64_t blck_size = block_size;
-			if (blck_size == 1) {
-				nbytes = type_size;
-				for (uint64_t i = 0; i < 4; ++i) {
-					nbytes += (dims[i] - 1) * strides[i];
-				}
-			} else {
-				nbytes = dims[0] * strides[0] / blck_size;
-				for (uint64_t i = 1; i < 4; ++i) {
-					nbytes += (dims[i] - 1) * strides[i];
-				}
-			}
-			return nbytes;
-		}
 	};
 
 	template<typename data_types> struct type_traits;
@@ -112,13 +57,13 @@ namespace nihilus {
 			return_values.block_size   = derived_type::block_size;
 			return_values.is_quantized = derived_type::is_quantized;
 			return_values.n_rows	   = derived_type::n_rows;
-			return_values.data_type		   = derived_type::data_type;
+			return_values.data_type	   = derived_type::data_type;
 			return_values.type_size	   = derived_type::type_size;
 			return return_values;
 		}
 	};
 
-	template<integral8_types value_type_new> struct type_traits<value_type_new> : public type_traits_base<type_traits<value_type_new>>,
+	template<integral8_types value_type_new> struct type_traits<value_type_new> : public type_traits_base<type_traits<detail::remove_cvref_t<value_type_new>>>,
 																				  public get_dynamic_type_traits<type_traits<value_type_new>> {
 		using value_type = value_type_new;
 		using quant_type = value_type;
@@ -129,7 +74,7 @@ namespace nihilus {
 		inline static constexpr uint64_t n_rows{ 1 };
 	};
 
-	template<integral16_types value_type_new> struct type_traits<value_type_new> : public type_traits_base<type_traits<value_type_new>>,
+	template<integral16_types value_type_new> struct type_traits<value_type_new> : public type_traits_base<type_traits<detail::remove_cvref_t<value_type_new>>>,
 																				   public get_dynamic_type_traits<type_traits<value_type_new>> {
 		using value_type = value_type_new;
 		using quant_type = value_type;
@@ -140,7 +85,7 @@ namespace nihilus {
 		inline static constexpr uint64_t n_rows{ 1 };
 	};
 
-	template<integral32_types value_type_new> struct type_traits<value_type_new> : public type_traits_base<type_traits<value_type_new>>,
+	template<integral32_types value_type_new> struct type_traits<value_type_new> : public type_traits_base<type_traits<detail::remove_cvref_t<value_type_new>>>,
 																				   public get_dynamic_type_traits<type_traits<value_type_new>> {
 		using value_type = value_type_new;
 		using quant_type = value_type;
@@ -151,7 +96,7 @@ namespace nihilus {
 		inline static constexpr uint64_t n_rows{ 1 };
 	};
 
-	template<integral64_types value_type_new> struct type_traits<value_type_new> : public type_traits_base<type_traits<value_type_new>>,
+	template<integral64_types value_type_new> struct type_traits<value_type_new> : public type_traits_base<type_traits<detail::remove_cvref_t<value_type_new>>>,
 																				   public get_dynamic_type_traits<type_traits<value_type_new>> {
 		using value_type = value_type_new;
 		using quant_type = value_type;
@@ -171,6 +116,28 @@ namespace nihilus {
 		inline static constexpr uint64_t block_size{ 1 };
 		inline static constexpr uint64_t n_rows{ 1 };
 	};
+
+	template<> struct type_traits<bf16_t> : public type_traits_base<type_traits<bf16_t>>, public get_dynamic_type_traits<type_traits<bf16_t>> {
+		using value_type = bf16_t;
+		using quant_type = bf16_t;
+		inline static constexpr data_types data_type{ data_types::bf16 };
+		inline static constexpr uint64_t type_size{ sizeof(bf16_t) };
+		inline static constexpr bool is_quantized{ false };
+		inline static constexpr uint64_t block_size{ 1 };
+		inline static constexpr uint64_t n_rows{ 1 };
+	};
+
+#if NIHILUS_COMPILER_CUDA
+	template<> struct type_traits<fp16_t> : public type_traits_base<type_traits<fp16_t>>, public get_dynamic_type_traits<type_traits<fp16_t>> {
+		using value_type = fp16_t;
+		using quant_type = fp16_t;
+		inline static constexpr data_types data_type{ data_types::f16 };
+		inline static constexpr uint64_t type_size{ sizeof(fp16_t) };
+		inline static constexpr bool is_quantized{ false };
+		inline static constexpr uint64_t block_size{ 1 };
+		inline static constexpr uint64_t n_rows{ 1 };
+	};
+#endif
 
 	template<> struct type_traits<double> : public type_traits_base<type_traits<double>>, public get_dynamic_type_traits<type_traits<double>> {
 		using value_type = double;
@@ -200,18 +167,6 @@ namespace nihilus {
 		inline static constexpr uint64_t n_rows{ 0 };
 	};
 
-	template<typename value_type> NIHILUS_HOST uint64_t get_runtime_byte_size(value_type& core) {
-		array<uint64_t, 4> dims{};
-		dims[0] = core[0];
-		dims[1] = core[1];
-		dims[2] = core[2];
-		dims[3] = core[3];
-		if constexpr (value_type::runtime_dim != 5) {
-			dims[value_type::runtime_dim] = core.get_seq_length_dim();
-		}
-		return type_traits<typename value_type::output_type>::total_byte_size(dims);
-	}
-
 	template<typename enum_type> NIHILUS_HOST_DEVICE constexpr type_traits_dynamic get_type_traits(enum_type data_type) {
 		switch (static_cast<uint64_t>(data_type)) {
 			case static_cast<uint64_t>(enum_type::f64): {
@@ -237,6 +192,9 @@ namespace nihilus {
 			}
 			case static_cast<uint64_t>(enum_type::i8): {
 				return type_traits<int8_t>::get_dynamic_type_traits_impl();
+			}
+			case static_cast<uint64_t>(enum_type::bf16): {
+				return type_traits<bf16_t>::get_dynamic_type_traits_impl();
 			}
 			default: {
 				return {};

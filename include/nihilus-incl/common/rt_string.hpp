@@ -37,6 +37,8 @@ namespace nihilus {
 		using reverse_iterator		 = std::reverse_iterator<iterator>;
 		using const_reverse_iterator = std::reverse_iterator<const_iterator>;
 
+		static constexpr uint64_t npos{ std::numeric_limits<uint64_t>::max() };
+
 		NIHILUS_HOST constexpr rt_string_view() {
 		}
 
@@ -81,41 +83,49 @@ namespace nihilus {
 			return { data_val + offset_new, count_new };
 		}
 
-		NIHILUS_HOST auto begin() const {
+		NIHILUS_HOST constexpr auto begin() const {
 			return const_iterator{ data_val };
 		}
 
-		NIHILUS_HOST auto end() const {
+		NIHILUS_HOST constexpr auto end() const {
 			return const_iterator{ data_val + size_val };
 		}
 
-		NIHILUS_HOST const_reference operator[](size_type index) const {
+		NIHILUS_HOST constexpr const_reference operator[](size_type index) const {
 			return data_val[index];
 		}
 
-		NIHILUS_HOST bool empty() const {
+		NIHILUS_HOST constexpr bool empty() const {
 			return size_val == 0;
 		}
 
-		NIHILUS_HOST void swap(rt_string_view& other) {
+		NIHILUS_HOST constexpr void swap(rt_string_view& other) {
 			std::swap(data_val, other.data_val);
 			std::swap(size_val, other.size_val);
 		}
 
-		NIHILUS_HOST size_type size() const {
+		NIHILUS_HOST constexpr size_type size() const {
 			return size_val;
 		}
 
-		NIHILUS_HOST const_pointer data() const {
+		NIHILUS_HOST constexpr const_pointer data() const {
 			return data_val;
 		}
 
-		NIHILUS_HOST bool operator==(const rt_string_view& other) const {
+		NIHILUS_HOST constexpr bool operator==(const rt_string_view& other) const {
 			if (size_val == other.size_val) {
 				return comparison::compare(data_val, other.data_val, size_val);
 			} else {
 				return false;
 			}
+		}
+
+		template<typename... value_type> NIHILUS_HOST constexpr size_type find(value_type&&... values_to_find) const {
+			return operator std::string_view().find(detail::forward<value_type>(values_to_find)...);
+		}
+
+		template<typename value_type> NIHILUS_HOST constexpr bool starts_with(value_type&& values_to_find) const {
+			return operator std::string_view().starts_with(values_to_find);
 		}
 
 		NIHILUS_HOST uint64_t find_first_non_whitespace() const {
@@ -130,7 +140,7 @@ namespace nihilus {
 			return alpha_search::find_first_not_of(data_val, size_val);
 		}
 
-		NIHILUS_HOST operator std::string_view() const {
+		NIHILUS_HOST constexpr operator std::string_view() const {
 			return { data_val, size_val };
 		}
 
@@ -157,7 +167,7 @@ namespace nihilus {
 		using allocator_type		 = allocator<value_type>;
 		using allocator_traits		 = std::allocator_traits<allocator_type>;
 
-		NIHILUS_HOST rt_string() {
+		NIHILUS_HOST_DEVICE rt_string() {
 		}
 
 		NIHILUS_HOST rt_string(char value) {
@@ -402,6 +412,26 @@ namespace nihilus {
 		size_type capacity_val{};
 		size_type size_val{};
 		pointer data_val{};
+	};
+
+	NIHILUS_HOST std::ostream& operator<<(std::ostream& os, const rt_string_view& other) {
+		os << other.operator std::string_view();
+		return os;
+	}
+
+	NIHILUS_HOST std::ostream& operator<<(std::ostream& os, const rt_string& other) {
+		os << other.operator std::string_view();
+		return os;
+	}
+
+}
+
+namespace std {
+
+	template<> struct hash<nihilus::rt_string_view> : hash<std::string_view> {
+		NIHILUS_HOST uint64_t operator()(const nihilus::rt_string_view& other) const {
+			return hash<std::string_view>::operator()(other.operator std::basic_string_view<char, std::char_traits<char>>());
+		}
 	};
 
 }

@@ -26,13 +26,13 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-	template<auto multiple, typename value_01_type = decltype(multiple)> NIHILUS_HOST constexpr value_01_type round_up_to_multiple(value_01_type value) noexcept {
+	template<auto multiple, typename value_type_01 = decltype(multiple)> NIHILUS_HOST constexpr value_type_01 round_up_to_multiple(value_type_01 value) noexcept {
 		if constexpr ((multiple & (multiple - 1)) == 0) {
-			constexpr value_01_type mulSub1{ multiple - 1 };
-			constexpr value_01_type notMulSub1{ static_cast<value_01_type>(~mulSub1) };
+			constexpr value_type_01 mulSub1{ multiple - 1 };
+			constexpr value_type_01 notMulSub1{ static_cast<value_type_01>(~mulSub1) };
 			return (value + (mulSub1)) & notMulSub1;
 		} else {
-			const value_01_type remainder = value % multiple;
+			const value_type_01 remainder = value % multiple;
 			return remainder == 0 ? value : value + (multiple - remainder);
 		}
 	}
@@ -52,7 +52,7 @@ namespace nihilus {
 			using other = allocator<U>;
 		};
 
-		NIHILUS_HOST allocator() noexcept {
+		NIHILUS_HOST_DEVICE allocator() noexcept {
 		}
 
 		template<typename U> NIHILUS_HOST allocator(const allocator<U>&) noexcept {

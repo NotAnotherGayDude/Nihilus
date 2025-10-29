@@ -26,7 +26,7 @@ namespace nihilus {
 
 	template<typename config_type, typename... bases> struct nihilus_cathedral : public bases... {
 		using bases::operator[]...;
-		NIHILUS_HOST nihilus_cathedral() {
+		NIHILUS_HOST constexpr nihilus_cathedral() {
 		}
 		nihilus_cathedral& operator=(nihilus_cathedral&&)	   = delete;
 		nihilus_cathedral(nihilus_cathedral&&)				   = delete;
@@ -34,6 +34,10 @@ namespace nihilus {
 		nihilus_cathedral(const nihilus_cathedral&)			   = delete;
 
 		static constexpr uint64_t size{ sizeof...(bases) };
+
+		template<template<typename, typename> typename mixin_type, typename... arg_types> NIHILUS_HOST constexpr void impl(arg_types&&... args) const noexcept {
+			(impl_internal_filtered<mixin_type, bases>(detail::forward<arg_types>(args)...), ...);
+		}
 
 		template<template<typename, typename> typename mixin_type, typename... arg_types> NIHILUS_HOST constexpr void impl(arg_types&&... args) noexcept {
 			(impl_internal_filtered<mixin_type, bases>(detail::forward<arg_types>(args)...), ...);
@@ -49,6 +53,13 @@ namespace nihilus {
 		}
 
 	  protected:
+		template<template<typename, typename> typename mixin_type, typename base_type, typename... arg_types>
+		NIHILUS_HOST constexpr void impl_internal_filtered([[maybe_unused]] arg_types&&... args) const noexcept {
+			if constexpr (mixin_type<config_type, base_type>::filter()) {
+				mixin_type<config_type, base_type>::impl(*static_cast<const typename base_type::derived_type*>(this), detail::forward<arg_types>(args)...);
+			}
+		}
+
 		template<template<typename, typename> typename mixin_type, typename base_type, typename... arg_types>
 		NIHILUS_HOST constexpr void impl_internal_filtered([[maybe_unused]] arg_types&&... args) noexcept {
 			if constexpr (mixin_type<config_type, base_type>::filter()) {
@@ -79,6 +90,20 @@ namespace nihilus {
 
 	template<typename config_type, typename enum_type, template<typename, enum_type> typename base_type> using get_nihilus_cathedral_enum_t =
 		typename get_nihilus_cathedral_enum<config_type, enum_type, base_type, std::make_index_sequence<static_cast<uint64_t>(enum_type::count)>>::type;
+
+	template<typename config_type, typename enum_type, auto enum_value_new, template<typename, auto> typename aggregator_type, template<enum_type, typename...> typename base_type,
+		typename... value_type>
+	struct get_nihilus_cathedral_array;
+
+	template<typename config_type, typename enum_type, auto enum_value_new, template<typename, auto> typename aggregator_type, template<enum_type, typename...> typename base_type,
+		size_t... index>
+	struct get_nihilus_cathedral_array<config_type, enum_type, enum_value_new, aggregator_type, base_type, std::index_sequence<index...>> {
+		using type = nihilus_cathedral<config_type, base_type<static_cast<enum_type>(aggregator_type<config_type, enum_value_new>::values[index]), config_type>...>;
+	};
+
+	template<typename config_type, typename enum_type, auto enum_value_new, template<typename, auto> typename aggregator_type, template<enum_type, typename...> typename base_type>
+	using get_nihilus_cathedral_array_t = detail::remove_cvref_t<typename get_nihilus_cathedral_array<config_type, enum_type, enum_value_new, aggregator_type, base_type,
+		std::make_index_sequence<static_cast<uint64_t>(aggregator_type<config_type, enum_value_new>::values.size())>>::type>;
 
 	template<typename config_type> static constexpr memory_plan nihilus_cathedral_memory_plan{ []() {
 		return get_memory_plan<config_type>();
