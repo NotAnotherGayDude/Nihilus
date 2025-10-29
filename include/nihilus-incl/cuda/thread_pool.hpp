@@ -33,9 +33,9 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-	template<gpu_device_config_types config_type> struct thread_pool<config_type> : public get_nihilus_cathedral_enum_t<config_type, core_types, core_traits_old>,
+	template<gpu_device_config_types config_type> struct thread_pool<config_type> : public get_nihilus_cathedral_enum_t<config_type, core_types, core_traits>,
 																					public perf_base<config_type> {
-		using nihilus_cathedral_type = get_nihilus_cathedral_enum_t<config_type, core_types, core_traits_old>;
+		using nihilus_cathedral_type = get_nihilus_cathedral_enum_t<config_type, core_types, core_traits>;
 		NIHILUS_HOST thread_pool() noexcept {
 		}
 		NIHILUS_HOST thread_pool& operator=(const thread_pool&) noexcept = delete;

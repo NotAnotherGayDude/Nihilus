@@ -29,8 +29,6 @@ namespace nihilus {
 
 	using half	   = int16_t;
 	using half2	   = int32_t;
-	using fp16_t   = int16_t;
-	using bf16_t   = int16_t;
 	using float_32 = float;
 	using float_64 = double;
 	using token	   = int32_t;
@@ -42,6 +40,14 @@ namespace nihilus {
 		int8_t qs[Q_SIZE];
 	};
 	static_assert(sizeof(block_q8_0<half>) == sizeof(half) + Q_SIZE, "Wrong q8_0 block size/padding.");
+
+	template<typename half_type> struct block_q4_k {
+		using scale_type = half_type;
+		using quant_type = uint8_t;
+		half_type d;
+		uint8_t qs[Q_SIZE / 2];
+	};
+	static_assert(sizeof(block_q4_k<half>) == sizeof(half) + Q_SIZE / 2, "Wrong q4_k block size/padding.");
 
 	NIHILUS_HOST static std::ostream& operator<<(std::ostream& os, const block_q8_0<half>& other) {
 		static constexpr auto size{ sizeof(other.qs) };

@@ -190,11 +190,11 @@ namespace nihilus {
 #endif
 
 	template<typename value_type>
-	concept nihilus_simd_512_types = std::same_as<nihilus_simd_int_512_t, detail::remove_cvref_t<value_type>>;
+	concept nihilus_simd_512_types = detail::same_as<nihilus_simd_int_512_t, detail::remove_cvref_t<value_type>>;
 	template<typename value_type>
-	concept nihilus_simd_256_types = std::same_as<nihilus_simd_int_256_t, detail::remove_cvref_t<value_type>>;
+	concept nihilus_simd_256_types = detail::same_as<nihilus_simd_int_256_t, detail::remove_cvref_t<value_type>>;
 	template<typename value_type>
-	concept nihilus_simd_128_types = std::same_as<nihilus_simd_int_128_t, detail::remove_cvref_t<value_type>>;
+	concept nihilus_simd_128_types = detail::same_as<nihilus_simd_int_128_t, detail::remove_cvref_t<value_type>>;
 
 	template<uint_types value_type> NIHILUS_HOST static constexpr value_type tzcnt_constexpr(value_type value) noexcept {
 		if (value == 0) {

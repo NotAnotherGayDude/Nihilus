@@ -560,6 +560,7 @@ namespace nihilus {
 	template<typename core_traits_type>
 		requires(core_traits_type::kernel_profile_type::type == kernel_type_profiles::q8_gqa)
 	NIHILUS_GLOBAL void token_embeddings_prompt_eval_time(uint64_t sequence_length, typename core_traits_type::kernel_data_ptrs_type params) {
+		/*
 		using weight_type  = const typename core_traits_type::kernel_profile_type::weight_type;
 		using index_type   = const typename core_traits_type::kernel_profile_type::index_type;
 		using compute_type = typename core_traits_type::kernel_profile_type::compute_type;
@@ -597,12 +598,13 @@ namespace nihilus {
 					dst_row[base_offset + j] = scale * static_cast<compute_type>(quantized[j]);
 				}
 			}
-		}
+		}*/
 	}
 
 	template<typename core_traits_type>
 		requires(core_traits_type::kernel_profile_type::type == kernel_type_profiles::fp16_mha)
 	NIHILUS_GLOBAL void token_embeddings_prompt_eval_time(uint64_t sequence_length, typename core_traits_type::kernel_data_ptrs_type params) {
+		/*
 		using weight_type  = const typename core_traits_type::kernel_profile_type::weight_type;
 		using index_type   = const typename core_traits_type::kernel_profile_type::index_type;
 		using compute_type = typename core_traits_type::kernel_profile_type::compute_type;
@@ -631,12 +633,13 @@ namespace nihilus {
 		for (uint64_t block_idx = thread_id; block_idx < blocks_per_embedding; block_idx += threads_per_block) {
 			const uint64_t base_offset = block_idx * block_size;
 			dst_row[base_offset]	   = src_row[block_idx];
-		}
+		}*/
 	}
 
 	template<typename config_type, typename core_traits_type>
 	struct kernel_dispatcher_impl<config_type, core_traits_type, device_types::gpu, 4, core_types::token_embeddings, processing_phases::prompt_eval_time> {
 		NIHILUS_HOST static void impl(core_traits_type& params) {
+			/*
 			auto& get_rows_op = params.values.template get_core<token_embeddings_types::get_rows>();
 
 			const uint64_t sequence_length = get_rows_op.get_seq_length_dim();
@@ -684,13 +687,14 @@ namespace nihilus {
 						nihilus_exception<config_type::exceptions, "Cuda Synchronization Error: ", location>::impl(cudaGetErrorString(err));
 					}
 				}
-			}
+			}*/
 		}
 	};
 
 	template<typename core_traits_type>
 		requires(core_traits_type::kernel_profile_type::type == kernel_type_profiles::q8_gqa)
 	NIHILUS_GLOBAL void token_embeddings_eval_time(uint64_t sequence_length, typename core_traits_type::kernel_data_ptrs_type params) {
+		/*
 		using weight_type  = half;
 		using index_type   = uint32_t;
 		using compute_type = half;
@@ -718,12 +722,13 @@ namespace nihilus {
 					output_data[base_offset + j] = scale * static_cast<compute_type>(quantized[j]);
 				}
 			}
-		}
+		}*/
 	}
 
 	template<typename core_traits_type>
 		requires(core_traits_type::kernel_profile_type::type == kernel_type_profiles::fp16_mha)
 	NIHILUS_GLOBAL void token_embeddings_eval_time(uint64_t sequence_length, typename core_traits_type::kernel_data_ptrs_type params) {
+		/*
 		using weight_type  = half;
 		using index_type   = uint32_t;
 		using compute_type = half;
@@ -750,12 +755,12 @@ namespace nihilus {
 		const uint64_t remainder_start = vec_length * elems_per_vec;
 		for (uint64_t i = remainder_start + thread_id; i < embedding_length; i += threads_per_block) {
 			output_data[i] = weight_data[i];
-		}
+		}*/
 	}
 
 	template<typename config_type, typename core_traits_type>
 	struct kernel_dispatcher_impl<config_type, core_traits_type, device_types::gpu, 4, core_types::token_embeddings, processing_phases::eval_time> {
-		NIHILUS_HOST static void impl(core_traits_type& params) {
+		NIHILUS_HOST static void impl(core_traits_type& params) {/*
 			auto& get_rows_op			   = params.values.template get_core<token_embeddings_types::get_rows>();
 			auto& weights_core			   = get_adjacent_value<typename core_traits_type::config_type, core_types::weights>::impl(params);
 			auto& inputs_core			   = get_adjacent_value<typename core_traits_type::config_type, core_types::global_inputs>::impl(params);
@@ -796,7 +801,7 @@ namespace nihilus {
 					static constexpr auto location = std::source_location::current();
 					nihilus_exception<config_type::exceptions, "Cuda Synchronization Error: ", location>::impl(cudaGetErrorString(err));
 				}
-			}
+			}*/
 		}
 	};
 
@@ -807,6 +812,7 @@ namespace nihilus {
 	template<typename config_type, typename core_traits_type>
 	struct kernel_dispatcher_impl<config_type, core_traits_type, device_types::gpu, 4, core_types::mega_qkv_prep_and_cache_publish, processing_phases::prompt_eval_time> {
 		NIHILUS_HOST static void impl(core_traits_type& params, int64_t current_block) {
+			/*
 			auto& q_out_op		  = params.values.template get_core<mega_qkv_prep_and_cache_publish_types::q_out>();
 			auto& weights_core	  = get_adjacent_value<typename core_traits_type::config_type, core_types::weights>::impl(params);
 			auto& inputs_core	  = get_adjacent_value<typename core_traits_type::config_type, core_types::global_inputs>::impl(params);
@@ -853,7 +859,7 @@ namespace nihilus {
 						nihilus_exception<config_type::exceptions, "Cuda Synchronization Error: ", location>::impl(cudaGetErrorString(err));
 					}
 				}
-			}
+			}*/
 		}
 	};
 
@@ -864,6 +870,7 @@ namespace nihilus {
 	template<typename config_type, typename core_traits_type>
 	struct kernel_dispatcher_impl<config_type, core_traits_type, device_types::gpu, 4, core_types::mega_qkv_prep_and_cache_publish, processing_phases::eval_time> {
 		NIHILUS_HOST static void impl(core_traits_type& params, int64_t current_block) {
+			/*
 			auto& q_out_op		  = params.values.template get_core<mega_qkv_prep_and_cache_publish_types::q_out>();
 			auto& weights_core	  = get_adjacent_value<typename core_traits_type::config_type, core_types::weights>::impl(params);
 			auto& inputs_core	  = get_adjacent_value<typename core_traits_type::config_type, core_types::global_inputs>::impl(params);
@@ -911,7 +918,7 @@ namespace nihilus {
 					static constexpr auto location = std::source_location::current();
 					nihilus_exception<config_type::exceptions, "Cuda Synchronization Error: ", location>::impl(cudaGetErrorString(err));
 				}
-			}
+			}*/
 		}
 	};
 

@@ -49,6 +49,7 @@ RealTimeChris (Chris M.)
 #if NIHILUS_COMPILER_CUDA
 	#define NIHILUS_ALIGN(x) __align__(x)
 	#include <cuda_fp16.h>
+	#include <cuda_bf16.h>
 #else
 	#define NIHILUS_ALIGN(x) alignas(x)
 #endif
@@ -224,6 +225,7 @@ namespace nihilus {
 
 	enum class kernel_types : uint8_t {
 		weights,
+		global_inputs,
 		get_rows,
 		rms_norm,
 		mul,

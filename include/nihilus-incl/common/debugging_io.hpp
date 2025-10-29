@@ -443,7 +443,7 @@ namespace nihilus {
 	}
 
 	template<typename value_type>
-		requires(std::is_same_v<std::string, detail::remove_cvref_t<value_type>>)
+		requires(detail::is_same_v<std::string, detail::remove_cvref_t<value_type>>)
 	std::ostream& operator<<(std::ostream& os, const aligned_vector<value_type>& tensor) {
 		os << "[";
 		for (uint64_t x = 0; x < tensor.size(); ++x) {

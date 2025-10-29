@@ -29,7 +29,7 @@ namespace nihilus {
 	template<model_arches model_arch, model_sizes model_size, model_generations model_generation> struct model_traits;
 
 	template<> struct model_traits<model_arches::llama, model_sizes::llm_3B, model_generations::v3_2> {
-		static constexpr const char* name{ "llama-3.2-3B" };
+		static constexpr const char name[]{ "llama-3.2-3B" };
 		static constexpr auto model_arch{ model_arches::llama };
 		static constexpr auto model_generation{ model_generations::v3_2 };
 		static constexpr auto model_size{ model_sizes::llm_3B };
@@ -47,7 +47,7 @@ namespace nihilus {
 	};
 
 	template<> struct model_traits<model_arches::llama, model_sizes::llm_8B, model_generations::v3_1> {
-		static constexpr const char* name{ "llama-3.1-8B" };
+		static constexpr const char name[]{ "llama-3.1-8B" };
 		static constexpr auto model_arch{ model_arches::llama };
 		static constexpr auto model_generation{ model_generations::v3_1 };
 		static constexpr auto model_size{ model_sizes::llm_8B };
@@ -65,7 +65,7 @@ namespace nihilus {
 	};
 
 	template<> struct model_traits<model_arches::llama, model_sizes::llm_70B, model_generations::v3_1> {
-		static constexpr const char* name{ "llama-3.1-70B" };
+		static constexpr const char name[]{ "llama-3.1-70B" };
 		static constexpr auto model_arch{ model_arches::llama };
 		static constexpr auto model_generation{ model_generations::v3_1 };
 		static constexpr auto model_size{ model_sizes::llm_70B };
@@ -83,7 +83,7 @@ namespace nihilus {
 	};
 
 	template<> struct model_traits<model_arches::llama, model_sizes::llm_405B, model_generations::v3_1> {
-		static constexpr const char* name{ "llama-3.1-405B" };
+		static constexpr const char name[]{ "llama-3.1-405B" };
 		static constexpr auto model_arch{ model_arches::llama };
 		static constexpr auto model_generation{ model_generations::v3_1 };
 		static constexpr auto model_size{ model_sizes::llm_405B };

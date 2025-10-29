@@ -130,8 +130,8 @@ namespace nihilus {
 		benchmark_stats perf_stats{};
 	};
 
-	template<typename config_type> struct thread_pool : public get_nihilus_cathedral_enum_t<config_type, core_types, core_traits_old>, public perf_base<config_type> {
-		using nihilus_cathedral_type = get_nihilus_cathedral_enum_t<config_type, core_types, core_traits_old>;
+	template<typename config_type> struct thread_pool : public get_nihilus_cathedral_enum_t<config_type, core_types, core_traits>, public perf_base<config_type> {
+		using nihilus_cathedral_type = get_nihilus_cathedral_enum_t<config_type, core_types, core_traits>;
 		NIHILUS_HOST thread_pool() noexcept {
 		}
 		NIHILUS_HOST thread_pool& operator=(const thread_pool&) noexcept = delete;

@@ -157,7 +157,7 @@ namespace nihilus {
 		using allocator_type		 = allocator<value_type>;
 		using allocator_traits		 = std::allocator_traits<allocator_type>;
 
-		NIHILUS_HOST rt_string() {
+		NIHILUS_HOST_DEVICE rt_string() {
 		}
 
 		NIHILUS_HOST rt_string(char value) {

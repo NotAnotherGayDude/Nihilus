@@ -67,14 +67,14 @@ namespace nihilus {
 		if constexpr (current_index < max_index) {
 			values.footprints[current_index].offset				  = values.currently_allocated_bytes;
 			values.footprints[current_index].core_type			  = static_cast<core_types>(current_index);
-			values.footprints[current_index].depth				  = core_traits_old<config_type, static_cast<core_types>(current_index)>::depth;
+			values.footprints[current_index].depth				  = core_traits<config_type, static_cast<core_types>(current_index)>::depth;
 			values.footprints[current_index].is_active			  = true;
-			values.footprints[current_index].total_required_bytes = core_traits_old<config_type, static_cast<core_types>(current_index)>::total_required_bytes;
-			values.currently_allocated_bytes += core_traits_old<config_type, static_cast<core_types>(current_index)>::total_required_bytes;
+			values.footprints[current_index].total_required_bytes = core_traits<config_type, static_cast<core_types>(current_index)>::total_required_bytes;
+			values.currently_allocated_bytes += core_traits<config_type, static_cast<core_types>(current_index)>::total_required_bytes;
 			if (values.currently_allocated_bytes > values.peak_allocated_bytes) {
 				values.peak_allocated_bytes = values.currently_allocated_bytes;
 			}
-			constexpr uint64_t cur_depth = core_traits_old<config_type, static_cast<core_types>(current_index)>::depth;
+			constexpr uint64_t cur_depth = core_traits<config_type, static_cast<core_types>(current_index)>::depth;
 			if constexpr (cur_depth >= 2) {
 				for (int64_t x = 0; x < static_cast<int64_t>(current_index); ++x) {
 					if (is_valid_free_type(values.footprints[static_cast<uint64_t>(x)], cur_depth)) {
@@ -103,18 +103,18 @@ namespace nihilus {
 		NIHILUS_HOST static constexpr bool filter() {
 			return has_total_required_bytes_types<base_derived_type>;
 		}
-		NIHILUS_HOST static void impl(base_derived_type& core_traits_old, const memory_plan& plan, memory_buffer<config_type>& memory_buffer, uint64_t& internal_offset) {
+		NIHILUS_HOST static void impl(base_derived_type& core_traits, const memory_plan& plan, memory_buffer<config_type>& memory_buffer, uint64_t& internal_offset) {
 			using data_type = typename base_derived_type::output_type;
 			if constexpr (base_type::data_strategy_type == data_strategy_types::per_block) {
 				for (uint64_t x = 0; x < model_traits_type<config_type>::block_count; ++x) {
 					data_type* ptr	= static_cast<data_type*>(memory_buffer.claim_memory(plan.footprints[base_type::derived_type::core_type].offset + internal_offset));
-					internal_offset = core_traits_old.total_required_bytes;
-					core_traits_old.set_data(ptr, x);
+					internal_offset = core_traits.total_required_bytes;
+					core_traits.set_data(ptr, x);
 				}
 			} else {
 				data_type* ptr	= static_cast<data_type*>(memory_buffer.claim_memory(plan.footprints[base_type::derived_type::core_type].offset + internal_offset));
-				internal_offset = core_traits_old.total_required_bytes;
-				core_traits_old.set_data(ptr);
+				internal_offset = core_traits.total_required_bytes;
+				core_traits.set_data(ptr);
 			}
 		}
 	};
@@ -190,11 +190,15 @@ namespace nihilus {
 		NIHILUS_HOST dim_updater_impl(dim_updater_impl&&) noexcept				   = delete;
 		using base_type															   = base_type_new;
 		NIHILUS_HOST static constexpr bool filter() {
-			return runtime_dims_t<base_type>;
+			return runtime_dims_types<base_type>;
 		}
 
 		NIHILUS_HOST static void impl(base_type& parse_core, uint64_t runtime_dimension, uint64_t& total_required_bytes) {
-			parse_core.get_seq_length_dim()	   = runtime_dimension;
+			if constexpr ((base_type::runtime_mask & 2) != 0) {
+				parse_core.get_dims(tag<1>{}) = runtime_dimension;
+			} else if constexpr ((base_type::runtime_mask & 1) != 0) {
+				parse_core.get_dims(tag<0>{}) = runtime_dimension;
+			}
 			parse_core.total_required_bytes_rt = type_traits<typename base_type::output_type>::total_byte_size(parse_core.get_array_rt());
 			total_required_bytes += parse_core.total_required_bytes_rt;
 		}
@@ -232,10 +236,12 @@ namespace nihilus {
 		}
 
 		NIHILUS_HOST static void impl(base_type& parse_core, uint64_t sequence_length, uint64_t batch_size, uint64_t& total_required_bytes) {
-			if constexpr (base_type::runtime_dim_02 != 5) {
-				parse_core.get_seq_length_dim() = sequence_length;
+			if constexpr ((base_type::runtime_mask & 2) != 0) {
+				parse_core.get_dims(tag<1>{}) = sequence_length;
 			}
-			parse_core.get_batch_dim()		   = batch_size;
+			if constexpr ((base_type::runtime_mask & 1) != 0) {
+				parse_core.get_dims(tag<0>{}) = batch_size;
+			}
 			parse_core.total_required_bytes_rt = type_traits<typename base_type::output_type>::total_byte_size(parse_core.get_array_rt());
 			total_required_bytes += parse_core.total_required_bytes_rt;
 		}
@@ -269,23 +275,23 @@ namespace nihilus {
 		NIHILUS_HOST weight_mapper_impl(weight_mapper_impl&&) noexcept				   = delete;
 		using base_type																   = base_type_new;
 		NIHILUS_HOST static constexpr bool filter() {
-			return std::is_same_v<typename base_type::enum_type, weight_types>;
+			return detail::is_same_v<typename base_type::enum_type, weight_types>;
 		}
 
-		NIHILUS_HOST static void impl(base_type& core_traits_old, array<array<void*, model_traits_type<config_type>::block_count>, weight_types::count>& data) {
+		NIHILUS_HOST static void impl(base_type& core_traits, array<array<void*, model_traits_type<config_type>::block_count>, weight_types::count>& data) {
 			if constexpr (base_type::data_strategy_type == data_strategy_types::per_block) {
 				for (uint64_t x = 0; x < model_traits_type<config_type>::block_count; ++x) {
-					data[base_type::enum_value][x] = static_cast<void*>(core_traits_old.get_data_ptr(x));
+					data[base_type::enum_value][x] = static_cast<void*>(core_traits.get_data_ptr(x));
 				}
 			} else {
-				data[base_type::enum_value][0] = static_cast<void*>(core_traits_old.get_data_ptr());
+				data[base_type::enum_value][0] = static_cast<void*>(core_traits.get_data_ptr());
 			}
 		}
 	};
 
 	template<typename config_type, typename core_traits_type> struct weight_mapper {
-		NIHILUS_HOST static void impl(core_traits_type& core_traits_old, array<array<void*, model_traits_type<config_type>::block_count>, weight_types::count>& data) {
-			core_traits_old.values.template impl<weight_mapper_impl>(data);
+		NIHILUS_HOST static void impl(core_traits_type& core_traits, array<array<void*, model_traits_type<config_type>::block_count>, weight_types::count>& data) {
+			core_traits.values.template impl<weight_mapper_impl>(data);
 		}
 	};
 

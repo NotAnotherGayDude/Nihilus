@@ -162,7 +162,7 @@ namespace nihilus {
 	template<typename config_type, typename value_type, auto...> struct value_reader;
 
 	template<typename config_type, typename value_type>
-		requires(( std::is_standard_layout_v<value_type> && std::is_trivial_v<value_type> && !std::is_enum_v<value_type> ) || std::is_same_v<gguf_metadata_value_type, value_type>)
+		requires(( std::is_standard_layout_v<value_type> && std::is_trivial_v<value_type> && !std::is_enum_v<value_type> ) || detail::is_same_v<gguf_metadata_value_type, value_type>)
 	struct value_reader<config_type, value_type> {
 		NIHILUS_HOST static value_type gather_value(stream_iterator<config_type>& input) {
 			if (input.template has_bytes<value_type>()) {
@@ -378,7 +378,7 @@ namespace nihilus {
 	};
 
 	template<typename config_type, typename value_type>
-		requires(std::is_enum_v<value_type> && !std::is_same_v<gguf_metadata_value_type, value_type>)
+		requires(std::is_enum_v<value_type> && !detail::is_same_v<gguf_metadata_value_type, value_type>)
 	struct value_reader<config_type, value_type> {
 		NIHILUS_HOST static value_type gather_value(stream_iterator<config_type>& input) {
 			uint64_t length = value_reader<config_type, uint64_t>::gather_value(input);
@@ -521,7 +521,7 @@ namespace nihilus {
 		inline static constexpr auto memberCount = core_tuple_size<value_type>;
 
 		template<uint64_t index> using member_type_t =
-			std::remove_reference_t<decltype(get_member<get<index>(parse_core<value_type>::parse_value).member_ptr>(std::declval<value_type&>()))>;
+			detail::remove_reference_t<decltype(get_member<get<index>(parse_core<value_type>::parse_value).member_ptr>(std::declval<value_type&>()))>;
 
 		template<uint64_t index> NIHILUS_HOST static void process_index(value_type& value, std::string_view string, stream_iterator<config_type>& stream) {
 			static constexpr auto tupleElem	 = get<index>(parse_core<value_type>::parse_value);
@@ -530,7 +530,7 @@ namespace nihilus {
 			static constexpr auto keySize	 = string_lit.size();
 			if NIHILUS_LIKELY ((string.size() <= keySize) && string_literal_comparitor<string_lit>::impl(string.data())) {
 				[[maybe_unused]] auto& ref = get_member<ptrNew>(value);
-				if constexpr (!std::is_const_v<std::remove_reference_t<decltype(ref)>>) {
+				if constexpr (!std::is_const_v<detail::remove_reference_t<decltype(ref)>>) {
 					ref = value_reader<config_type, member_type_t<index>>::gather_value(stream);
 				} else {
 					member_type_t<index> value_new{ value_reader<config_type, detail::remove_const_t<member_type_t<index>>>::gather_value(stream) };
@@ -555,7 +555,7 @@ namespace nihilus {
 	static constexpr auto function_ptrs{ generate_function_ptrs<parsing_type, config_type, value_type>(std::make_index_sequence<core_tuple_size<value_type>>{}) };
 
 	template<typename config_type, uint64_t current_index = 0, uint64_t max_index = 10, typename enum_type>
-		requires(std::is_same_v<gguf_metadata_value_type, enum_type>)
+		requires(detail::is_same_v<gguf_metadata_value_type, enum_type>)
 	NIHILUS_HOST void skip_unknown_value(stream_iterator<config_type>& input, enum_type type) {
 		switch (static_cast<uint64_t>(type)) {
 			case static_cast<uint64_t>(enum_type::uint8):
@@ -672,8 +672,7 @@ namespace nihilus {
 
 	template<typename config_type> struct string_to_op_type;
 
-	template<typename config_type>
-		requires(config_type::model_arch == model_arches::llama)
+	template<llama_arch_config_types config_type>
 	struct string_to_op_type<config_type> {
 		NIHILUS_HOST static weight_types impl(std::string_view input) noexcept {
 			if (string_literal_comparitor<"token_embd.weight">::impl(input.data())) {
@@ -757,8 +756,7 @@ namespace nihilus {
 			return num_blocks * type_size_val;
 		}
 
-		template<core_traits_types core_traits_old> NIHILUS_HOST bool operator==(const core_traits_old&) const {
-			static constexpr auto other_dims = core_traits_old::get_array();
+		NIHILUS_HOST bool operator==(const array<uint64_t, 4>& other_dims) const {
 			return dimensions[0] == other_dims[0] && dimensions[1] == other_dims[1] && dimensions[2] == other_dims[2] && dimensions[3] == other_dims[3];
 		}
 
@@ -777,43 +775,43 @@ namespace nihilus {
 		NIHILUS_HOST static bool impl(const core_base_creation_data& parse_core) noexcept {
 			switch (static_cast<uint64_t>(parse_core.weight_type)) {
 				case static_cast<uint64_t>(weight_types::token_embd): {
-					return parse_core == typename core_traits_old<config_type, core_types::weights>::token_embd_weight_type{};
+					return parse_core == core_traits<config_type, core_types::weights>::token_embd_weight_type::get_array();
 				}
 				case static_cast<uint64_t>(weight_types::rope_freqs): {
-					return parse_core == typename core_traits_old<config_type, core_types::weights>::rope_freqs_weight_type{};
+					return parse_core == core_traits<config_type, core_types::weights>::rope_freqs_weight_type::get_array();
 				}
 				case static_cast<uint64_t>(weight_types::output_norm): {
-					return parse_core == typename core_traits_old<config_type, core_types::weights>::output_norm_weight_type{};
+					return parse_core == core_traits<config_type, core_types::weights>::output_norm_weight_type::get_array();
 				}
 				case static_cast<uint64_t>(weight_types::output): {
-					return parse_core == typename core_traits_old<config_type, core_types::weights>::output_weight_type{};
+					return parse_core == core_traits<config_type, core_types::weights>::output_weight_type::get_array();
 				}
 				case static_cast<uint64_t>(weight_types::attn_q): {
-					return parse_core == typename core_traits_old<config_type, core_types::weights>::attn_q_weight_type{};
+					return parse_core == core_traits<config_type, core_types::weights>::attn_q_weight_type::get_array();
 				}
 				case static_cast<uint64_t>(weight_types::attn_norm): {
-					return parse_core == typename core_traits_old<config_type, core_types::weights>::attn_norm_weight_type{};
+					return parse_core == core_traits<config_type, core_types::weights>::attn_norm_weight_type::get_array();
 				}
 				case static_cast<uint64_t>(weight_types::attn_k): {
-					return parse_core == typename core_traits_old<config_type, core_types::weights>::attn_k_weight_type{};
+					return parse_core == core_traits<config_type, core_types::weights>::attn_k_weight_type::get_array();
 				}
 				case static_cast<uint64_t>(weight_types::attn_v): {
-					return parse_core == typename core_traits_old<config_type, core_types::weights>::attn_v_weight_type{};
+					return parse_core == core_traits<config_type, core_types::weights>::attn_v_weight_type::get_array();
 				}
 				case static_cast<uint64_t>(weight_types::attn_output): {
-					return parse_core == typename core_traits_old<config_type, core_types::weights>::attn_output_weight_type{};
+					return parse_core == core_traits<config_type, core_types::weights>::attn_output_weight_type::get_array();
 				}
 				case static_cast<uint64_t>(weight_types::ffn_down): {
-					return parse_core == typename core_traits_old<config_type, core_types::weights>::ffn_down_weight_type{};
+					return parse_core == core_traits<config_type, core_types::weights>::ffn_down_weight_type::get_array();
 				}
 				case static_cast<uint64_t>(weight_types::ffn_gate): {
-					return parse_core == typename core_traits_old<config_type, core_types::weights>::ffn_gate_weight_type{};
+					return parse_core == core_traits<config_type, core_types::weights>::ffn_gate_weight_type::get_array();
 				}
 				case static_cast<uint64_t>(weight_types::ffn_up): {
-					return parse_core == typename core_traits_old<config_type, core_types::weights>::ffn_up_weight_type{};
+					return parse_core == core_traits<config_type, core_types::weights>::ffn_up_weight_type::get_array();
 				}
 				case static_cast<uint64_t>(weight_types::ffn_norm): {
-					return parse_core == typename core_traits_old<config_type, core_types::weights>::ffn_norm_weight_type{};
+					return parse_core == core_traits<config_type, core_types::weights>::ffn_norm_weight_type::get_array();
 				}
 				default: {
 					return false;

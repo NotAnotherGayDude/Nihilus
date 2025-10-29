@@ -28,7 +28,7 @@ RealTimeChris (Chris M.)
 namespace nihilus {
 
 	struct harbinger {
-		inline static cli_params parse_cli_arguments(int32_t argc, char** argv) {
+		NIHILUS_HOST static cli_params parse_cli_arguments(int32_t argc, char** argv) {
 			aligned_vector<std::string> cli_args{};
 			for (int64_t x = 0; x < argc; ++x) {
 				cli_args.emplace_back(argv[static_cast<uint64_t>(x)]);
