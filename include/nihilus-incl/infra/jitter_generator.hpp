@@ -27,19 +27,7 @@ RealTimeChris (Chris M.)
 namespace nihilus {
 
 	struct xoshiro_256 {
-		NIHILUS_HOST xoshiro_256() noexcept
-			: state{ [&] {
-				  array<uint64_t, 4ull> return_values{};
-				  auto x	 = get_time_based_seed() >> 12ull;
-				  auto x01	 = x ^ x << 25ull;
-				  auto x02	 = x01 ^ x01 >> 27ull;
-				  uint64_t s = x02 * 0x2545F4914F6CDD1Dull;
-				  for (uint64_t y = 0; y < 4; ++y) {
-					  return_values[y] = splitmix64(s);
-				  }
-				  return return_values;
-			  }() } {
-		}
+		NIHILUS_HOST xoshiro_256() noexcept : state{ get_seed_values()[0], get_seed_values()[1], get_seed_values()[2], get_seed_values()[3] } {}
 
 		NIHILUS_HOST uint64_t operator()() noexcept {
 			const uint64_t result = rotl(state[1ull] * 5ull, 7ull) * 9ull;
@@ -58,7 +46,7 @@ namespace nihilus {
 		}
 
 	  protected:
-		array<uint64_t, 4ull> state{};
+		uint64_t state[4ull]{};
 
 		NIHILUS_HOST uint64_t rotl(const uint64_t x, const uint64_t k) const noexcept {
 			return (x << k) | (x >> (64ull - k));
@@ -69,6 +57,18 @@ namespace nihilus {
 			result			= (result ^ (result >> 30ull)) * 0xBF58476D1CE4E5B9ull;
 			result			= (result ^ (result >> 27ull)) * 0x94D049BB133111EBull;
 			return result ^ (result >> 31ull);
+		}
+
+		NIHILUS_HOST array<uint64_t, 4ull> get_seed_values() {
+			array<uint64_t, 4ull> return_values{};
+			auto x	   = get_time_based_seed() >> 12ull;
+			auto x01   = x ^ x << 25ull;
+			auto x02   = x01 ^ x01 >> 27ull;
+			uint64_t s = x02 * 0x2545F4914F6CDD1Dull;
+			for (uint64_t y = 0; y < 4; ++y) {
+				return_values[y] = splitmix64(s);
+			}
+			return return_values;
 		}
 	};
 
@@ -109,7 +109,7 @@ namespace nihilus {
 			}
 		}
 
-		array<std::remove_cvref_t<value_type>, size_new> values{};
+		array<detail::remove_cvref_t<value_type>, size_new> values{};
 		value_type evicted_value{};
 		size_type tail{};
 		size_type head{};

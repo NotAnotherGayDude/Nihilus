@@ -34,7 +34,7 @@ RealTimeChris (Chris M.)
 #include <chrono>
 #include <thread>
 #include <mutex>
-#include <latch>
+
 #include <cmath>
 
 namespace nihilus {
@@ -344,9 +344,9 @@ namespace nihilus {
 
 	template<printable_enum_types auto current_index> consteval std::string_view get_enum_name() {
 #if NIHILUS_COMPILER_MSVC || NIHILUS_COMPILER_CUDA
-		NIHILUS_ALIGN(64) constexpr static_aligned_const<const char*> pretty_function_tail[]{ { ">(void)" } };
-#else
-		NIHILUS_ALIGN(64) constexpr static_aligned_const<const char*> pretty_function_tail[]{ { "]" } };
+		NIHILUS_ALIGN(64) constexpr const char* pretty_function_tail{ ">(void)" };
+#elif NIHILUS_COMPILER_CLANG
+		NIHILUS_ALIGN(64) constexpr const char* pretty_function_tail{ "]" };
 #endif
 		std::string_view str = std::source_location::current().function_name();
 #if NIHILUS_COMPILER_GNUCXX
@@ -358,7 +358,7 @@ namespace nihilus {
 #else
 		str			   = str.substr(str.find("=") + 2);
 		uint64_t start = str.find_last_of(':') + 1;
-		uint64_t end   = str.find(pretty_function_tail->value);
+		uint64_t end   = str.find(pretty_function_tail);
 		return str.substr(start, end - start);
 #endif
 	}

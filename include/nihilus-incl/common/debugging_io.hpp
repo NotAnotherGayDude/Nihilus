@@ -265,7 +265,7 @@ namespace nihilus {
 				const float* values = static_cast<const float*>(data.data());
 				uint64_t count		= detail::min(data.size() / sizeof(uint16_t), 8);
 				for (uint64_t i = offending_index; i < offending_index + count; ++i) {
-					if (i > offending_index)// Only print comma after the first element of this range
+					if (i > offending_index)
 						stream << ", ";
 					float new_value{ values[i] };
 					stream << new_value;
@@ -277,7 +277,7 @@ namespace nihilus {
 				const uint16_t* values = static_cast<const uint16_t*>(data.data());
 				uint64_t count		   = detail::min(data.size() / sizeof(uint16_t), 8);
 				for (uint64_t i = offending_index; i < offending_index + count; ++i) {
-					if (i > offending_index)// Only print comma after the first element of this range
+					if (i > offending_index)
 						stream << ", ";
 					stream << std::fixed << std::setprecision(6) << f16_to_f32(values[i]);
 				}
@@ -288,7 +288,7 @@ namespace nihilus {
 				const uint8_t* values = static_cast<const uint8_t*>(data.data());
 				uint64_t count		  = detail::min(data.size(), 8);
 				for (uint64_t i = offending_index; i < offending_index + count; ++i) {
-					if (i > offending_index)// Only print comma after the first element of this range
+					if (i > offending_index)
 						stream << ", ";
 					stream << static_cast<int32_t>(values[i]);
 				}
@@ -299,7 +299,7 @@ namespace nihilus {
 				const int8_t* values = static_cast<const int8_t*>(data.data());
 				uint64_t count		 = detail::min(data.size(), 8);
 				for (uint64_t i = offending_index; i < offending_index + count; ++i) {
-					if (i > offending_index)// Only print comma after the first element of this range
+					if (i > offending_index)
 						stream << ", ";
 					stream << static_cast<int32_t>(values[i]);
 				}
@@ -310,7 +310,7 @@ namespace nihilus {
 				const int16_t* values = static_cast<const int16_t*>(data.data());
 				uint64_t count		  = detail::min(data.size() / 2, 8);
 				for (uint64_t i = offending_index; i < offending_index + count; ++i) {
-					if (i > offending_index)// Only print comma after the first element of this range
+					if (i > offending_index)
 						stream << ", ";
 					stream << values[i];
 				}
@@ -321,7 +321,7 @@ namespace nihilus {
 				const int32_t* values = static_cast<const int32_t*>(data.data());
 				uint64_t count		  = detail::min(data.size() / 4, 8);
 				for (uint64_t i = offending_index; i < offending_index + count; ++i) {
-					if (i > offending_index)// Only print comma after the first element of this range
+					if (i > offending_index)
 						stream << ", ";
 					stream << values[i];
 				}
@@ -332,7 +332,7 @@ namespace nihilus {
 				const int64_t* values = static_cast<const int64_t*>(data.data());
 				uint64_t count		  = detail::min(data.size() / 8, 8);
 				for (uint64_t i = offending_index; i < offending_index + count; ++i) {
-					if (i > offending_index)// Only print comma after the first element of this range
+					if (i > offending_index)
 						stream << ", ";
 					stream << values[i];
 				}
@@ -343,7 +343,7 @@ namespace nihilus {
 				const double* values = static_cast<const double*>(data.data());
 				uint64_t count		 = detail::min(data.size() / 8, 8);
 				for (uint64_t i = offending_index; i < count; ++i) {
-					if (i > offending_index)// Only print comma after the first element of this range
+					if (i > offending_index)
 						stream << ", ";
 					stream << std::fixed << std::setprecision(10) << values[i];
 				}

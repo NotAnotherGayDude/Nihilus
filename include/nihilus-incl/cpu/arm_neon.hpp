@@ -19,7 +19,7 @@ RealTimeChris (Chris M.)
 */
 #pragma once
 
-#include <nihilus-incl/common/kernel_traits.hpp>
+#include <nihilus-incl/common/sub_kernel_traits.hpp>
 #include <nihilus-incl/cpu/common.hpp>
 
 #if NIHILUS_NEON

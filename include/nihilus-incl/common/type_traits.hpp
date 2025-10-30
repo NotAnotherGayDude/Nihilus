@@ -26,7 +26,7 @@ RealTimeChris (Chris M.)
 
 namespace nihilus {
 
-	NIHILUS_DEVICE constexpr uint64_t count_elements(const array<uint64_t, 4>& dims) {
+	NIHILUS_DEVICE constexpr uint64_t count_elements(const array<uint64_t, 4> dims) {
 		return dims[0] * dims[1] * dims[2] * dims[3];
 	}
 
@@ -35,7 +35,7 @@ namespace nihilus {
 			return derived_type::type_size * ne / derived_type::block_size;
 		}
 
-		NIHILUS_HOST static constexpr uint64_t total_byte_size(const array<uint64_t, 4>& dims) {
+		NIHILUS_HOST static constexpr uint64_t total_byte_size(const array<uint64_t, 4> dims) {
 			array<uint64_t, 4> strides{};
 			strides[0] = derived_type::type_size;
 			strides[1] = strides[0] * (dims[0] / derived_type::block_size);
@@ -58,7 +58,7 @@ namespace nihilus {
 			return nbytes;
 		}
 
-		NIHILUS_HOST constexpr static array<uint64_t, 4> get_strides(const array<uint64_t, 4>& dims) {
+		NIHILUS_HOST constexpr static array<uint64_t, 4> get_strides(const array<uint64_t, 4> dims) {
 			array<uint64_t, 4> return_values{};
 			return_values[0] = derived_type::type_size;
 			return_values[1] = return_values[0] * (dims[0] / derived_type::block_size);
@@ -80,7 +80,7 @@ namespace nihilus {
 			return type_size * ne / block_size;
 		}
 
-		NIHILUS_DEVICE constexpr uint64_t total_byte_size(const array<uint64_t, 4>& dims) const {
+		NIHILUS_DEVICE constexpr uint64_t total_byte_size(const array<uint64_t, 4> dims) const {
 			array<uint64_t, 4> strides{};
 			strides[0] = type_size;
 			strides[1] = strides[0] * (dims[0] / block_size);

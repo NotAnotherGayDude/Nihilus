@@ -83,7 +83,7 @@ namespace nihilus {
 	template<typename value_type>
 	concept float64_types = float_types<value_type> && sizeof(detail::remove_cvref_t<value_type>) == 8;
 
-	template<typename value_type> using base_type = std::remove_cvref_t<value_type>;
+	template<typename value_type> using base_type = detail::remove_cvref_t<value_type>;
 
 #if NIHILUS_COMPILER_CUDA
 

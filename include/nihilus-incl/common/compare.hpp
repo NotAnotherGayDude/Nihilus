@@ -559,9 +559,9 @@ namespace nihilus {
 	};
 
 	template<typename simd_type> NIHILUS_HOST static auto collect_alpha_mask(const char* values) noexcept {
-		const typename simd_type::type input = gather_values<simd_type>(values);
+		const typename simd_type::type input	 = gather_values<simd_type>(values);
 		const typename simd_type::type lowercase = op_or<simd_type>(input, op_set1<simd_type>(0x20));
-		const typename simd_type::type offset = op_sub<simd_type>(lowercase, op_set1<simd_type>('a'));
+		const typename simd_type::type offset	 = op_sub<simd_type>(lowercase, op_set1<simd_type>('a'));
 		const typename simd_type::type threshold = op_set1<simd_type>(26);
 		return op_cmp_lt_bitmask<simd_type>(offset, threshold);
 	}

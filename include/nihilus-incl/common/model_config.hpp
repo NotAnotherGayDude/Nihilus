@@ -21,8 +21,6 @@ RealTimeChris (Chris M.)
 #pragma once
 
 #include <nihilus-incl/common/utility.hpp>
-#include <nihilus-incl/common/config.hpp>
-#include <cstdint>
 
 namespace nihilus {
 

@@ -20,4 +20,6 @@ RealTimeChris (Chris M.)
 /// nihilus
 #pragma once
 
-#include <nihilus-incl/index.hpp>
+#include <nihilus-incl/cuda/common.hpp>
+#include <nihilus-incl/infra/harbinger.hpp>
+#include <nihilus-incl/db/db.hpp>

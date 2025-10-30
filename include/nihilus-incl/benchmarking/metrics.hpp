@@ -183,12 +183,12 @@ namespace nihilus::benchmarking {
 	}
 
 	template<typename metrics_type>
-	concept optional_t = requires(std::remove_cvref_t<metrics_type> opt) {
+	concept optional_t = requires(detail::remove_cvref_t<metrics_type> opt) {
 		{ opt.has_value() } -> detail::same_as<bool>;
-		{ opt.value() } -> detail::same_as<typename std::remove_cvref_t<metrics_type>::value_type&>;
-		{ *opt } -> detail::same_as<typename std::remove_cvref_t<metrics_type>::value_type&>;
+		{ opt.value() } -> detail::same_as<typename detail::remove_cvref_t<metrics_type>::value_type&>;
+		{ *opt } -> detail::same_as<typename detail::remove_cvref_t<metrics_type>::value_type&>;
 		{ opt.reset() } -> detail::same_as<void>;
-		{ opt.emplace(typename std::remove_cvref_t<metrics_type>::value_type{}) } -> detail::same_as<typename std::remove_cvref_t<metrics_type>::value_type&>;
+		{ opt.emplace(typename detail::remove_cvref_t<metrics_type>::value_type{}) } -> detail::same_as<typename detail::remove_cvref_t<metrics_type>::value_type&>;
 	};
 
 	NIHILUS_HOST static std::string printResults(const performance_metrics& metrics, uint64_t thread, const std::string_view kernel_name) {

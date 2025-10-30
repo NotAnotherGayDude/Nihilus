@@ -132,7 +132,7 @@ namespace nihilus {
 			memory.init(nihilus_cathedral_memory_plan<config_type>.peak_allocated_bytes);
 			this->template impl<memory_mapper>(nihilus_cathedral_memory_plan<config_type>, memory);
 			array<array<void*, model_traits_type<config_type>::block_count>, weight_types::count> data{};
-			weight_mapper<config_type, core_traits<config_type, core_types::weights>>::impl(*static_cast<core_traits<config_type, core_types::weights>*>(this), data);
+			weight_mapper<config_type, core_traits_new<config_type, core_types::weights>>::impl(*static_cast<core_traits_new<config_type, core_types::weights>*>(this), data);
 
 			if constexpr (config_type::benchmark || config_type::dev) {
 				perf_base<config_type>::perf_stats.load_start = clock_type::now();

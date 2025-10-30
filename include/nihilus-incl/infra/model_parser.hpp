@@ -775,43 +775,43 @@ namespace nihilus {
 		NIHILUS_HOST static bool impl(const core_base_creation_data& parse_core) noexcept {
 			switch (static_cast<uint64_t>(parse_core.weight_type)) {
 				case static_cast<uint64_t>(weight_types::token_embd): {
-					return parse_core == core_traits<config_type, core_types::weights>::token_embd_weight_type::get_array();
+					return parse_core == core_traits_new<config_type, core_types::weights>::token_embd_weight_type::get_array();
 				}
 				case static_cast<uint64_t>(weight_types::rope_freqs): {
-					return parse_core == core_traits<config_type, core_types::weights>::rope_freqs_weight_type::get_array();
+					return parse_core == core_traits_new<config_type, core_types::weights>::rope_freqs_weight_type::get_array();
 				}
 				case static_cast<uint64_t>(weight_types::output_norm): {
-					return parse_core == core_traits<config_type, core_types::weights>::output_norm_weight_type::get_array();
+					return parse_core == core_traits_new<config_type, core_types::weights>::output_norm_weight_type::get_array();
 				}
 				case static_cast<uint64_t>(weight_types::output): {
-					return parse_core == core_traits<config_type, core_types::weights>::output_weight_type::get_array();
+					return parse_core == core_traits_new<config_type, core_types::weights>::output_weight_type::get_array();
 				}
 				case static_cast<uint64_t>(weight_types::attn_q): {
-					return parse_core == core_traits<config_type, core_types::weights>::attn_q_weight_type::get_array();
+					return parse_core == core_traits_new<config_type, core_types::weights>::attn_q_weight_type::get_array();
 				}
 				case static_cast<uint64_t>(weight_types::attn_norm): {
-					return parse_core == core_traits<config_type, core_types::weights>::attn_norm_weight_type::get_array();
+					return parse_core == core_traits_new<config_type, core_types::weights>::attn_norm_weight_type::get_array();
 				}
 				case static_cast<uint64_t>(weight_types::attn_k): {
-					return parse_core == core_traits<config_type, core_types::weights>::attn_k_weight_type::get_array();
+					return parse_core == core_traits_new<config_type, core_types::weights>::attn_k_weight_type::get_array();
 				}
 				case static_cast<uint64_t>(weight_types::attn_v): {
-					return parse_core == core_traits<config_type, core_types::weights>::attn_v_weight_type::get_array();
+					return parse_core == core_traits_new<config_type, core_types::weights>::attn_v_weight_type::get_array();
 				}
 				case static_cast<uint64_t>(weight_types::attn_output): {
-					return parse_core == core_traits<config_type, core_types::weights>::attn_output_weight_type::get_array();
+					return parse_core == core_traits_new<config_type, core_types::weights>::attn_output_weight_type::get_array();
 				}
 				case static_cast<uint64_t>(weight_types::ffn_down): {
-					return parse_core == core_traits<config_type, core_types::weights>::ffn_down_weight_type::get_array();
+					return parse_core == core_traits_new<config_type, core_types::weights>::ffn_down_weight_type::get_array();
 				}
 				case static_cast<uint64_t>(weight_types::ffn_gate): {
-					return parse_core == core_traits<config_type, core_types::weights>::ffn_gate_weight_type::get_array();
+					return parse_core == core_traits_new<config_type, core_types::weights>::ffn_gate_weight_type::get_array();
 				}
 				case static_cast<uint64_t>(weight_types::ffn_up): {
-					return parse_core == core_traits<config_type, core_types::weights>::ffn_up_weight_type::get_array();
+					return parse_core == core_traits_new<config_type, core_types::weights>::ffn_up_weight_type::get_array();
 				}
 				case static_cast<uint64_t>(weight_types::ffn_norm): {
-					return parse_core == core_traits<config_type, core_types::weights>::ffn_norm_weight_type::get_array();
+					return parse_core == core_traits_new<config_type, core_types::weights>::ffn_norm_weight_type::get_array();
 				}
 				default: {
 					return false;

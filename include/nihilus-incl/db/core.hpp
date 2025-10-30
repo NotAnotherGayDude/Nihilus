@@ -209,7 +209,7 @@ namespace nihilus {
 	template<typename value_type> constexpr uint64_t db_tuple_size = tuple_size_v<db_tuple_type<value_type>>;
 
 	template<template<typename> typename function_type, typename value_type, size_t... index> struct get_db_cores<function_type, value_type, std::index_sequence<index...>> {
-		using type = serialize_map<function_type, db_entity_serialize<std::remove_cvref_t<decltype(get<index>(db_core<value_type>::db_value))>>...>;
+		using type = serialize_map<function_type, db_entity_serialize<detail::remove_cvref_t<decltype(get<index>(db_core<value_type>::db_value))>>...>;
 	};
 
 	template<template<typename> typename function_type, typename value_type> using db_cores_t =

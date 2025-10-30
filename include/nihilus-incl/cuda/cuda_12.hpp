@@ -569,9 +569,9 @@ namespace nihilus {
 		static constexpr uint64_t block_size		   = type_traits<typename core_traits_type::kernel_profile_type::weight_type>::block_size;
 		static constexpr uint64_t blocks_per_embedding = (embedding_length + block_size - 1) / block_size;
 
-		weight_type* __restrict weight_data	 = params.template get_weight_data<weight_type>();
-		index_type* __restrict token_ids	 = params.template get_token_data<index_type>();
-		compute_type* __restrict output_data = params.template get_output_data<compute_type>();
+		weight_type* __restrict token_embd_weight_data	 = params.template get_token_embd_weight_data<weight_type>();
+		index_type* __restrict token_ids	 = params.template get_inp_tokens_data<index_type>();
+		compute_type* __restrict output_data = params.template get_inp_embed_data<compute_type>();
 
 		const uint64_t token_idx = blockIdx.x;
 
@@ -580,7 +580,7 @@ namespace nihilus {
 		}
 
 		index_type token_id				 = token_ids[token_idx];
-		weight_type* __restrict src_row	 = weight_data + (static_cast<uint64_t>(token_id) * blocks_per_embedding);
+		weight_type* __restrict src_row	 = token_embd_weight_data + (static_cast<uint64_t>(token_id) * blocks_per_embedding);
 		compute_type* __restrict dst_row = output_data + (token_idx * embedding_length);
 
 		const uint64_t thread_id		 = threadIdx.x;
@@ -613,9 +613,9 @@ namespace nihilus {
 		static constexpr uint64_t block_size		   = type_traits<typename core_traits_type::kernel_profile_type::weight_type>::block_size;
 		static constexpr uint64_t blocks_per_embedding = (embedding_length + block_size - 1) / block_size;
 
-		weight_type* __restrict weight_data	 = params.template get_weight_data<weight_type>();
-		index_type* __restrict token_ids	 = params.template get_token_data<index_type>();
-		compute_type* __restrict output_data = params.template get_output_data<compute_type>();
+		weight_type* __restrict token_embd_weight_data	 = params.template get_token_embd_weight_data<weight_type>();
+		index_type* __restrict token_ids	 = params.template get_inp_tokens_data<index_type>();
+		compute_type* __restrict output_data = params.template get_inp_embed_data<compute_type>();
 
 		const uint64_t token_idx = blockIdx.x;
 
@@ -624,7 +624,7 @@ namespace nihilus {
 		}
 
 		index_type token_id				 = token_ids[token_idx];
-		weight_type* __restrict src_row	 = weight_data + (static_cast<uint64_t>(token_id) * blocks_per_embedding);
+		weight_type* __restrict src_row	 = token_embd_weight_data + (static_cast<uint64_t>(token_id) * blocks_per_embedding);
 		compute_type* __restrict dst_row = output_data + (token_idx * embedding_length);
 
 		const uint64_t thread_id		 = threadIdx.x;
@@ -640,7 +640,7 @@ namespace nihilus {
 	struct kernel_dispatcher_impl<config_type, core_traits_type, device_types::gpu, 4, core_types::token_embeddings, processing_phases::prompt_eval_time> {
 		NIHILUS_HOST static void impl(core_traits_type& params) {
 			/*
-			auto& get_rows_op = params.values.template get_core<token_embeddings_types::get_rows>();
+			auto& get_rows_op = params.values.template get_core<token_embeddings_types::token_embeddings>();
 
 			const uint64_t sequence_length = get_rows_op.get_seq_length_dim();
 			auto& weights_core			   = get_adjacent_value<typename core_traits_type::config_type, core_types::weights>::impl(params);
@@ -703,15 +703,15 @@ namespace nihilus {
 		static constexpr uint64_t block_size		   = type_traits<typename core_traits_type::kernel_profile_type::weight_type>::block_size;
 		static constexpr uint64_t blocks_per_embedding = (embedding_length + block_size - 1) / block_size;
 
-		const block_q8_0<half>* __restrict weight_data = params.template get_weight_data<block_q8_0<half>>();
-		const uint32_t* __restrict token_ids		   = params.template get_token_data<uint32_t>();
-		float* __restrict output_data				   = params.template get_output_data<float>();
+		const block_q8_0<half>* __restrict token_embd_weight_data = params.template get_token_embd_weight_data<block_q8_0<half>>();
+		const uint32_t* __restrict token_ids		   = params.template get_inp_tokens_data<uint32_t>();
+		float* __restrict output_data				   = params.template get_inp_embed_data<float>();
 
 		const uint64_t thread_id		 = threadIdx.x;
 		const uint64_t threads_per_block = blockDim.x;
 
 		for (uint64_t block_idx = thread_id; block_idx < blocks_per_embedding; block_idx += threads_per_block) {
-			const auto& block				 = weight_data[block_idx];
+			const auto& block				 = token_embd_weight_data[block_idx];
 			const auto scale				 = __half2float(block.d);
 			const auto* __restrict quantized = block.qs;
 			const uint64_t base_offset		 = block_idx * block_size;
@@ -735,9 +735,9 @@ namespace nihilus {
 
 		static constexpr uint64_t embedding_length = core_traits_type::mtt::embedding_length;
 
-		const half* __restrict weight_data	 = params.template get_weight_data<half>();
-		const uint32_t* __restrict token_ids = params.template get_token_data<uint32_t>();
-		half* __restrict output_data		 = params.template get_output_data<half>();
+		const half* __restrict token_embd_weight_data	 = params.template get_token_embd_weight_data<half>();
+		const uint32_t* __restrict token_ids = params.template get_inp_tokens_data<uint32_t>();
+		half* __restrict output_data		 = params.template get_inp_embed_data<half>();
 
 		const uint64_t thread_id		 = threadIdx.x;
 		const uint64_t threads_per_block = blockDim.x;
@@ -745,7 +745,7 @@ namespace nihilus {
 		constexpr uint64_t elems_per_vec = sizeof(float4) / sizeof(compute_type);
 		const uint64_t vec_length		 = embedding_length / elems_per_vec;
 
-		auto* __restrict vec_weights = weight_data;
+		auto* __restrict vec_weights = token_embd_weight_data;
 		auto* __restrict vec_output	 = output_data;
 
 		for (uint64_t i = thread_id; i < vec_length; i += threads_per_block) {
@@ -754,14 +754,14 @@ namespace nihilus {
 
 		const uint64_t remainder_start = vec_length * elems_per_vec;
 		for (uint64_t i = remainder_start + thread_id; i < embedding_length; i += threads_per_block) {
-			output_data[i] = weight_data[i];
+			output_data[i] = token_embd_weight_data[i];
 		}*/
 	}
 
 	template<typename config_type, typename core_traits_type>
 	struct kernel_dispatcher_impl<config_type, core_traits_type, device_types::gpu, 4, core_types::token_embeddings, processing_phases::eval_time> {
 		NIHILUS_HOST static void impl(core_traits_type& params) {/*
-			auto& get_rows_op			   = params.values.template get_core<token_embeddings_types::get_rows>();
+			auto& get_rows_op			   = params.values.template get_core<token_embeddings_types::token_embeddings>();
 			auto& weights_core			   = get_adjacent_value<typename core_traits_type::config_type, core_types::weights>::impl(params);
 			auto& inputs_core			   = get_adjacent_value<typename core_traits_type::config_type, core_types::global_inputs>::impl(params);
 			auto& token_embd_op			   = weights_core.values.template get_core<weight_types::token_embd>();
@@ -817,7 +817,7 @@ namespace nihilus {
 			auto& weights_core	  = get_adjacent_value<typename core_traits_type::config_type, core_types::weights>::impl(params);
 			auto& inputs_core	  = get_adjacent_value<typename core_traits_type::config_type, core_types::global_inputs>::impl(params);
 			auto& token_embd_core = get_adjacent_value<typename core_traits_type::config_type, core_types::token_embeddings>::impl(params);
-			auto& inp_embd_op	  = token_embd_core.values.template get_core<token_embeddings_types::get_rows>();
+			auto& inp_embd_op	  = token_embd_core.values.template get_core<token_embeddings_types::token_embeddings>();
 			auto& attn_norm_w_op  = weights_core.values.template get_core<weight_types::attn_norm>();
 			auto& attn_q_w_op	  = weights_core.values.template get_core<weight_types::attn_q>();
 			auto& attn_k_w_op	  = weights_core.values.template get_core<weight_types::attn_k>();
@@ -875,7 +875,7 @@ namespace nihilus {
 			auto& weights_core	  = get_adjacent_value<typename core_traits_type::config_type, core_types::weights>::impl(params);
 			auto& inputs_core	  = get_adjacent_value<typename core_traits_type::config_type, core_types::global_inputs>::impl(params);
 			auto& token_embd_core = get_adjacent_value<typename core_traits_type::config_type, core_types::token_embeddings>::impl(params);
-			auto& inp_embd_op	  = token_embd_core.values.template get_core<token_embeddings_types::get_rows>();
+			auto& inp_embd_op	  = token_embd_core.values.template get_core<token_embeddings_types::token_embeddings>();
 			auto& attn_norm_w_op  = weights_core.values.template get_core<weight_types::attn_norm>();
 			auto& attn_q_w_op	  = weights_core.values.template get_core<weight_types::attn_q>();
 			auto& attn_k_w_op	  = weights_core.values.template get_core<weight_types::attn_k>();

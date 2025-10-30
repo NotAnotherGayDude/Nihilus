@@ -223,6 +223,16 @@ namespace nihilus {
 		count,
 	};
 
+	enum class core_types_new : uint8_t {
+		weights,
+		global_inputs,
+		token_embeddings,
+		attn_prep_and_score,
+		attn_out_and_ffn,
+		global_output_and_sampling,
+		count,
+	};
+
 	enum class kernel_types : uint8_t {
 		weights,
 		global_inputs,
@@ -249,17 +259,6 @@ namespace nihilus {
 		frequency_penalty,
 		vocab_mask,
 		sample_logits,
-		count,
-	};
-
-	enum class composite_kernel_types : uint8_t {
-		none,
-		view,
-		get_rows,
-		mega_qkv_prep_and_cache,
-		mega_attention_apply,
-		mega_ffn,
-		final_norm_and_sampling,
 		count,
 	};
 
@@ -308,12 +307,76 @@ namespace nihilus {
 	};
 
 	enum class token_embeddings_types : uint8_t {
-		get_rows,
+		token_embeddings,
 		count,
 	};
 
 	enum class mega_qkv_prep_and_cache_publish_types : uint8_t {
 		q_out,
+		count,
+	};
+
+	enum class token_embeddings_sub_kernel_types : uint8_t {
+		token_embeddings_get_rows,
+		count,
+	};
+
+	enum class attn_prep_and_score_sub_kernel_types : uint8_t {
+		norm_rms_norm,
+		attn_norm_mul,
+		q_mul_mat,
+		q_reshape,
+		q_rope,
+		k_mul_mat,
+		k_reshape,
+		k_rope,
+		v_mul_mat,
+		k_cache_view,
+		k_cache_cpy,
+		v_transpose,
+		v_cache_view,
+		v_cache_cpy,
+		v_view,
+		k_view,
+		q_permute,
+		kq_mul_mat,
+		count,
+	};
+
+	enum class attn_out_and_ffn_sub_kernel_types : uint8_t {
+		kq_soft_max,
+		kqv_mul_mat,
+		kqv_permute,
+		kqv_cont,
+		attn_output_mul_mat,
+		ffn_inp_add,
+		ffn_norm_rms_norm,
+		ffn_norm_mul,
+		ffn_gate_mul_mat,
+		ffn_gate_silu,
+		ffn_up_mul_mat,
+		ffn_gate_par_mul,
+		ffn_down_mul_mat,
+		layer_out_add,
+		l_out_get_rows,
+		extracted_add,
+		count,
+	};
+
+	enum class global_output_and_sampling_sub_kernel_types : uint8_t {
+		output_norm_rms_norm,
+		output_norm_mul,
+		output_projection_mul_mat,
+		apply_repetition_penalty,
+		apply_presence_penalty,
+		apply_frequency_penalty,
+		apply_logits_bias,
+		apply_vocab_mask,
+		apply_temperature,
+		compute_softmax,
+		apply_top_k_filter,
+		apply_top_p_filter,
+		sample_token,
 		count,
 	};
 
@@ -334,40 +397,6 @@ namespace nihilus {
 
 	enum class global_output_types : uint8_t {
 		result_output_composite,
-		count,
-	};
-
-	enum class rope_and_cache_types : uint8_t {
-		rope_q_permute_type,
-		rope_k_copy_type,
-		k_rope_view_type,
-		v_rope_view_type,
-		count,
-	};
-
-	enum class attention_scores_types : uint8_t {
-		kq_scores_type,
-		count,
-	};
-
-	enum class attention_weighted_values_types : uint8_t {
-		attention_output_type,
-		count,
-	};
-
-	enum class attention_output_projection_types : uint8_t {
-		attn_output_type,
-		count,
-	};
-
-	enum class ffn_parallel_projection_types : uint8_t {
-		ffn_gate_type,
-		ffn_up_type,
-		count,
-	};
-
-	enum class ffn_down_projection_types : uint8_t {
-		ffn_down_type,
 		count,
 	};
 
