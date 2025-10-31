@@ -558,15 +558,15 @@ namespace nihilus {
 	}
 
 	template<typename core_traits_type>
-		requires(core_traits_type::kernel_profile_type::type == kernel_type_profiles::q8_gqa)
+		requires(core_traits_type::kernel_type_profile::type == kernel_type_profiles::q8_gqa)
 	NIHILUS_GLOBAL void token_embeddings_prompt_eval_time(uint64_t sequence_length, typename core_traits_type::kernel_data_ptrs_type params) {
 		/*
-		using weight_type  = const typename core_traits_type::kernel_profile_type::weight_type;
-		using index_type   = const typename core_traits_type::kernel_profile_type::index_type;
-		using compute_type = typename core_traits_type::kernel_profile_type::compute_type;
+		using weight_type  = const typename core_traits_type::kernel_type_profile::weight_type;
+		using index_type   = const typename core_traits_type::kernel_type_profile::index_type;
+		using compute_type = typename core_traits_type::kernel_type_profile::compute_type;
 
 		static constexpr uint64_t embedding_length	   = core_traits_type::mtt::embedding_length;
-		static constexpr uint64_t block_size		   = type_traits<typename core_traits_type::kernel_profile_type::weight_type>::block_size;
+		static constexpr uint64_t block_size		   = type_traits<typename core_traits_type::kernel_type_profile::weight_type>::block_size;
 		static constexpr uint64_t blocks_per_embedding = (embedding_length + block_size - 1) / block_size;
 
 		weight_type* __restrict token_embd_weight_data	 = params.template get_token_embd_weight_data<weight_type>();
@@ -602,15 +602,15 @@ namespace nihilus {
 	}
 
 	template<typename core_traits_type>
-		requires(core_traits_type::kernel_profile_type::type == kernel_type_profiles::fp16_mha)
+		requires(core_traits_type::kernel_type_profile::type == kernel_type_profiles::fp16_mha)
 	NIHILUS_GLOBAL void token_embeddings_prompt_eval_time(uint64_t sequence_length, typename core_traits_type::kernel_data_ptrs_type params) {
 		/*
-		using weight_type  = const typename core_traits_type::kernel_profile_type::weight_type;
-		using index_type   = const typename core_traits_type::kernel_profile_type::index_type;
-		using compute_type = typename core_traits_type::kernel_profile_type::compute_type;
+		using weight_type  = const typename core_traits_type::kernel_type_profile::weight_type;
+		using index_type   = const typename core_traits_type::kernel_type_profile::index_type;
+		using compute_type = typename core_traits_type::kernel_type_profile::compute_type;
 
 		static constexpr uint64_t embedding_length	   = core_traits_type::mtt::embedding_length;
-		static constexpr uint64_t block_size		   = type_traits<typename core_traits_type::kernel_profile_type::weight_type>::block_size;
+		static constexpr uint64_t block_size		   = type_traits<typename core_traits_type::kernel_type_profile::weight_type>::block_size;
 		static constexpr uint64_t blocks_per_embedding = (embedding_length + block_size - 1) / block_size;
 
 		weight_type* __restrict token_embd_weight_data	 = params.template get_token_embd_weight_data<weight_type>();
@@ -659,7 +659,7 @@ namespace nihilus {
 
 			if (sequence_length > 0) {
 				static constexpr uint64_t embedding_length	   = core_traits_type::mtt::embedding_length;
-				static constexpr uint64_t block_size		   = type_traits<typename core_traits_type::kernel_profile_type::weight_type>::block_size;
+				static constexpr uint64_t block_size		   = type_traits<typename core_traits_type::kernel_type_profile::weight_type>::block_size;
 				static constexpr uint64_t blocks_per_embedding = (embedding_length + block_size - 1) / block_size;
 
 				constexpr uint64_t threads_per_block = blocks_per_embedding <= 32 ? 32
@@ -692,7 +692,7 @@ namespace nihilus {
 	};
 
 	template<typename core_traits_type>
-		requires(core_traits_type::kernel_profile_type::type == kernel_type_profiles::q8_gqa)
+		requires(core_traits_type::kernel_type_profile::type == kernel_type_profiles::q8_gqa)
 	NIHILUS_GLOBAL void token_embeddings_eval_time(uint64_t sequence_length, typename core_traits_type::kernel_data_ptrs_type params) {
 		/*
 		using weight_type  = half;
@@ -700,7 +700,7 @@ namespace nihilus {
 		using compute_type = half;
 
 		static constexpr uint64_t embedding_length	   = core_traits_type::mtt::embedding_length;
-		static constexpr uint64_t block_size		   = type_traits<typename core_traits_type::kernel_profile_type::weight_type>::block_size;
+		static constexpr uint64_t block_size		   = type_traits<typename core_traits_type::kernel_type_profile::weight_type>::block_size;
 		static constexpr uint64_t blocks_per_embedding = (embedding_length + block_size - 1) / block_size;
 
 		const block_q8_0<half>* __restrict token_embd_weight_data = params.template get_token_embd_weight_data<block_q8_0<half>>();
@@ -726,7 +726,7 @@ namespace nihilus {
 	}
 
 	template<typename core_traits_type>
-		requires(core_traits_type::kernel_profile_type::type == kernel_type_profiles::fp16_mha)
+		requires(core_traits_type::kernel_type_profile::type == kernel_type_profiles::fp16_mha)
 	NIHILUS_GLOBAL void token_embeddings_eval_time(uint64_t sequence_length, typename core_traits_type::kernel_data_ptrs_type params) {
 		/*
 		using weight_type  = half;
@@ -778,7 +778,7 @@ namespace nihilus {
 			}
 
 			static constexpr uint64_t embedding_length	   = core_traits_type::mtt::embedding_length;
-			static constexpr uint64_t block_size		   = type_traits<typename core_traits_type::kernel_profile_type::weight_type>::block_size;
+			static constexpr uint64_t block_size		   = type_traits<typename core_traits_type::kernel_type_profile::weight_type>::block_size;
 			static constexpr uint64_t blocks_per_embedding = (embedding_length + block_size - 1) / block_size;
 
 			constexpr uint64_t threads_per_block = blocks_per_embedding <= 64 ? 64 : blocks_per_embedding <= 128 ? 128 : blocks_per_embedding <= 256 ? 256 : 512;

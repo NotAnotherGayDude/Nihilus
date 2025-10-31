@@ -55,7 +55,7 @@ namespace nihilus {
 		static constexpr float rope_freq_base			  = 500000.0f;
 		static constexpr uint32_t vocab_size			  = 128256;
 		static constexpr uint32_t embedding_length		  = 4096;
-		static constexpr uint32_t block_count			  = 32;
+		static constexpr uint32_t block_count			  = 31;
 		static constexpr uint32_t feed_forward_length	  = 14336;
 		static constexpr uint32_t attention_head_count	  = 32;
 		static constexpr uint32_t attention_head_count_kv = 8;

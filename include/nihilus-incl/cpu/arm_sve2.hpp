@@ -58,90 +58,68 @@ namespace nihilus {
 	};
 
 	template<typename config_type, typename core_traits_type>
-	struct kernel_dispatcher_impl<config_type, core_traits_type, device_types::cpu, 2, core_types::mega_qkv_prep_and_cache_publish, processing_phases::eval_time> {
+	struct kernel_dispatcher_impl<config_type, core_traits_type, device_types::cpu, 2, core_types::attn_prep_and_score, processing_phases::eval_time> {
 		NIHILUS_HOST static void process_chunk(core_traits_type&, int64_t, int64_t) {
 		}
 
-		NIHILUS_HOST static void impl(core_traits_type& params, int64_t, int64_t current_block) {
-			params.latch_eval[current_block].fetch_sub(1);
-			params.latch_eval[current_block].wait();
+		NIHILUS_HOST static void impl(core_traits_type&, int64_t, int64_t) {
+			//params.latch_eval[current_block].fetch_sub(1);
+			//params.latch_eval[current_block].wait();
 		}
 	};
 
 	template<typename config_type, typename core_traits_type>
-	struct kernel_dispatcher_impl<config_type, core_traits_type, device_types::cpu, 2, core_types::mega_qkv_prep_and_cache_publish, processing_phases::prompt_eval_time> {
+	struct kernel_dispatcher_impl<config_type, core_traits_type, device_types::cpu, 2, core_types::attn_prep_and_score, processing_phases::prompt_eval_time> {
 		NIHILUS_HOST static void process_chunk(core_traits_type&, int64_t, int64_t) {
 		}
 
-		NIHILUS_HOST static void impl(core_traits_type& params, int64_t, int64_t current_block) {
-			params.latch_prompt_eval[current_block].fetch_sub(1);
-			params.latch_prompt_eval[current_block].wait();
+		NIHILUS_HOST static void impl(core_traits_type&, int64_t, int64_t) {
+			//params.latch_prompt_eval[current_block].fetch_sub(1);
+			//params.latch_prompt_eval[current_block].wait();
 		}
 	};
 
 	template<typename config_type, typename core_traits_type>
-	struct kernel_dispatcher_impl<config_type, core_traits_type, device_types::cpu, 2, core_types::mega_attention_apply, processing_phases::eval_time> {
+	struct kernel_dispatcher_impl<config_type, core_traits_type, device_types::cpu, 2, core_types::attn_out_and_ffn, processing_phases::eval_time> {
 		NIHILUS_HOST static void process_chunk(core_traits_type&, int64_t, int64_t) {
 			// PROCESS DATA.
 		}
-		NIHILUS_HOST static void impl(core_traits_type& params, int64_t, int64_t current_block) {
-			params.latch_eval[current_block].fetch_sub(1);
-			params.latch_eval[current_block].wait();
+		NIHILUS_HOST static void impl(core_traits_type&, int64_t, int64_t) {
+			//params.latch_eval[current_block].fetch_sub(1);
+			//params.latch_eval[current_block].wait();
 		}
 	};
 
 	template<typename config_type, typename core_traits_type>
-	struct kernel_dispatcher_impl<config_type, core_traits_type, device_types::cpu, 2, core_types::mega_attention_apply, processing_phases::prompt_eval_time> {
+	struct kernel_dispatcher_impl<config_type, core_traits_type, device_types::cpu, 2, core_types::attn_out_and_ffn, processing_phases::prompt_eval_time> {
 		NIHILUS_HOST static void process_chunk(core_traits_type&, int64_t, int64_t) {
 			// PROCESS DATA.
 		}
-		NIHILUS_HOST static void impl(core_traits_type& params, int64_t, int64_t current_block) {
-			params.latch_prompt_eval[current_block].fetch_sub(1);
-			params.latch_prompt_eval[current_block].wait();
+		NIHILUS_HOST static void impl(core_traits_type&, int64_t, int64_t) {
+			//params.latch_prompt_eval[current_block].fetch_sub(1);
+			//params.latch_prompt_eval[current_block].wait();
 		}
 	};
 
 	template<typename config_type, typename core_traits_type>
-	struct kernel_dispatcher_impl<config_type, core_traits_type, device_types::cpu, 2, core_types::mega_ffn, processing_phases::eval_time> {
+	struct kernel_dispatcher_impl<config_type, core_traits_type, device_types::cpu, 2, core_types::global_output_and_sampling, processing_phases::eval_time> {
 		NIHILUS_HOST static void process_chunk(core_traits_type&, int64_t, int64_t) {
 			// PROCESS DATA.
 		}
-		NIHILUS_HOST static void impl(core_traits_type& params, int64_t, int64_t current_block) {
-			params.latch_eval[current_block].fetch_sub(1);
-			params.latch_eval[current_block].wait();
+		NIHILUS_HOST static void impl(core_traits_type&, int64_t, int64_t) {
+			//params.latch_eval[current_block].fetch_sub(1);
+			//params.latch_eval[current_block].wait();
 		}
 	};
 
 	template<typename config_type, typename core_traits_type>
-	struct kernel_dispatcher_impl<config_type, core_traits_type, device_types::cpu, 2, core_types::mega_ffn, processing_phases::prompt_eval_time> {
+	struct kernel_dispatcher_impl<config_type, core_traits_type, device_types::cpu, 2, core_types::global_output_and_sampling, processing_phases::prompt_eval_time> {
 		NIHILUS_HOST static void process_chunk(core_traits_type&, int64_t, int64_t) {
 			// PROCESS DATA.
 		}
-		NIHILUS_HOST static void impl(core_traits_type& params, int64_t, int64_t current_block) {
-			params.latch_prompt_eval[current_block].fetch_sub(1);
-			params.latch_prompt_eval[current_block].wait();
-		}
-	};
-
-	template<typename config_type, typename core_traits_type>
-	struct kernel_dispatcher_impl<config_type, core_traits_type, device_types::cpu, 2, core_types::final_norm_and_sampling, processing_phases::eval_time> {
-		NIHILUS_HOST static void process_chunk(core_traits_type&, int64_t) {
-			// PROCESS DATA.
-		}
-		NIHILUS_HOST static void impl(core_traits_type& params, int64_t) {
-			params.latch_eval.fetch_sub(1);
-			params.latch_eval.wait();
-		}
-	};
-
-	template<typename config_type, typename core_traits_type>
-	struct kernel_dispatcher_impl<config_type, core_traits_type, device_types::cpu, 2, core_types::final_norm_and_sampling, processing_phases::prompt_eval_time> {
-		NIHILUS_HOST static void process_chunk(core_traits_type&, int64_t) {
-			// PROCESS DATA.
-		}
-		NIHILUS_HOST static void impl(core_traits_type& params, int64_t) {
-			params.latch_prompt_eval.fetch_sub(1);
-			params.latch_prompt_eval.wait();
+		NIHILUS_HOST static void impl(core_traits_type&, int64_t, int64_t) {
+			//params.latch_prompt_eval[current_block].fetch_sub(1);
+			//params.latch_prompt_eval[current_block].wait();
 		}
 	};
 

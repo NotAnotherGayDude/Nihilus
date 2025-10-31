@@ -130,8 +130,8 @@ namespace nihilus {
 		benchmark_stats perf_stats{};
 	};
 
-	template<typename config_type> struct thread_pool : public get_nihilus_cathedral_enum_t<config_type, core_types, core_traits_new>, public perf_base<config_type> {
-		using nihilus_cathedral_type = get_nihilus_cathedral_enum_t<config_type, core_types, core_traits_new>;
+	template<typename config_type> struct thread_pool : public perf_base<config_type> {
+		//using nihilus_cathedral_type = get_nihilus_cathedral_enum_t<config_type, core_types, core_traits>;
 		NIHILUS_HOST thread_pool() noexcept {
 		}
 		NIHILUS_HOST thread_pool& operator=(const thread_pool&) noexcept = delete;
@@ -148,7 +148,7 @@ namespace nihilus {
 		}
 
 		template<processing_phases processing_phase, size_t... indices> NIHILUS_HOST void execute_blocks(std::index_sequence<indices...>) {
-			(nihilus_cathedral_type::template impl_thread<per_block_thread_function, processing_phase>(static_cast<int64_t>(indices), thread_count), ...);
+			//(nihilus_cathedral_type::template impl_thread<per_block_thread_function, processing_phase>(static_cast<int64_t>(indices), thread_count), ...);
 		}
 
 		NIHILUS_HOST void thread_function(int64_t thread_index) {
@@ -159,13 +159,13 @@ namespace nihilus {
 				thread_latch.worker_wait(static_cast<typename main_gate_latch::value_type>(thread_index));
 				if (!stop.load()) {
 					if (processing_phase.load() == processing_phases::prompt_eval_time) {
-						nihilus_cathedral_type::template impl_thread<global_input_thread_function, processing_phases::prompt_eval_time>(thread_count);
+						//nihilus_cathedral_type::template impl_thread<global_input_thread_function, processing_phases::prompt_eval_time>(thread_count);
 						execute_blocks<processing_phases::prompt_eval_time>(std::make_index_sequence<static_cast<uint64_t>(model_traits_type<config_type>::block_count)>{});
-						nihilus_cathedral_type::template impl_thread<global_output_thread_function, processing_phases::prompt_eval_time>(thread_count);
+						//nihilus_cathedral_type::template impl_thread<global_output_thread_function, processing_phases::prompt_eval_time>(thread_count);
 					} else {
-						nihilus_cathedral_type::template impl_thread<global_input_thread_function, processing_phases::eval_time>(thread_count);
+						//nihilus_cathedral_type::template impl_thread<global_input_thread_function, processing_phases::eval_time>(thread_count);
 						execute_blocks<processing_phases::eval_time>(std::make_index_sequence<static_cast<uint64_t>(model_traits_type<config_type>::block_count)>{});
-						nihilus_cathedral_type::template impl_thread<global_output_thread_function, processing_phases::eval_time>(thread_count);
+						//nihilus_cathedral_type::template impl_thread<global_output_thread_function, processing_phases::eval_time>(thread_count);
 					}
 					thread_latch.arrive();
 				}
@@ -174,9 +174,9 @@ namespace nihilus {
 
 		template<processing_phases phase_new> NIHILUS_HOST void execute_tasks(uint64_t sequence_length, uint64_t batch_size) {
 			processing_phase.store(phase_new);
-			nihilus_cathedral_type::template impl<sync_resetter>(thread_count);
-			nihilus_cathedral_type::template impl<dim_updater>(sequence_length);
-			nihilus_cathedral_type::template impl<batched_dim_updater>(sequence_length, batch_size);
+			//			nihilus_cathedral_type::template impl<sync_resetter>(thread_count);
+			//nihilus_cathedral_type::template impl<dim_updater>(sequence_length);
+			//nihilus_cathedral_type::template impl<batched_dim_updater>(sequence_length, batch_size);
 			thread_latch.count_down();
 			thread_latch.main_wait();
 		}

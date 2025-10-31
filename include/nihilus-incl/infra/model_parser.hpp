@@ -24,6 +24,7 @@ RealTimeChris (Chris M.)
 #include <nihilus-incl/common/optional.hpp>
 #include <nihilus-incl/infra/tokenizer.hpp>
 #include <nihilus-incl/infra/core_traits.hpp>
+#include <nihilus-incl/common/data_traits.hpp>
 #include <nihilus-incl/infra/file_loader.hpp>
 
 namespace nihilus {
@@ -674,25 +675,25 @@ namespace nihilus {
 
 	template<llama_arch_config_types config_type>
 	struct string_to_op_type<config_type> {
-		NIHILUS_HOST static weight_types impl(std::string_view input) noexcept {
+		NIHILUS_HOST static tensor_types impl(std::string_view input) noexcept {
 			if (string_literal_comparitor<"token_embd.weight">::impl(input.data())) {
-				return weight_types::token_embd;
+				return tensor_types::token_embd;
 			}
 			if (string_literal_comparitor<"rope_freqs.weight">::impl(input.data())) {
-				return weight_types::rope_freqs;
+				return tensor_types::rope_freqs;
 			}
 			if (string_literal_comparitor<"output_norm.weight">::impl(input.data())) {
-				return weight_types::output_norm;
+				return tensor_types::output_norm;
 			}
 			if (string_literal_comparitor<"output.weight">::impl(input.data())) {
-				return weight_types::output;
+				return tensor_types::output;
 			}
 
 			if (string_literal_comparitor<".attn_q.weight">::impl(input.data() + input.find(".attn_q.weight"))) {
-				return weight_types::attn_q;
+				return tensor_types::attn_q;
 			}
 			if (string_literal_comparitor<".attn_norm.weight">::impl(input.data() + input.find(".attn_norm.weight"))) {
-				return weight_types::attn_norm;
+				return tensor_types::attn_norm;
 			}
 
 			if (string_literal_comparitor<"blk.">::impl(input.data()) && string_literal_comparitor<".weight">::impl(input.data() + input.size() - 7)) {
@@ -701,44 +702,44 @@ namespace nihilus {
 					auto suffix = input.substr(second_dot + 1);
 
 					if (string_literal_comparitor<"attn_q.weight">::impl(suffix.data())) {
-						return weight_types::attn_q;
+						return tensor_types::attn_q;
 					}
 					if (string_literal_comparitor<"attn_norm.weight">::impl(suffix.data())) {
-						return weight_types::attn_norm;
+						return tensor_types::attn_norm;
 					}
 					if (string_literal_comparitor<"attn_k.weight">::impl(suffix.data())) {
-						return weight_types::attn_k;
+						return tensor_types::attn_k;
 					}
 					if (string_literal_comparitor<"attn_v.weight">::impl(suffix.data())) {
-						return weight_types::attn_v;
+						return tensor_types::attn_v;
 					}
 					if (string_literal_comparitor<"attn_output.weight">::impl(suffix.data())) {
-						return weight_types::attn_output;
+						return tensor_types::attn_output;
 					}
 					if (string_literal_comparitor<"ffn_down.weight">::impl(suffix.data())) {
-						return weight_types::ffn_down;
+						return tensor_types::ffn_down;
 					}
 					if (string_literal_comparitor<"ffn_gate.weight">::impl(suffix.data())) {
-						return weight_types::ffn_gate;
+						return tensor_types::ffn_gate;
 					}
 					if (string_literal_comparitor<"ffn_up.weight">::impl(suffix.data())) {
-						return weight_types::ffn_up;
+						return tensor_types::ffn_up;
 					}
 					if (string_literal_comparitor<"ffn_norm.weight">::impl(suffix.data())) {
-						return weight_types::ffn_norm;
+						return tensor_types::ffn_norm;
 					}
 				}
 			}
 
 			static constexpr auto location = std::source_location::current();
 			nihilus_exception<config_type::exceptions, "Incorrect op type!", location>::impl();
-			return weight_types::count;
+			return tensor_types::count;
 		}
 	};
 
 	struct core_base_creation_data {
 		array<uint64_t, 4> dimensions{ 1, 1, 1, 1 };
-		weight_types weight_type{};
+		tensor_types weight_type{};
 		uint32_t n_dimensions{};
 		uint64_t layer_number{};
 		data_types data_type{};
@@ -774,44 +775,49 @@ namespace nihilus {
 	template<llama_arch_config_types config_type> struct core_traits_comparitor<config_type> {
 		NIHILUS_HOST static bool impl(const core_base_creation_data& parse_core) noexcept {
 			switch (static_cast<uint64_t>(parse_core.weight_type)) {
-				case static_cast<uint64_t>(weight_types::token_embd): {
-					return parse_core == core_traits_new<config_type, core_types::weights>::token_embd_weight_type::get_array();
+				case static_cast<uint64_t>(tensor_types::token_embd): {
+					return parse_core ==
+						get_cathedral_type<tensor_types::token_embd,
+							get_nihilus_cathedral_array_t<config_type, tensor_types, data_holder_aggregator, indexed_data_holder>>::dims;
 				}
-				case static_cast<uint64_t>(weight_types::rope_freqs): {
-					return parse_core == core_traits_new<config_type, core_types::weights>::rope_freqs_weight_type::get_array();
+				case static_cast<uint64_t>(tensor_types::rope_freqs): {
+					return parse_core == get_cathedral_type<tensor_types::rope_freqs, get_nihilus_cathedral_array_t<config_type, tensor_types, data_holder_aggregator, indexed_data_holder>>::dims;
 				}
-				case static_cast<uint64_t>(weight_types::output_norm): {
-					return parse_core == core_traits_new<config_type, core_types::weights>::output_norm_weight_type::get_array();
+				case static_cast<uint64_t>(tensor_types::output_norm): {
+					return parse_core ==
+						get_cathedral_type<tensor_types::output_norm, get_nihilus_cathedral_array_t<config_type, tensor_types, data_holder_aggregator, indexed_data_holder>>::dims;
 				}
-				case static_cast<uint64_t>(weight_types::output): {
-					return parse_core == core_traits_new<config_type, core_types::weights>::output_weight_type::get_array();
+				case static_cast<uint64_t>(tensor_types::output): {
+					return parse_core == get_cathedral_type<tensor_types::output, get_nihilus_cathedral_array_t<config_type, tensor_types, data_holder_aggregator, indexed_data_holder>>::dims;
 				}
-				case static_cast<uint64_t>(weight_types::attn_q): {
-					return parse_core == core_traits_new<config_type, core_types::weights>::attn_q_weight_type::get_array();
+				case static_cast<uint64_t>(tensor_types::attn_q): {
+					return parse_core == get_cathedral_type<tensor_types::attn_q, get_nihilus_cathedral_array_t<config_type, tensor_types, data_holder_aggregator, indexed_data_holder>>::dims;
 				}
-				case static_cast<uint64_t>(weight_types::attn_norm): {
-					return parse_core == core_traits_new<config_type, core_types::weights>::attn_norm_weight_type::get_array();
+				case static_cast<uint64_t>(tensor_types::attn_norm): {
+					return parse_core ==
+						get_cathedral_type<tensor_types::attn_norm, get_nihilus_cathedral_array_t<config_type, tensor_types, data_holder_aggregator, indexed_data_holder>>::dims;
 				}
-				case static_cast<uint64_t>(weight_types::attn_k): {
-					return parse_core == core_traits_new<config_type, core_types::weights>::attn_k_weight_type::get_array();
+				case static_cast<uint64_t>(tensor_types::attn_k): {
+					return parse_core == get_cathedral_type<tensor_types::attn_k, get_nihilus_cathedral_array_t<config_type, tensor_types, data_holder_aggregator, indexed_data_holder>>::dims;
 				}
-				case static_cast<uint64_t>(weight_types::attn_v): {
-					return parse_core == core_traits_new<config_type, core_types::weights>::attn_v_weight_type::get_array();
+				case static_cast<uint64_t>(tensor_types::attn_v): {
+					return parse_core == get_cathedral_type<tensor_types::attn_v, get_nihilus_cathedral_array_t<config_type, tensor_types, data_holder_aggregator, indexed_data_holder>>::dims;
 				}
-				case static_cast<uint64_t>(weight_types::attn_output): {
-					return parse_core == core_traits_new<config_type, core_types::weights>::attn_output_weight_type::get_array();
+				case static_cast<uint64_t>(tensor_types::attn_output): {
+					return parse_core ==
+						get_cathedral_type<tensor_types::attn_output, get_nihilus_cathedral_array_t<config_type, tensor_types, data_holder_aggregator, indexed_data_holder>>::dims;
 				}
-				case static_cast<uint64_t>(weight_types::ffn_down): {
-					return parse_core == core_traits_new<config_type, core_types::weights>::ffn_down_weight_type::get_array();
+				case static_cast<uint64_t>(tensor_types::ffn_down): {
+					return parse_core == get_cathedral_type<tensor_types::ffn_down, get_nihilus_cathedral_array_t<config_type, tensor_types, data_holder_aggregator, indexed_data_holder>>::dims;
 				}
-				case static_cast<uint64_t>(weight_types::ffn_gate): {
-					return parse_core == core_traits_new<config_type, core_types::weights>::ffn_gate_weight_type::get_array();
+				case static_cast<uint64_t>(tensor_types::ffn_gate): {
+					return parse_core == get_cathedral_type<tensor_types::ffn_gate, get_nihilus_cathedral_array_t<config_type, tensor_types, data_holder_aggregator, indexed_data_holder>>::dims;
 				}
-				case static_cast<uint64_t>(weight_types::ffn_up): {
-					return parse_core == core_traits_new<config_type, core_types::weights>::ffn_up_weight_type::get_array();
+				case static_cast<uint64_t>(tensor_types::ffn_up): {
+					return parse_core == get_cathedral_type<tensor_types::ffn_up, get_nihilus_cathedral_array_t<config_type, tensor_types, data_holder_aggregator, indexed_data_holder>>::dims;
 				}
-				case static_cast<uint64_t>(weight_types::ffn_norm): {
-					return parse_core == core_traits_new<config_type, core_types::weights>::ffn_norm_weight_type::get_array();
+				case static_cast<uint64_t>(tensor_types::ffn_norm): {
+					return parse_core == get_cathedral_type<tensor_types::ffn_norm, get_nihilus_cathedral_array_t<config_type, tensor_types, data_holder_aggregator, indexed_data_holder>>::dims;
 				}
 				default: {
 					return false;
@@ -897,8 +903,8 @@ namespace nihilus {
 	struct model_parser_impl<config_type> {
 		using model_traits_type = model_traits<config_type::model_arch, config_type::model_size, config_type::model_generation>;
 		static_assert((std::endian::native == std::endian::little), "Sorry, but big-endian is not yet supported by the library");
-		template<typename tokenizer_type> NIHILUS_HOST static gguf_metadata<config_type> parse_model(std::string_view model_path,
-			array<array<void*, model_traits_type::block_count>, weight_types::count>& data, optional<file_loader<config_type>>& metadata_file,
+		template<typename tokenizer_type, uint64_t size> NIHILUS_HOST static gguf_metadata<config_type> parse_model(std::string_view model_path,
+			array<array<void*, model_traits_type::block_count>, size>& data, optional<file_loader<config_type>>& metadata_file,
 			optional<file_loader<config_type>>& memory_file, tokenizer_type& tokenizer) {
 			metadata_file = file_loader<config_type>{ model_path };
 			stream_iterator<config_type> ptr{ &*metadata_file };
@@ -940,8 +946,8 @@ namespace nihilus {
 	template<typename config_type> struct model_parser {
 		using model_traits_type = model_traits<config_type::model_arch, config_type::model_size, config_type::model_generation>;
 
-		template<typename tokenizer_type> NIHILUS_HOST static gguf_metadata<config_type> parse_model(std::string_view model_path,
-			array<array<void*, model_traits_type::block_count>, weight_types::count>& data, optional<file_loader<config_type>>& metadata_file,
+		template<typename tokenizer_type, uint64_t size> NIHILUS_HOST static gguf_metadata<config_type> parse_model(std::string_view model_path,
+			array<array<void*, model_traits_type::block_count>, size>& data, optional<file_loader<config_type>>& metadata_file,
 			optional<file_loader<config_type>>& memory_file, tokenizer_type& tokenizer) {
 			return model_parser_impl<config_type>::parse_model(model_path, data, metadata_file, memory_file, tokenizer);
 		}

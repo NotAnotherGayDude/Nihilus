@@ -67,19 +67,19 @@ namespace nihilus {
 	template<typename config_type, typename core_traits_type>
 	struct kernel_dispatcher_impl<config_type, core_traits_type, device_types::cpu, 2, core_types::token_embeddings, processing_phases::prompt_eval_time> {
 		NIHILUS_HOST static void process_chunk(core_traits_type& params, int64_t current_chunk, uint64_t chunk_size) {
-			auto& get_rows_op						= params.values.template get_core<token_embeddings_types::token_embeddings>();
-			auto& weights_core						= get_adjacent_value<typename core_traits_type::config_type, core_types::weights>::impl(params);
-			auto& inputs_core						= get_adjacent_value<typename core_traits_type::config_type, core_types::global_inputs>::impl(params);
-			auto& token_embd_op						= weights_core.values.template get_core<weight_types::token_embd>();
-			auto& inp_tokens_op						= inputs_core.values.template get_core<global_input_types::inp_tokens>();
-			const auto* __restrict token_embd_weight_data		= token_embd_op.get_data();
-			const auto* __restrict token_ids		= inputs_core.values.template get_core<global_input_types::inp_tokens>().get_data();
-			constexpr uint64_t embedding_length		= model_traits_type<typename core_traits_type::config_type>::embedding_length;
-			constexpr uint64_t blocks_per_embedding = embedding_length / 32;
-			const uint64_t sequence_length			= inp_tokens_op.get_dims(tag<0>{});
-			const uint64_t start_token				= static_cast<uint64_t>(current_chunk) * chunk_size;
-			const uint64_t end_token				= detail::min(start_token + chunk_size, sequence_length);
-			auto* __restrict output_data			= get_rows_op.get_data();
+			auto& get_rows_op							  = params.values.template get_core<token_embeddings_types::token_embeddings>();
+			auto& weights_core							  = get_adjacent_value<typename core_traits_type::config_type, core_types::weights>::impl(params);
+			auto& inputs_core							  = get_adjacent_value<typename core_traits_type::config_type, core_types::global_inputs>::impl(params);
+			auto& token_embd_op							  = weights_core.values.template get_core<weight_types::token_embd>();
+			auto& inp_tokens_op							  = inputs_core.values.template get_core<global_input_types::inp_tokens>();
+			const auto* __restrict token_embd_weight_data = token_embd_op.get_data();
+			const auto* __restrict token_ids			  = inputs_core.values.template get_core<global_input_types::inp_tokens>().get_data();
+			constexpr uint64_t embedding_length			  = model_traits_type<typename core_traits_type::config_type>::embedding_length;
+			constexpr uint64_t blocks_per_embedding		  = embedding_length / 32;
+			const uint64_t sequence_length				  = inp_tokens_op.get_dims(tag<0>{});
+			const uint64_t start_token					  = static_cast<uint64_t>(current_chunk) * chunk_size;
+			const uint64_t end_token					  = detail::min(start_token + chunk_size, sequence_length);
+			auto* __restrict output_data				  = get_rows_op.get_data();
 			for (uint64_t token_idx = start_token; token_idx < end_token; ++token_idx) {
 				const int32_t token_id		   = token_ids[token_idx];
 				const auto* __restrict src_row = token_embd_weight_data + (static_cast<uint64_t>(token_id) * blocks_per_embedding);
@@ -104,19 +104,19 @@ namespace nihilus {
 	template<typename config_type, typename core_traits_type>
 	struct kernel_dispatcher_impl<config_type, core_traits_type, device_types::cpu, 2, core_types::token_embeddings, processing_phases::eval_time> {
 		NIHILUS_HOST static void process_chunk(core_traits_type& params, int64_t current_chunk, uint64_t chunk_size) {
-			auto& get_rows_op						= params.values.template get_core<token_embeddings_types::token_embeddings>();
-			auto& weights_core						= get_adjacent_value<typename core_traits_type::config_type, core_types::weights>::impl(params);
-			auto& inputs_core						= get_adjacent_value<typename core_traits_type::config_type, core_types::global_inputs>::impl(params);
-			auto& token_embd_op						= weights_core.values.template get_core<weight_types::token_embd>();
-			auto& inp_tokens_op						= inputs_core.values.template get_core<global_input_types::inp_tokens>();
-			const auto* __restrict token_embd_weight_data		= token_embd_op.get_data();
-			const auto* __restrict token_ids		= inputs_core.values.template get_core<global_input_types::inp_tokens>().get_data();
-			constexpr uint64_t embedding_length		= model_traits_type<typename core_traits_type::config_type>::embedding_length;
-			constexpr uint64_t blocks_per_embedding = embedding_length / 32;
-			const uint64_t sequence_length			= inp_tokens_op.get_dims(tag<0>{});
-			const uint64_t start_token				= static_cast<uint64_t>(current_chunk) * chunk_size;
-			const uint64_t end_token				= detail::min(start_token + chunk_size, sequence_length);
-			auto* __restrict output_data			= get_rows_op.get_data();
+			auto& get_rows_op							  = params.values.template get_core<token_embeddings_types::token_embeddings>();
+			auto& weights_core							  = get_adjacent_value<typename core_traits_type::config_type, core_types::weights>::impl(params);
+			auto& inputs_core							  = get_adjacent_value<typename core_traits_type::config_type, core_types::global_inputs>::impl(params);
+			auto& token_embd_op							  = weights_core.values.template get_core<weight_types::token_embd>();
+			auto& inp_tokens_op							  = inputs_core.values.template get_core<global_input_types::inp_tokens>();
+			const auto* __restrict token_embd_weight_data = token_embd_op.get_data();
+			const auto* __restrict token_ids			  = inputs_core.values.template get_core<global_input_types::inp_tokens>().get_data();
+			constexpr uint64_t embedding_length			  = model_traits_type<typename core_traits_type::config_type>::embedding_length;
+			constexpr uint64_t blocks_per_embedding		  = embedding_length / 32;
+			const uint64_t sequence_length				  = inp_tokens_op.get_dims(tag<0>{});
+			const uint64_t start_token					  = static_cast<uint64_t>(current_chunk) * chunk_size;
+			const uint64_t end_token					  = detail::min(start_token + chunk_size, sequence_length);
+			auto* __restrict output_data				  = get_rows_op.get_data();
 			for (uint64_t token_idx = start_token; token_idx < end_token; ++token_idx) {
 				const int32_t token_id		   = token_ids[token_idx];
 				const auto* __restrict src_row = token_embd_weight_data + (static_cast<uint64_t>(token_id) * blocks_per_embedding);
@@ -139,7 +139,7 @@ namespace nihilus {
 	};
 
 	template<typename config_type, typename core_traits_type>
-	struct kernel_dispatcher_impl<config_type, core_traits_type, device_types::cpu, 2, core_types::mega_qkv_prep_and_cache_publish, processing_phases::eval_time> {
+	struct kernel_dispatcher_impl<config_type, core_traits_type, device_types::cpu, 2, core_types::attn_prep_and_score, processing_phases::eval_time> {
 		NIHILUS_HOST static void process_chunk(core_traits_type&, int64_t, int64_t) {
 		}
 
@@ -150,7 +150,7 @@ namespace nihilus {
 	};
 
 	template<typename config_type, typename core_traits_type>
-	struct kernel_dispatcher_impl<config_type, core_traits_type, device_types::cpu, 2, core_types::mega_qkv_prep_and_cache_publish, processing_phases::prompt_eval_time> {
+	struct kernel_dispatcher_impl<config_type, core_traits_type, device_types::cpu, 2, core_types::attn_prep_and_score, processing_phases::prompt_eval_time> {
 		NIHILUS_HOST static void process_chunk(core_traits_type&, int64_t, int64_t) {
 		}
 
@@ -161,7 +161,7 @@ namespace nihilus {
 	};
 
 	template<typename config_type, typename core_traits_type>
-	struct kernel_dispatcher_impl<config_type, core_traits_type, device_types::cpu, 2, core_types::mega_attention_apply, processing_phases::eval_time> {
+	struct kernel_dispatcher_impl<config_type, core_traits_type, device_types::cpu, 2, core_types::attn_out_and_ffn, processing_phases::eval_time> {
 		NIHILUS_HOST static void process_chunk(core_traits_type&, int64_t, int64_t) {
 			// PROCESS DATA.
 		}
@@ -172,7 +172,7 @@ namespace nihilus {
 	};
 
 	template<typename config_type, typename core_traits_type>
-	struct kernel_dispatcher_impl<config_type, core_traits_type, device_types::cpu, 2, core_types::mega_attention_apply, processing_phases::prompt_eval_time> {
+	struct kernel_dispatcher_impl<config_type, core_traits_type, device_types::cpu, 2, core_types::attn_out_and_ffn, processing_phases::prompt_eval_time> {
 		NIHILUS_HOST static void process_chunk(core_traits_type&, int64_t, int64_t) {
 			// PROCESS DATA.
 		}
@@ -183,7 +183,7 @@ namespace nihilus {
 	};
 
 	template<typename config_type, typename core_traits_type>
-	struct kernel_dispatcher_impl<config_type, core_traits_type, device_types::cpu, 2, core_types::mega_ffn, processing_phases::eval_time> {
+	struct kernel_dispatcher_impl<config_type, core_traits_type, device_types::cpu, 2, core_types::global_output_and_sampling, processing_phases::eval_time> {
 		NIHILUS_HOST static void process_chunk(core_traits_type&, int64_t, int64_t) {
 			// PROCESS DATA.
 		}
@@ -194,35 +194,13 @@ namespace nihilus {
 	};
 
 	template<typename config_type, typename core_traits_type>
-	struct kernel_dispatcher_impl<config_type, core_traits_type, device_types::cpu, 2, core_types::mega_ffn, processing_phases::prompt_eval_time> {
+	struct kernel_dispatcher_impl<config_type, core_traits_type, device_types::cpu, 2, core_types::global_output_and_sampling, processing_phases::prompt_eval_time> {
 		NIHILUS_HOST static void process_chunk(core_traits_type&, int64_t, int64_t) {
 			// PROCESS DATA.
 		}
 		NIHILUS_HOST static void impl(core_traits_type&, int64_t, int64_t) {
 			//params.latch_prompt_eval[current_block].fetch_sub(1);
 			//params.latch_prompt_eval[current_block].wait();
-		}
-	};
-
-	template<typename config_type, typename core_traits_type>
-	struct kernel_dispatcher_impl<config_type, core_traits_type, device_types::cpu, 2, core_types::final_norm_and_sampling, processing_phases::eval_time> {
-		NIHILUS_HOST static void process_chunk(core_traits_type&, int64_t) {
-			// PROCESS DATA.
-		}
-		NIHILUS_HOST static void impl(core_traits_type&, int64_t) {
-			//params.latch_eval.fetch_sub(1);
-			//params.latch_eval.wait();
-		}
-	};
-
-	template<typename config_type, typename core_traits_type>
-	struct kernel_dispatcher_impl<config_type, core_traits_type, device_types::cpu, 2, core_types::final_norm_and_sampling, processing_phases::prompt_eval_time> {
-		NIHILUS_HOST static void process_chunk(core_traits_type&, int64_t) {
-			// PROCESS DATA.
-		}
-		NIHILUS_HOST static void impl(core_traits_type&, int64_t) {
-			//params.latch_prompt_eval.fetch_sub(1);
-			//params.latch_prompt_eval.wait();
 		}
 	};
 

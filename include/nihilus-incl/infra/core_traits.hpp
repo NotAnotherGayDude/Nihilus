@@ -28,6 +28,7 @@ RealTimeChris (Chris M.)
 #include <nihilus-incl/common/common.hpp>
 #include <nihilus-incl/common/array.hpp>
 #include <nihilus-incl/common/tuple.hpp>
+#include <nihilus-incl/common/data.hpp>
 
 namespace nihilus {
 
@@ -59,7 +60,7 @@ namespace nihilus {
 		}
 	};
 
-	template<> struct kernel_data_ptrs<core_types::mega_qkv_prep_and_cache_publish> {
+	template<> struct kernel_data_ptrs<core_types::attn_prep_and_score> {
 	  protected:
 		NIHILUS_ALIGN(16) const void* inp_embd_data;
 		NIHILUS_ALIGN(16) const void* attn_norm_weight_data;
@@ -130,7 +131,7 @@ namespace nihilus {
 		}
 	};
 
-	template<> struct kernel_data_ptrs<core_types::mega_attention_apply> {
+	template<> struct kernel_data_ptrs<core_types::attn_out_and_ffn> {
 	  protected:
 		NIHILUS_ALIGN(16) const void* q_input_data;
 		NIHILUS_ALIGN(16) const void* cache_k_data;
@@ -181,7 +182,7 @@ namespace nihilus {
 		}
 	};
 
-	template<> struct kernel_data_ptrs<core_types::mega_ffn> {
+	template<> struct kernel_data_ptrs<core_types::global_output_and_sampling> {
 	  protected:
 		NIHILUS_ALIGN(16) const void* ffn_inp_data;
 		NIHILUS_ALIGN(16) const void* ffn_norm_w_data;
@@ -226,7 +227,7 @@ namespace nihilus {
 		}
 	};
 
-	template<> struct kernel_data_ptrs<core_types::final_norm_and_sampling> {
+	template<> struct kernel_data_ptrs<core_types::global_inputs> {
 	  protected:
 		NIHILUS_ALIGN(16) const void* l_out_data;
 		NIHILUS_ALIGN(16) const void* output_norm_w_data;
@@ -326,17 +327,138 @@ namespace nihilus {
 			allowed_vocab_mask_data = allowed_vocab_mask_data_new;
 		}
 	};
+	/*
+	template<typename config_type_new, core_types core_type> struct core_traits;
 
-	template<typename config_type_new, core_types> struct core_traits_new;
-
-	template<typename config_type_new> struct core_traits_new<config_type_new, core_types::weights>
-		: public core_elem_base<core_types::weights, core_traits_new<config_type_new, core_types::weights>> {
+	template<typename config_type_new> struct core_traits<config_type_new, core_types::weights>
+		: public core_elem_base<core_types::weights, core_traits<config_type_new, core_types::weights>> {
 		static constexpr core_types core_type{ core_types::weights };
 		static constexpr uint64_t depth{ std::numeric_limits<uint64_t>::max() };
 		using config_type		  = config_type_new;
-		using kernel_profile_type = kernel_type_profile_traits<config_type::kernel_type_profile>;
-		using weight_type		  = typename kernel_profile_type::weight_type;
-		using norm_type			  = typename kernel_profile_type::norm_type;
+		using kernel_type_profile = kernel_type_profile_traits<config_type::kernel_type_profile>;
+		using weight_type		  = typename kernel_type_profile::weight_type;
+		using norm_type			  = typename kernel_type_profile::norm_type;
+
+		//using sub_kernel_types = get_nihilus_cathedral_array_old_t<config_type, weight_types, sub_kernel_traits_new>;
+
+		//sub_kernel_types values{};
+
+		//static constexpr uint64_t total_required_bytes{ get_total_required_bytes_new<config_type, weight_types>() };
+
+		//static constexpr bool has_total_required_bytes{ config_type::device_type == device_types::gpu };
+	};
+
+	template<typename config_type_new> struct core_traits<config_type_new, core_types::global_inputs>
+		: public core_elem_base<core_types::global_inputs, core_traits<config_type_new, core_types::global_inputs>> {
+		static constexpr core_types core_type{ core_types::global_inputs };
+		static constexpr uint64_t depth{ std::numeric_limits<uint64_t>::max() };
+		using config_type		  = config_type_new;
+		using kernel_type_profile = kernel_type_profile_traits<config_type::kernel_type_profile>;
+		using weight_type		  = typename kernel_type_profile::weight_type;
+		using norm_type			  = typename kernel_type_profile::norm_type;
+		//using enum_type			  = global_input_types;
+
+		//using sub_kernel_types = get_nihilus_cathedral_array_old_t<config_type, enum_type, sub_kernel_traits_new>;
+
+		//sub_kernel_types values{};
+		//static constexpr uint64_t total_required_bytes{ get_total_required_bytes_new<config_type, enum_type>() };
+
+		//static constexpr bool has_total_required_bytes{ config_type::device_type == device_types::gpu };
+	};
+
+	template<typename config_type_new> struct core_traits<config_type_new, core_types::token_embeddings>
+		: public core_elem_base<core_types::token_embeddings, core_traits<config_type_new, core_types::token_embeddings>>,
+		  public sync_base<config_type_new, core_types::token_embeddings> {
+		static constexpr core_types core_type{ core_types::token_embeddings };
+		static constexpr uint64_t depth{ 0 };
+		using config_type		  = config_type_new;
+		using kernel_type_profile = kernel_type_profile_traits<config_type::kernel_type_profile>;
+		using weight_type		  = typename kernel_type_profile::weight_type;
+		using norm_type			  = typename kernel_type_profile::norm_type;
+		//using enum_type			  = token_embeddings_sub_kernel_types;
+
+		//using sub_kernel_types = get_nihilus_cathedral_array_old_t<config_type, enum_type, sub_kernel_traits_new>;
+
+		//sub_kernel_types values{};
+		//static constexpr uint64_t total_required_bytes{ get_total_required_bytes_new<config_type, enum_type>() };
+
+		//static constexpr bool has_total_required_bytes{ config_type::device_type == device_types::gpu };
+	};
+
+	template<typename config_type_new> struct core_traits<config_type_new, core_types::attn_prep_and_score>
+		: public core_elem_base<core_types::attn_prep_and_score, core_traits<config_type_new, core_types::attn_prep_and_score>> {
+		static constexpr core_types core_type{ core_types::attn_prep_and_score };
+		static constexpr uint64_t depth{ core_traits<config_type_new, static_cast<core_types>(static_cast<uint64_t>(core_types::attn_prep_and_score) - 1)>::depth + 1 };
+		using config_type		  = config_type_new;
+		using kernel_type_profile = kernel_type_profile_traits<config_type::kernel_type_profile>;
+		using weight_type		  = typename kernel_type_profile::weight_type;
+		using norm_type			  = typename kernel_type_profile::norm_type;
+		//using enum_type			  = attn_prep_and_score_sub_kernel_types;
+
+		//using sub_kernel_types = get_nihilus_cathedral_array_old_t<config_type, enum_type, sub_kernel_traits_new>;
+
+		//using op_trait = get_nihilus_cathedral_t<config_type_new,
+		//op_traits_new<config_type, core_type, allocation_strategy_types::alloc, data_strategy_types::global, last_cathedral_type<sub_kernel_types>>>;
+		//op_trait values{};
+		//static constexpr uint64_t total_required_bytes{ get_total_required_bytes_new<config_type, enum_type>() };
+
+		//static constexpr bool has_total_required_bytes{ config_type::device_type == device_types::gpu };
+	};
+
+	template<typename config_type_new> struct core_traits<config_type_new, core_types::attn_out_and_ffn>
+		: public core_elem_base<core_types::attn_out_and_ffn, core_traits<config_type_new, core_types::attn_out_and_ffn>>,
+		  public sync_base<config_type_new, core_types::attn_out_and_ffn> {
+		static constexpr core_types core_type{ core_types::attn_out_and_ffn };
+		static constexpr uint64_t depth{ core_traits<config_type_new, static_cast<core_types>(static_cast<uint64_t>(core_types::attn_out_and_ffn) - 1)>::depth + 1 };
+		using config_type		  = config_type_new;
+		using kernel_type_profile = kernel_type_profile_traits<config_type::kernel_type_profile>;
+		using weight_type		  = typename kernel_type_profile::weight_type;
+		using norm_type			  = typename kernel_type_profile::norm_type;
+		//using enum_type			  = attn_out_and_ffn_sub_kernel_types;
+		//
+		//using sub_kernel_types = get_nihilus_cathedral_array_old_t<config_type, enum_type, sub_kernel_traits_new>;
+
+		//using op_trait = get_nihilus_cathedral_t<config_type_new,
+		//op_traits_new<config_type, core_type, allocation_strategy_types::alloc, data_strategy_types::global, last_cathedral_type<sub_kernel_types>>>;
+		//op_trait values{};
+		//stvatic constexpr uint64_t total_required_bytes{ get_total_required_bytes_new<config_type, enum_type>() };
+
+		//static constexpr bool has_total_required_bytes{ config_type::device_type == device_types::gpu };
+	};
+
+	template<typename config_type_new> struct core_traits<config_type_new, core_types::global_output_and_sampling>
+		: public core_elem_base<core_types::global_output_and_sampling, core_traits<config_type_new, core_types::global_output_and_sampling>>,
+		  public sync_base<config_type_new, core_types::global_output_and_sampling> {
+		static constexpr core_types core_type{ core_types::global_output_and_sampling };
+		static constexpr uint64_t depth{ core_traits<config_type_new, static_cast<core_types>(static_cast<uint64_t>(core_types::global_output_and_sampling) - 1)>::depth + 1 };
+		using config_type		  = config_type_new;
+		using kernel_type_profile = kernel_type_profile_traits<config_type::kernel_type_profile>;
+		using weight_type		  = typename kernel_type_profile::weight_type;
+		using norm_type			  = typename kernel_type_profile::norm_type;
+		//using enum_type			  = global_output_and_sampling_sub_kernel_types;
+
+		//using sub_kernel_types = get_nihilus_cathedral_array_old_t<config_type, enum_type, sub_kernel_traits_new>;
+
+		//using op_trait = get_nihilus_cathedral_t<config_type_new,
+		//op_traits_new<config_type, core_type, allocation_strategy_types::alloc, data_strategy_types::global, last_cathedral_type<sub_kernel_types>>>;
+		//op_trait values{};
+		//static constexpr uint64_t total_required_bytes{ get_total_required_bytes_new<config_type, enum_type>() };
+
+		//static constexpr bool has_total_required_bytes{ config_type::device_type == device_types::gpu };
+	};
+
+	/*
+
+	template<typename config_type_new, core_types> struct core_traits;
+
+	template<typename config_type_new> struct core_traits<config_type_new, core_types::weights>
+		: public core_elem_base<core_types::weights, core_traits<config_type_new, core_types::weights>> {
+		static constexpr core_types core_type{ core_types::weights };
+		static constexpr uint64_t depth{ std::numeric_limits<uint64_t>::max() };
+		using config_type		  = config_type_new;
+		using kernel_type_profile = kernel_type_profile_traits<config_type::kernel_type_profile>;
+		using weight_type		  = typename kernel_type_profile::weight_type;
+		using norm_type			  = typename kernel_type_profile::norm_type;
 
 		using attn_q_weight_kernel = raw_kernel_traits<config_type, kernel_types::weights, weight_type,
 			kernel_dims<0, model_traits_type<config_type>::embedding_length, model_traits_type<config_type>::embedding_length, 1, 1>>;
@@ -428,30 +550,30 @@ namespace nihilus {
 		static constexpr bool has_total_required_bytes{ config_type::device_type == device_types::gpu };
 	};
 
-	template<typename config_type_new> struct core_traits_new<config_type_new, core_types::global_inputs>
-		: public core_elem_base<core_types::global_inputs, core_traits_new<config_type_new, core_types::global_inputs>> {
+	template<typename config_type_new> struct core_traits<config_type_new, core_types::global_inputs>
+		: public core_elem_base<core_types::global_inputs, core_traits<config_type_new, core_types::global_inputs>> {
 		static constexpr core_types core_type{ core_types::global_inputs };
 		static constexpr uint64_t depth{ std::numeric_limits<uint64_t>::max() };
 		using config_type		  = config_type_new;
 		using mtt				  = model_traits_type<config_type>;
-		using kernel_profile_type = kernel_type_profile_traits<config_type::kernel_type_profile>;
+		using kernel_type_profile = kernel_type_profile_traits<config_type::kernel_type_profile>;
 
-		using inp_tokens_kernel = raw_kernel_traits<config_type, kernel_types::global_inputs, typename kernel_profile_type::token_type,
+		using inp_tokens_kernel = raw_kernel_traits<config_type, kernel_types::global_inputs, typename kernel_type_profile::token_type,
 			kernel_dims<get_runtime_mask<config_type::batched_processing, 0>(), config_type::max_sequence_length, 1, 1, 1>>;
 
-		using inp_pos_kernel = raw_kernel_traits<config_type, kernel_types::global_inputs, typename kernel_profile_type::token_type,
+		using inp_pos_kernel = raw_kernel_traits<config_type, kernel_types::global_inputs, typename kernel_type_profile::token_type,
 			kernel_dims<get_runtime_mask<config_type::batched_processing, 0>(), config_type::max_sequence_length, 1, 1, 1>>;
 
-		using cache_k_kernel = raw_kernel_traits<config_type, kernel_types::global_inputs, typename kernel_profile_type::kv_cache_type,
+		using cache_k_kernel = raw_kernel_traits<config_type, kernel_types::global_inputs, typename kernel_type_profile::kv_cache_type,
 			kernel_dims<get_runtime_mask<config_type::batched_processing, 1>(), mtt::block_count, config_type::max_sequence_length, mtt::attention_head_count_kv, mtt::rope_dimension_count>>;
 
-		using cache_v_kernel = raw_kernel_traits<config_type, kernel_types::global_inputs, typename kernel_profile_type::kv_cache_type,
+		using cache_v_kernel = raw_kernel_traits<config_type, kernel_types::global_inputs, typename kernel_type_profile::kv_cache_type,
 			kernel_dims<get_runtime_mask<config_type::batched_processing, 1>(), mtt::block_count, config_type::max_sequence_length, mtt::attention_head_count_kv, mtt::rope_dimension_count>>;
 
 		using kq_mask_kernel =
-			raw_kernel_traits<config_type, kernel_types::global_inputs, typename kernel_profile_type::mask_type, kernel_dims<0, mtt::block_count, mtt::block_count, 1, 1>>;
+			raw_kernel_traits<config_type, kernel_types::global_inputs, typename kernel_type_profile::mask_type, kernel_dims<0, mtt::block_count, mtt::block_count, 1, 1>>;
 
-		using inp_out_ids_kernel = raw_kernel_traits<config_type, kernel_types::global_inputs, typename kernel_profile_type::token_type,
+		using inp_out_ids_kernel = raw_kernel_traits<config_type, kernel_types::global_inputs, typename kernel_type_profile::token_type,
 			kernel_dims<get_runtime_mask<config_type::batched_processing, 0>(), config_type::max_sequence_length, 1, 1, 1>>;
 
 		using temperature_kernel = raw_kernel_traits<config_type, kernel_types::global_inputs, float, kernel_dims<0, 1, 1, 1, 1>>;
@@ -537,32 +659,32 @@ namespace nihilus {
 		static constexpr bool has_total_required_bytes{ true };
 	};
 
-	template<batched_processing_config_types config_type_new> struct core_traits_new<config_type_new, core_types::global_inputs>
-		: public core_elem_base<core_types::global_inputs, core_traits_new<config_type_new, core_types::global_inputs>> {
+	template<batched_processing_config_types config_type_new> struct core_traits<config_type_new, core_types::global_inputs>
+		: public core_elem_base<core_types::global_inputs, core_traits<config_type_new, core_types::global_inputs>> {
 		static constexpr core_types core_type{ core_types::global_inputs };
 		static constexpr uint64_t depth{ std::numeric_limits<uint64_t>::max() };
 		using config_type		  = config_type_new;
 		using mtt				  = model_traits_type<config_type>;
-		using kernel_profile_type = kernel_type_profile_traits<config_type::kernel_type_profile>;
+		using kernel_type_profile = kernel_type_profile_traits<config_type::kernel_type_profile>;
 
-		using inp_tokens_kernel = raw_kernel_traits<config_type, kernel_types::global_inputs, typename kernel_profile_type::token_type,
+		using inp_tokens_kernel = raw_kernel_traits<config_type, kernel_types::global_inputs, typename kernel_type_profile::token_type,
 			kernel_dims<get_runtime_mask<config_type::batched_processing, 0, 1>(), config_type::batch_size, config_type::max_sequence_length, 1, 1>>;
 
-		using inp_pos_kernel = raw_kernel_traits<config_type, kernel_types::global_inputs, typename kernel_profile_type::token_type,
+		using inp_pos_kernel = raw_kernel_traits<config_type, kernel_types::global_inputs, typename kernel_type_profile::token_type,
 			kernel_dims<get_runtime_mask<config_type::batched_processing, 0, 1>(), config_type::batch_size, config_type::max_sequence_length, 1, 1>>;
 
-		using cache_k_kernel = raw_kernel_traits<config_type, kernel_types::global_inputs, typename kernel_profile_type::kv_cache_type,
+		using cache_k_kernel = raw_kernel_traits<config_type, kernel_types::global_inputs, typename kernel_type_profile::kv_cache_type,
 			kernel_dims<get_runtime_mask<config_type::batched_processing, 0, 1>(), config_type::batch_size * mtt::block_count, config_type::max_sequence_length, mtt::attention_head_count_kv,
 				mtt::rope_dimension_count>>;
 
-		using cache_v_kernel = raw_kernel_traits<config_type, kernel_types::global_inputs, typename kernel_profile_type::kv_cache_type,
+		using cache_v_kernel = raw_kernel_traits<config_type, kernel_types::global_inputs, typename kernel_type_profile::kv_cache_type,
 			kernel_dims<get_runtime_mask<config_type::batched_processing, 0, 1>(), config_type::batch_size * mtt::block_count, config_type::max_sequence_length, mtt::attention_head_count_kv,
 				mtt::rope_dimension_count>>;
 
-		using kq_mask_kernel = raw_kernel_traits<config_type, kernel_types::global_inputs, typename kernel_profile_type::mask_type,
+		using kq_mask_kernel = raw_kernel_traits<config_type, kernel_types::global_inputs, typename kernel_type_profile::mask_type,
 			kernel_dims<get_runtime_mask<config_type::batched_processing, 0>(), config_type::batch_size, mtt::block_count, mtt::block_count, 1>>;
 
-		using inp_out_ids_kernel = raw_kernel_traits<config_type, kernel_types::global_inputs, typename kernel_profile_type::token_type,
+		using inp_out_ids_kernel = raw_kernel_traits<config_type, kernel_types::global_inputs, typename kernel_type_profile::token_type,
 			kernel_dims<get_runtime_mask<config_type::batched_processing, 0, 1>(), config_type::batch_size, config_type::max_sequence_length, 1, 1>>;
 
 		using temperature_kernel = raw_kernel_traits<config_type, kernel_types::global_inputs, float, kernel_dims<get_runtime_mask<config_type::batched_processing, 0>(), config_type::batch_size, 1, 1, 1>>;
@@ -650,17 +772,16 @@ namespace nihilus {
 		static constexpr bool has_total_required_bytes{ true };
 	};
 
-	template<typename config_type_new> struct core_traits_new<config_type_new, core_types::token_embeddings>
-		: public core_elem_base<core_types::token_embeddings, core_traits_new<config_type_new, core_types::token_embeddings>>,
-		  public sync_base<config_type_new, core_types::token_embeddings> {
+	template<typename config_type_new> struct core_traits<config_type_new, core_types::token_embeddings>
+		: public core_elem_base<core_types::token_embeddings, core_traits<config_type_new, core_types::token_embeddings>> {
 		static constexpr core_types core_type{ core_types::token_embeddings };
 		using config_type = config_type_new;
 		static constexpr uint64_t depth{ 0 };
 		using mtt				  = model_traits_type<config_type>;
-		using kernel_profile_type = kernel_type_profile_traits<config_type::kernel_type_profile>;
-		using compute_type		  = typename kernel_profile_type::compute_type;
-		using token_embd_type	  = typename core_traits_new<config_type_new, core_types::weights>::token_embd_weight_type;
-		using inp_tokens_type	  = typename core_traits_new<config_type_new, core_types::global_inputs>::inp_tokens_type;
+		using kernel_type_profile = kernel_type_profile_traits<config_type::kernel_type_profile>;
+		using compute_type		  = typename kernel_type_profile::compute_type;
+		using token_embd_type	  = typename core_traits<config_type_new, core_types::weights>::token_embd_weight_type;
+		using inp_tokens_type	  = typename core_traits<config_type_new, core_types::global_inputs>::inp_tokens_type;
 
 		using token_embeddings_kernel_traits =
 			kernel_traits<config_type::batched_processing, kernel_types_type<kernel_types::get_rows>, compute_type, token_embd_type, inp_tokens_type>;
@@ -678,28 +799,27 @@ namespace nihilus {
 		static constexpr bool has_total_required_bytes{ true };
 	};
 
-	template<typename config_type_new> struct core_traits_new<config_type_new, core_types::mega_qkv_prep_and_cache_publish>
-		: public core_elem_base<core_types::mega_qkv_prep_and_cache_publish, core_traits_new<config_type_new, core_types::mega_qkv_prep_and_cache_publish>>,
-		  public sync_base<config_type_new, core_types::mega_qkv_prep_and_cache_publish> {
+	template<typename config_type_new> struct core_traits<config_type_new, core_types::mega_qkv_prep_and_cache_publish>
+		: public core_elem_base<core_types::mega_qkv_prep_and_cache_publish, core_traits<config_type_new, core_types::mega_qkv_prep_and_cache_publish>> {
 		static constexpr core_types core_type{ core_types::mega_qkv_prep_and_cache_publish };
 		using config_type = config_type_new;
-		static constexpr uint64_t depth{ core_traits_new<config_type_new, static_cast<core_types>(static_cast<uint64_t>(core_types::mega_qkv_prep_and_cache_publish) - 1)>::depth +
+		static constexpr uint64_t depth{ core_traits<config_type_new, static_cast<core_types>(static_cast<uint64_t>(core_types::mega_qkv_prep_and_cache_publish) - 1)>::depth +
 			1 };
 		using mtt				  = model_traits_type<config_type>;
-		using kernel_profile_type = kernel_type_profile_traits<config_type::kernel_type_profile>;
-		using weight_type		  = typename kernel_profile_type::weight_type;
-		using norm_type			  = typename kernel_profile_type::norm_type;
-		using compute_type		  = typename kernel_profile_type::compute_type;
-		using kv_store_type		  = typename kernel_profile_type::kv_cache_type;
-		using inp_embd_type		  = typename core_traits_new<config_type_new, core_types::token_embeddings>::token_embeddings_type;
-		using attn_norm_w_type	  = typename core_traits_new<config_type_new, core_types::weights>::attn_norm_weight_type;
-		using attn_q_w_type		  = typename core_traits_new<config_type_new, core_types::weights>::attn_q_weight_type;
-		using attn_k_w_type		  = typename core_traits_new<config_type_new, core_types::weights>::attn_k_weight_type;
-		using attn_v_w_type		  = typename core_traits_new<config_type_new, core_types::weights>::attn_v_weight_type;
-		using inp_pos_type		  = typename core_traits_new<config_type_new, core_types::global_inputs>::inp_pos_type;
-		using rope_freqs_type	  = typename core_traits_new<config_type_new, core_types::weights>::rope_freqs_weight_type;
-		using cache_k_type		  = typename core_traits_new<config_type_new, core_types::global_inputs>::cache_k_type;
-		using cache_v_type		  = typename core_traits_new<config_type_new, core_types::global_inputs>::cache_v_type;
+		using kernel_type_profile = kernel_type_profile_traits<config_type::kernel_type_profile>;
+		using weight_type		  = typename kernel_type_profile::weight_type;
+		using norm_type			  = typename kernel_type_profile::norm_type;
+		using compute_type		  = typename kernel_type_profile::compute_type;
+		using kv_store_type		  = typename kernel_type_profile::kv_cache_type;
+		using inp_embd_type		  = typename core_traits<config_type_new, core_types::token_embeddings>::token_embeddings_type;
+		using attn_norm_w_type	  = typename core_traits<config_type_new, core_types::weights>::attn_norm_weight_type;
+		using attn_q_w_type		  = typename core_traits<config_type_new, core_types::weights>::attn_q_weight_type;
+		using attn_k_w_type		  = typename core_traits<config_type_new, core_types::weights>::attn_k_weight_type;
+		using attn_v_w_type		  = typename core_traits<config_type_new, core_types::weights>::attn_v_weight_type;
+		using inp_pos_type		  = typename core_traits<config_type_new, core_types::global_inputs>::inp_pos_type;
+		using rope_freqs_type	  = typename core_traits<config_type_new, core_types::weights>::rope_freqs_weight_type;
+		using cache_k_type		  = typename core_traits<config_type_new, core_types::global_inputs>::cache_k_type;
+		using cache_v_type		  = typename core_traits<config_type_new, core_types::global_inputs>::cache_v_type;
 
 		using rms_norm_trait = kernel_traits<config_type::batched_processing, kernel_types_type<kernel_types::rms_norm>, inp_embd_type>;
 
@@ -750,28 +870,27 @@ namespace nihilus {
 		static constexpr bool has_total_required_bytes{ true };
 	};
 
-	template<batched_processing_config_types config_type_new> struct core_traits_new<config_type_new, core_types::mega_qkv_prep_and_cache_publish>
-		: public core_elem_base<core_types::mega_qkv_prep_and_cache_publish, core_traits_new<config_type_new, core_types::mega_qkv_prep_and_cache_publish>>,
-		  public sync_base<config_type_new, core_types::mega_qkv_prep_and_cache_publish> {
+	template<batched_processing_config_types config_type_new> struct core_traits<config_type_new, core_types::mega_qkv_prep_and_cache_publish>
+		: public core_elem_base<core_types::mega_qkv_prep_and_cache_publish, core_traits<config_type_new, core_types::mega_qkv_prep_and_cache_publish>> {
 		static constexpr core_types core_type{ core_types::mega_qkv_prep_and_cache_publish };
 		using config_type = config_type_new;
-		static constexpr uint64_t depth{ core_traits_new<config_type_new, static_cast<core_types>(static_cast<uint64_t>(core_types::mega_qkv_prep_and_cache_publish) - 1)>::depth +
+		static constexpr uint64_t depth{ core_traits<config_type_new, static_cast<core_types>(static_cast<uint64_t>(core_types::mega_qkv_prep_and_cache_publish) - 1)>::depth +
 			1 };
 		using mtt				  = model_traits_type<config_type>;
-		using kernel_profile_type = kernel_type_profile_traits<config_type::kernel_type_profile>;
-		using weight_type		  = typename kernel_profile_type::weight_type;
-		using norm_type			  = typename kernel_profile_type::norm_type;
-		using compute_type		  = typename kernel_profile_type::compute_type;
-		using kv_store_type		  = typename kernel_profile_type::kv_cache_type;
-		using inp_embd_type		  = typename core_traits_new<config_type_new, core_types::token_embeddings>::token_embeddings_type;
-		using attn_norm_w_type	  = typename core_traits_new<config_type_new, core_types::weights>::attn_norm_weight_type;
-		using attn_q_w_type		  = typename core_traits_new<config_type_new, core_types::weights>::attn_q_weight_type;
-		using attn_k_w_type		  = typename core_traits_new<config_type_new, core_types::weights>::attn_k_weight_type;
-		using attn_v_w_type		  = typename core_traits_new<config_type_new, core_types::weights>::attn_v_weight_type;
-		using inp_pos_type		  = typename core_traits_new<config_type_new, core_types::global_inputs>::inp_pos_type;
-		using rope_freqs_type	  = typename core_traits_new<config_type_new, core_types::weights>::rope_freqs_weight_type;
-		using cache_k_type		  = typename core_traits_new<config_type_new, core_types::global_inputs>::cache_k_type;
-		using cache_v_type		  = typename core_traits_new<config_type_new, core_types::global_inputs>::cache_v_type;
+		using kernel_type_profile = kernel_type_profile_traits<config_type::kernel_type_profile>;
+		using weight_type		  = typename kernel_type_profile::weight_type;
+		using norm_type			  = typename kernel_type_profile::norm_type;
+		using compute_type		  = typename kernel_type_profile::compute_type;
+		using kv_store_type		  = typename kernel_type_profile::kv_cache_type;
+		using inp_embd_type		  = typename core_traits<config_type_new, core_types::token_embeddings>::token_embeddings_type;
+		using attn_norm_w_type	  = typename core_traits<config_type_new, core_types::weights>::attn_norm_weight_type;
+		using attn_q_w_type		  = typename core_traits<config_type_new, core_types::weights>::attn_q_weight_type;
+		using attn_k_w_type		  = typename core_traits<config_type_new, core_types::weights>::attn_k_weight_type;
+		using attn_v_w_type		  = typename core_traits<config_type_new, core_types::weights>::attn_v_weight_type;
+		using inp_pos_type		  = typename core_traits<config_type_new, core_types::global_inputs>::inp_pos_type;
+		using rope_freqs_type	  = typename core_traits<config_type_new, core_types::weights>::rope_freqs_weight_type;
+		using cache_k_type		  = typename core_traits<config_type_new, core_types::global_inputs>::cache_k_type;
+		using cache_v_type		  = typename core_traits<config_type_new, core_types::global_inputs>::cache_v_type;
 
 		using rms_norm_trait = kernel_traits<config_type::batched_processing, kernel_types_type<kernel_types::rms_norm>, inp_embd_type>;
 
@@ -826,24 +945,23 @@ namespace nihilus {
 		static constexpr bool has_total_required_bytes{ true };
 	};
 
-	template<typename config_type_new> struct core_traits_new<config_type_new, core_types::mega_attention_apply>
-		: public core_elem_base<core_types::mega_attention_apply, core_traits_new<config_type_new, core_types::mega_attention_apply>>,
-		  public sync_base<config_type_new, core_types::mega_attention_apply> {
+	template<typename config_type_new> struct core_traits<config_type_new, core_types::mega_attention_apply>
+		: public core_elem_base<core_types::mega_attention_apply, core_traits<config_type_new, core_types::mega_attention_apply>> {
 		static constexpr core_types core_type{ core_types::mega_attention_apply };
 		using config_type = config_type_new;
-		static constexpr uint64_t depth{ core_traits_new<config_type_new, static_cast<core_types>(static_cast<uint64_t>(core_types::mega_attention_apply) - 1)>::depth + 1 };
+		static constexpr uint64_t depth{ core_traits<config_type_new, static_cast<core_types>(static_cast<uint64_t>(core_types::mega_attention_apply) - 1)>::depth + 1 };
 		using mtt				  = model_traits_type<config_type>;
-		using kernel_profile_type = kernel_type_profile_traits<config_type::kernel_type_profile>;
-		using weight_type		  = typename kernel_profile_type::weight_type;
-		using norm_type			  = typename kernel_profile_type::norm_type;
-		using compute_type		  = typename kernel_profile_type::compute_type;
-		using kv_store_type		  = typename kernel_profile_type::kv_cache_type;
-		using cache_k_type		  = typename core_traits_new<config_type_new, core_types::global_inputs>::cache_k_type;
-		using cache_v_type		  = typename core_traits_new<config_type_new, core_types::global_inputs>::cache_v_type;
-		using kq_mask_type		  = typename core_traits_new<config_type_new, core_types::global_inputs>::kq_mask_type;
-		using attn_output_w_type  = typename core_traits_new<config_type_new, core_types::weights>::attn_output_weight_type;
-		using inp_embd_type		  = typename core_traits_new<config_type_new, core_types::token_embeddings>::token_embeddings_type;
-		using q_rope_type		  = typename core_traits_new<config_type_new, core_types::mega_qkv_prep_and_cache_publish>::q_out_type;
+		using kernel_type_profile = kernel_type_profile_traits<config_type::kernel_type_profile>;
+		using weight_type		  = typename kernel_type_profile::weight_type;
+		using norm_type			  = typename kernel_type_profile::norm_type;
+		using compute_type		  = typename kernel_type_profile::compute_type;
+		using kv_store_type		  = typename kernel_type_profile::kv_cache_type;
+		using cache_k_type		  = typename core_traits<config_type_new, core_types::global_inputs>::cache_k_type;
+		using cache_v_type		  = typename core_traits<config_type_new, core_types::global_inputs>::cache_v_type;
+		using kq_mask_type		  = typename core_traits<config_type_new, core_types::global_inputs>::kq_mask_type;
+		using attn_output_w_type  = typename core_traits<config_type_new, core_types::weights>::attn_output_weight_type;
+		using inp_embd_type		  = typename core_traits<config_type_new, core_types::token_embeddings>::token_embeddings_type;
+		using q_rope_type		  = typename core_traits<config_type_new, core_types::mega_qkv_prep_and_cache_publish>::q_out_type;
 
 		using k_cache_read_dims =
 			kernel_dims<get_runtime_mask<config_type::batched_processing, 0, 2>(), config_type::batch_size, mtt::rope_dimension_count, config_type::max_sequence_length, mtt::attention_head_count_kv>;
@@ -885,20 +1003,20 @@ namespace nihilus {
 		static constexpr bool has_total_required_bytes{ true };
 	};
 
-	template<typename config_type_new> struct core_traits_new<config_type_new, core_types::mega_ffn>
-		: public core_elem_base<core_types::mega_ffn, core_traits_new<config_type_new, core_types::mega_ffn>>, public sync_base<config_type_new, core_types::mega_ffn> {
+	template<typename config_type_new> struct core_traits<config_type_new, core_types::mega_ffn>
+		: public core_elem_base<core_types::mega_ffn, core_traits<config_type_new, core_types::mega_ffn>> {
 		static constexpr core_types core_type{ core_types::mega_ffn };
 		using config_type = config_type_new;
-		static constexpr uint64_t depth{ core_traits_new<config_type_new, static_cast<core_types>(static_cast<uint64_t>(core_types::mega_ffn) - 1)>::depth + 1 };
+		static constexpr uint64_t depth{ core_traits<config_type_new, static_cast<core_types>(static_cast<uint64_t>(core_types::mega_ffn) - 1)>::depth + 1 };
 		using mtt				  = model_traits_type<config_type>;
-		using kernel_profile_type = kernel_type_profile_traits<config_type::kernel_type_profile>;
-		using compute_type		  = typename kernel_profile_type::compute_type;
-		using ffn_norm_w_type	  = typename core_traits_new<config_type_new, core_types::weights>::ffn_norm_weight_type;
-		using ffn_gate_w_type	  = typename core_traits_new<config_type_new, core_types::weights>::ffn_gate_weight_type;
-		using ffn_up_w_type		  = typename core_traits_new<config_type_new, core_types::weights>::ffn_up_weight_type;
-		using ffn_down_w_type	  = typename core_traits_new<config_type_new, core_types::weights>::ffn_down_weight_type;
+		using kernel_type_profile = kernel_type_profile_traits<config_type::kernel_type_profile>;
+		using compute_type		  = typename kernel_type_profile::compute_type;
+		using ffn_norm_w_type	  = typename core_traits<config_type_new, core_types::weights>::ffn_norm_weight_type;
+		using ffn_gate_w_type	  = typename core_traits<config_type_new, core_types::weights>::ffn_gate_weight_type;
+		using ffn_up_w_type		  = typename core_traits<config_type_new, core_types::weights>::ffn_up_weight_type;
+		using ffn_down_w_type	  = typename core_traits<config_type_new, core_types::weights>::ffn_down_weight_type;
 
-		using ffn_inp_type = typename core_traits_new<config_type_new, core_types::mega_attention_apply>::ffn_inp_type;
+		using ffn_inp_type = typename core_traits<config_type_new, core_types::mega_attention_apply>::ffn_inp_type;
 
 		using ffn_rms_norm_trait = kernel_traits<config_type::batched_processing, kernel_types_type<kernel_types::rms_norm>, ffn_inp_type>;
 
@@ -930,31 +1048,30 @@ namespace nihilus {
 		static constexpr bool has_total_required_bytes{ true };
 	};
 
-	template<typename config_type_new> struct core_traits_new<config_type_new, core_types::final_norm_and_sampling>
-		: public core_elem_base<core_types::final_norm_and_sampling, core_traits_new<config_type_new, core_types::final_norm_and_sampling>>,
-		  public sync_base<config_type_new, core_types::final_norm_and_sampling> {
+	template<typename config_type_new> struct core_traits<config_type_new, core_types::final_norm_and_sampling>
+		: public core_elem_base<core_types::final_norm_and_sampling, core_traits<config_type_new, core_types::final_norm_and_sampling>> {
 		static constexpr core_types core_type{ core_types::final_norm_and_sampling };
 		using config_type = config_type_new;
-		static constexpr uint64_t depth{ core_traits_new<config_type_new, static_cast<core_types>(static_cast<uint64_t>(core_types::final_norm_and_sampling) - 1)>::depth + 1 };
+		static constexpr uint64_t depth{ core_traits<config_type_new, static_cast<core_types>(static_cast<uint64_t>(core_types::final_norm_and_sampling) - 1)>::depth + 1 };
 		using mtt				  = model_traits_type<config_type>;
-		using kernel_profile_type = kernel_type_profile_traits<config_type::kernel_type_profile>;
-		using compute_type		  = typename kernel_profile_type::compute_type;
-		using output_norm_w_type  = typename core_traits_new<config_type_new, core_types::weights>::output_norm_weight_type;
-		using output_w_type		  = typename core_traits_new<config_type_new, core_types::weights>::output_weight_type;
+		using kernel_type_profile = kernel_type_profile_traits<config_type::kernel_type_profile>;
+		using compute_type		  = typename kernel_type_profile::compute_type;
+		using output_norm_w_type  = typename core_traits<config_type_new, core_types::weights>::output_norm_weight_type;
+		using output_w_type		  = typename core_traits<config_type_new, core_types::weights>::output_weight_type;
 
-		using temperature_type		  = typename core_traits_new<config_type_new, core_types::global_inputs>::temperature_type;
-		using top_k_type			  = typename core_traits_new<config_type_new, core_types::global_inputs>::top_k_type;
-		using top_p_type			  = typename core_traits_new<config_type_new, core_types::global_inputs>::top_p_type;
-		using repetition_penalty_type = typename core_traits_new<config_type_new, core_types::global_inputs>::repetition_penalty_type;
-		using presence_penalty_type	  = typename core_traits_new<config_type_new, core_types::global_inputs>::presence_penalty_type;
-		using frequency_penalty_type  = typename core_traits_new<config_type_new, core_types::global_inputs>::frequency_penalty_type;
-		using rep_window_type		  = typename core_traits_new<config_type_new, core_types::global_inputs>::rep_window_type;
-		using token_history_type	  = typename core_traits_new<config_type_new, core_types::global_inputs>::token_history_type;
-		using rng_state_type		  = typename core_traits_new<config_type_new, core_types::global_inputs>::rng_state_type;
-		using logits_bias_type		  = typename core_traits_new<config_type_new, core_types::global_inputs>::logits_bias_type;
-		using allowed_vocab_mask_type = typename core_traits_new<config_type_new, core_types::global_inputs>::allowed_vocab_mask_type;
+		using temperature_type		  = typename core_traits<config_type_new, core_types::global_inputs>::temperature_type;
+		using top_k_type			  = typename core_traits<config_type_new, core_types::global_inputs>::top_k_type;
+		using top_p_type			  = typename core_traits<config_type_new, core_types::global_inputs>::top_p_type;
+		using repetition_penalty_type = typename core_traits<config_type_new, core_types::global_inputs>::repetition_penalty_type;
+		using presence_penalty_type	  = typename core_traits<config_type_new, core_types::global_inputs>::presence_penalty_type;
+		using frequency_penalty_type  = typename core_traits<config_type_new, core_types::global_inputs>::frequency_penalty_type;
+		using rep_window_type		  = typename core_traits<config_type_new, core_types::global_inputs>::rep_window_type;
+		using token_history_type	  = typename core_traits<config_type_new, core_types::global_inputs>::token_history_type;
+		using rng_state_type		  = typename core_traits<config_type_new, core_types::global_inputs>::rng_state_type;
+		using logits_bias_type		  = typename core_traits<config_type_new, core_types::global_inputs>::logits_bias_type;
+		using allowed_vocab_mask_type = typename core_traits<config_type_new, core_types::global_inputs>::allowed_vocab_mask_type;
 
-		using l_out_type_from_ffn = typename core_traits_new<config_type_new, core_types::mega_ffn>::l_out_type;
+		using l_out_type_from_ffn = typename core_traits<config_type_new, core_types::mega_ffn>::l_out_type;
 
 		using last_token_view_dims	= kernel_dims<get_runtime_mask<config_type::batched_processing, 0>(), mtt::embedding_length, 1, 1, 1>;
 		using last_token_view_trait = kernel_traits<config_type::batched_processing, kernel_types_type<kernel_types::view>, last_token_view_dims, l_out_type_from_ffn>;
@@ -1003,31 +1120,30 @@ namespace nihilus {
 		static constexpr bool has_total_required_bytes{ true };
 	};
 
-	template<batched_processing_config_types config_type_new> struct core_traits_new<config_type_new, core_types::final_norm_and_sampling>
-		: public core_elem_base<core_types::final_norm_and_sampling, core_traits_new<config_type_new, core_types::final_norm_and_sampling>>,
-		  public sync_base<config_type_new, core_types::final_norm_and_sampling> {
+	template<batched_processing_config_types config_type_new> struct core_traits<config_type_new, core_types::final_norm_and_sampling>
+		: public core_elem_base<core_types::final_norm_and_sampling, core_traits<config_type_new, core_types::final_norm_and_sampling>> {
 		static constexpr core_types core_type{ core_types::final_norm_and_sampling };
 		using config_type = config_type_new;
-		static constexpr uint64_t depth{ core_traits_new<config_type_new, static_cast<core_types>(static_cast<uint64_t>(core_types::final_norm_and_sampling) - 1)>::depth + 1 };
+		static constexpr uint64_t depth{ core_traits<config_type_new, static_cast<core_types>(static_cast<uint64_t>(core_types::final_norm_and_sampling) - 1)>::depth + 1 };
 		using mtt				  = model_traits_type<config_type>;
-		using kernel_profile_type = kernel_type_profile_traits<config_type::kernel_type_profile>;
-		using compute_type		  = typename kernel_profile_type::compute_type;
-		using output_norm_w_type  = typename core_traits_new<config_type_new, core_types::weights>::output_norm_weight_type;
-		using output_w_type		  = typename core_traits_new<config_type_new, core_types::weights>::output_weight_type;
+		using kernel_type_profile = kernel_type_profile_traits<config_type::kernel_type_profile>;
+		using compute_type		  = typename kernel_type_profile::compute_type;
+		using output_norm_w_type  = typename core_traits<config_type_new, core_types::weights>::output_norm_weight_type;
+		using output_w_type		  = typename core_traits<config_type_new, core_types::weights>::output_weight_type;
 
-		using temperature_type		  = typename core_traits_new<config_type_new, core_types::global_inputs>::temperature_type;
-		using top_k_type			  = typename core_traits_new<config_type_new, core_types::global_inputs>::top_k_type;
-		using top_p_type			  = typename core_traits_new<config_type_new, core_types::global_inputs>::top_p_type;
-		using repetition_penalty_type = typename core_traits_new<config_type_new, core_types::global_inputs>::repetition_penalty_type;
-		using presence_penalty_type	  = typename core_traits_new<config_type_new, core_types::global_inputs>::presence_penalty_type;
-		using frequency_penalty_type  = typename core_traits_new<config_type_new, core_types::global_inputs>::frequency_penalty_type;
-		using rep_window_type		  = typename core_traits_new<config_type_new, core_types::global_inputs>::rep_window_type;
-		using token_history_type	  = typename core_traits_new<config_type_new, core_types::global_inputs>::token_history_type;
-		using rng_state_type		  = typename core_traits_new<config_type_new, core_types::global_inputs>::rng_state_type;
-		using logits_bias_type		  = typename core_traits_new<config_type_new, core_types::global_inputs>::logits_bias_type;
-		using allowed_vocab_mask_type = typename core_traits_new<config_type_new, core_types::global_inputs>::allowed_vocab_mask_type;
+		using temperature_type		  = typename core_traits<config_type_new, core_types::global_inputs>::temperature_type;
+		using top_k_type			  = typename core_traits<config_type_new, core_types::global_inputs>::top_k_type;
+		using top_p_type			  = typename core_traits<config_type_new, core_types::global_inputs>::top_p_type;
+		using repetition_penalty_type = typename core_traits<config_type_new, core_types::global_inputs>::repetition_penalty_type;
+		using presence_penalty_type	  = typename core_traits<config_type_new, core_types::global_inputs>::presence_penalty_type;
+		using frequency_penalty_type  = typename core_traits<config_type_new, core_types::global_inputs>::frequency_penalty_type;
+		using rep_window_type		  = typename core_traits<config_type_new, core_types::global_inputs>::rep_window_type;
+		using token_history_type	  = typename core_traits<config_type_new, core_types::global_inputs>::token_history_type;
+		using rng_state_type		  = typename core_traits<config_type_new, core_types::global_inputs>::rng_state_type;
+		using logits_bias_type		  = typename core_traits<config_type_new, core_types::global_inputs>::logits_bias_type;
+		using allowed_vocab_mask_type = typename core_traits<config_type_new, core_types::global_inputs>::allowed_vocab_mask_type;
 
-		using l_out_type_from_ffn = typename core_traits_new<config_type_new, core_types::mega_ffn>::l_out_type;
+		using l_out_type_from_ffn = typename core_traits<config_type_new, core_types::mega_ffn>::l_out_type;
 
 		using last_token_view_dims	= kernel_dims<get_runtime_mask<config_type::batched_processing, 0, 1>(), config_type::batch_size, mtt::embedding_length, 1, 1>;
 		using last_token_view_trait = kernel_traits<config_type::batched_processing, kernel_types_type<kernel_types::view>, last_token_view_dims, l_out_type_from_ffn>;
@@ -1075,15 +1191,15 @@ namespace nihilus {
 		static constexpr uint64_t total_required_bytes{ result_token_id_type::total_required_bytes };
 		static constexpr bool has_total_required_bytes{ true };
 	};
-
 	template<typename config_type_new, auto kernel_type> struct get_adjacent_value {
-		using derived_type			 = core_traits_new<config_type_new, kernel_type>;
+		using derived_type			 = core_traits<config_type_new, kernel_type>;
 		using thread_pool_type		 = thread_pool<config_type_new>;
 		using nihilus_cathedral_type = typename thread_pool<config_type_new>::nihilus_cathedral_type;
 		NIHILUS_HOST static auto& impl(auto& parse_core) {
 			return *static_cast<derived_type*>(static_cast<nihilus_cathedral_type*>(&parse_core));
 		}
 	};
-
+	
+	*/
 
 }

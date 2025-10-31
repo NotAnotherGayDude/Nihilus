@@ -331,4 +331,12 @@ namespace nihilus {
 	template<typename value_type>
 	concept dev_or_benchmark_config_types = detail::remove_cvref_t<value_type>::benchmark || detail::remove_cvref_t<value_type>::dev;
 
+	template<typename value_type>
+	concept weight_types =
+		static_cast<uint64_t>(detail::remove_cvref_t<value_type>::tensor_type) >= 0 && static_cast<uint64_t>(detail::remove_cvref_t<value_type>::tensor_type) < 13;
+
+	template<typename value_type>
+	concept global_input_types =
+		static_cast<uint64_t>(detail::remove_cvref_t<value_type>::tensor_type) >= 13 && static_cast<uint64_t>(detail::remove_cvref_t<value_type>::tensor_type) < 30;
+
 }

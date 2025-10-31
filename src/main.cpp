@@ -384,30 +384,6 @@ struct create_tensor_ops<libraries::nihilus, kernel_type_profile, model_arch, mo
 	}
 };
 
-template<typename value_type>
-concept has_total_required_bytes = requires() { detail::remove_cvref_t<value_type>::total_required_bytes; };
-
-template<typename config_type_new, typename value_type, uint64_t current_index, uint64_t max_index> constexpr uint64_t get_total_required_bytes_impl() {
-	if constexpr (has_total_required_bytes<value_type>) {
-		return value_type::total_required_bytes;
-	} else if constexpr (current_index == max_index - 1) {
-		return get_total_required_bytes<round_up_to_multiple<64>(type_traits<typename value_type::output_type>::total_byte_size(value_type::dims)),
-			model_traits_type<config_type_new>::block_count, data_strategy_types::global>;
-	} else {
-		return 0;
-	}
-}
-
-template<typename config_type_new, typename enum_type, size_t... indices> constexpr uint64_t get_total_required_bytes_new(std::index_sequence<indices...>) {
-	uint64_t return_value{ (
-		get_total_required_bytes_impl<config_type_new, sub_kernel_traits_new<config_type_new, static_cast<enum_type>(indices)>, indices, sizeof...(indices)>() + ...) };
-	return return_value;
-}
-
-template<typename config_type_new, typename enum_type> constexpr uint64_t get_total_required_bytes_new() {
-	return get_total_required_bytes_new<config_type_new, enum_type>(std::make_index_sequence<sub_kernel_new_aggregator<config_type_new, enum_type>::values.size()>{});
-}
-
 template<libraries library, kernel_type_profiles kernel_type_profile, model_arches model_arch, model_sizes model_size, model_generations model_generation, uint64_t seq_length>
 static read_write get_read_writes() {
 	auto inputs{ create_tensor_ops<library, kernel_type_profile, model_arch, model_size, model_generation, seq_length>::impl() };
@@ -515,109 +491,6 @@ void nihilus::test_function() {
 	}
 }
 
-template<typename config_type_new, core_types_new core_type> struct core_traits;
-
-template<typename config_type_new> struct core_traits<config_type_new, core_types_new::weights>
-	: public core_elem_base<core_types::weights, core_traits<config_type_new, core_types_new::weights>> {
-	static constexpr core_types_new core_type{ core_types_new::weights };
-	static constexpr uint64_t depth{ std::numeric_limits<uint64_t>::max() };
-	using config_type		  = config_type_new;
-	using kernel_profile_type = kernel_type_profile_traits<config_type::kernel_type_profile>;
-	using weight_type		  = typename kernel_profile_type::weight_type;
-	using norm_type			  = typename kernel_profile_type::norm_type;
-
-	using sub_kernel_types = get_nihilus_cathedral_array_t<config_type, weight_types, sub_kernel_traits>;
-
-	static constexpr uint64_t total_required_bytes{ get_total_required_bytes_new<config_type, weight_types>() };
-
-	static constexpr bool has_total_required_bytes{ config_type::device_type == device_types::gpu };
-};
-
-template<typename config_type_new> struct core_traits<config_type_new, core_types_new::global_inputs>
-	: public core_elem_base<core_types::global_inputs, core_traits<config_type_new, core_types_new::global_inputs>> {
-	static constexpr core_types_new core_type{ core_types_new::global_inputs };
-	static constexpr uint64_t depth{ std::numeric_limits<uint64_t>::max() };
-	using config_type		  = config_type_new;
-	using kernel_profile_type = kernel_type_profile_traits<config_type::kernel_type_profile>;
-	using weight_type		  = typename kernel_profile_type::weight_type;
-	using norm_type			  = typename kernel_profile_type::norm_type;
-	using enum_type			  = global_input_types;
-
-	using sub_kernel_types = get_nihilus_cathedral_array_t<config_type, enum_type, sub_kernel_traits>;
-
-	static constexpr uint64_t total_required_bytes{ get_total_required_bytes_new<config_type, enum_type>() };
-
-	static constexpr bool has_total_required_bytes{ config_type::device_type == device_types::gpu };
-};
-
-template<typename config_type_new> struct core_traits<config_type_new, core_types_new::token_embeddings>
-	: public core_elem_base<core_types::token_embeddings, core_traits<config_type_new, core_types_new::token_embeddings>> {
-	static constexpr core_types_new core_type{ core_types_new::token_embeddings };
-	static constexpr uint64_t depth{ 0 };
-	using config_type		  = config_type_new;
-	using kernel_profile_type = kernel_type_profile_traits<config_type::kernel_type_profile>;
-	using weight_type		  = typename kernel_profile_type::weight_type;
-	using norm_type			  = typename kernel_profile_type::norm_type;
-	using enum_type			  = token_embeddings_sub_kernel_types;
-
-	using sub_kernel_types = get_nihilus_cathedral_array_t<config_type, enum_type, sub_kernel_traits>;
-
-	static constexpr uint64_t total_required_bytes{ get_total_required_bytes_new<config_type, enum_type>() };
-
-	static constexpr bool has_total_required_bytes{ config_type::device_type == device_types::gpu };
-};
-
-template<typename config_type_new> struct core_traits<config_type_new, core_types_new::attn_prep_and_score>
-	: public core_elem_base<core_types_new::attn_prep_and_score, core_traits<config_type_new, core_types_new::attn_prep_and_score>> {
-	static constexpr core_types_new core_type{ core_types_new::attn_prep_and_score };
-	static constexpr uint64_t depth{ core_traits<config_type_new, static_cast<core_types_new>(static_cast<uint64_t>(core_types_new::attn_prep_and_score) - 1)>::depth + 1 };
-	using config_type		  = config_type_new;
-	using kernel_profile_type = kernel_type_profile_traits<config_type::kernel_type_profile>;
-	using weight_type		  = typename kernel_profile_type::weight_type;
-	using norm_type			  = typename kernel_profile_type::norm_type;
-	using enum_type			  = attn_prep_and_score_sub_kernel_types;
-
-	using sub_kernel_types = get_nihilus_cathedral_array_t<config_type, enum_type, sub_kernel_traits>;
-
-	static constexpr uint64_t total_required_bytes{ get_total_required_bytes_new<config_type, enum_type>() };
-
-	static constexpr bool has_total_required_bytes{ config_type::device_type == device_types::gpu };
-};
-
-template<typename config_type_new> struct core_traits<config_type_new, core_types_new::attn_out_and_ffn>
-	: public core_elem_base<core_types_new::attn_out_and_ffn, core_traits<config_type_new, core_types_new::attn_out_and_ffn>> {
-	static constexpr core_types_new core_type{ core_types_new::attn_out_and_ffn };
-	static constexpr uint64_t depth{ core_traits<config_type_new, static_cast<core_types_new>(static_cast<uint64_t>(core_types_new::attn_out_and_ffn) - 1)>::depth + 1 };
-	using config_type		  = config_type_new;
-	using kernel_profile_type = kernel_type_profile_traits<config_type::kernel_type_profile>;
-	using weight_type		  = typename kernel_profile_type::weight_type;
-	using norm_type			  = typename kernel_profile_type::norm_type;
-	using enum_type			  = attn_out_and_ffn_sub_kernel_types;
-
-	using sub_kernel_types = get_nihilus_cathedral_array_t<config_type, enum_type, sub_kernel_traits>;
-
-	static constexpr uint64_t total_required_bytes{ get_total_required_bytes_new<config_type, enum_type>() };
-
-	static constexpr bool has_total_required_bytes{ config_type::device_type == device_types::gpu };
-};
-
-template<typename config_type_new> struct core_traits<config_type_new, core_types_new::global_output_and_sampling>
-	: public core_elem_base<core_types_new::global_output_and_sampling, core_traits<config_type_new, core_types_new::global_output_and_sampling>> {
-	static constexpr core_types_new core_type{ core_types_new::global_output_and_sampling };
-	static constexpr uint64_t depth{ core_traits<config_type_new, static_cast<core_types_new>(static_cast<uint64_t>(core_types_new::global_output_and_sampling) - 1)>::depth + 1 };
-	using config_type		  = config_type_new;
-	using kernel_profile_type = kernel_type_profile_traits<config_type::kernel_type_profile>;
-	using weight_type		  = typename kernel_profile_type::weight_type;
-	using norm_type			  = typename kernel_profile_type::norm_type;
-	using enum_type			  = global_output_and_sampling_sub_kernel_types;
-
-	using sub_kernel_types = get_nihilus_cathedral_array_t<config_type, enum_type, sub_kernel_traits>;
-
-	static constexpr uint64_t total_required_bytes{ get_total_required_bytes_new<config_type, enum_type>() };
-
-	static constexpr bool has_total_required_bytes{ config_type::device_type == device_types::gpu };
-};
-
 template<const auto& model_config_00, const auto& model_config_01, typename enum_value> void print_comparisons() {
 	constexpr uint64_t global_input_types_batched{ get_total_required_bytes_new<model_config_type<model_config_00>, enum_value>() };
 	std::cout << "END OF NON-BATCHED!" << std::endl;
@@ -626,27 +499,52 @@ template<const auto& model_config_00, const auto& model_config_01, typename enum
 	std::cout << "BATCHED TOTAL BYTES: " << weight_types_non_batched << std::endl;
 }
 
+template<uint64_t size_val> struct rt_dims {
+
+	constexpr rt_dims(const uint64_t (&str)[size_val]) {};
+};
+
+template<uint64_t size> rt_dims(uint64_t (&)[size]) -> rt_dims<size>;
+
+template<rt_dims dims> struct test_struct {};
+
+template<typename caberiht_type, uint64_t index = 0> uint64_t collect_total_byte_size(caberiht_type& caberiht, uint64_t value_new = 0) {
+	if constexpr (index < caberiht_type::size) {
+		std::cout << "CURRENT INDEX: " << index << std::endl;
+		value_new += caberiht.template get_core<index>().total_required_bytes;
+		std::cout << "CURRENT REQUIRED BYTES: " << caberiht.template get_core<index>().total_required_bytes << std::endl;
+		return collect_total_byte_size<caberiht_type, index + 1>(caberiht, value_new);
+	}
+	return value_new;
+}
+
+template<dim_03_runtime_mutable value_type> void test_function_new(value_type){};
+
 int32_t main([[maybe_unused]] int32_t argc, [[maybe_unused]] char** argv) {
 	try {
+		static constexpr uint64_t values[2]{};
+		test_struct<values> test{};
+		test_function_new(rt_dimensions<0b1000, 1, 1, 1, 1>{});
 		print_memory_bandwidth<model_arches::llama, model_sizes::llm_405B, model_generations::v3_1, kernel_type_profiles::q8_gqa>();
 		print_memory_bandwidth<model_arches::llama, model_sizes::llm_405B, model_generations::v3_1, kernel_type_profiles::fp16_mha>();
 		print_memory_bandwidth<model_arches::llama, model_sizes::llm_70B, model_generations::v3_1, kernel_type_profiles::q8_gqa>();
 		print_memory_bandwidth<model_arches::llama, model_sizes::llm_70B, model_generations::v3_1, kernel_type_profiles::fp16_mha>();
 		print_memory_bandwidth<model_arches::llama, model_sizes::llm_8B, model_generations::v3_1, kernel_type_profiles::q8_gqa>();
 		print_memory_bandwidth<model_arches::llama, model_sizes::llm_8B, model_generations::v3_1, kernel_type_profiles::fp16_mha>();
-		static constexpr auto model_config_00 = nihilus::generate_model_config(nihilus::batched_processing_type::disabled, nihilus::model_generations::v3_1,
+		[[maybe_unused]] static constexpr auto model_config_00 = nihilus::generate_model_config(nihilus::batched_processing_type::disabled, nihilus::model_generations::v3_1,
 			nihilus::model_sizes::llm_8B, nihilus::kernel_type_profiles::q8_gqa, nihilus::model_arches::llama, nihilus::device_types::cpu, nihilus::exception_type::enabled,
-			nihilus::default_max_sequence_length_type{ 2 }, nihilus::benchmark_type::enabled);
-		static constexpr auto model_config_01 = nihilus::generate_model_config(nihilus::batched_processing_type::enabled, nihilus::model_generations::v3_1,
+			nihilus::default_max_sequence_length_type{ 1024 }, nihilus::benchmark_type::enabled);
+		[[maybe_unused]] static constexpr auto model_config_01 = nihilus::generate_model_config(nihilus::batched_processing_type::enabled, nihilus::model_generations::v3_1,
 			nihilus::model_sizes::llm_8B, nihilus::kernel_type_profiles::q8_gqa, nihilus::model_arches::llama, nihilus::device_types::cpu, nihilus::exception_type::enabled,
-			nihilus::default_max_sequence_length_type{ 2 }, nihilus::benchmark_type::enabled);
-		[[maybe_unused]] sub_kernel_aggregator<model_config_type<model_config_00>, weight_types> aggregator{};
-		using weights_aggregate = get_nihilus_cathedral_array_t<model_config_type<model_config_00>, weight_types, sub_kernel_traits>;
-		[[maybe_unused]] weights_aggregate aggregate{};
-		print_comparisons<model_config_00, model_config_01, weight_types>();
-		print_comparisons<model_config_00, model_config_01, global_input_types>();
-		print_comparisons<model_config_00, model_config_01, attn_prep_and_score_sub_kernel_types>();
-
+			nihilus::default_max_sequence_length_type{ 1024 }, batch_size_type{ 16 }, nihilus::benchmark_type::enabled);
+		[[maybe_unused]] indexed_data_holder<tensor_types::attn_q, model_config_type<model_config_00>> attn_q{};
+		//std::cout << "TOTAL REQUIRED BYTES: " << attn_q.byte_count << std::endl;
+		//std::cout << "DIMS: " << attn_q.dims[0] << ", " << attn_q.dims[1] << ", " << attn_q.dims[2] << ", " << attn_q.dims[3] << std::endl;
+		get_nihilus_cathedral_array_t<model_config_type<model_config_00>, tensor_types, data_holder_aggregator, indexed_data_holder> caberiht_01{};
+		std::cout << "TOTAL REQUIRED BYTES: " << collect_total_byte_size(caberiht_01) << std::endl;
+		get_nihilus_cathedral_array_t<model_config_type<model_config_01>, tensor_types, data_holder_aggregator, indexed_data_holder> caberiht{};
+		std::cout << "TOTAL REQUIRED BYTES: " << collect_total_byte_size(caberiht) << std::endl;
+		caberiht.operator[](tag<tensor_types::attn_q>{});
 		//print_comparisons<model_config_00, model_config_01, attn_prep_and_score_sub_kernel_types>();
 		//print_comparisons<model_config_00, model_config_01, attn_out_and_ffn_sub_kernel_types>();
 		//print_comparisons<model_config_00, model_config_01, global_output_and_sampling_sub_kernel_types>();
@@ -671,38 +569,39 @@ int32_t main([[maybe_unused]] int32_t argc, [[maybe_unused]] char** argv) {
 		//std::cout << "GLOBAL_INPUTS (NON-BATCHED): " << attn_prep_and_score_sub_kernel_types_non_batched << std::endl;
 		//std::cout << "GLOBAL_INPUTS (BATCHED): " << attn_out_and_ffn_sub_kernel_types_batched << std::endl;
 		//std::cout << "GLOBAL_INPUTS (NON-BATCHED): " << attn_out_and_ffn_sub_kernel_types_non_batched << std::endl;
+		/*
 		{
-			[[maybe_unused]] core_traits<model_config_type<model_config_00>, core_types_new::weights> new_core_traits_weights{};
+			[[maybe_unused]] core_traits<model_config_type<model_config_00>, core_types::weights> new_core_traits_weights{};
 			std::cout << "WEIGHTS (NON-BATCHED): " << new_core_traits_weights.total_required_bytes << std::endl;
-			[[maybe_unused]] core_traits<model_config_type<model_config_00>, core_types_new::global_inputs> new_core_traits_global_inputs{};
+			[[maybe_unused]] core_traits<model_config_type<model_config_00>, core_types::global_inputs> new_core_traits_global_inputs{};
 			std::cout << "WEIGHTS (NON-BATCHED): " << new_core_traits_global_inputs.total_required_bytes << std::endl;
-			[[maybe_unused]] core_traits<model_config_type<model_config_00>, core_types_new::token_embeddings> new_core_traits_token_embeddings{};
+			[[maybe_unused]] core_traits<model_config_type<model_config_00>, core_types::token_embeddings> new_core_traits_token_embeddings{};
 			std::cout << "WEIGHTS (NON-BATCHED): " << new_core_traits_token_embeddings.total_required_bytes << std::endl;
-			[[maybe_unused]] core_traits<model_config_type<model_config_00>, core_types_new::attn_prep_and_score> new_core_traits_attn_prep_and_score{};
+			[[maybe_unused]] core_traits<model_config_type<model_config_00>, core_types::attn_prep_and_score> new_core_traits_attn_prep_and_score{};
 			std::cout << "WEIGHTS (NON-BATCHED): " << new_core_traits_attn_prep_and_score.total_required_bytes << std::endl;
-			[[maybe_unused]] core_traits<model_config_type<model_config_00>, core_types_new::attn_out_and_ffn> new_core_traits_attn_out_and_ffn{};
+			[[maybe_unused]] core_traits<model_config_type<model_config_00>, core_types::attn_out_and_ffn> new_core_traits_attn_out_and_ffn{};
 			std::cout << "WEIGHTS (NON-BATCHED): " << new_core_traits_attn_out_and_ffn.total_required_bytes << std::endl;
-			[[maybe_unused]] core_traits<model_config_type<model_config_00>, core_types_new::global_output_and_sampling> new_core_traits_global_output_and_sampling{};
+			[[maybe_unused]] core_traits<model_config_type<model_config_00>, core_types::global_output_and_sampling> new_core_traits_global_output_and_sampling{};
 			std::cout << "WEIGHTS (NON-BATCHED): " << new_core_traits_global_output_and_sampling.total_required_bytes << std::endl;
 		}
 		{
-			[[maybe_unused]] core_traits<model_config_type<model_config_01>, core_types_new::weights> new_core_traits_weights{};
+			[[maybe_unused]] core_traits<model_config_type<model_config_01>, core_types::weights> new_core_traits_weights{};
 			std::cout << "WEIGHTS (BATCHED): " << new_core_traits_weights.total_required_bytes << std::endl;
-			[[maybe_unused]] core_traits<model_config_type<model_config_01>, core_types_new::global_inputs> new_core_traits_global_inputs{};
+			[[maybe_unused]] core_traits<model_config_type<model_config_01>, core_types::global_inputs> new_core_traits_global_inputs{};
 			std::cout << "WEIGHTS (BATCHED): " << new_core_traits_global_inputs.total_required_bytes << std::endl;
-			[[maybe_unused]] core_traits<model_config_type<model_config_01>, core_types_new::token_embeddings> new_core_traits_token_embeddings{};
+			[[maybe_unused]] core_traits<model_config_type<model_config_01>, core_types::token_embeddings> new_core_traits_token_embeddings{};
 			std::cout << "WEIGHTS (BATCHED): " << new_core_traits_token_embeddings.total_required_bytes << std::endl;
-			[[maybe_unused]] core_traits<model_config_type<model_config_01>, core_types_new::attn_prep_and_score> new_core_traits_attn_prep_and_score{};
+			[[maybe_unused]] core_traits<model_config_type<model_config_01>, core_types::attn_prep_and_score> new_core_traits_attn_prep_and_score{};
 			std::cout << "WEIGHTS (BATCHED): " << new_core_traits_attn_prep_and_score.total_required_bytes << std::endl;
-			[[maybe_unused]] core_traits<model_config_type<model_config_01>, core_types_new::attn_out_and_ffn> new_core_traits_attn_out_and_ffn{};
+			[[maybe_unused]] core_traits<model_config_type<model_config_01>, core_types::attn_out_and_ffn> new_core_traits_attn_out_and_ffn{};
 			std::cout << "WEIGHTS (BATCHED): " << new_core_traits_attn_out_and_ffn.total_required_bytes << std::endl;
-			[[maybe_unused]] core_traits<model_config_type<model_config_01>, core_types_new::global_output_and_sampling> new_core_traits_global_output_and_sampling{};
+			[[maybe_unused]] core_traits<model_config_type<model_config_01>, core_types::global_output_and_sampling> new_core_traits_global_output_and_sampling{};
 			std::cout << "WEIGHTS (BATCHED): " << new_core_traits_global_output_and_sampling.total_required_bytes << std::endl;
 		}
-
+		*/
 		cli_params cli_args = harbinger::parse_cli_arguments(argc, argv);
-		//nihilus::model_collection_type<model_config_00> collection{ cli_args };
-		//collection.process_input(cli_args.prompt);
+		nihilus::model_collection_type<model_config_00> collection{ cli_args };
+		collection.process_input(cli_args.prompt);
 	} catch (const std::exception& e) {
 		std::cout << "Error: " << e.what() << std::endl;
 	}

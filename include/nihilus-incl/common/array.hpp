@@ -203,14 +203,10 @@ namespace nihilus {
 		}
 
 		template<integral_or_enum_types index_type> NIHILUS_HOST_DEVICE constexpr reference operator[](index_type position) noexcept {
-			static_assert(static_assert_printer<is_indexable<index_type, decltype(size_new)>, array_static_assert_errors::invalid_index_type, index_type>::impl,
-				"Sorry, but please index into this array using the correct enum type!");
 			return data_val[static_cast<size_type>(position)];
 		}
 
 		template<integral_or_enum_types index_type> NIHILUS_HOST_DEVICE constexpr const_reference operator[](index_type position) const noexcept {
-			static_assert(static_assert_printer<is_indexable<index_type, decltype(size_new)>, array_static_assert_errors::invalid_index_type, index_type>::impl,
-				"Sorry, but please index into this array using the correct enum type!");
 			return data_val[static_cast<size_type>(position)];
 		}
 

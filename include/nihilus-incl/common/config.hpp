@@ -122,11 +122,11 @@ namespace nihilus {
 			return value;
 		}
 
-		NIHILUS_HOST_DEVICE operator value_type&() & {
+		NIHILUS_HOST_DEVICE constexpr operator value_type&() & {
 			return value;
 		}
 
-		NIHILUS_HOST_DEVICE operator value_type&&() && {
+		NIHILUS_HOST_DEVICE constexpr operator value_type&&() && {
 			return std::move(value);
 		}
 
@@ -134,7 +134,7 @@ namespace nihilus {
 			return value;
 		}
 
-		NIHILUS_HOST_DEVICE value_type& operator*() {
+		NIHILUS_HOST_DEVICE constexpr value_type& operator*() {
 			return value;
 		}
 
@@ -216,17 +216,6 @@ namespace nihilus {
 		weights,
 		global_inputs,
 		token_embeddings,
-		mega_qkv_prep_and_cache_publish,
-		mega_attention_apply,
-		mega_ffn,
-		final_norm_and_sampling,
-		count,
-	};
-
-	enum class core_types_new : uint8_t {
-		weights,
-		global_inputs,
-		token_embeddings,
 		attn_prep_and_score,
 		attn_out_and_ffn,
 		global_output_and_sampling,
@@ -251,24 +240,10 @@ namespace nihilus {
 		cont,
 		add,
 		sub,
-		top_k_filter,
-		top_p_filter,
-		repetition_penalty,
-		presence_penalty,
-		temperature_scale,
-		frequency_penalty,
-		vocab_mask,
-		sample_logits,
 		count,
 	};
 
-	enum class user_input_types {
-		direct_string,
-		cin,
-		managed,
-	};
-
-	enum class weight_types : uint8_t {
+	enum class tensor_types {
 		attn_q,
 		attn_k,
 		attn_v,
@@ -282,10 +257,6 @@ namespace nihilus {
 		rope_freqs,
 		output_norm,
 		output,
-		count,
-	};
-
-	enum class global_input_types : uint8_t {
 		inp_tokens,
 		inp_pos,
 		cache_k,
@@ -303,25 +274,7 @@ namespace nihilus {
 		rng_state,
 		logits_bias,
 		allowed_vocab_mask,
-		count,
-	};
-
-	enum class token_embeddings_types : uint8_t {
-		token_embeddings,
-		count,
-	};
-
-	enum class mega_qkv_prep_and_cache_publish_types : uint8_t {
-		q_out,
-		count,
-	};
-
-	enum class token_embeddings_sub_kernel_types : uint8_t {
 		token_embeddings_get_rows,
-		count,
-	};
-
-	enum class attn_prep_and_score_sub_kernel_types : uint8_t {
 		norm_rms_norm,
 		attn_norm_mul,
 		q_mul_mat,
@@ -340,10 +293,6 @@ namespace nihilus {
 		k_view,
 		q_permute,
 		kq_mul_mat,
-		count,
-	};
-
-	enum class attn_out_and_ffn_sub_kernel_types : uint8_t {
 		kq_soft_max,
 		kqv_mul_mat,
 		kqv_permute,
@@ -360,10 +309,6 @@ namespace nihilus {
 		layer_out_add,
 		l_out_get_rows,
 		extracted_add,
-		count,
-	};
-
-	enum class global_output_and_sampling_sub_kernel_types : uint8_t {
 		output_norm_rms_norm,
 		output_norm_mul,
 		output_projection_mul_mat,
@@ -377,27 +322,21 @@ namespace nihilus {
 		apply_top_k_filter,
 		apply_top_p_filter,
 		sample_token,
-		count,
+		count
 	};
 
-	enum class mega_attention_apply_types {
-		ffn_inp,
-		count,
+	enum class mega_fused_kernel_types {
+		token_embeddings,
+		attn_prep_and_score,
+		attn_out_and_ffn,
+		ffn,
+		global_output_and_sampling,
 	};
 
-	enum class mega_ffn_types {
-		l_out,
-		count,
-	};
-
-	enum class final_norm_and_sampling_types {
-		result_token_id,
-		count,
-	};
-
-	enum class global_output_types : uint8_t {
-		result_output_composite,
-		count,
+	enum class user_input_types {
+		direct_string,
+		cin,
+		managed,
 	};
 
 	enum class device_types : uint8_t {

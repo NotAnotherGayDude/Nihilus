@@ -25,6 +25,7 @@ RealTimeChris (Chris M.)
 #include <nihilus-incl/cpu/memory_buffer.hpp>
 #include <nihilus-incl/common/common.hpp>
 #include <nihilus-incl/common/tuple.hpp>
+#include <nihilus-incl/common/data_traits.hpp>
 #include <atomic>
 #include <thread>
 
@@ -40,7 +41,7 @@ namespace nihilus {
 	};
 
 	struct memory_plan {
-		array<core_traits_memory_footprint, core_types::count> footprints{};
+		array<core_traits_memory_footprint, static_cast<uint64_t>(core_types::count)> footprints{};
 		uint64_t currently_allocated_bytes{};
 		uint64_t peak_allocated_bytes{};
 	};
@@ -55,39 +56,10 @@ namespace nihilus {
 
 	consteval bool is_valid_free_type(core_traits_memory_footprint footprint, uint64_t current_depth) {
 		uint64_t threshold = current_depth - 2;
-		return footprint.is_active && footprint.depth <= threshold && footprint.depth != std::numeric_limits<uint64_t>::max();
+		return footprint.is_active && footprint.depth <= threshold && footprint.depth >= 30;
 	}
 
-	template<typename config_type, uint64_t current_index = base_index<config_type::device_type>> consteval memory_plan get_memory_plan(memory_plan values = {}) {
-		constexpr uint64_t max_index{ static_cast<uint64_t>(core_types::count) };
-		if constexpr (current_index == base_index<config_type::device_type>) {
-			values.currently_allocated_bytes = 0;
-			values.peak_allocated_bytes		 = 0;
-		}
-		if constexpr (current_index < max_index) {
-			values.footprints[current_index].offset				  = values.currently_allocated_bytes;
-			values.footprints[current_index].core_type			  = static_cast<core_types>(current_index);
-			values.footprints[current_index].depth				  = core_traits_new<config_type, static_cast<core_types>(current_index)>::depth;
-			values.footprints[current_index].is_active			  = true;
-			values.footprints[current_index].total_required_bytes = core_traits_new<config_type, static_cast<core_types>(current_index)>::total_required_bytes;
-			values.currently_allocated_bytes += core_traits_new<config_type, static_cast<core_types>(current_index)>::total_required_bytes;
-			if (values.currently_allocated_bytes > values.peak_allocated_bytes) {
-				values.peak_allocated_bytes = values.currently_allocated_bytes;
-			}
-			constexpr uint64_t cur_depth = core_traits_new<config_type, static_cast<core_types>(current_index)>::depth;
-			if constexpr (cur_depth >= 2) {
-				for (int64_t x = 0; x < static_cast<int64_t>(current_index); ++x) {
-					if (is_valid_free_type(values.footprints[static_cast<uint64_t>(x)], cur_depth)) {
-						values.footprints[static_cast<uint64_t>(x)].is_active = false;
-						values.currently_allocated_bytes -= values.footprints[static_cast<uint64_t>(x)].total_required_bytes;
-					}
-				}
-			}
-			return get_memory_plan<config_type, current_index + 1>(values);
-		} else {
-			return values;
-		}
-	}
+	template<typename config_type, uint64_t current_index = base_index<config_type::device_type>> consteval memory_plan get_memory_plan(memory_plan values = {});
 
 	template<typename config_type> struct thread_pool;
 
@@ -103,19 +75,8 @@ namespace nihilus {
 		NIHILUS_HOST static constexpr bool filter() {
 			return has_total_required_bytes_types<base_derived_type>;
 		}
-		NIHILUS_HOST static void impl(base_derived_type& core_traits_new, const memory_plan& plan, memory_buffer<config_type>& memory_buffer, uint64_t& internal_offset) {
-			using data_type = typename base_derived_type::output_type;
-			if constexpr (base_type::data_strategy_type == data_strategy_types::per_block) {
-				for (uint64_t x = 0; x < model_traits_type<config_type>::block_count; ++x) {
-					data_type* ptr	= static_cast<data_type*>(memory_buffer.claim_memory(plan.footprints[base_type::derived_type::core_type].offset + internal_offset));
-					internal_offset = core_traits_new.total_required_bytes;
-					core_traits_new.set_data(ptr, x);
-				}
-			} else {
-				data_type* ptr	= static_cast<data_type*>(memory_buffer.claim_memory(plan.footprints[base_type::derived_type::core_type].offset + internal_offset));
-				internal_offset = core_traits_new.total_required_bytes;
-				core_traits_new.set_data(ptr);
-			}
+		NIHILUS_HOST static void impl(base_derived_type& core_traits, const memory_plan& , memory_buffer<config_type>& memory_buffer, uint64_t& internal_offset) {
+			
 		}
 	};
 
@@ -127,13 +88,27 @@ namespace nihilus {
 		NIHILUS_HOST memory_mapper& operator=(memory_mapper&&) noexcept		 = delete;
 		NIHILUS_HOST memory_mapper(memory_mapper&&) noexcept				 = delete;
 		using base_type														 = base_type_new;
+		using base_derived_type														   = typename base_type::derived_type;
 		NIHILUS_HOST static constexpr bool filter() {
-			return base_type::has_total_required_bytes;
+			return has_total_required_bytes_types<base_type> && !weight_types<base_type>;
 		}
 
 		NIHILUS_HOST static void impl(base_type& parse_core, const memory_plan& plan, memory_buffer<config_type>& memory_buffer) {
 			uint64_t internal_offset{};
-			parse_core.values.template impl<memory_mapper_impl>(plan, memory_buffer, internal_offset);
+			using data_type = typename base_derived_type::output_type;
+			std::cout << "ENUM VALUE: " << base_type::tensor_type << std::endl;
+			std::cout << "TOTAL REQUIRED BYTES: " << base_type::total_required_bytes << std::endl;
+			if constexpr (base_type::data_strategy_type == data_strategy_types::per_block) {
+				for (uint64_t x = 0; x < model_traits_type<config_type>::block_count; ++x) {
+					data_type* ptr	= static_cast<data_type*>(memory_buffer.claim_memory(internal_offset));
+					internal_offset = base_type::total_required_bytes;
+					parse_core.set_data(x, ptr);
+				}
+			} else {
+				data_type* ptr	= static_cast<data_type*>(memory_buffer.claim_memory(internal_offset));
+				internal_offset = base_type::total_required_bytes;
+				parse_core.set_data(ptr);
+			}
 		}
 	};
 
@@ -223,49 +198,6 @@ namespace nihilus {
 		}
 	};
 
-	template<typename config_type, typename base_type_new> struct batched_dim_updater_impl {
-		NIHILUS_HOST batched_dim_updater_impl() noexcept {
-		}
-		NIHILUS_HOST batched_dim_updater_impl& operator=(const batched_dim_updater_impl&) noexcept = delete;
-		NIHILUS_HOST batched_dim_updater_impl(const batched_dim_updater_impl&) noexcept			   = delete;
-		NIHILUS_HOST batched_dim_updater_impl& operator=(batched_dim_updater_impl&&) noexcept	   = delete;
-		NIHILUS_HOST batched_dim_updater_impl(batched_dim_updater_impl&&) noexcept				   = delete;
-		using base_type																			   = base_type_new;
-		NIHILUS_HOST static constexpr bool filter() {
-			return double_runtime_dims_types<base_type>;
-		}
-
-		NIHILUS_HOST static void impl(base_type& parse_core, uint64_t sequence_length, uint64_t batch_size, uint64_t& total_required_bytes) {
-			if constexpr ((base_type::runtime_mask & 2) != 0) {
-				parse_core.get_dims(tag<1>{}) = sequence_length;
-			}
-			if constexpr ((base_type::runtime_mask & 1) != 0) {
-				parse_core.get_dims(tag<0>{}) = batch_size;
-			}
-			parse_core.total_required_bytes_rt = type_traits<typename base_type::output_type>::total_byte_size(parse_core.get_array_rt());
-			total_required_bytes += parse_core.total_required_bytes_rt;
-		}
-	};
-
-	template<typename config_type, typename base_type_new> struct batched_dim_updater {
-		NIHILUS_HOST batched_dim_updater() noexcept {
-		}
-		NIHILUS_HOST batched_dim_updater& operator=(const batched_dim_updater&) noexcept = delete;
-		NIHILUS_HOST batched_dim_updater(const batched_dim_updater&) noexcept			 = delete;
-		NIHILUS_HOST batched_dim_updater& operator=(batched_dim_updater&&) noexcept		 = delete;
-		NIHILUS_HOST batched_dim_updater(batched_dim_updater&&) noexcept				 = delete;
-		using base_type																	 = base_type_new;
-		NIHILUS_HOST static constexpr bool filter() {
-			return has_total_required_bytes_types<base_type>;
-		}
-
-		NIHILUS_HOST static void impl(base_type& parse_core, uint64_t sequence_length, uint64_t batch_size) {
-			uint64_t total_required_bytes{};
-			parse_core.values.template impl<batched_dim_updater_impl>(sequence_length, batch_size, total_required_bytes);
-			parse_core.total_required_bytes_rt = total_required_bytes;
-		}
-	};
-
 	template<typename config_type, typename base_type_new> struct weight_mapper_impl {
 		NIHILUS_HOST weight_mapper_impl() noexcept {
 		}
@@ -275,23 +207,24 @@ namespace nihilus {
 		NIHILUS_HOST weight_mapper_impl(weight_mapper_impl&&) noexcept				   = delete;
 		using base_type																   = base_type_new;
 		NIHILUS_HOST static constexpr bool filter() {
-			return detail::is_same_v<typename base_type::enum_type, weight_types>;
+			return false;
 		}
 
-		NIHILUS_HOST static void impl(base_type& core_traits_new, array<array<void*, model_traits_type<config_type>::block_count>, weight_types::count>& data) {
+		template<uint64_t size> NIHILUS_HOST static void impl(base_type& core_traits, array<array<void*, model_traits_type<config_type>::block_count>, size>& data) {
 			if constexpr (base_type::data_strategy_type == data_strategy_types::per_block) {
 				for (uint64_t x = 0; x < model_traits_type<config_type>::block_count; ++x) {
-					data[base_type::enum_value][x] = static_cast<void*>(core_traits_new.get_data_ptr(x));
+					data[base_type::sub_kernel_type][x] = static_cast<void*>(core_traits.get_data_ptr(x));
 				}
 			} else {
-				data[base_type::enum_value][0] = static_cast<void*>(core_traits_new.get_data_ptr());
+				data[base_type::sub_kernel_type][0] = static_cast<void*>(core_traits.get_data_ptr());
 			}
 		}
 	};
 
-	template<typename config_type, typename core_traits_type> struct weight_mapper {
-		NIHILUS_HOST static void impl(core_traits_type& core_traits_new, array<array<void*, model_traits_type<config_type>::block_count>, weight_types::count>& data) {
-			core_traits_new.values.template impl<weight_mapper_impl>(data);
+	template<typename config_type> struct weight_mapper {
+		template<uint64_t size, typename core_traits_type>
+		NIHILUS_HOST static void impl(core_traits_type& core_traits, array<array<void*, model_traits_type<config_type>::block_count>, size>& data) {
+			core_traits.template impl<weight_mapper_impl>(data);
 		}
 	};
 
@@ -335,7 +268,7 @@ namespace nihilus {
 		using base_type																				 = base_type_new;
 		NIHILUS_HOST static constexpr bool filter() {
 			return base_type::core_type != core_types::weights && base_type::core_type != core_types::global_inputs &&
-				base_type::core_type != core_types::final_norm_and_sampling && base_type::core_type != core_types::token_embeddings;
+				base_type::core_type != core_types::global_output_and_sampling && base_type::core_type != core_types::token_embeddings;
 		}
 
 		NIHILUS_HOST static void impl(base_type& parse_core, int64_t current_block, int64_t thread_count) {
@@ -364,7 +297,7 @@ namespace nihilus {
 		NIHILUS_HOST global_output_thread_function(global_output_thread_function&&) noexcept				 = delete;
 		using base_type																						 = base_type_new;
 		NIHILUS_HOST static constexpr bool filter() {
-			return base_type::core_type == core_types::final_norm_and_sampling;
+			return base_type::core_type == core_types::global_output_and_sampling;
 		}
 
 		NIHILUS_HOST static void impl(base_type& parse_core, int64_t thread_count) {
@@ -413,7 +346,7 @@ namespace nihilus {
 		using base_type																				 = base_type_new;
 		NIHILUS_HOST static constexpr bool filter() {
 			return base_type::core_type != core_types::weights && base_type::core_type != core_types::global_inputs &&
-				base_type::core_type != core_types::final_norm_and_sampling && base_type::core_type != core_types::token_embeddings;
+				base_type::core_type != core_types::global_output_and_sampling && base_type::core_type != core_types::token_embeddings;
 		}
 
 		NIHILUS_HOST static void impl(base_type& parse_core, int64_t current_block) {
@@ -431,7 +364,7 @@ namespace nihilus {
 		NIHILUS_HOST global_output_thread_function(global_output_thread_function&&) noexcept				 = delete;
 		using base_type																						 = base_type_new;
 		NIHILUS_HOST static constexpr bool filter() {
-			return base_type::core_type == core_types::final_norm_and_sampling;
+			return base_type::core_type == core_types::global_output_and_sampling;
 		}
 
 		NIHILUS_HOST static void impl(base_type& parse_core) {

@@ -28,6 +28,7 @@ RealTimeChris (Chris M.)
 #include <nihilus-incl/cpu/thread_pool.hpp>
 #include <nihilus-incl/cuda/thread_pool.hpp>
 #include <nihilus-incl/common/input_collector.hpp>
+#include <nihilus-incl/common/data_traits.hpp>
 #include <nihilus-incl/common/tuple.hpp>
 #include <nihilus-incl/infra/jitter_generator.hpp>
 #include <algorithm>
@@ -71,9 +72,12 @@ namespace nihilus {
 	template<uint64_t index_new, typename... types> struct model;
 
 	template<uint64_t index_new, typename config_type> struct model<index_new, config_type>
-		: public input_collector<config_type>, public thread_pool<config_type>, public tokenizer<config_type, config_type::model_arch, config_type::tokenizer_type> {
+		: public input_collector<config_type>,
+		  public thread_pool<config_type>,
+		  public tokenizer<config_type, config_type::model_arch, config_type::tokenizer_type>,
+		  public get_nihilus_cathedral_array_t<config_type, tensor_types, data_holder_aggregator, indexed_data_holder> {
 		using thread_pool_type		 = thread_pool<config_type>;
-		using nihilus_cathedral_type = get_nihilus_cathedral_t<config_type>;
+		//using nihilus_cathedral_type = get_nihilus_cathedral_t<config_type>;
 		using tokenizer_type		 = tokenizer<config_type, config_type::model_arch, config_type::tokenizer_type>;
 
 		NIHILUS_HOST model() noexcept {
@@ -90,14 +94,11 @@ namespace nihilus {
 		NIHILUS_HOST bool process_input_impl(rt_string& input, [[maybe_unused]] uint64_t seed_new = 0) {
 			tokenizer_type::init_rng(seed_new);
 			input = input.size() > config_type::max_sequence_length ? input.substr(0, config_type::max_sequence_length) : input;
-			tokenizer_type::tokenizer_init(this->template get_core<core_types::global_inputs>().values.template get_core<global_input_types::inp_tokens>().get_data());
-			using output_type =
-				detail::remove_cvref_t<decltype(this->template get_core<core_types::global_inputs>().values.template get_core<global_input_types::inp_tokens>())>::output_type;
+			tokenizer_type::tokenizer_init(this->template get_core<tensor_types::inp_tokens>().get_data());
+			using output_type = detail::remove_cvref_t<decltype(this->template get_core<tensor_types::inp_tokens>())>::output_type;
 			output_type val{ 1 };
-			memory_transfer<config_type>::host_to_device(val,
-				this->template get_core<core_types::global_inputs>().values.template get_core<global_input_types::inp_pos>().get_data() + 1);
-			memory_transfer<config_type>::host_to_device(val,
-				this->template get_core<core_types::global_inputs>().values.template get_core<global_input_types::inp_out_ids>().get_data());
+			memory_transfer<config_type>::host_to_device(val, this->template get_core<tensor_types::inp_pos>().get_data() + 1);
+			memory_transfer<config_type>::host_to_device(val, this->template get_core<tensor_types::inp_out_ids>().get_data());
 			generate_causal_mask();
 			execute_model(input);
 			return false;
@@ -105,14 +106,14 @@ namespace nihilus {
 
 		NIHILUS_HOST bool process_input_impl() {
 			input_collector<config_type>::read_multiline();
-			tokenizer_type::tokenizer_init(this->template get_core<core_types::global_inputs>().values.template get_core<global_input_types::inp_tokens>().get_data());
+			tokenizer_type::tokenizer_init(this->template get_core<tensor_types::inp_tokens>().get_data());
 			using output_type =
-				detail::remove_cvref_t<decltype(this->template get_core<core_types::global_inputs>().values.template get_core<global_input_types::inp_tokens>())>::output_type;
+				detail::remove_cvref_t<decltype(this->template get_core<tensor_types::inp_tokens>())>::output_type;
 			output_type val{ 1 };
 			memory_transfer<config_type>::host_to_device(val,
-				this->template get_core<core_types::global_inputs>().values.template get_core<global_input_types::inp_pos>().get_data() + 1);
+				this->template get_core<tensor_types::inp_pos>().get_data() + 1);
 			memory_transfer<config_type>::host_to_device(val,
-				this->template get_core<core_types::global_inputs>().values.template get_core<global_input_types::inp_out_ids>().get_data());
+				this->template get_core<tensor_types::inp_out_ids>().get_data());
 			generate_causal_mask();
 			execute_model(input_collector<config_type>::get_view());
 			input_collector<config_type>::clear();
@@ -131,8 +132,8 @@ namespace nihilus {
 			}
 			memory.init(nihilus_cathedral_memory_plan<config_type>.peak_allocated_bytes);
 			this->template impl<memory_mapper>(nihilus_cathedral_memory_plan<config_type>, memory);
-			array<array<void*, model_traits_type<config_type>::block_count>, weight_types::count> data{};
-			weight_mapper<config_type, core_traits_new<config_type, core_types::weights>>::impl(*static_cast<core_traits_new<config_type, core_types::weights>*>(this), data);
+			array<array<void*, model_traits_type<config_type>::block_count>, 4ull> data{};
+			weight_mapper<config_type>::impl(*this, data);
 
 			if constexpr (config_type::benchmark || config_type::dev) {
 				perf_base<config_type>::perf_stats.load_start = clock_type::now();
@@ -154,10 +155,10 @@ namespace nihilus {
 			}
 
 			exec_params.sequence_length =
-				tokenizer_type::tokenize(input, this->template get_core<core_types::global_inputs>().values.template get_core<global_input_types::inp_tokens>().get_data());
+				tokenizer_type::tokenize(input, this->template get_core<tensor_types::inp_tokens>().get_data());
 
 			using core_type_inp_pos =
-				detail::remove_cvref_t<decltype(this->template get_core<core_types::global_inputs>().values.template get_core<global_input_types::inp_pos>())>;
+				detail::remove_cvref_t<decltype(this->template get_core<tensor_types::inp_pos>())>;
 			static array<typename core_type_inp_pos::output_type, config_type::max_sequence_length> inp_pos_values{ [] {
 				array<typename core_type_inp_pos::output_type, config_type::max_sequence_length> return_values;
 				for (uint64_t x = 0; x < config_type::max_sequence_length; ++x) {
@@ -166,12 +167,12 @@ namespace nihilus {
 				return return_values;
 			}() };
 			memory_transfer<config_type>::host_to_device(inp_pos_values.data(),
-				this->template get_core<core_types::global_inputs>().values.template get_core<global_input_types::inp_pos>().get_data(), exec_params.sequence_length);
+				this->template get_core<tensor_types::inp_pos>().get_data(), exec_params.sequence_length);
 
 			using core_type_inp_out_ids =
-				detail::remove_cvref_t<decltype(this->template get_core<core_types::global_inputs>().values.template get_core<global_input_types::inp_out_ids>())>;
+				detail::remove_cvref_t<decltype(this->template get_core<tensor_types::inp_out_ids>())>;
 			memory_transfer<config_type>::host_to_device(static_cast<typename core_type_inp_out_ids::output_type>(exec_params.sequence_length - 1),
-				this->template get_core<core_types::global_inputs>().values.template get_core<global_input_types::inp_out_ids>().get_data());
+				this->template get_core<tensor_types::inp_out_ids>().get_data());
 
 			if constexpr (config_type::benchmark || config_type::dev) {
 				perf_base<config_type>::perf_stats.prompt_token_count	 = exec_params.sequence_length;
@@ -247,11 +248,11 @@ namespace nihilus {
 		}
 
 		NIHILUS_HOST void generate_causal_mask() {
-			using core_type	  = detail::remove_cvref_t<decltype(this->template get_core<core_types::global_inputs>().values.template get_core<global_input_types::kq_mask>())>;
+			using core_type	  = detail::remove_cvref_t<decltype(this->template get_core<tensor_types::kq_mask>())>;
 			using output_type = typename core_type::output_type;
 
-			output_type* mask_data	   = this->template get_core<core_types::global_inputs>().values.template get_core<global_input_types::kq_mask>().get_data();
-			static constexpr auto dims = core_type::get_array();
+			output_type* mask_data	   = this->template get_core<tensor_types::kq_mask>().get_data();
+			static constexpr auto dims = core_type::dims;
 			const uint64_t total_dims  = dims[0] * dims[1] * dims[2] * dims[3];
 			output_type value{};
 			for (uint64_t x = 0; x < total_dims; ++x) {
@@ -615,13 +616,13 @@ namespace nihilus {
 		}
 
 		NIHILUS_HOST void prep_input_impl(batch_request_metadata<request_type>& request) {
-			auto& inp_pos_ref	  = this->template get_core<core_types::global_inputs>().values.template get_core<global_input_types::inp_pos>();
-			auto& inp_tokens_ref  = this->template get_core<core_types::global_inputs>().values.template get_core<global_input_types::inp_tokens>();
-			auto& inp_out_ids_ref = this->template get_core<core_types::global_inputs>().values.template get_core<global_input_types::inp_out_ids>();
+			auto& inp_pos_ref	  = this->template get_core<tensor_types::inp_pos>();
+			auto& inp_tokens_ref  = this->template get_core<tensor_types::inp_tokens>();
+			auto& inp_out_ids_ref = this->template get_core<tensor_types::inp_out_ids>();
 			tokenizer_type::init_rng(request.request_ptr->seed);
 			tokenizer_type::tokenizer_init(inp_tokens_ref.get_data() + request.input_token_offset);
 			using output_type =
-				detail::remove_cvref_t<decltype(this->template get_core<core_types::global_inputs>().values.template get_core<global_input_types::inp_tokens>())>::output_type;
+				detail::remove_cvref_t<decltype(this->template get_core<tensor_types::inp_tokens>())>::output_type;
 			output_type val{ 1 };
 			memory_transfer<config_type>::host_to_device(val, inp_pos_ref.get_data() + 1 + request.input_token_offset);
 			memory_transfer<config_type>::host_to_device(val, inp_out_ids_ref.get_data() + request.input_token_offset);
